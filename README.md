@@ -1,70 +1,58 @@
 # BushfireReadyGPT
 
-BushfireReadyGPT is an Australia-focused Streamlit prototype for bushfire emergency preparedness planning. It converts a location, audience, scenario and planning focus into a structured English draft report, supported by local Ollama generation, an evidence trail, ABS-derived community context, official source registers and exportable audit records.
+BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It helps councils, schools and community resilience teams generate structured draft preparedness reports from a selected location, audience, scenario and planning focus.
 
-The project was adapted from the open-source WildfireGPT / MARSHA project. Original United States wildfire datasets, experiments and inactive tools are treated as local legacy reference material only; the main application no longer treats those files as Australian evidence.
+The project runs locally through Ollama, exposes a deterministic multi-agent evidence trail, uses ABS / ASGS-derived Australian data context, and exports reviewable reports with human sign-off and audit records.
 
-## Key Features
+This project was adapted from the open-source WildfireGPT / MARSHA project. Original United States wildfire data, experiments and inactive tools are treated as local legacy reference material only; the active application is now positioned around Australian bushfire preparedness.
 
-- Form-based report generation for councils, schools, communities, households, care facilities and land management scenarios.
-- Fixed English report structure covering purpose, scope, selected geography, local risk context, evacuation planning, candidate assembly point criteria, roles, communications, training, action planning and safety disclaimers.
-- Local multi-agent analysis pipeline: Profile, Australian Data, Community Vulnerability, Risk Context, Planner, Report and Report Quality agents.
-- Evidence Trail panel showing intermediate agent outputs, matched geography, community profile evidence, official sources, risk factors and limitations.
-- Deterministic Evidence Tables appended to generated reports for selected geography, community indicators, LGA candidates, official sources and human-review limitations.
-- Government Pilot Mode for school, council and community workshop trials.
-- Demo Mode / Sample Scenario Pack with one-click load or generate for Cairns council, Cairns school and remote Queensland walkthroughs.
-- Presentation Mode / Demo Script with presenter steps, expected questions and a live checklist.
-- Project Maturity / Commercial Gap Assessment with readiness scores, gaps and roadmap.
-- Live Official Status Panel that checks official entry-point reachability without interpreting emergency warnings.
-- Data Register for ABS, Queensland Government, BoM and other official source metadata.
-- Licence Register for ABS, BoM, Queensland Government, Cairns Council and Triple Zero reuse assumptions.
-- Human Review Checklist, reviewer sign-off records and audit JSON export for traceability.
-- All-Australia offline SA2 / SA3 / SA4 geography selection using ABS-derived data.
-- Map selection linked to the Community Vulnerability Agent and final report generation.
-- Markdown, PDF and DOCX report export.
-- Pilot Export Package zip containing report Markdown, PDF, DOCX, audit JSON, reviewer sign-off and data register files.
-- Local Ollama runtime; no OpenAI API key is required.
-- VSCode task entry for one-click startup.
+## Current Status
 
-## Current Maturity
+**Stage:** Government-pilot MVP
 
-The project is currently a working MVP suitable for coursework, internship demonstration, portfolio use and early stakeholder discussion. It is not yet ready for operational emergency management or government procurement without further validation.
+Ready for:
 
-Already implemented:
+- Internship demonstration
+- Coursework or portfolio showcase
+- Controlled stakeholder discussion
+- Early school, council or community pilot scoping
 
-- Australia-specific bushfire preparedness positioning.
-- Form-first workflow instead of a generic chatbot page.
-- Local Ollama model integration.
-- Multi-agent analysis flow with visible intermediate evidence.
-- ABS raw / processed data separation.
-- All-Australia SA2 / SA3 / SA4 selection.
-- ABS ASGS allocation and correspondence files for official geography traceability.
-- Report exports include a draft notice, human-review boundary and evidence tables for audit review.
-- Markdown, PDF, DOCX and audit JSON export.
-- Government pilot governance screens.
-- Reviewer Approval / Human Sign-off workflow for recording reviewer name, role, review date, approval status and notes.
-- One-click pilot package export for stakeholder handover and controlled pilot review.
-- VSCode startup task.
+Not ready for:
 
-Still required before commercial or government use:
+- Operational emergency management
+- Public life-safety decision support
+- Government procurement
+- Commercial deployment without legal, security, privacy and licence review
 
-- Replace approximate regional matching with verified official correspondence files where needed.
-- Add live warning and incident status panels from official sources.
-- Add stronger source citation and data freshness controls.
-- Add role-based access, deployment hardening and privacy controls.
-- Add formal user testing with a school, council or community resilience team.
-- Complete legal review for licences, disclaimers, procurement claims and liability boundaries.
+## What It Does
 
-## Run The App
+- Generates formal English bushfire preparedness draft reports.
+- Supports council, school, community, household, care facility and land management scenarios.
+- Uses a form-first workflow rather than a generic chatbot flow.
+- Runs a local Australia-focused multi-agent analysis pipeline.
+- Shows an Evidence Trail with profile, official source, community vulnerability, risk and planning outputs.
+- Uses local ABS / ASGS-derived geography and community context.
+- Provides official source, data and licence registers.
+- Adds draft notices, evidence tables, safety disclaimers and human review sign-off.
+- Exports Markdown, PDF, DOCX and pilot export packages.
+- Runs locally with Ollama, so no OpenAI API key is required.
 
-Make sure Ollama is installed, running and has a model available:
+## Safety Boundary
+
+BushfireReadyGPT does **not** provide live fire conditions, fire bans, evacuation orders, official safe routes, confirmed safe assembly points or life-safety decisions.
+
+It is a preparedness planning and draft reporting tool. In an emergency, follow official emergency services and call `000` if life is at risk.
+
+## Quick Start
+
+Make sure Ollama is installed and has the configured model:
 
 ```powershell
 ollama pull qwen2.5:7b
 ollama serve
 ```
 
-The project root should contain `.env`:
+Create `.env` in the project root:
 
 ```env
 LLM_PROVIDER=ollama
@@ -80,118 +68,146 @@ Tasks: Run Task
 Start BushfireReadyGPT
 ```
 
-Or run from the project root:
+Or run from PowerShell:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\start_app.ps1
 ```
 
-The startup script checks Ollama and automatically selects an available Streamlit port from `8501` to `8505`. Closing the running Streamlit terminal, or pressing `Ctrl + C`, releases the port.
+The startup script checks Ollama and automatically selects an available Streamlit port from `8501` to `8505`. Keep the terminal open while using the app. Press `Ctrl + C` or close the terminal to stop Streamlit and release the port.
+
+## Demo Path
+
+For the cleanest demonstration:
+
+1. Open the app.
+2. Go to `Create Report`.
+3. Select `Cairns Council pilot`.
+4. Click `Load example`.
+5. Click `Generate report`.
+6. Show `Latest Report Preview`.
+7. Open `Review & Export` and show the Evidence Trail, Report Quality Check and Human Review Checklist.
+8. Open `Data & Map` and show official sources, data status, licence register and map context.
+9. Download the pilot export package.
+10. Explain the safety boundary and current commercial limitations.
+
+See [docs/demo_walkthrough.md](docs/demo_walkthrough.md) for a full presentation script.
+
+## Documentation
+
+Start with:
+
+- [docs/README.md](docs/README.md) - Documentation index and recommended reading order.
+- [docs/showcase_package.md](docs/showcase_package.md) - Showcase package for presentations and portfolio review.
+- [docs/project_overview.md](docs/project_overview.md) - Plain project explanation and positioning.
+- [docs/demo_walkthrough.md](docs/demo_walkthrough.md) - Step-by-step live demo walkthrough.
+- [docs/showcase_checklist.md](docs/showcase_checklist.md) - Pre-presentation readiness checklist.
+
+Project and commercial context:
+
+- [docs/architecture.md](docs/architecture.md) - Architecture, agent responsibilities and data flow.
+- [docs/project_reassessment.md](docs/project_reassessment.md) - Current maturity, gaps and next build order.
+- [docs/commercial_gap_assessment.md](docs/commercial_gap_assessment.md) - Commercial and government-readiness gap assessment.
+- [docs/commercial_readiness_checklist.md](docs/commercial_readiness_checklist.md) - Commercial readiness checklist.
+- [docs/pilot_pitch.md](docs/pilot_pitch.md) - One-page pilot pitch.
+- [docs/pilot_feedback_form.md](docs/pilot_feedback_form.md) - Controlled pilot feedback form.
+
+## Architecture Summary
+
+```text
+Streamlit UI
+  -> Report form and workspace tabs
+  -> Deterministic multi-agent pipeline
+      -> Profile Agent
+      -> Australian Data Agent
+      -> Community Vulnerability Agent
+      -> Risk Context Agent
+      -> Planner Agent
+      -> Report Agent
+      -> Report Quality Agent
+  -> Local Ollama generation
+  -> Evidence tables, sign-off and audit JSON
+  -> Markdown / PDF / DOCX / pilot package export
+```
 
 ## Project Structure
 
 ```text
-src/wildfireChat.py                 Streamlit application
-src/app_state.py                    Shared Streamlit state helpers and latest-report utilities
-src/session_store.py                Session persistence, thread sync and conversation reset
+src/wildfireChat.py                 Streamlit application entry
+src/app_state.py                    Shared Streamlit state helpers
+src/session_store.py                Session persistence and conversation reset
 src/report_workflow.py              Report generation, audit and human-review workflow
-src/ui/                             Streamlit UI modules for theme, layout, reports, review, data/source, map and sidebar views
+src/ui/                             Streamlit UI modules
 src/app_catalog.py                  Official sources, form options and pilot examples
-src/report_template.py              English report prompt and fixed report structure
-src/agents/                         Local Australia-focused multi-agent pipeline
-src/assistants/                     Model client and active profile/chat assistant layer
+src/report_template.py              Fixed English report prompt and report structure
+src/agents/                         Australia-focused multi-agent pipeline
+src/assistants/                     Model client and conversation assistant layer
 src/coverage_map.py                 SA2 / SA3 / SA4 map and community profile loading
-src/data_register.py                Data source register for pilot governance
+src/data_register.py                Data source register
 src/licence_register.py             Licence register loader and export helpers
 src/data_status.py                  Data status and source checks
 src/audit.py                        Audit JSON saving
 src/pdf_export.py                   PDF report export
 src/docx_export.py                  DOCX report export
-data_australia/official_sources.yml Official information source metadata
-data_australia/licence_register.yml Official source licence assumptions and review status
-data_australia/risk_context_rules.yml
-                                    Australia / Queensland / Cairns risk rules
-data_australia/raw/                 Raw official downloads or API responses
-data_australia/processed/           Cleaned data used by agents
-scripts/download_abs_community_profiles.py
-                                    Configured ABS community profile download script
-scripts/download_abs_sa2_all.py     All-Australia ABS SA2 profile and boundary script
-scripts/download_abs_asgs_allocations.py
-                                    ABS ASGS allocation / correspondence download script
-docs/README.md                     Documentation index and recommended reading order
-docs/architecture.md                Architecture, data flow and agent responsibilities
-docs/showcase_package.md            Showcase material index for presentations and portfolio review
-docs/project_overview.md            First-time project explanation and current positioning
-docs/demo_walkthrough.md            Step-by-step live demonstration walkthrough
-docs/showcase_checklist.md          Pre-presentation readiness checklist
-docs/demo_scenarios.md              Built-in demo scenario pack
-docs/commercial_gap_assessment.md   Maturity, commercial gap and roadmap assessment
-docs/project_reassessment.md        Current reassessment, gaps and recommended next build order
-docs/licence_register.md            Licence assumptions and commercial review notes
-docs/legacy_cleanup_plan.md         Archived legacy module notes
-chat_history/                       Local reports and interaction logs
-chat_history/audit/                 Government pilot audit JSON records
-legacy/                            Optional local archive of inactive original-project material; ignored by Git
-tests/                              Deterministic regression tests for core project flows
+data_australia/                     Australian metadata, rules and lightweight processed data
+scripts/                            Data download / rebuild scripts
+docs/                               Project, demo, governance and commercial-readiness docs
+tests/                              Deterministic regression tests
 start_app.ps1                       VSCode / PowerShell startup entry
-```
-
-## Run Tests
-
-The project includes a small deterministic test suite for the local agent pipeline, report appendices, data and licence registers, and pilot export package.
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
 ```
 
 ## Data Notes
 
-The current data layer is split as follows:
+The active data layer is under `data_australia/`.
 
 - `data_australia/raw/` stores raw official downloads or API responses for traceability.
-- `data_australia/processed/` stores cleaned CSV / GeoJSON files used by the agents.
-- `legacy/` may keep original-project material locally as an inactive archive. It is ignored by Git and is not part of the active Australian evidence layer.
+- `data_australia/processed/` stores cleaned files used by the agents.
+- Large raw and geospatial files are intentionally ignored by Git.
+- `legacy/` may contain inactive original-project material locally, but it is ignored by Git and is not part of the active Australian evidence layer.
 
-The all-Australia map selector uses:
-
-```text
-data_australia/processed/sa2_profiles_all.csv
-data_australia/processed/sa2_boundaries_all.geojson
-data_australia/processed/sa2_boundaries_by_state/*.geojson
-```
-
-To rebuild the all-Australia SA2 / SA3 / SA4 selection data:
+To rebuild all-Australia SA2 / SA3 / SA4 selection data:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\download_abs_sa2_all.py
 ```
 
-To rebuild the official ASGS allocation and correspondence reference layer:
+To rebuild ASGS allocation and correspondence reference data:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\download_abs_asgs_allocations.py
 ```
 
-This creates:
+## Tests
 
-```text
-data_australia/processed/asgs_allocations/sa2_to_sa3_sa4_state_2021.csv
-data_australia/processed/asgs_allocations/lga_2025_summary.csv
-data_australia/processed/asgs_allocations/lga_2024_to_2025_correspondence.csv
-data_australia/processed/asgs_allocations/metadata.json
+Run the deterministic test suite:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Large raw and processed geospatial files are intentionally ignored by Git.
+Current expected result:
 
-## Safety Boundary
+```text
+6 passed
+```
 
-This application does not provide live fire conditions, fire bans, evacuation orders, official safe routes or life-safety decisions. It is a preparedness planning and draft reporting tool. In an emergency, follow official emergency services and call `000` if life is at risk.
+## Git Baseline
 
-## Suggested Next Extensions
+The project currently has two clear local Git commits:
 
-- Add a live official information status panel using Queensland and BoM sources.
-- Add formal data freshness indicators for every report.
-- Add scenario-specific templates for councils, schools, care facilities, households and remote communities.
-- Add reviewer accounts, approvals and signed report status.
-- Add a deployable cloud architecture with private data handling and access control.
-- Prepare a pilot package for one council or school, including a demo script, data register, review process and feedback form.
+```text
+8c3c895 Create BushfireReadyGPT MVP baseline
+e83cdb2 Refine showcase documentation
+```
+
+Ignored local files include `.env`, `.venv/`, runtime chat history, large raw/geospatial data and `legacy/`.
+
+## Next Improvement Areas
+
+Without expanding the feature set, the next polishing work is:
+
+- Keep README and docs aligned as the project changes.
+- Strengthen UI smoke tests for the main workflow.
+- Add data-confidence wording to reports and demo materials.
+- Prepare a polished sample report package for one scenario.
+- Review licence and disclaimer language with a legal/risk advisor before any commercial positioning.
