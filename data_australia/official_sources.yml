@@ -1,0 +1,42 @@
+sources:
+  - id: qfd_qfes
+    name: Queensland Fire Department / QFES
+    url: https://www.fire.qld.gov.au/
+    scope: [queensland, fire, preparedness, warnings]
+    purpose: Queensland fire safety, bushfire preparedness, warnings, and incident guidance.
+    use_when: Verify bushfire warnings, fire preparedness guidance, or Queensland fire agency information.
+
+  - id: get_ready_qld_bushfire
+    name: Get Ready Queensland - Current Bushfire Incidents
+    url: https://www.getready.qld.gov.au/alerts-and-warnings/current-bushfire-incidents
+    scope: [queensland, bushfire, incidents, warnings]
+    purpose: Queensland current bushfire incident entry point and public warning information.
+    use_when: Remind users to verify current bushfire incidents through official Queensland sources.
+
+  - id: qld_current_warnings
+    name: Queensland Government Current Warnings
+    url: https://www.disaster.qld.gov.au/current-warnings
+    scope: [queensland, disaster, warnings]
+    purpose: Queensland government current disaster warnings and emergency information.
+    use_when: Verify state-level disaster warnings, severe weather, and emergency information.
+
+  - id: cairns_disaster
+    name: Cairns Regional Council Disaster Information
+    url: https://www.cairns.qld.gov.au/community-and-environment/natural-disasters/stay-informed
+    scope: [cairns, council, local, disaster]
+    purpose: Cairns local disaster information, council updates, and local service impacts.
+    use_when: The location is Cairns or the report needs local council disaster information.
+
+  - id: bom_qld_warnings
+    name: Bureau of Meteorology Queensland Warnings
+    url: https://www.bom.gov.au/qld/warnings/
+    scope: [queensland, weather, fire_weather, warnings]
+    purpose: Queensland weather warnings, fire weather, heat, smoke-related weather context, and severe weather information.
+    use_when: Verify weather, heat, smoke, fire weather, or severe weather risk.
+
+  - id: triple_zero
+    name: Triple Zero (000)
+    url: https://www.triplezero.gov.au/
+    scope: [australia, emergency, life_safety]
+    purpose: Australian emergency phone number for life-threatening situations.
+    use_when: There is immediate danger to life, fire, medical emergency, or urgent rescue need.

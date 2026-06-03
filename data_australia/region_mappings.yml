@@ -1,0 +1,72 @@
+regions:
+  - location: Cairns
+    state: Queensland
+    geography_type: LGA approximation from 2021 SA2 names
+    lga_code: LGA32080
+    match_method: configured_sa2_names
+    notes: >
+      Prototype mapping for Cairns Regional Council context. It uses configured
+      2021 SA2 names that align with the main Cairns urban, northern beaches,
+      southern corridor and Babinda/Gordonvale areas. Verify against an official
+      ABS SA2-to-LGA correspondence before operational use.
+    sa2_names:
+      - Babinda
+      - Bentley Park
+      - Brinsmead
+      - Cairns City
+      - Clifton Beach - Kewarra Beach
+      - Earlville - Bayview Heights
+      - Edmonton
+      - Freshwater - Stratford
+      - Gordonvale - Trinity
+      - Kanimbla - Mooroobool
+      - Lamb Range
+      - Manoora
+      - Manunda
+      - Mount Sheridan
+      - Redlynch
+      - Trinity Beach - Smithfield
+      - Westcourt - Bungalow
+      - White Rock
+      - Whitfield - Edge Hill
+      - Wooroonooran
+      - Woree
+      - Yorkeys Knob - Machans Beach
+
+  - location: Brisbane
+    state: Queensland
+    geography_type: CBD and inner Brisbane SA2 demonstration subset
+    match_method: configured_sa2_names
+    notes: >
+      Demonstration subset only. Replace with an official Brisbane LGA or GCCSA
+      mapping before treating it as a full regional profile.
+    sa2_names:
+      - Brisbane City
+      - East Brisbane
+      - South Brisbane
+      - Brisbane Airport
+      - Brisbane Port - Lytton
+
+  - location: Townsville
+    state: Queensland
+    geography_type: Townsville urban SA2 demonstration subset
+    match_method: configured_sa2_names
+    notes: >
+      Demonstration subset only. Expand using official SA2-to-LGA correspondence
+      for full Townsville LGA analysis.
+    sa2_names:
+      - South Townsville - Railway Estate
+      - Townsville - South
+      - Townsville City - North Ward
+
+  - location: Remote Queensland Community
+    state: Queensland
+    geography_type: Remote/regional Queensland demonstration subset
+    match_method: configured_sa2_names
+    notes: >
+      Demonstration grouping for remote community planning. It is not a formal
+      administrative geography.
+    sa2_names:
+      - Longreach
+      - Mount Isa
+      - Mount Isa Surrounds

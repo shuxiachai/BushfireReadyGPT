@@ -1,0 +1,53 @@
+rules:
+  - id: queensland_general
+    match:
+      location_keywords: [queensland, qld]
+    risk_points:
+      - Queensland bushfire planning should account for official warning systems, changing fire weather, and local disaster coordination.
+      - Preparedness plans should separate routine readiness actions from active emergency decisions.
+      - Current fire danger ratings, fire bans, warnings, and evacuation advice must be verified through official Queensland channels.
+    assumptions:
+      - The tool is not connected to live Queensland warning feeds.
+      - The report should be treated as preparedness planning support only.
+
+  - id: cairns_local
+    match:
+      location_keywords: [cairns]
+    risk_points:
+      - Cairns planning should consider tropical heat, smoke exposure, heavy rain or severe weather interactions, and road disruption.
+      - Campus and community plans should identify candidate assembly points but must not treat them as confirmed safe until checked by campus management and official guidance.
+      - Power and communications outages can affect alerts, parent/student contact, refrigeration, lighting, and access to online warning information.
+      - Surrounding vegetation, access roads, and visitor or international student awareness should be considered in communication planning.
+    assumptions:
+      - No live Cairns incident feed is connected.
+      - Candidate assembly points require local verification before use.
+
+  - id: campus_scenario
+    match:
+      scenario_keywords: [campus, school, university]
+    risk_points:
+      - Campus planning needs clear evacuation leadership, class roll checks, visitor management, and parent or guardian communication.
+      - Assembly point planning should include indoor and outdoor candidate types, accessibility, shade, smoke exposure, water, first aid, and traffic separation.
+      - Drills and staff/student role clarity are central to readiness.
+    assumptions:
+      - The report can propose role structures but cannot confirm actual campus responsibilities without local approval.
+
+  - id: community_scenario
+    match:
+      scenario_keywords: [community, neighbourhood, resident]
+    risk_points:
+      - Community planning should include vulnerable residents, transport support, multilingual communication, pets, and household readiness.
+      - Local council information and state emergency warnings should be used together.
+      - Community plans should define who checks on high-risk residents and how updates are distributed if internet or power fails.
+    assumptions:
+      - The report should avoid assigning official authority to volunteers unless the user provides confirmation.
+
+  - id: aged_care_scenario
+    match:
+      scenario_keywords: [aged care, nursing, care, elderly]
+    risk_points:
+      - Aged care and nursing settings require early decision triggers, medication continuity, mobility support, backup power, and transport coordination.
+      - Smoke and heat can create serious health risks for older people and people with respiratory conditions.
+      - Staff ratios, resident lists, and external transport providers should be confirmed before bushfire season.
+    assumptions:
+      - Clinical and evacuation decisions must be made by the facility and official emergency services.

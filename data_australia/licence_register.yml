@@ -1,0 +1,65 @@
+licence_register:
+  - id: abs_website_data
+    source_name: Australian Bureau of Statistics website and ASGS / SA2 data
+    provider: Australian Bureau of Statistics
+    source_url: https://www.abs.gov.au/website-privacy-copyright-and-disclaimer
+    licence_position: CC BY 4.0 for most ABS website material unless otherwise stated.
+    commercial_position: Potentially usable commercially with attribution when the specific product is CC BY 4.0; verify product-level exclusions.
+    attribution_required: "Source: Australian Bureau of Statistics / Based on Australian Bureau of Statistics data"
+    caching_position: Local caching is acceptable for prototype traceability, but production use should record source URL, download date and product licence.
+    exclusions_or_risks: Commonwealth Coat of Arms, ABS logo, trademarks, microdata, third-party content and product-specific exclusions are not covered by default CC BY reuse.
+    current_project_use: SA2 population/context data, ASGS allocation files and LGA reference context.
+    review_status: Needs legal/product-level review before commercial release.
+
+  - id: bom_website_and_data
+    source_name: Bureau of Meteorology website, warnings and data services
+    provider: Bureau of Meteorology
+    source_url: https://www.bom.gov.au/copyright
+    licence_position: Mixed. Some material may be CC BY or covered by data licence agreements; where no stated terms apply, commercial reuse is not permitted without permission.
+    commercial_position: Do not cache, republish or commercialise BoM warnings/data unless the specific product terms or a data licence agreement allow it.
+    attribution_required: "Bureau of Meteorology, © Commonwealth of Australia, or wording required by the specific licence."
+    caching_position: Current prototype links/checks entry-point reachability only. Do not store live warning content without licence review.
+    exclusions_or_risks: Radar images, high-resolution maps, specialised data, Indigenous weather knowledge, logos, marks and some real-time products may have restrictions.
+    current_project_use: Official source link and reachability status only; no warning content ingestion.
+    review_status: High-priority licence review required before live data integration.
+
+  - id: qld_government_material
+    source_name: Queensland Government websites and current warning entry points
+    provider: Queensland Government
+    source_url: https://www.qld.gov.au/legal/copyright
+    licence_position: CC BY 4.0 by default unless otherwise noted.
+    commercial_position: Potentially reusable with attribution where CC BY 4.0 applies; verify agency-specific pages and exclusions.
+    attribution_required: "© State of Queensland, licensed under CC BY 4.0, plus source page URL where practical."
+    caching_position: Link and citation are low risk. Caching warning content requires page-specific and operational review.
+    exclusions_or_risks: Government logos, coat of arms, trademarks, third-party material and pages with alternative notices are excluded.
+    current_project_use: Official source register and status check entry points.
+    review_status: Needs page-level review before commercial deployment.
+
+  - id: cairns_regional_council
+    source_name: Cairns Regional Council website and disaster information pages
+    provider: Cairns Regional Council
+    source_url: https://www.cairns.qld.gov.au/home/legals
+    licence_position: Council-owned material is copyright and authorisation is required before reproduction, storage or transmission.
+    commercial_position: Treat as link-only unless written permission or page-specific licence is obtained.
+    attribution_required: "Cairns Regional Council, with URL and permission terms if granted."
+    caching_position: Do not cache or reproduce council content in a commercial product without authorisation.
+    exclusions_or_risks: Council terms are more restrictive than generic CC BY assumptions; legal permission may be needed.
+    current_project_use: Official source link and status check entry point only.
+    review_status: Permission required before commercial content reuse.
+
+  - id: triple_zero
+    source_name: Triple Zero website
+    provider: Australian Government / Triple Zero
+    source_url: https://www.triplezero.gov.au/
+    licence_position: Review required. Use as an emergency contact reference rather than a content source.
+    commercial_position: Safe to reference 000 as Australia emergency number; do not imply endorsement or reproduce website content without checking terms.
+    attribution_required: Triple Zero website URL where used as an information source.
+    caching_position: Link-only in current prototype.
+    exclusions_or_risks: Do not use branding or imply affiliation.
+    current_project_use: Safety boundary and emergency number reminder.
+    review_status: Review required before commercial marketing material.
+
+notes:
+  - This register is not legal advice.
+  - Commercial deployment needs a source-by-source legal and product review.
+  - Live emergency warnings, fire bans and evacuation orders should remain authoritative at official emergency services.

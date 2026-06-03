@@ -1,0 +1,5 @@
+location,state,population,older_people_pct,no_car_households_pct,language_support_needed,risk_notes
+Cairns,Queensland,153000,16.5,8.2,medium,"Tourists, students, older residents, people without private vehicles, and smoke/heat exposure should be considered in communication and evacuation planning."
+Brisbane,Queensland,2520000,14.2,9.8,medium,"Large urban population, traffic congestion, apartment residents, and transport-dependent households should be considered."
+Townsville,Queensland,181000,15.1,7.5,medium,"Heat, regional road access, military/student populations, and smoke exposure should be considered."
+Remote Queensland Community,Queensland,2500,18.0,12.0,high,"Long travel distances, limited transport, communication outages, and vulnerable residents require early planning."

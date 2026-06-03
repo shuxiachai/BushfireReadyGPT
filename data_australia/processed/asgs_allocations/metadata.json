@@ -1,0 +1,33 @@
+{
+  "generated_at_utc": "2026-05-19T12:40:11.476361+00:00",
+  "source_page": "https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads/allocation-files",
+  "correspondence_page": "https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads/correspondences",
+  "sources": {
+    "sa2_allocation_2021": {
+      "description": "ABS ASGS Edition 3 SA2 allocation hierarchy.",
+      "url": "https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads/allocation-files/SA2_2021_AUST.xlsx",
+      "raw_file": "data_australia/raw/asgs_allocations/SA2_2021_AUST.xlsx",
+      "processed_file": "data_australia/processed/asgs_allocations/sa2_to_sa3_sa4_state_2021.csv",
+      "row_count": 2473
+    },
+    "lga_allocation_2025": {
+      "description": "ABS ASGS Edition 3 Local Government Area allocation file.",
+      "url": "https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads/allocation-files/LGA_2025_AUST.xlsx",
+      "raw_file": "data_australia/raw/asgs_allocations/LGA_2025_AUST.xlsx",
+      "processed_file": "data_australia/processed/asgs_allocations/lga_2025_summary.csv",
+      "row_count": 567
+    },
+    "lga_2024_to_2025_correspondence": {
+      "description": "ABS correspondence for converting 2024 LGAs to 2025 LGAs.",
+      "url": "https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads/correspondences/CG_LGA_2024_LGA_2025.csv",
+      "raw_file": "data_australia/raw/asgs_allocations/CG_LGA_2024_LGA_2025.csv",
+      "processed_file": "data_australia/processed/asgs_allocations/lga_2024_to_2025_correspondence.csv",
+      "row_count": 567
+    }
+  },
+  "limitations": [
+    "Allocation files provide official statistical geography hierarchy or mesh-block allocation context; they are not live emergency data.",
+    "LGA allocation is mesh-block based. Direct SA2-to-LGA operational decisions still require human GIS review where boundaries do not align cleanly.",
+    "Correspondence ratios help convert historical LGA boundaries but should not be treated as current fire-risk evidence."
+  ]
+}
