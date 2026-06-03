@@ -18,9 +18,9 @@ PILOT_DOCUMENTS = [
         "description": "One-page product positioning for council, school or community stakeholders.",
     },
     {
-        "title": "Demo Script",
-        "path": "docs/demo_script.md",
-        "description": "Five-minute walkthrough for presenting the product.",
+        "title": "Demo Walkthrough",
+        "path": "docs/demo_walkthrough.md",
+        "description": "Step-by-step walkthrough for presenting the product.",
     },
     {
         "title": "Feedback Form",

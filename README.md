@@ -118,8 +118,12 @@ scripts/download_abs_community_profiles.py
 scripts/download_abs_sa2_all.py     All-Australia ABS SA2 profile and boundary script
 scripts/download_abs_asgs_allocations.py
                                     ABS ASGS allocation / correspondence download script
+docs/README.md                     Documentation index and recommended reading order
 docs/architecture.md                Architecture, data flow and agent responsibilities
-docs/demo_guide.md                  Demonstration guide
+docs/showcase_package.md            Showcase material index for presentations and portfolio review
+docs/project_overview.md            First-time project explanation and current positioning
+docs/demo_walkthrough.md            Step-by-step live demonstration walkthrough
+docs/showcase_checklist.md          Pre-presentation readiness checklist
 docs/demo_scenarios.md              Built-in demo scenario pack
 docs/commercial_gap_assessment.md   Maturity, commercial gap and roadmap assessment
 docs/project_reassessment.md        Current reassessment, gaps and recommended next build order
