@@ -135,3 +135,35 @@ def test_quality_agent_accepts_markdown_checkboxes_and_human_review_boundary():
 
     assert checks["Checklist"] == "pass"
     assert checks["Human review status"] == "pass"
+
+
+def test_governance_notice_satisfies_safety_quality_check():
+    report = apply_governance_notice(
+        """
+        ## Executive Summary
+        ## Purpose and Scope
+        ## Selected Geography
+        ## Data Sources
+        ## Local Risk Context
+        ## Evacuation
+        ## Candidate Assembly Point Criteria
+        ## Roles and Responsibilities
+        Teacher, student, first aid and communication roles are included.
+        ## Communication
+        ## First Aid
+        ## Action Plan
+        Day 1 actions are included.
+        ## Human Review and Approval Checklist
+        - [ ] Confirm official sources.
+        ## Evidence Tables
+        Selected geography, community indicators, ASGS and official source register are included.
+        ## Human Review Sign-off
+        This remains a draft.
+        Queensland Fire QFES Queensland Disaster Cairns Regional Council Bureau of Meteorology BoM 000.
+        """
+    )
+
+    quality = ReportQualityAgent().run(report)
+    checks = {item["name"]: item["status"] for item in quality["checks"]}
+
+    assert checks["Safety disclaimer"] == "pass"

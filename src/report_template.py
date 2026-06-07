@@ -4,6 +4,8 @@ from src.agents import run_analysis_pipeline
 GOVERNANCE_NOTICE_MARKDOWN = """**DRAFT STATUS NOTICE**
 
 This report is a preparedness planning draft. It is not emergency advice, does not provide live fire conditions, and does not issue evacuation orders, fire bans or life-safety directions. The responsible organisation must review and approve this draft before formal use. In a life-threatening emergency, call 000.
+
+Safety disclaimer: live warnings, fire bans, evacuation orders and life-safety decisions must come from official emergency services and authorised public information sources.
 """
 
 
