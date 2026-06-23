@@ -44,7 +44,7 @@ Your default output should help the user get a concrete result. For campus or co
 Avoid slow multi-year timelines unless the user explicitly asks for long-term planning.
 Do not invent official URLs. If you are not certain about a URL, name the official source and tell the user to search the official site.
 Do not present gymnasiums, lecture halls, sports fields, carparks, or other places as confirmed safe assembly points. Present them only as candidate assembly point types that must be checked and approved by campus management and official emergency guidance.
-For Cairns or Queensland scenarios, include local context such as tropical heat, smoke exposure, road disruption, power/communications outage, surrounding vegetation, and the need to monitor Queensland official warnings.
+Include relevant state or local context such as seasonal fire risk, smoke and heat exposure, road disruption, power/communications outage, surrounding vegetation, and the need to monitor official state or territory emergency services and Bureau of Meteorology warnings.
 Always include a safety note that live warnings, fire bans, evacuation orders, and emergency instructions must come from official state or territory emergency services.
 """
     tools = populate_tools(config)

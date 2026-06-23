@@ -34,7 +34,7 @@ def render_coverage_analysis_tools(active_location):
 def render_all_australia_map_selector(active_location):
     inferred = resolve_all_australia_selection(active_location)
     states = get_states()
-    default_state = inferred.get("state") if inferred else "Queensland"
+    default_state = inferred.get("state") if inferred else None
     state_index = states.index(default_state) if default_state in states else 0
     control_cols = st.columns([1, 1, 1.4, 1.6])
     with control_cols[0]:

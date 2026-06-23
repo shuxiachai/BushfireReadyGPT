@@ -34,6 +34,69 @@ sources:
     purpose: Queensland weather warnings, fire weather, heat, smoke-related weather context, and severe weather information.
     use_when: Verify weather, heat, smoke, fire weather, or severe weather risk.
 
+  - id: nsw_rfs_fires_near_me
+    name: NSW Rural Fire Service - Fires Near Me
+    url: https://www.rfs.nsw.gov.au/fire-information/fires-near-me
+    scope: [new_south_wales, nsw, fire, bushfire, incidents, warnings]
+    purpose: NSW bush and grass fire incident, alert level and preparedness information entry point.
+    use_when: Verify NSW bushfire incidents, alert levels, fire danger context or RFS public information.
+
+  - id: emergency_victoria
+    name: VicEmergency - Incidents and Warnings
+    url: https://www.emergency.vic.gov.au/respond/
+    scope: [victoria, vic, fire, bushfire, incidents, warnings]
+    purpose: Victoria incidents and warnings entry point for fire, flood, storm, heat and other emergencies.
+    use_when: Verify Victorian emergency warnings, evacuation action statements, fire incidents or preparedness context.
+
+  - id: emergency_wa
+    name: Emergency WA - Warnings and Incidents
+    url: https://www.emergency.wa.gov.au/
+    scope: [western_australia, wa, fire, bushfire, incidents, warnings]
+    purpose: Western Australia emergency warnings and incidents entry point managed through WA emergency services.
+    use_when: Verify WA bushfire warnings, fire incidents, community alerts or emergency updates.
+
+  - id: alert_sa
+    name: Alert SA
+    url: https://www.alert.sa.gov.au/
+    scope: [south_australia, sa, fire, bushfire, incidents, warnings]
+    purpose: South Australia warnings and incidents entry point for bushfire and other emergencies.
+    use_when: Verify South Australian bushfire warnings, incident information or emergency updates.
+
+  - id: tasalert
+    name: TasALERT
+    url: https://alert.tas.gov.au/
+    scope: [tasmania, tas, fire, bushfire, incidents, warnings]
+    purpose: Tasmania alerts and incidents entry point for emergency public information.
+    use_when: Verify Tasmanian alerts, incidents and official emergency updates.
+
+  - id: tasmania_fire_service
+    name: Tasmania Fire Service
+    url: https://www.fire.tas.gov.au/
+    scope: [tasmania, tas, fire, bushfire, preparedness]
+    purpose: Tasmania fire safety, bushfire preparation, restrictions, fire danger and community protection information.
+    use_when: Verify Tasmanian fire preparedness, restrictions, fire danger or TFS public guidance.
+
+  - id: act_esa
+    name: ACT Emergency Services Agency
+    url: https://esa.act.gov.au/
+    scope: [australian_capital_territory, act, fire, bushfire, incidents, warnings]
+    purpose: ACT emergency services, incidents, warnings, bushfire preparedness and fire danger information.
+    use_when: Verify ACT emergency alerts, incidents, bushfire preparation guidance or fire danger information.
+
+  - id: nt_pfes
+    name: Northern Territory Police, Fire and Emergency Services
+    url: https://pfes.nt.gov.au/
+    scope: [northern_territory, nt, fire, bushfire, emergency, warnings]
+    purpose: Northern Territory police, fire and emergency services information entry point.
+    use_when: Verify Northern Territory emergency services information, fire preparedness or alert entry points.
+
+  - id: bom_warnings_alerts
+    name: Bureau of Meteorology - Warnings and Alerts
+    url: https://www.bom.gov.au/weather-and-climate/warnings-and-alerts
+    scope: [australia, weather, fire_weather, warnings]
+    purpose: National weather warnings and alerts entry point for severe weather, heat, fire weather and related hazards.
+    use_when: Verify weather warnings, heat, smoke, fire weather, severe weather or other meteorological hazards.
+
   - id: triple_zero
     name: Triple Zero (000)
     url: https://www.triplezero.gov.au/

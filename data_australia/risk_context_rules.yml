@@ -1,4 +1,6 @@
 rules:
+  # ── State-level rules ────────────────────────────────────────────────────────
+
   - id: queensland_general
     match:
       location_keywords: [queensland, qld]
@@ -9,6 +11,92 @@ rules:
     assumptions:
       - The tool is not connected to live Queensland warning feeds.
       - The report should be treated as preparedness planning support only.
+
+  - id: new_south_wales_general
+    match:
+      location_keywords: [new south wales, nsw, sydney, newcastle, wollongong, blue mountains]
+    risk_points:
+      - NSW bushfire risk is managed by NSW Rural Fire Service (RFS). Check rfs.nsw.gov.au for current warnings, fire bans and Fires Near Me app alerts.
+      - The NSW coastal and mountain interface (Blue Mountains, Hunter Valley, Illawarra) experiences elevated ember attack and wind-driven fire spread.
+      - Smoke management, road closures and power outages during prolonged fire weather should be addressed in preparedness plans.
+      - NSW State Emergency Management Plan (EMPLAN) and local council emergency plans are the authoritative planning references.
+    assumptions:
+      - The tool does not access live NSW RFS incident feeds.
+      - Local council and RFS district officers should be consulted before finalising preparedness plans.
+
+  - id: victoria_general
+    match:
+      location_keywords: [victoria, vic, melbourne, geelong, ballarat, bendigo, dandenong]
+    risk_points:
+      - Victoria bushfire risk is managed by Fire Rescue Victoria (FRV) and Country Fire Authority (CFA). Check emergency.vic.gov.au for current alerts.
+      - Victoria's bushfire danger period typically runs November to April; heatwave conditions frequently accompany high fire danger days.
+      - Urban interface communities in the Yarra Ranges, Dandenong Ranges and Macedon Ranges require specific ember protection and evacuation planning.
+      - Victorian Community Emergency Management Plans (CEMPs) and Council Emergency Management Plans provide the local planning framework.
+    assumptions:
+      - The tool does not access live CFA or FRV incident feeds.
+      - Preparedness plans should be validated against the relevant local CEMP.
+
+  - id: western_australia_general
+    match:
+      location_keywords: [western australia, wa, perth, albany, bunbury, kalgoorlie]
+    risk_points:
+      - WA bushfire risk is managed by DFES (Department of Fire and Emergency Services). Check emergency.wa.gov.au for current warnings.
+      - The Perth Hills interface, south-west agricultural zones, and remote pastoral areas have distinct fire risk profiles requiring separate planning considerations.
+      - Summer heat, wind and low relative humidity in WA can produce rapid fire spread with limited warning time.
+      - Community Bushfire Protection Plans (CBPPs) and Local Emergency Management Arrangements (LEMAs) are the local planning references.
+    assumptions:
+      - The tool does not access live DFES incident feeds.
+      - DFES district staff and local government emergency managers should be engaged before finalising plans.
+
+  - id: south_australia_general
+    match:
+      location_keywords: [south australia, sa, adelaide, mount gambier, port augusta]
+    risk_points:
+      - SA bushfire risk is managed by South Australia Country Fire Service (CFS) and Metropolitan Fire Service (MFS). Check alert.sa.gov.au for current warnings.
+      - The Adelaide Hills interface, Mid North and Eyre Peninsula have experienced severe fire seasons. Plans should reference these historical events.
+      - Extreme heat conditions (40 °C+) combined with northerly winds create rapid fire escalation risk on the Adelaide Plains and Hills.
+      - SA Local Government Act emergency planning requirements and State Emergency Management Plan apply.
+    assumptions:
+      - The tool does not access live CFS or MFS incident feeds.
+      - Local council emergency management officers should be consulted for site-specific planning.
+
+  - id: tasmania_general
+    match:
+      location_keywords: [tasmania, tas, hobart, launceston, devonport]
+    risk_points:
+      - Tasmania bushfire risk is managed by Tasmania Fire Service (TFS). Check alert.tas.gov.au for current warnings.
+      - Dry lightning in remote wilderness areas can start fires with limited ground access. Planning should account for extended smoke exposure periods.
+      - Tasmania's World Heritage wilderness areas and peat soil landscapes require specialist ecological considerations in fire management planning.
+      - Tasmanian bushfire risk may be lower in coastal areas but elevated for inland and central highland communities during summer drought conditions.
+    assumptions:
+      - The tool does not access live TFS incident feeds.
+      - Plans in wilderness interface areas should reference TFS and Parks and Wildlife Service Tasmania guidance.
+
+  - id: northern_territory_general
+    match:
+      location_keywords: [northern territory, nt, darwin, alice springs, katherine]
+    risk_points:
+      - NT fire management is shared between NT Fire and Rescue Service (urban) and NT Parks and Wildlife Commission (savanna). Check pfes.nt.gov.au for alerts.
+      - Tropical savanna fire seasons in the NT run April to October (dry season). Communities in the Top End should prepare before April.
+      - Remote community planning in the NT requires early coordination with land councils, community councils and NT Emergency Services.
+      - Smoke from large savanna fires can create significant health risks for communities hundreds of kilometres from the active fire front.
+    assumptions:
+      - The tool does not access live NT fire management feeds.
+      - Community-controlled land requires engagement with traditional owners and land councils in preparedness planning.
+
+  - id: act_general
+    match:
+      location_keywords: [australian capital territory, act, canberra]
+    risk_points:
+      - ACT bushfire risk is managed by ACT Rural Fire Service and ACT Emergency Services Agency. Check esa.act.gov.au for current warnings.
+      - The 2003 Canberra bushfires demonstrated the severe urban interface risk in ACT. Plans should reference this historical scenario for context.
+      - The ACT-NSW border interface requires cross-border coordination between ACT ESA and NSW RFS.
+      - Residential properties near Namadgi National Park and Tidbinbilla carry elevated ember attack and radiant heat risk.
+    assumptions:
+      - The tool does not access live ACT ESA incident feeds.
+      - Plans should be reviewed against the ACT Strategic Bushfire Management Plan.
+
+  # ── Locality-level rules ─────────────────────────────────────────────────────
 
   - id: cairns_local
     match:
@@ -21,6 +109,40 @@ rules:
     assumptions:
       - No live Cairns incident feed is connected.
       - Candidate assembly points require local verification before use.
+
+  - id: sydney_local
+    match:
+      location_keywords: [sydney, greater sydney, penrith, parramatta, wollongong]
+    risk_points:
+      - Sydney and Greater Sydney communities in the Blue Mountains, Hawkesbury and Northern Beaches interface face elevated ember attack and spotting risk.
+      - NSW RFS Bushfire Survivor Register and Neighbourhood Safer Places should be referenced in community plans.
+      - High population density combined with fire risk requires clear public communication and traffic management in evacuation planning.
+    assumptions:
+      - No live Sydney incident data is connected to this tool.
+      - Neighbourhood Safer Places require official local verification before inclusion in any plan.
+
+  - id: perth_local
+    match:
+      location_keywords: [perth, hills, armadale, kalamunda]
+    risk_points:
+      - Perth Hills communities face high bushfire risk from the Darling Scarp interface. DFES provides suburb-level risk maps for this area.
+      - Perth Hills evacuation routes can become congested rapidly. Early leave decisions and practiced trigger points are essential.
+      - Statewide fire bans apply to the Perth metropolitan area on days of catastrophic fire danger rating.
+    assumptions:
+      - No live Perth Hills incident data is connected to this tool.
+
+  - id: melbourne_local
+    match:
+      location_keywords: [melbourne, yarra ranges, dandenong, macedon, mornington]
+    risk_points:
+      - Melbourne interface communities in the Yarra Ranges, Dandenong Ranges and Macedon Ranges are within designated Bushfire Management Overlay (BMO) areas.
+      - CFA Bushfire Survival Plans are a required community planning tool for BMO-designated properties.
+      - School and community venue preparedness plans in the interface must account for the possibility of fire on days of Total Fire Ban.
+    assumptions:
+      - No live CFA incident data is connected to this tool.
+      - BMO designation and planning obligations should be confirmed through local council.
+
+  # ── Scenario rules ────────────────────────────────────────────────────────────
 
   - id: campus_scenario
     match:
@@ -51,3 +173,36 @@ rules:
       - Staff ratios, resident lists, and external transport providers should be confirmed before bushfire season.
     assumptions:
       - Clinical and evacuation decisions must be made by the facility and official emergency services.
+
+  - id: early_childhood_scenario
+    match:
+      scenario_keywords: [childcare, early childhood, kindergarten, preschool]
+    risk_points:
+      - Early childhood centres require parent contact chains, signed authority for emergency pick-up, and physical evacuation assistance for non-walking children.
+      - Drills must be age-appropriate. Practice should account for children's distress and slower movement speeds.
+      - Backup power for refrigeration of food, formula and medication should be planned.
+    assumptions:
+      - All emergency evacuations must comply with the service's approved emergency management plan under National Quality Framework regulations.
+
+  - id: remote_community_scenario
+    match:
+      scenario_keywords: [remote, rural, outback, indigenous community, aboriginal community]
+    risk_points:
+      - Remote communities may have limited road access during fire events. Evacuation lead times must be extended and planned in advance.
+      - Telecommunications outages are more likely in remote areas. Satellite phones, HF radio or community broadcasting should be included in communication plans.
+      - Cultural and language considerations must be integrated into all communication and training materials.
+      - Water supply, fuel, and medical supplies in remote settings require pre-season stocktaking.
+    assumptions:
+      - Remote and Aboriginal community planning must engage community leadership and land management authorities before finalisation.
+      - The tool does not have access to remote community-specific risk data beyond state-level guidance.
+
+  - id: infrastructure_scenario
+    match:
+      scenario_keywords: [infrastructure, power grid, hospital, transport, water supply, council building]
+    risk_points:
+      - Critical infrastructure assets near bushfire-prone areas require site-specific risk assessment and redundancy planning.
+      - Power, water and telecommunications interdependencies should be mapped so that cascading failures are understood before an event.
+      - Staff and contractor evacuation plans for infrastructure sites should distinguish between operational continuity staff who must remain and those who should evacuate.
+    assumptions:
+      - Infrastructure-specific planning requires engagement with the asset owner, relevant utility, and state emergency management agency.
+      - The tool does not have access to individual infrastructure asset data or operational status.

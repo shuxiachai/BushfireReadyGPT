@@ -22,13 +22,14 @@ class ReportQualityAgent:
     ]
 
     OFFICIAL_SOURCE_TERMS = [
-        "Queensland Fire",
-        "QFES",
-        "Queensland Disaster",
-        "Cairns Regional Council",
         "Bureau of Meteorology",
         "BoM",
         "000",
+        "fire service",
+        "emergency services",
+        "local council",
+        "official",
+        "state emergency",
     ]
 
     CANDIDATE_PLACE_TERMS = [
@@ -83,7 +84,7 @@ class ReportQualityAgent:
         return self._result(
             "warning",
             "Official sources",
-            "Add QFD/QFES, Queensland Disaster, local council, BoM and 000 where relevant.",
+            "Add the state fire service, local council, Bureau of Meteorology and 000 where relevant.",
         )
 
     def _check_safety_disclaimer(self, text):

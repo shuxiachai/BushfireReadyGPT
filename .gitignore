@@ -136,6 +136,8 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.claude/
+.agents/
 env/
 venv/
 ENV/

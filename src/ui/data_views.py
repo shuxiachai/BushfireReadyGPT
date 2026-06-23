@@ -1,8 +1,10 @@
 from html import escape
+from pathlib import Path
 
 import streamlit as st
+import yaml
 
-from src.app_catalog import OFFICIAL_SOURCES
+from src.agents.profile_agent import STATE_SHORT
 from src.data_register import get_data_register
 from src.data_status import get_community_data_status
 from src.licence_register import get_licence_register, licence_register_csv, licence_register_markdown
@@ -10,21 +12,69 @@ from src.official_status import check_official_sources
 from src.ui.components import render_path_line, safe_display_text
 
 
+def _get_display_sources(profile=None):
+    """Load official sources from YAML filtered by the current analysis profile.
+
+    Falls back to national-scope sources when no profile is available.
+    """
+    path = Path("data_australia/official_sources.yml")
+    if not path.exists():
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+
+    tags = {"australia"}
+    if profile and profile.get("state") and profile["state"] != "Australia":
+        state_lower = profile["state"].lower()
+        tags.add(state_lower.replace(" ", "_"))
+        short = STATE_SHORT.get(state_lower)
+        if short:
+            tags.add(short)
+        locality = profile.get("locality", "").lower()
+        location = profile.get("location", "").lower()
+        if locality and locality != location:
+            tags.add(locality)
+
+    selected = []
+    for source in raw.get("sources", []):
+        scope = {s.lower() for s in source.get("scope", [])}
+        if scope & tags:
+            selected.append({
+                "name": source["name"],
+                "url": source["url"],
+                "purpose": source.get("purpose", ""),
+                "when": source.get("use_when", ""),
+            })
+    return selected
+
+
 def render_official_sources():
     st.markdown("### Official Information Sources")
-    st.markdown(
-        """
-        <div class="source-note">
-            These are recommended official sources for verification. This module does not read
-            live warnings and does not replace emergency directions. In a real emergency, follow
-            official emergency services and call 000 if life is at risk.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    for index in range(0, len(OFFICIAL_SOURCES), 2):
+    profile = (st.session_state.get("latest_analysis") or {}).get("profile")
+    state_label = profile.get("state") if profile else None
+    if state_label and state_label != "Australia":
+        st.markdown(
+            f'<div class="source-note">Showing sources for <strong>{escape(state_label)}</strong>. '
+            "These are recommended official sources for verification. This module does not read "
+            "live warnings and does not replace emergency directions. In a real emergency, follow "
+            "official emergency services and call 000 if life is at risk.</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            """
+            <div class="source-note">
+                Showing national sources. Run an analysis to see state-specific sources.
+                This module does not read live warnings and does not replace emergency directions.
+                In a real emergency, follow official emergency services and call 000 if life is at risk.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    sources = _get_display_sources(profile)
+    for index in range(0, len(sources), 2):
         cols = st.columns(2)
-        for col, source in zip(cols, OFFICIAL_SOURCES[index : index + 2]):
+        for col, source in zip(cols, sources[index : index + 2]):
             col.markdown(
                 '<article class="official-card">'
                 f'<div class="official-name">{escape(source["name"])}</div>'
@@ -50,7 +100,8 @@ def render_official_status_panel():
     )
     if st.button("Check official source status", use_container_width=True):
         with st.spinner("Checking official source entry points..."):
-            st.session_state.official_status_result = check_official_sources(OFFICIAL_SOURCES)
+            _profile = (st.session_state.get("latest_analysis") or {}).get("profile")
+            st.session_state.official_status_result = check_official_sources(_get_display_sources(_profile))
 
     result = st.session_state.get("official_status_result")
     if not result:

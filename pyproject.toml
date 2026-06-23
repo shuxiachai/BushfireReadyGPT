@@ -2,7 +2,7 @@
 name = "bushfire-ready-gpt"
 version = "0.1.0"
 description = "Australian bushfire resilience assistant prototype"
-authors = ["Yangxinyu <xinyux@wharton.upenn.edu>"]
+authors = ["BushfireReadyGPT contributors"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

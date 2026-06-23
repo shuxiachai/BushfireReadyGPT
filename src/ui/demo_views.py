@@ -213,7 +213,7 @@ def render_government_pilot_brief():
 
             - It does not provide live fire conditions.
             - It does not issue evacuation orders, fire bans or emergency directions.
-            - It does not replace QFD, BoM, councils or emergency services.
+            - It does not replace state fire services, BoM, local councils or emergency services.
             - It does not make life-safety decisions. Call 000 in life-threatening emergencies.
 
             **Recommended pilot workflow**

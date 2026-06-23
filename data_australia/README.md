@@ -76,6 +76,26 @@ Source:
 - ABS ASGS Edition 3 allocation files: https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads/allocation-files
 - ABS ASGS Edition 3 correspondences: https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads/correspondences
 
+## GitHub Publishing Boundary
+
+The repository is set up so that lightweight processed reference files can support a reproducible demo, while large raw downloads and map files remain local:
+
+```text
+Committed:
+processed/community_profiles.csv
+processed/asgs_allocations/*.csv
+processed/asgs_allocations/metadata.json
+
+Ignored:
+raw/
+processed/sa2_profiles_all.csv
+processed/sa2_coverage.geojson
+processed/sa2_boundaries_all.geojson
+processed/sa2_boundaries_by_state/
+```
+
+Before commercial use, review the licence register, source terms, attribution requirements, caching rules and redistribution permissions.
+
 ## Important Limitations
 
 - The current processed file uses population, older-person counts, and language-at-home fields from the ABS layer.

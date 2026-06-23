@@ -37,6 +37,14 @@ Not ready for:
 - Exports Markdown, PDF, DOCX and pilot export packages.
 - Runs locally with Ollama, so no OpenAI API key is required.
 
+## Example Output
+
+For a quick view of the type of report this project produces, see:
+
+- [examples/cairns_campus_bushfire_report.md](examples/cairns_campus_bushfire_report.md) - sample draft report for a Cairns campus scenario.
+
+The sample is a static demonstration output. It is not a live emergency plan and should not be used for real operational decisions.
+
 ## Safety Boundary
 
 BushfireReadyGPT does **not** provide live fire conditions, fire bans, evacuation orders, official safe routes, confirmed safe assembly points or life-safety decisions.
@@ -45,7 +53,23 @@ It is a preparedness planning and draft reporting tool. In an emergency, follow 
 
 ## Quick Start
 
-Make sure Ollama is installed and has the configured model:
+These commands assume Windows PowerShell from the project root.
+
+Create and activate a virtual environment:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+```
+
+Install Python dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Install Ollama, then download and start the configured local model:
 
 ```powershell
 ollama pull qwen2.5:7b
@@ -112,6 +136,10 @@ Project and commercial context:
 - [docs/pilot_pitch.md](docs/pilot_pitch.md) - One-page pilot pitch.
 - [docs/pilot_feedback_form.md](docs/pilot_feedback_form.md) - Controlled pilot feedback form.
 
+Sample output:
+
+- [examples/cairns_campus_bushfire_report.md](examples/cairns_campus_bushfire_report.md) - static sample report for GitHub review.
+
 ## Architecture Summary
 
 ```text
@@ -160,10 +188,13 @@ start_app.ps1                       VSCode / PowerShell startup entry
 
 The active data layer is under `data_australia/`.
 
-- `data_australia/raw/` stores raw official downloads or API responses for traceability.
+- `data_australia/raw/` stores raw official downloads or API responses for traceability and is ignored by Git.
 - `data_australia/processed/` stores cleaned files used by the agents.
+- Lightweight processed reference files may be committed for reproducible demos.
 - Large raw and geospatial files are intentionally ignored by Git.
-- `legacy/` may contain inactive original-project material locally, but it is ignored by Git and is not part of the active Australian evidence layer.
+- Original-project legacy material is not part of the active Australian evidence layer.
+
+The committed data is intended for demonstration, traceability and planning context only. It does not provide live incident status, fire danger ratings, evacuation orders, safe routes or confirmed assembly points.
 
 To rebuild all-Australia SA2 / SA3 / SA4 selection data:
 
@@ -188,19 +219,19 @@ Run the deterministic test suite:
 Current expected result:
 
 ```text
-6 passed
+9 passed
 ```
 
-## Git Baseline
+## Git And Repository Hygiene
 
-The project currently has two clear local Git commits:
+Before publishing or sharing the repository, review the current Git status and commit the intended changes:
 
-```text
-8c3c895 Create BushfireReadyGPT MVP baseline
-e83cdb2 Refine showcase documentation
+```powershell
+git status
+git log --oneline -8
 ```
 
-Ignored local files include `.env`, `.venv/`, runtime chat history, large raw/geospatial data and `legacy/`.
+Ignored local files include `.env`, `.venv/`, `.claude/`, `.agents/`, runtime chat history and large raw/geospatial data.
 
 ## Next Improvement Areas
 

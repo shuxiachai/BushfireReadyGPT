@@ -6,7 +6,7 @@ from pathlib import Path
 
 COMMUNITY_PROCESSED_PATH = Path("data_australia/processed/community_profiles.csv")
 COMMUNITY_SAMPLE_PATH = Path("data_australia/community_profile_sample.csv")
-ABS_RAW_PATH = Path("data_australia/raw/abs_population_people_sa2_qld_subset.json")
+ABS_RAW_PATH = Path("data_australia/raw/abs_population_people_sa2_all.json")
 ASGS_METADATA_PATH = Path("data_australia/processed/asgs_allocations/metadata.json")
 
 

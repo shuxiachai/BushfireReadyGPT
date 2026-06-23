@@ -31,7 +31,7 @@ class AssistantRouter:
                 f.write(f"{self.current_thread.id}\n")
             self.new_thread = True
 
-    def get_assistant_response(self, user_message: str = None):
+    def get_assistant_response(self, user_message: str = None) -> str:
         self.new_thread = False
         full_response, run_id, tool_outputs = self.current_assistant.get_assistant_response(user_message, self.current_thread.id)
         if len(tool_outputs):
@@ -39,10 +39,10 @@ class AssistantRouter:
             full_response += self.current_assistant.respond_to_tool_output(self.current_thread.id, run_id, tool_outputs)
         elif self.new_thread:
             return self.get_assistant_response()
-        if len(self.current_assistant.visualizations) > 0:
-            full_response = [full_response, self.current_assistant.visualizations]
+        if self.current_assistant.visualizations:
+            self.pending_visualizations = list(self.current_assistant.visualizations)
             self.current_assistant.visualizations = []
-        return full_response
+        return full_response if isinstance(full_response, str) else str(full_response)
 
     def resume_conversation(self):
         self.current_thread = create_thread()

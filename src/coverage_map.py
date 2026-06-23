@@ -299,7 +299,7 @@ def _calculate_center(geojson):
     for feature in geojson.get("features", []):
         points.extend(_extract_points(feature.get("geometry", {})))
     if not points:
-        return 145.77, -16.92
+        return 134.0, -25.7
     longitude = sum(point[0] for point in points) / len(points)
     latitude = sum(point[1] for point in points) / len(points)
     return longitude, latitude

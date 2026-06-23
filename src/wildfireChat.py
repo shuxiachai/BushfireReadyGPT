@@ -127,7 +127,7 @@ def load_example_case(case_name):
 
 def apply_map_selection(map_selection):
     st.session_state.selected_map_area = dict(map_selection)
-    st.session_state.map_state = map_selection.get("state", "Queensland")
+    st.session_state.map_state = map_selection.get("state", "")
     st.session_state.map_level = map_selection.get("level", "SA4")
     st.session_state.map_area = map_selection.get("area_name", "")
     st.session_state.map_search = ""
@@ -261,6 +261,9 @@ if user_prompt := st.chat_input("Enter an additional location, audience detail o
     with st.chat_message("assistant"):
         full_response = st.session_state.assistant.get_assistant_response(user_prompt)
         st.markdown(full_response)
+        for viz in getattr(st.session_state.assistant, "pending_visualizations", []):
+            st.plotly_chart(viz, use_container_width=True)
+        st.session_state.assistant.pending_visualizations = []
 
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     persist_session_state()

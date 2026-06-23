@@ -35,6 +35,18 @@ licence_register:
     current_project_use: Official source register and status check entry points.
     review_status: Needs page-level review before commercial deployment.
 
+  - id: state_territory_government_material
+    source_name: Australian state and territory government emergency services websites (NSW, VIC, WA, SA, TAS, NT, ACT)
+    provider: NSW Government / Victorian Government / Government of Western Australia / Government of South Australia / Tasmanian Government / Northern Territory Government / ACT Government
+    source_url: https://www.australia.gov.au/about-australia/australian-government/emergency-management
+    licence_position: State and territory government websites typically apply Creative Commons (CC BY 4.0 or CC BY 3.0 AU) unless otherwise noted. Each agency page may carry different terms; verify before reuse.
+    commercial_position: Link-only use and attribution are generally low risk under standard CC BY conditions; caching warning content or reproducing agency material requires page-level review.
+    attribution_required: "© State/Territory Government [name], licensed under CC BY [version], with source page URL where practical."
+    caching_position: Current prototype links to official entry points only. Do not store or republish live warning content without review of the specific agency's terms.
+    exclusions_or_risks: Government crests, logos, trademarks, third-party images and pages with alternative copyright notices are excluded. ACT and NT pages may carry different terms from mainland state governments.
+    current_project_use: Official source register and status check entry points for NSW RFS, VicEmergency, Emergency WA, Alert SA, TasALERT, Tasmania Fire Service, ACT ESA and NT PFES.
+    review_status: Needs page-level legal review for each agency before commercial deployment or content reproduction.
+
   - id: cairns_regional_council
     source_name: Cairns Regional Council website and disaster information pages
     provider: Cairns Regional Council

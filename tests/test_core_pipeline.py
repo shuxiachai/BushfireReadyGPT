@@ -159,7 +159,7 @@ def test_governance_notice_satisfies_safety_quality_check():
         Selected geography, community indicators, ASGS and official source register are included.
         ## Human Review Sign-off
         This remains a draft.
-        Queensland Fire QFES Queensland Disaster Cairns Regional Council Bureau of Meteorology BoM 000.
+        State fire service, local council, Bureau of Meteorology BoM, official emergency services and 000.
         """
     )
 
@@ -167,3 +167,49 @@ def test_governance_notice_satisfies_safety_quality_check():
     checks = {item["name"]: item["status"] for item in quality["checks"]}
 
     assert checks["Safety disclaimer"] == "pass"
+
+
+def test_official_sources_are_state_specific_for_non_queensland_locations():
+    cases = [
+        ("Sydney, NSW", "New South Wales", "NSW Rural Fire Service"),
+        ("Melbourne, Victoria", "Victoria", "VicEmergency"),
+        ("Perth Hills, WA", "Western Australia", "Emergency WA"),
+    ]
+
+    for location, expected_state, expected_source_name in cases:
+        analysis = run_analysis_pipeline(
+            location=location,
+            audience="community residents",
+            scenario="Community workshop material",
+            concerns=["Official information sources", "Evacuation"],
+            timeframe="7-day action plan",
+            extra_context="Cross-state official source selection test.",
+        )
+
+        source_names = [source.get("name", "") for source in analysis["data"].get("sources", [])]
+        source_text = " | ".join(source_names)
+
+        assert analysis["profile"]["state"] == expected_state
+        assert expected_source_name in source_text
+        assert "Triple Zero" in source_text
+        assert "Queensland Fire" not in source_text
+        assert "Cairns Regional Council" not in source_text
+
+
+def test_cairns_still_receives_queensland_and_local_sources():
+    analysis = run_analysis_pipeline(
+        location="Cairns, Queensland",
+        audience="council officers",
+        scenario="Council community preparedness",
+        concerns=["Official information sources", "Evacuation"],
+        timeframe="7-day action plan",
+        extra_context="Queensland source selection test.",
+    )
+
+    source_names = [source.get("name", "") for source in analysis["data"].get("sources", [])]
+    source_text = " | ".join(source_names)
+
+    assert analysis["profile"]["state"] == "Queensland"
+    assert "Queensland Fire" in source_text
+    assert "Cairns Regional Council" in source_text
+    assert "Triple Zero" in source_text

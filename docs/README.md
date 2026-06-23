@@ -2,6 +2,15 @@
 
 This folder contains project explanation, demo, governance and commercial-readiness materials for BushfireReadyGPT.
 
+## Fast Reading Path
+
+If you only have a few minutes, read these in order:
+
+1. `project_overview.md` - what the project is and what it is not.
+2. `demo_walkthrough.md` - how to demonstrate the app.
+3. `../examples/cairns_campus_bushfire_report.md` - what a generated report looks like.
+4. `commercial_gap_assessment.md` - what remains before commercial or government use.
+
 ## Start Here
 
 | File | Purpose |
@@ -15,6 +24,7 @@ This folder contains project explanation, demo, governance and commercial-readin
 
 | File | Purpose |
 | --- | --- |
+| `../examples/cairns_campus_bushfire_report.md` | Static sample output for GitHub and portfolio review. |
 | `pilot_pitch.md` | One-page pilot pitch for councils, schools or community stakeholders. |
 | `pilot_feedback_form.md` | Structured feedback form for a controlled stakeholder pilot. |
 | `demo_scenarios.md` | Written reference for the built-in demo scenarios. |
@@ -28,8 +38,6 @@ This folder contains project explanation, demo, governance and commercial-readin
 | `commercial_gap_assessment.md` | Commercial and government-readiness gap assessment. |
 | `commercial_readiness_checklist.md` | Checklist of what is done and what remains before commercial positioning. |
 | `licence_register.md` | Explanation of licence assumptions tracked in `data_australia/licence_register.yml`. |
-| `legacy_cleanup_plan.md` | Notes on inactive original-project material and why it is not part of the active app. |
-
 ## Removed Redundant Docs
 
 The older `demo_guide.md` and `demo_script.md` files were removed because their content is now covered more clearly by:
@@ -53,3 +61,10 @@ For a stakeholder or pilot discussion:
 2. Demonstrate using `demo_walkthrough.md`.
 3. Collect feedback with `pilot_feedback_form.md`.
 4. Discuss maturity using `commercial_gap_assessment.md`.
+
+For GitHub reviewers:
+
+1. Start from the root `README.md`.
+2. Open the sample output in `examples/`.
+3. Read `architecture.md` only if they want implementation details.
+4. Read `commercial_gap_assessment.md` to understand current limits.

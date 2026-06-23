@@ -2,6 +2,8 @@ from pathlib import Path
 
 import yaml
 
+from src.agents.profile_agent import STATE_SHORT
+
 
 class AustralianDataAgent:
     """Selects relevant Australian official sources from local metadata."""
@@ -35,15 +37,18 @@ class AustralianDataAgent:
     def _profile_tags(self, profile):
         tags = {"australia"}
         location = profile["location"].lower()
-        scenario = profile["scenario"].lower()
 
-        if "queensland" in location or "qld" in location or "cairns" in location:
-            tags.add("queensland")
-        if "cairns" in location:
-            tags.add("cairns")
-        if "campus" in scenario or "school" in scenario or "university" in scenario:
-            tags.add("preparedness")
-        if "community" in scenario:
-            tags.add("local")
-        tags.update({"warnings", "disaster", "weather", "fire"})
+        # Use resolved state from ProfileAgent output when available
+        state = profile.get("state", "")
+        if state and state != "Australia":
+            tags.add(state.lower().replace(" ", "_"))
+            short = STATE_SHORT.get(state.lower())
+            if short:
+                tags.add(short)
+
+        # Locality-level tag (e.g. "cairns")
+        locality = profile.get("locality", "").lower()
+        if locality and locality != location:
+            tags.add(locality)
+
         return tags
