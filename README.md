@@ -69,12 +69,19 @@ Install Python dependencies:
 pip install -r requirements.txt
 ```
 
-Install Ollama, then download and start the configured local model:
+Install Ollama, then download the configured local model:
 
 ```powershell
 ollama pull qwen2.5:7b
+```
+
+Make sure the Ollama service is running before you start the app. If Ollama is already running in the background, skip this step. If it is not running, open a separate PowerShell terminal and run:
+
+```powershell
 ollama serve
 ```
+
+Keep that Ollama terminal open while using the app.
 
 Create `.env` in the project root:
 
