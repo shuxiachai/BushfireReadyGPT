@@ -4,6 +4,8 @@ BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It 
 
 The project runs locally through Ollama, exposes a deterministic multi-agent evidence trail, uses ABS / ASGS-derived Australian data context, and exports reviewable reports with human sign-off and audit records.
 
+**中文简介：** 本项目是一个面向澳洲山火应急准备场景的多智能体报告生成系统原型。系统支持本地 Ollama 大模型推理、结构化表单输入、澳洲地区数据上下文、多 Agent 分析证据链、报告质量检查以及 Markdown / PDF / DOCX 导出。项目当前定位为 MVP / Prototype，适用于学习展示、作品集和受控试点讨论，不用于真实火情判断、撤离命令或生命安全决策。
+
 This project was adapted from the open-source WildfireGPT / MARSHA project. Original United States wildfire data, experiments and inactive tools are treated as local legacy reference material only; the active application is now positioned around Australian bushfire preparedness.
 
 ## Current Status
