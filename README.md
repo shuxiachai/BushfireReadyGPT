@@ -101,6 +101,12 @@ OLLAMA_BASE_URL=http://localhost:11434/v1
 OLLAMA_MODEL=qwen2.5:7b
 ```
 
+Windows double-click startup:
+
+```text
+Double-click Start BushfireReadyGPT.bat
+```
+
 Recommended VSCode startup:
 
 ```text
