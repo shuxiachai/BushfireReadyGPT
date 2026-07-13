@@ -2,12 +2,30 @@ from zipfile import ZipFile
 from io import BytesIO
 
 from src.agents import run_analysis_pipeline
+from src.docx_export import create_report_docx
 from src.agents.report_quality_agent import ReportQualityAgent
 from src.data_status import get_community_data_status
 from src.export_package import create_pilot_export_package
 from src.licence_register import get_licence_register, licence_register_csv
+from src.pdf_export import create_report_pdf
 from src.report_workflow import validate_report_inputs
 from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
+
+
+SAMPLE_REPORT = """# Cairns Campus Preparedness Report
+
+Location: Cairns, Queensland
+Audience: students and teachers
+
+## Executive Summary
+Preparedness planning draft.
+
+| Field | Value |
+| --- | --- |
+| Scenario | School preparedness |
+
+- [ ] Confirm official sources.
+"""
 
 
 def test_analysis_pipeline_returns_expected_sections():
@@ -75,6 +93,39 @@ def test_pilot_export_package_contains_governance_files():
     assert any(name.startswith("reports/cairns_") and name.endswith(".md") for name in names)
 
 
+def test_report_exporters_create_valid_pdf_and_docx_files():
+    pdf_content = create_report_pdf(SAMPLE_REPORT)
+    docx_content = create_report_docx(SAMPLE_REPORT)
+
+    assert pdf_content.startswith(b"%PDF")
+    assert len(pdf_content) > 1000
+    assert docx_content.startswith(b"PK")
+
+    with ZipFile(BytesIO(docx_content)) as document:
+        names = set(document.namelist())
+
+    assert "word/document.xml" in names
+    assert "docProps/core.xml" in names
+
+
+def test_pilot_export_package_includes_report_formats_and_manifest_boundary():
+    package = create_pilot_export_package(
+        SAMPLE_REPORT,
+        review_record={"reviewer_name": "Test Reviewer"},
+        package_context={"location": "Cairns, Queensland"},
+    )
+
+    assert package["manifest"]["package_schema"] == "pilot-export-v1"
+    assert "Not live emergency advice" in package["manifest"]["safety_boundary"]
+
+    with ZipFile(BytesIO(package["content"])) as archive:
+        names = set(archive.namelist())
+
+    assert any(name.endswith(".pdf") for name in names)
+    assert any(name.endswith(".docx") for name in names)
+    assert "governance/package_manifest.json" in names
+
+
 def test_report_validation_requires_human_review_details_for_approved_outputs():
     base_inputs = {
         "location": "Cairns, Queensland",
@@ -100,6 +151,25 @@ def test_report_validation_requires_human_review_details_for_approved_outputs():
         }
     )
     assert validate_report_inputs(approved_inputs) is None
+
+
+def test_report_validation_rejects_missing_required_form_fields():
+    base_inputs = {
+        "location": "",
+        "audience": "students and teachers",
+        "concerns": ["Evacuation"],
+        "report_status": "Draft - human review required",
+    }
+
+    assert "location and audience" in validate_report_inputs(base_inputs)
+
+    base_inputs["location"] = "Cairns, Queensland"
+    base_inputs["audience"] = ""
+    assert "location and audience" in validate_report_inputs(base_inputs)
+
+    base_inputs["audience"] = "students and teachers"
+    base_inputs["concerns"] = []
+    assert "at least one focus area" in validate_report_inputs(base_inputs)
 
 
 def test_quality_agent_accepts_markdown_checkboxes_and_human_review_boundary():

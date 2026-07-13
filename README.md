@@ -39,6 +39,14 @@ Not ready for:
 - Exports Markdown, PDF, DOCX and pilot export packages.
 - Runs locally with Ollama, so no OpenAI API key is required.
 
+## Technical Highlights
+
+- Refactored the original chatbot-style interaction into a form-driven report generation workflow.
+- Designed a deterministic multi-agent pipeline covering profile parsing, Australian data context, community vulnerability, risk context, planning and report quality checks.
+- Replaced cloud-only OpenAI usage with local Ollama inference for offline-friendly demonstrations and no-cloud-key environments.
+- Built a reviewable evidence trail, governance notice, human sign-off section and audit-ready pilot export package.
+- Added Australia-specific official source, licence, data status and safety-boundary registries for more transparent outputs.
+
 ## Example Output
 
 For a quick view of the type of report this project produces, see:
@@ -167,6 +175,19 @@ Streamlit UI
   -> Markdown / PDF / DOCX / pilot package export
 ```
 
+```mermaid
+flowchart LR
+    A[User report form] --> B[Profile Agent]
+    B --> C[Australian Data Agent]
+    C --> D[Community Vulnerability Agent]
+    D --> E[Risk Context Agent]
+    E --> F[Planner Agent]
+    F --> G[Ollama-backed Report Generation]
+    G --> H[Report Quality Agent]
+    H --> I[Evidence Trail and Human Review]
+    I --> J[Markdown / PDF / DOCX / Pilot Package]
+```
+
 ## Project Structure
 
 ```text
@@ -228,7 +249,7 @@ Run the deterministic test suite:
 Current expected result:
 
 ```text
-9 passed
+12 passed
 ```
 
 ## Git And Repository Hygiene
