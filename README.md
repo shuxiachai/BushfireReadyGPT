@@ -1,5 +1,7 @@
 # BushfireReadyGPT
 
+[![Tests](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml/badge.svg)](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml)
+
 BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It helps councils, schools and community resilience teams generate structured draft preparedness reports from a selected location, audience, scenario and planning focus.
 
 The project runs locally through Ollama, exposes a deterministic multi-agent evidence trail, uses ABS / ASGS-derived Australian data context, and exports reviewable reports with human sign-off and audit records.
@@ -85,13 +87,13 @@ Install Ollama, then download the configured local model:
 ollama pull qwen2.5:7b
 ```
 
-Make sure the Ollama service is running before you start the app. If Ollama is already running in the background, skip this step. If it is not running, open a separate PowerShell terminal and run:
+The project launcher starts the local Ollama service automatically when needed. To run or troubleshoot Ollama manually, open a separate PowerShell terminal and run:
 
 ```powershell
 ollama serve
 ```
 
-Keep that Ollama terminal open while using the app.
+Keep that Ollama terminal open when using the manual command. The automated launcher runs the service in the background instead.
 
 Create `.env` in the project root:
 
@@ -121,7 +123,7 @@ Or run from PowerShell:
 powershell -ExecutionPolicy Bypass -File .\start_app.ps1
 ```
 
-The startup script checks Ollama and automatically selects an available Streamlit port from `8501` to `8505`. Keep the terminal open while using the app. Press `Ctrl + C` or close the terminal to stop Streamlit and release the port.
+The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It automatically selects an available port from `8501` to `8505`. Keep the terminal open while using the app. Press `Ctrl + C` or close the terminal to stop Streamlit and release the port.
 
 ## Demo Path
 
@@ -255,8 +257,14 @@ Run the deterministic test suite:
 Current expected result:
 
 ```text
-12 passed
+15 passed
 ```
+
+GitHub Actions runs the same suite automatically on Python 3.11 and 3.13 for
+pushes to `main`, pull requests targeting `main`, and manual workflow runs. The
+workflow also checks installed dependency consistency and does not require an
+Ollama service because model-service failure paths are tested with controlled
+mocks.
 
 ## Git And Repository Hygiene
 

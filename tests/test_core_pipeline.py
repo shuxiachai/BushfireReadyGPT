@@ -1,7 +1,13 @@
-from zipfile import ZipFile
+import json
 from io import BytesIO
+from pathlib import Path
+from zipfile import ZipFile
+
+import httpx
+from openai import APIConnectionError, APIStatusError
 
 from src.agents import run_analysis_pipeline
+from src.assistants.assistant import model_service_error_message
 from src.docx_export import create_report_docx
 from src.agents.report_quality_agent import ReportQualityAgent
 from src.data_status import get_community_data_status
@@ -124,6 +130,48 @@ def test_pilot_export_package_includes_report_formats_and_manifest_boundary():
     assert any(name.endswith(".pdf") for name in names)
     assert any(name.endswith(".docx") for name in names)
     assert "governance/package_manifest.json" in names
+
+
+def test_pilot_export_package_writes_one_complete_manifest_with_audit():
+    audit_path = Path(__file__).parent / "fixtures" / "sample_audit.json"
+
+    package = create_pilot_export_package(
+        SAMPLE_REPORT,
+        audit_path=audit_path,
+        review_record={"reviewer_name": "Test Reviewer"},
+        package_context={"location": "Cairns, Queensland"},
+    )
+
+    with ZipFile(BytesIO(package["content"])) as archive:
+        names = archive.namelist()
+        manifest = json.loads(archive.read("governance/package_manifest.json"))
+
+    assert names.count("governance/package_manifest.json") == 1
+    assert names.count("governance/audit_record.json") == 1
+    assert manifest["included_files"].count("governance/audit_record.json") == 1
+    assert manifest == package["manifest"]
+
+
+def test_ollama_connection_error_has_safe_recovery_guidance():
+    error = APIConnectionError(request=httpx.Request("POST", "http://localhost:11434/v1/chat/completions"))
+
+    message = model_service_error_message(error, provider="ollama", model_name="qwen2.5:7b")
+
+    assert "Cannot reach the local Ollama service" in message
+    assert "ollama serve" in message
+    assert "Traceback" not in message
+
+
+def test_ollama_missing_model_error_has_pull_command():
+    request = httpx.Request("POST", "http://localhost:11434/v1/chat/completions")
+    response = httpx.Response(404, request=request)
+    error = APIStatusError("model not found", response=response, body={"error": "model not found"})
+
+    message = model_service_error_message(error, provider="ollama", model_name="qwen2.5:7b")
+
+    assert "configured model `qwen2.5:7b` is unavailable" in message
+    assert "ollama pull qwen2.5:7b" in message
+    assert "model not found" not in message
 
 
 def test_report_validation_requires_human_review_details_for_approved_outputs():

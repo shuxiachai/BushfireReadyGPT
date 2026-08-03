@@ -138,6 +138,7 @@ celerybeat.pid
 .venv
 .claude/
 .agents/
+/项目描述说明.md
 env/
 venv/
 ENV/

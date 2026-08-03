@@ -6,6 +6,7 @@ import streamlit as st
 
 from src.agents import run_analysis_pipeline
 from src.agents.report_quality_agent import ReportQualityAgent
+from src.assistants.assistant import ModelServiceError
 from src.audit import save_report_audit
 from src.report_template import (
     append_evidence_tables,
@@ -173,7 +174,12 @@ def generate_current_report(persist_session_state):
         governance_context=governance_context,
     )
     st.session_state.messages.append({"role": "user", "content": prompt})
-    full_response = st.session_state.assistant.get_assistant_response(prompt)
+    try:
+        full_response = st.session_state.assistant.get_assistant_response(prompt)
+    except ModelServiceError as error:
+        if st.session_state.messages and st.session_state.messages[-1] == {"role": "user", "content": prompt}:
+            st.session_state.messages.pop()
+        return None, str(error)
     full_response = apply_governance_notice(full_response)
     full_response = append_evidence_tables(full_response, analysis)
     full_response = append_human_signoff(full_response, collect_review_record())

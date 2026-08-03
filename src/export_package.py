@@ -19,6 +19,7 @@ def create_pilot_export_package(report_text, audit_path=None, review_record=None
     review_record = review_record or {}
     report_markdown = _normalise_report_markdown(report_text)
     file_prefix = _file_prefix(context, timestamp)
+    audit_file = Path(audit_path) if audit_path else None
 
     manifest = {
         "created_at": datetime.now().isoformat(timespec="seconds"),
@@ -43,6 +44,8 @@ def create_pilot_export_package(report_text, audit_path=None, review_record=None
             "governance/package_manifest.json",
         ],
     }
+    if audit_file and audit_file.exists():
+        manifest["included_files"].append("governance/audit_record.json")
 
     buffer = BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as package:
@@ -54,11 +57,9 @@ def create_pilot_export_package(report_text, audit_path=None, review_record=None
         package.writestr("governance/data_register.md", _data_register_markdown())
         package.writestr("governance/licence_register.csv", licence_register_csv())
         package.writestr("governance/licence_register.md", licence_register_markdown())
+        if audit_file and audit_file.exists():
+            package.write(audit_file, "governance/audit_record.json")
         package.writestr("governance/package_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
-        if audit_path and Path(audit_path).exists():
-            package.write(audit_path, "governance/audit_record.json")
-            manifest["included_files"].append("governance/audit_record.json")
-            package.writestr("governance/package_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
 
     buffer.seek(0)
     return {

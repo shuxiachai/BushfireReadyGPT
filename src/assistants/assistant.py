@@ -1,11 +1,51 @@
 from src.utils import get_assistant, create_thread, load_config
-from src.config import client, model, IS_LOCAL_LLM
+from src.config import client, model, IS_LOCAL_LLM, LLM_PROVIDER
 import json
 import streamlit as st
 from abc import ABC, abstractmethod
 import re
+from openai import APIConnectionError, APIStatusError, APITimeoutError
 
 THREAD_MESSAGES = {}
+
+
+class ModelServiceError(RuntimeError):
+    """A model-provider failure that is safe to display in the UI."""
+
+
+def model_service_error_message(error, provider=LLM_PROVIDER, model_name=model):
+    provider_name = (provider or "model").lower()
+    if provider_name == "ollama":
+        if isinstance(error, APITimeoutError):
+            return (
+                "Local Ollama timed out while generating the response. Confirm that Ollama is still running, "
+                "then retry. A smaller local model may help on limited hardware."
+            )
+        if isinstance(error, APIConnectionError):
+            return (
+                "Cannot reach the local Ollama service. Start it with `ollama serve`, verify "
+                "`http://localhost:11434/api/tags`, then retry."
+            )
+        status_code = getattr(error, "status_code", None)
+        if status_code == 404:
+            return (
+                f"Ollama is running, but the configured model `{model_name}` is unavailable. "
+                f"Install it with `ollama pull {model_name}`, then retry."
+            )
+        return (
+            f"Ollama returned an unexpected service error"
+            f"{f' (HTTP {status_code})' if status_code else ''}. Check the Ollama terminal and retry."
+        )
+
+    status_code = getattr(error, "status_code", None)
+    return (
+        f"The configured model service `{provider_name}` is unavailable"
+        f"{f' (HTTP {status_code})' if status_code else ''}. Check its connection and credentials, then retry."
+    )
+
+
+def _raise_model_service_error(error):
+    raise ModelServiceError(model_service_error_message(error)) from error
 
 
 def clean_model_output(text):
@@ -50,19 +90,36 @@ class Assistant(ABC):
         if self.assistant.tools and not IS_LOCAL_LLM:
             kwargs["tools"] = self.assistant.tools
             kwargs["tool_choice"] = "auto"
-        return client.chat.completions.create(**kwargs)
+        try:
+            return client.chat.completions.create(**kwargs)
+        except (APIConnectionError, APITimeoutError, APIStatusError) as error:
+            _raise_model_service_error(error)
 
     def _stream_text_completion(self, messages):
-        response_stream = self._create_completion(messages, stream=True)
-        full_response = ""
-        placeholder = st.empty()
-        for chunk in response_stream:
-            delta = chunk.choices[0].delta
-            content = getattr(delta, "content", None)
-            if content:
-                full_response += content
-                placeholder.markdown(full_response)
-        return full_response
+        try:
+            response_stream = self._create_completion(messages, stream=True)
+            full_response = ""
+            placeholder = st.empty()
+            for chunk in response_stream:
+                delta = chunk.choices[0].delta
+                content = getattr(delta, "content", None)
+                if content:
+                    full_response += content
+                    placeholder.markdown(full_response)
+            return full_response
+        except ModelServiceError:
+            raise
+        except (APIConnectionError, APITimeoutError, APIStatusError) as error:
+            _raise_model_service_error(error)
+
+    def _discard_failed_user_message(self, stored_messages, user_message):
+        if (
+            user_message
+            and stored_messages
+            and stored_messages[-1].get("role") == "user"
+            and stored_messages[-1].get("content") == user_message
+        ):
+            stored_messages.pop()
 
     def get_assistant_response(self, user_message=None, thread_id=None):
         if thread_id is None:
@@ -74,11 +131,19 @@ class Assistant(ABC):
 
         messages = [{"role": "system", "content": self.assistant.instructions}] + stored_messages
         if IS_LOCAL_LLM:
-            full_response = clean_model_output(self._stream_text_completion(messages))
+            try:
+                full_response = clean_model_output(self._stream_text_completion(messages))
+            except ModelServiceError:
+                self._discard_failed_user_message(stored_messages, user_message)
+                raise
             stored_messages.append({"role": "assistant", "content": full_response})
             return full_response, None, []
 
-        response = self._create_completion(messages).choices[0].message
+        try:
+            response = self._create_completion(messages).choices[0].message
+        except ModelServiceError:
+            self._discard_failed_user_message(stored_messages, user_message)
+            raise
 
         tool_calls = getattr(response, "tool_calls", None)
         if tool_calls:

@@ -16,6 +16,7 @@ from src.app_catalog import (
     SCENARIO_OPTIONS,
     TIMEFRAME_OPTIONS,
 )
+from src.assistants.assistant import ModelServiceError
 from src.report_workflow import (
     collect_review_record,
     generate_current_report as run_generate_current_report,
@@ -259,11 +260,23 @@ if user_prompt := st.chat_input("Enter an additional location, audience detail o
     st.session_state.messages.append({"role": "user", "content": user_prompt})
 
     with st.chat_message("assistant"):
-        full_response = st.session_state.assistant.get_assistant_response(user_prompt)
-        st.markdown(full_response)
-        for viz in getattr(st.session_state.assistant, "pending_visualizations", []):
-            st.plotly_chart(viz, use_container_width=True)
-        st.session_state.assistant.pending_visualizations = []
+        try:
+            full_response = st.session_state.assistant.get_assistant_response(user_prompt)
+        except ModelServiceError as error:
+            full_response = None
+            st.error(str(error))
+            st.caption("No assistant response was saved. Restore the model service and retry your request.")
+        else:
+            st.markdown(full_response)
+            for viz in getattr(st.session_state.assistant, "pending_visualizations", []):
+                st.plotly_chart(viz, use_container_width=True)
+            st.session_state.assistant.pending_visualizations = []
+
+    if full_response is None:
+        if st.session_state.messages and st.session_state.messages[-1] == {"role": "user", "content": user_prompt}:
+            st.session_state.messages.pop()
+        persist_session_state()
+        st.stop()
 
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     persist_session_state()
