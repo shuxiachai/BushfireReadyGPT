@@ -59,12 +59,12 @@ def render_all_australia_map_selector(active_location):
     deck = build_all_australia_deck(level, area_name, state=state)
     table_rows = get_all_australia_table(level, area_name, state=state)
     if deck:
-        st.pydeck_chart(deck, use_container_width=True)
+        st.pydeck_chart(deck, width="stretch")
     else:
         st.info("No SA2 boundary was found for this area. Re-run scripts/download_abs_sa2_all.py to generate all-Australia map data.")
     if table_rows:
         with st.expander("View aggregated profile for the selected area", expanded=True):
-            st.dataframe(table_rows, use_container_width=True, hide_index=True)
+            st.dataframe(table_rows, width="stretch", hide_index=True)
     else:
         st.info("No processed SA2 profile data was found for this area.")
 
@@ -78,11 +78,11 @@ def render_configured_map_selector(active_location):
     deck = build_coverage_deck(location_filter)
     table_rows = get_coverage_table(location_filter)
     if deck:
-        st.pydeck_chart(deck, use_container_width=True)
+        st.pydeck_chart(deck, width="stretch")
     else:
         st.info("No SA2 coverage GeoJSON was found. Run scripts/download_abs_community_profiles.py to generate map data.")
     if table_rows:
         with st.expander("View community profile data table", expanded=False):
-            st.dataframe(table_rows, use_container_width=True, hide_index=True)
+            st.dataframe(table_rows, width="stretch", hide_index=True)
     else:
         st.info("No processed/community_profiles.csv file was found.")

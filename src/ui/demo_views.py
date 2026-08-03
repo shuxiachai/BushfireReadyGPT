@@ -62,11 +62,11 @@ def render_demo_scenario_pack(load_demo_scenario, generate_current_report):
             st.caption(demo["demo_goal"])
             load_col, generate_col = st.columns(2)
             with load_col:
-                if st.button("Load", key=f"load_demo_{demo['example_case']}", use_container_width=True):
+                if st.button("Load", key=f"load_demo_{demo['example_case']}", width="stretch"):
                     load_demo_scenario(demo)
                     st.rerun()
             with generate_col:
-                if st.button("Generate", key=f"generate_demo_{demo['example_case']}", use_container_width=True):
+                if st.button("Generate", key=f"generate_demo_{demo['example_case']}", width="stretch"):
                     load_demo_scenario(demo)
                     with st.spinner(f"Generating {demo['title']}..."):
                         _, error = generate_current_report()
@@ -255,7 +255,7 @@ def render_pilot_document_library():
                     data=content,
                     file_name=Path(doc["path"]).name,
                     mime="text/markdown",
-                    use_container_width=True,
+                    width="stretch",
                     key=f"download_{Path(doc['path']).stem}",
                 )
             with action_cols[1]:

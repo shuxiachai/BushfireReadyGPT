@@ -47,5 +47,5 @@ jobs:
       - name: Check dependency consistency
         run: python -m pip check
 
-      - name: Run tests
+      - name: Run unit, integration, and Streamlit smoke tests
         run: python -m pytest -q

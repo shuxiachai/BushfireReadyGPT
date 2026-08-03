@@ -98,7 +98,7 @@ def render_official_status_panel():
         """,
         unsafe_allow_html=True,
     )
-    if st.button("Check official source status", use_container_width=True):
+    if st.button("Check official source status", width="stretch"):
         with st.spinner("Checking official source entry points..."):
             _profile = (st.session_state.get("latest_analysis") or {}).get("profile")
             st.session_state.official_status_result = check_official_sources(_get_display_sources(_profile))
@@ -140,7 +140,7 @@ def render_official_status_panel():
             }
             for row in rows
         ],
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
     with st.expander("Status panel limitations", expanded=False):
@@ -234,7 +234,7 @@ def render_data_register():
                 }
                 for row in rows
             ],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
         for row in rows:
@@ -262,7 +262,7 @@ def render_licence_register():
             data=licence_register_csv(),
             file_name="licence_register.csv",
             mime="text/csv",
-            use_container_width=True,
+            width="stretch",
         )
     with action_cols[1]:
         st.download_button(
@@ -270,7 +270,7 @@ def render_licence_register():
             data=licence_register_markdown(),
             file_name="licence_register.md",
             mime="text/markdown",
-            use_container_width=True,
+            width="stretch",
         )
     with st.expander("View licence register", expanded=False):
         st.dataframe(
@@ -285,7 +285,7 @@ def render_licence_register():
                 }
                 for row in rows
             ],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
         for note in payload.get("notes", []):

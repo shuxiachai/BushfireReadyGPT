@@ -21,7 +21,7 @@ def render_report_form(
         selected_case = st.selectbox("Pilot example", list(EXAMPLE_CASES.keys()), key="selected_example_case")
     with action_col:
         st.markdown("<div style='height: 1.78rem;'></div>", unsafe_allow_html=True)
-        if st.button("Load example", use_container_width=True):
+        if st.button("Load example", width="stretch"):
             load_example_case(selected_case)
             st.rerun()
 
@@ -68,7 +68,7 @@ def render_report_form(
             height=90,
             key="form_extra_context",
         )
-        submitted = st.form_submit_button("Generate report", use_container_width=True)
+        submitted = st.form_submit_button("Generate report", width="stretch")
 
     if submitted:
         with st.chat_message("assistant"):
@@ -99,7 +99,7 @@ def render_latest_report_preview(
             data="# BushfireReadyGPT Report\n\n" + latest_report,
             file_name="bushfire_ready_report.md",
             mime="text/markdown",
-            use_container_width=True,
+            width="stretch",
         )
     with action_cols[1]:
         try:
@@ -109,7 +109,7 @@ def render_latest_report_preview(
                 data=pdf_bytes,
                 file_name="bushfire_ready_report.pdf",
                 mime="application/pdf",
-                use_container_width=True,
+                width="stretch",
             )
         except Exception as exc:
             st.warning(f"PDF generation failed: {exc}")
@@ -121,12 +121,12 @@ def render_latest_report_preview(
                 data=docx_bytes,
                 file_name="bushfire_ready_report.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                use_container_width=True,
+                width="stretch",
             )
         except Exception as exc:
             st.warning(f"DOCX generation failed: {exc}")
     with action_cols[3]:
-        if st.button("Save to chat_history", use_container_width=True):
+        if st.button("Save to chat_history", width="stretch"):
             saved_path = save_latest_report()
             if saved_path:
                 st.success(f"Saved: {saved_path}")
@@ -143,7 +143,7 @@ def render_latest_report_preview(
                 data=package["content"],
                 file_name=package["filename"],
                 mime="application/zip",
-                use_container_width=True,
+                width="stretch",
             )
         except Exception as exc:
             st.warning(f"Pilot package generation failed: {exc}")

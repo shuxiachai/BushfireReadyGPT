@@ -269,7 +269,7 @@ if user_prompt := st.chat_input("Enter an additional location, audience detail o
         else:
             st.markdown(full_response)
             for viz in getattr(st.session_state.assistant, "pending_visualizations", []):
-                st.plotly_chart(viz, use_container_width=True)
+                st.plotly_chart(viz, width="stretch")
             st.session_state.assistant.pending_visualizations = []
 
     if full_response is None:

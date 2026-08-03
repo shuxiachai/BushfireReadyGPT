@@ -183,7 +183,7 @@ def render_human_review_checklist(review_checklist):
                     data=audit_bytes,
                     file_name=os.path.basename(st.session_state.latest_audit_path),
                     mime="application/json",
-                    use_container_width=True,
+                    width="stretch",
                 )
             except OSError:
                 st.warning("The latest audit file could not be found on disk.")
@@ -235,7 +235,7 @@ def render_reviewer_approval(
             )
             st.date_input("Review date", key="approval_review_date")
         st.text_area("Review notes", key="approval_review_notes", height=90)
-        submitted = st.form_submit_button("Update sign-off record", use_container_width=True)
+        submitted = st.form_submit_button("Update sign-off record", width="stretch")
 
     if submitted:
         st.session_state.reviewer_name = st.session_state.get("approval_reviewer_name", "")
@@ -286,7 +286,7 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
             data=package["content"],
             file_name=package["filename"],
             mime="application/zip",
-            use_container_width=True,
+            width="stretch",
         )
         with st.expander("View package manifest", expanded=False):
             st.json(package["manifest"])

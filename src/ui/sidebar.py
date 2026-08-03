@@ -16,7 +16,7 @@ def render_sidebar(
     st.sidebar.markdown("Bushfire preparedness planning assistant for Australian government pilots, schools and communities.")
     st.sidebar.caption("Government pilot mode: draft reports, evidence trail, data register, human review.")
     st.sidebar.markdown("### Actions")
-    if st.sidebar.button("Clear current conversation", use_container_width=True):
+    if st.sidebar.button("Clear current conversation", width="stretch"):
         clear_conversation()
     latest_report = get_latest_assistant_text()
     if latest_report:
@@ -25,7 +25,7 @@ def render_sidebar(
             data="# BushfireReadyGPT Report\n\n" + latest_report,
             file_name="bushfire_ready_report.md",
             mime="text/markdown",
-            use_container_width=True,
+            width="stretch",
         )
         try:
             pdf_bytes = create_report_pdf(latest_report)
@@ -34,7 +34,7 @@ def render_sidebar(
                 data=pdf_bytes,
                 file_name="bushfire_ready_report.pdf",
                 mime="application/pdf",
-                use_container_width=True,
+                width="stretch",
             )
         except Exception as exc:
             st.sidebar.warning(f"PDF generation failed: {exc}")
@@ -45,7 +45,7 @@ def render_sidebar(
                 data=docx_bytes,
                 file_name="bushfire_ready_report.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                use_container_width=True,
+                width="stretch",
             )
         except Exception as exc:
             st.sidebar.warning(f"DOCX generation failed: {exc}")
@@ -61,11 +61,11 @@ def render_sidebar(
                 data=package["content"],
                 file_name=package["filename"],
                 mime="application/zip",
-                use_container_width=True,
+                width="stretch",
             )
         except Exception as exc:
             st.sidebar.warning(f"Pilot package generation failed: {exc}")
-        if st.sidebar.button("Save to chat_history", use_container_width=True):
+        if st.sidebar.button("Save to chat_history", width="stretch"):
             saved_path = save_latest_report()
             if saved_path:
                 st.sidebar.success(f"Saved: {saved_path}")

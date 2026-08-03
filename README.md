@@ -257,14 +257,15 @@ Run the deterministic test suite:
 Current expected result:
 
 ```text
-15 passed
+16 passed
 ```
 
 GitHub Actions runs the same suite automatically on Python 3.11 and 3.13 for
 pushes to `main`, pull requests targeting `main`, and manual workflow runs. The
 workflow also checks installed dependency consistency and does not require an
 Ollama service because model-service failure paths are tested with controlled
-mocks.
+mocks. The suite also renders the Streamlit app, starts a headless server, and
+verifies both the health endpoint and the root web page.
 
 ## Git And Repository Hygiene
 
@@ -282,7 +283,7 @@ Ignored local files include `.env`, `.venv/`, `.claude/`, `.agents/`, runtime ch
 Without expanding the feature set, the next polishing work is:
 
 - Keep README and docs aligned as the project changes.
-- Strengthen UI smoke tests for the main workflow.
+- Extend UI coverage from startup smoke testing to form-submission journeys.
 - Add data-confidence wording to reports and demo materials.
 - Prepare a polished sample report package for one scenario.
 - Review licence and disclaimer language with a legal/risk advisor before any commercial positioning.
