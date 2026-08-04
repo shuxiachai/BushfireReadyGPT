@@ -320,6 +320,15 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 )
 
                 page.get_by_role("tab", name="Review & Export", exact=True).click()
+                review_panel = page.get_by_label("Review & Export")
+                review_panel.get_by_text("Evidence Trail", exact=True).click()
+                expect(
+                    page.get_by_role(
+                        "heading",
+                        name="Evidence Confidence and Provenance",
+                        exact=True,
+                    ).last
+                ).to_be_visible()
                 reviewer_name = page.get_by_label("Reviewer name", exact=True).last
                 reviewer_name.fill("Browser E2E Reviewer")
                 page.get_by_label("Reviewer role / title", exact=True).fill("School safety reviewer")
@@ -335,8 +344,14 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 package_download = package_download_info.value
                 with ZipFile(package_download.path()) as package:
                     names = set(package.namelist())
+                    audit_payload = json.loads(package.read("governance/audit_record.json"))
                 assert "governance/package_manifest.json" in names
+                assert "governance/audit_record.json" in names
                 assert any(name.endswith(".md") for name in names)
+                assert {
+                    row["code"]
+                    for row in audit_payload["analysis"]["evidence_confidence"]
+                } == {"O1", "P2", "R3", "A4", "U0"}
                 assert MockModelHandler.request_count == 1
 
                 page.get_by_role("tab", name="Data & Map", exact=True).click()

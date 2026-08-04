@@ -83,6 +83,7 @@ Say:
 Point out:
 
 - Draft status notice.
+- Evidence confidence and provenance labels.
 - Evidence tables.
 - Human review sign-off.
 - Safety disclaimer.
@@ -103,7 +104,11 @@ Evidence Trail
 
 Say:
 
-> The evidence trail shows that the report is not just a single chatbot answer. It separates profile analysis, official source selection, community vulnerability context, risk rules and planning priorities.
+> The evidence trail shows that the report is not just a single chatbot answer. It separates profile analysis, official source selection, community vulnerability context, risk rules and planning priorities. O1 identifies official references, P2 processed data, R3 deterministic inference, A4 AI-generated draft text and U0 unverified input.
+
+Key point:
+
+> These codes describe provenance and review needs. They are not fire danger ratings or live incident severity levels.
 
 Mention the agents:
 
@@ -182,7 +187,7 @@ Say:
 
 Say:
 
-> The current project is a working MVP for controlled demonstration and pilot scoping. The next step toward commercial or government use would be legal and licence review, data confidence labelling, stronger approval records, user testing, accessibility review and deployment hardening.
+> The current project is a working MVP for controlled demonstration and pilot scoping. The next step toward commercial or government use would be validation of the confidence rules, legal and licence review, stronger approval records, user testing, accessibility review and deployment hardening.
 
 ## Short Version
 

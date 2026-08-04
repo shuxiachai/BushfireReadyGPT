@@ -18,6 +18,7 @@ This version has been rebuilt around an Australian preparedness use case:
 - Australia-focused multi-agent analysis pipeline.
 - ABS / ASGS-derived geography and community context.
 - Official source and licence registers.
+- O1 / P2 / R3 / A4 / U0 evidence confidence and provenance labels.
 - Human review, sign-off and audit records.
 - Markdown, PDF, DOCX and pilot package exports.
 - VSCode startup task and local PowerShell startup script.
@@ -29,7 +30,7 @@ This version has been rebuilt around an Australian preparedness use case:
 3. The user selects the location, audience, scenario, timeframe and focus areas.
 4. The multi-agent pipeline prepares local context and planning evidence.
 5. The local Ollama model generates a formal English draft report.
-6. The app appends governance notices, evidence tables and human review sign-off.
+6. The app appends governance notices, provenance-labelled evidence tables and human review sign-off.
 7. The reviewer checks the evidence trail, data sources, map context and quality checks.
 8. The report can be exported as Markdown, PDF, DOCX or a pilot package zip.
 
@@ -68,6 +69,7 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - Local model generation through Ollama.
 - Human review and approval boundary.
 - Evidence tables and audit records.
+- Evidence provenance labels that separate official references, processed data, deterministic inference, AI prose and unverified inputs.
 - Export to Markdown, PDF, DOCX and pilot package zip.
 - Commercial gap and project maturity assessment.
 

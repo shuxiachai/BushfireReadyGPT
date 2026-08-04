@@ -35,7 +35,7 @@ This folder already contains the main materials needed to present BushfireReadyG
    Clearly state that the app does not provide live warnings, evacuation orders, fire bans or life-safety decisions.
 
 7. **Future Path**
-   Use `docs/project_reassessment.md` to explain the next steps: data-confidence labels, approval workflow, legal/licence review, user testing and deployment hardening.
+   Use `docs/project_reassessment.md` to explain the next steps: evidence-label validation, approval workflow, legal/licence review, user testing and deployment hardening.
 
 ## Recommended Demo Scenario
 

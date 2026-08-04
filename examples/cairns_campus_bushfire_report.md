@@ -114,6 +114,18 @@ These sources should be checked directly during preparedness review and during a
 | Safety boundary | Output marked as draft planning support, not operational emergency advice. |
 | Human review | Required before any real-world use. |
 
+## Evidence Confidence and Provenance
+
+These codes describe where information came from and what review it needs. They are not fire danger ratings or live incident severity levels.
+
+| Code | Evidence class | Example in this report | Required interpretation |
+| --- | --- | --- | --- |
+| O1 | Official-source reference | Queensland fire, council, BoM and Triple Zero entry points | High source authority, but open the official source and verify current information before use. |
+| P2 | Processed official-origin data | ABS / ASGS-derived community and geography context | Processing, aggregation, source year and geographic matching limitations must be checked. |
+| R3 | Deterministic rule inference | Vulnerability considerations and preparedness priorities | Indicative planning logic, not observed incident evidence; validate with local officers. |
+| A4 | AI-generated draft synthesis | Narrative wording and proposed actions | Not evidence; every operational claim requires human verification. |
+| U0 | User-provided / unverified context | Campus details and unconfirmed assembly arrangements | Confirm against organisational records and authorised local plans. |
+
 ## Human Review Checklist
 
 - Confirm campus name, boundaries and building list.
@@ -122,6 +134,7 @@ These sources should be checked directly during preparedness review and during a
 - Confirm contact trees and parent or guardian messaging.
 - Confirm first aid staffing, AED locations and training records.
 - Confirm legal, privacy, accessibility and duty-of-care requirements.
+- Confirm that O1, P2, R3, A4 and U0 labels match the supporting records and source boundaries.
 
 ## Final Note
 

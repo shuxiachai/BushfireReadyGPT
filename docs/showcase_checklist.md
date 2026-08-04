@@ -25,6 +25,7 @@ Use this checklist before presenting BushfireReadyGPT.
 
 - [ ] The `Review & Export` tab opens.
 - [ ] The Evidence Trail is available after report generation.
+- [ ] You can explain O1 official references, P2 processed data, R3 rule inference, A4 AI draft and U0 unverified inputs.
 - [ ] The Report Quality Check appears after report generation.
 - [ ] The Human Review Checklist is visible.
 - [ ] Reviewer Approval / Human Sign-off can be explained.
@@ -55,6 +56,7 @@ Use this checklist before presenting BushfireReadyGPT.
 - [ ] You can explain the multi-agent pipeline.
 - [ ] You can explain the current data layer.
 - [ ] You can explain the human review boundary.
+- [ ] You can explain that evidence codes describe provenance, not live incident severity or fire danger.
 - [ ] You can explain why it is demo/pilot-ready but not government-procurement-ready.
 
 ## 7. Safety Boundary

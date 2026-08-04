@@ -54,6 +54,7 @@ class ReportQualityAgent:
             self._check_role_assignment(text),
             self._check_candidate_assembly_language(text),
             self._check_evidence_tables(text),
+            self._check_evidence_confidence(text),
             self._check_human_review_status(text),
         ]
 
@@ -156,6 +157,21 @@ class ReportQualityAgent:
             "warning",
             "Evidence tables",
             "Add selected geography, community indicator and official source evidence tables.",
+        )
+
+    def _check_evidence_confidence(self, text):
+        lowered = text.lower()
+        required = ["evidence confidence and provenance", "o1", "p2", "r3", "a4", "u0"]
+        if all(term in lowered for term in required):
+            return self._result(
+                "pass",
+                "Evidence confidence",
+                "The report distinguishes official references, processed data, rule inference, AI text and unverified inputs.",
+            )
+        return self._result(
+            "warning",
+            "Evidence confidence",
+            "Add O1, P2, R3, A4 and U0 provenance labels and explain their review boundaries.",
         )
 
     def _check_human_review_status(self, text):

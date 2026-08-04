@@ -26,6 +26,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - Local multi-agent analysis pipeline with visible Evidence Trail.
 - ABS all-Australia SA2/SA3/SA4 map selection.
 - ABS ASGS allocation and LGA 2025 reference data.
+- O1 / P2 / R3 / A4 / U0 evidence confidence and provenance labels.
 - Evidence Tables appended to generated reports.
 - Reviewer Approval / Human Sign-off workflow.
 - Markdown, PDF, DOCX, audit JSON and pilot export package.
@@ -41,14 +42,14 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | P1 | User testing | The report format has not been validated by real school/council/community reviewers. | Run a controlled pilot with 3-5 reviewers using the pilot feedback form. |
 | P1 | Authentication and approval | Reviewer fields exist, but there are no user accounts, permissions or signed approval states. | Design roles for drafter, reviewer and admin; later add login and immutable approval records. |
 | P2 | Deployment | The app runs locally, but is not packaged for secure hosting. | Add Docker, environment profiles, health checks, logs and deployment notes. |
-| P2 | Automated testing | A deterministic test suite exists, but UI smoke tests and broader export/regression coverage are still limited. | Add UI smoke tests, scenario regression tests and stronger PDF/DOCX export checks. |
+| P2 | Automated testing | Unit, Streamlit and Chromium tests exist, but visual export regression and real-model quality benchmarking remain limited. | Add rendered PDF/DOCX visual checks and a controlled real-Ollama scenario benchmark. |
 
 ## Recommended Roadmap
 
 | Phase | Goal | Work |
 | --- | --- | --- |
 | Now | Demo-ready portfolio MVP | Polish UI, keep demo scenarios reliable, use pilot export package for presentation. |
-| Next 2 weeks | Controlled pilot readiness | Tighten licence review, source-status boundaries, pilot feedback workflow and data-confidence labelling. |
+| Next 2 weeks | Controlled pilot readiness | Validate evidence labels, tighten licence review and source-status boundaries, and run the pilot feedback workflow. |
 | Next 1-2 months | Stakeholder pilot | Test with school/council/community reviewers and refine report templates from feedback. |
 | Commercial path | Procurement-ready product concept | Add authentication, deployment hardening, privacy controls, legal review and data agreements. |
 

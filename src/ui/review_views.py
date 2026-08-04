@@ -4,6 +4,7 @@ import os
 import streamlit as st
 
 from src.export_package import create_pilot_export_package
+from src.evidence_confidence import build_evidence_confidence_rows
 from src.ui.components import render_path_line, safe_display_text
 
 
@@ -42,6 +43,27 @@ def render_agent_analysis_summary(get_active_map_selection_label):
         map_selection_label = get_active_map_selection_label()
         if map_selection_label:
             st.caption(f"Map selection used for this report: {map_selection_label}")
+
+        st.markdown("#### Evidence Confidence and Provenance")
+        st.caption(
+            "These codes classify provenance and review needs. They are not live incident severity "
+            "or fire danger ratings."
+        )
+        confidence_rows = analysis.get("evidence_confidence") or build_evidence_confidence_rows(analysis)
+        st.dataframe(
+            [
+                {
+                    "code": row.get("code", ""),
+                    "evidence_class": row.get("evidence_class", ""),
+                    "current_use": row.get("current_use", ""),
+                    "confidence_boundary": row.get("confidence_boundary", ""),
+                    "required_review": row.get("required_review", ""),
+                }
+                for row in confidence_rows
+            ],
+            width="stretch",
+            hide_index=True,
+        )
 
         st.markdown("#### User Inputs / Location Profile")
         st.markdown(

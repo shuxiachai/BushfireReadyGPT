@@ -30,6 +30,16 @@ Preparedness planning draft.
 | --- | --- |
 | Scenario | School preparedness |
 
+## Evidence Confidence and Provenance
+
+| Code | Evidence class | Confidence / use boundary | Required review |
+| --- | --- | --- | --- |
+| O1 | Official-source reference | Current information not confirmed | Check the official source |
+| P2 | Processed official-origin data | Transformation limitations apply | Check source year and method |
+| R3 | Deterministic rule inference | Indicative planning logic | Validate locally |
+| A4 | AI-generated draft synthesis | Not an evidence source | Human verification required |
+| U0 | User-provided context | Unverified | Confirm organisational records |
+
 - [ ] Confirm official sources.
 """
 
@@ -44,10 +54,25 @@ def test_analysis_pipeline_returns_expected_sections():
         extra_context="Campus emergency planning pilot.",
     )
 
-    expected_keys = {"profile", "data", "community", "risk_context", "plan", "prompt_context"}
+    expected_keys = {
+        "profile",
+        "data",
+        "community",
+        "risk_context",
+        "plan",
+        "prompt_context",
+        "evidence_confidence",
+    }
     assert expected_keys.issubset(analysis)
     assert analysis["profile"]["location"] == "Cairns, Queensland"
     assert analysis["prompt_context"]
+    assert {row["code"] for row in analysis["evidence_confidence"]} == {
+        "O1",
+        "P2",
+        "R3",
+        "A4",
+        "U0",
+    }
 
 
 def test_report_appendices_are_idempotent():
@@ -67,6 +92,12 @@ def test_report_appendices_are_idempotent():
 
     assert report.count("DRAFT STATUS NOTICE") == 1
     assert report.count("## Evidence Tables") == 1
+    assert report.count("### Evidence Confidence and Provenance") == 1
+    assert "[O1]" in report
+    assert "[P2]" in report
+    assert "[R3]" in report
+    assert "[A4]" in report
+    assert "[U0]" in report
     assert "## Human Review Sign-off" in report
     assert "Test Reviewer" in report
 
@@ -240,6 +271,8 @@ def test_quality_agent_accepts_markdown_checkboxes_and_human_review_boundary():
     - [ ] Confirm official source checks.
     ## Evidence Tables
     Selected geography, community indicators, ASGS and official source register are included.
+    ### Evidence Confidence and Provenance
+    O1 official reference, P2 processed data, R3 rule inference, A4 AI draft and U0 unverified input.
     ## Safety Disclaimer
     This is not live emergency advice. Official evacuation order information must come from
     Queensland Fire Department, QFES, Queensland Disaster, Cairns Regional Council,
@@ -252,6 +285,7 @@ def test_quality_agent_accepts_markdown_checkboxes_and_human_review_boundary():
     checks = {item["name"]: item["status"] for item in quality["checks"]}
 
     assert checks["Checklist"] == "pass"
+    assert checks["Evidence confidence"] == "pass"
     assert checks["Human review status"] == "pass"
 
 

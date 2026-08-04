@@ -1,4 +1,8 @@
 from src.agents import run_analysis_pipeline
+from src.evidence_confidence import (
+    build_evidence_confidence_rows,
+    format_evidence_confidence_for_prompt,
+)
 
 
 GOVERNANCE_NOTICE_MARKDOWN = """**DRAFT STATUS NOTICE**
@@ -55,6 +59,7 @@ def build_human_signoff(review_record):
             "- [ ] Official warnings, fire danger information and emergency instructions were checked separately.",
             "- [ ] Candidate assembly points and evacuation routes were reviewed by the responsible organisation.",
             "- [ ] Data sources, limitations and geography assumptions were checked by a human reviewer.",
+            "- [ ] O1, P2, R3, A4 and U0 evidence labels were reviewed and supporting claims were verified.",
             "- [ ] This output remains a draft unless the responsible organisation has formally approved it.",
         ]
     )
@@ -69,43 +74,75 @@ def build_evidence_tables(analysis):
     selected_asgs = geography_reference.get("selected_asgs_area") or {}
     lga_candidates = geography_reference.get("lga_candidates", [])
     indicators = community.get("indicators", {})
+    confidence_rows = analysis.get("evidence_confidence") or build_evidence_confidence_rows(analysis)
 
     lines = [
         "## Evidence Tables",
         "",
         "These tables are generated from local pipeline outputs to support human review and audit traceability. They are not live emergency data.",
         "",
-        "### Evidence Table 1: Selected Geography",
+        "### Evidence Confidence and Provenance",
         "",
-        "| Field | Value | Source / note |",
-        "| --- | --- | --- |",
-        f"| User location | {_md_value(profile.get('location'))} | Form input |",
-        f"| Inferred state / territory | {_md_value(profile.get('state'))} | Profile Agent inference |",
-        f"| Selected ASGS level | {_md_value(selected_asgs.get('selected_level'))} | ABS ASGS allocation reference |",
-        f"| Selected ASGS area | {_md_value(selected_asgs.get('selected_area'))} | Map selection / ASGS reference |",
-        f"| SA2 rows in selected area | {_md_value(selected_asgs.get('sa2_count'))} | { _md_value(selected_asgs.get('source_file')) } |",
-        f"| SA3 reference | {_md_value(selected_asgs.get('sa3_names'))} | ABS ASGS hierarchy |",
-        f"| SA4 reference | {_md_value(selected_asgs.get('sa4_names'))} | ABS ASGS hierarchy |",
-        f"| GCCSA reference | {_md_value(selected_asgs.get('gccsa_names'))} | ABS ASGS hierarchy |",
-        f"| Albers area | {_md_value(_with_unit(selected_asgs.get('area_albers_sqkm'), 'sq km'))} | ABS ASGS allocation area field |",
+        "Evidence codes describe provenance and required review. They are not fire danger ratings, live incident severity levels or guarantees of legal or operational reliability.",
         "",
-        "### Evidence Table 2: Community Indicators",
-        "",
-        "| Indicator | Value | Source / note |",
-        "| --- | --- | --- |",
-        f"| Matched community profile | {_md_value(community.get('matched_location'))} | Community Vulnerability Agent |",
-        f"| Population | {_md_value(indicators.get('population'))} | ABS Data by Region / local processed data |",
-        f"| Older people percentage | {_md_value(_with_unit(indicators.get('older_people_pct'), '%'))} | ABS-derived planning indicator |",
-        f"| Language other than English at home | {_md_value(_with_unit(indicators.get('language_other_than_english_pct'), '%'))} | ABS-derived planning indicator |",
-        f"| Language support need | {_md_value(indicators.get('language_support_needed'))} | Derived from local processed data |",
-        f"| Matched SA2 count | {_md_value(indicators.get('matched_sa2_count'))} | Community Vulnerability Agent |",
-        f"| Transport vulnerability | {_md_value(indicators.get('no_car_households_pct'))} | To be confirmed if blank |",
-        "",
-        "### Evidence Table 3: LGA 2025 Candidate Reference",
-        "",
-        "| LGA code | LGA name | State / territory | Mesh blocks | Albers area | Source |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Code | Evidence class | Confidence / use boundary | Required review |",
+        "| --- | --- | --- | --- |",
     ]
+    for row in confidence_rows:
+        lines.append(
+            "| "
+            f"{_md_value(row.get('code'))} | "
+            f"{_md_value(row.get('evidence_class'))} | "
+            f"{_md_value(row.get('confidence_boundary'))} | "
+            f"{_md_value(row.get('required_review'))} |"
+        )
+    lines.extend(
+        [
+            "",
+            "**Current report application**",
+            "",
+        ]
+    )
+    for row in confidence_rows:
+        lines.append(
+            f"- **{_md_value(row.get('code'))} { _md_value(row.get('evidence_class'))}:** "
+            f"{_md_value(row.get('current_use'))}"
+        )
+    lines.extend(
+        [
+            "",
+            "### Evidence Table 1: Selected Geography",
+            "",
+            "| Field | Value | Source / note |",
+            "| --- | --- | --- |",
+            f"| User location | {_md_value(profile.get('location'))} | [U0] Form input; confirm with the responsible organisation |",
+            f"| Inferred state / territory | {_md_value(profile.get('state'))} | [R3] Profile Agent text inference |",
+            f"| Selected ASGS level | {_md_value(selected_asgs.get('selected_level'))} | [P2] Local processed ABS ASGS allocation reference |",
+            f"| Selected ASGS area | {_md_value(selected_asgs.get('selected_area'))} | [P2] Map selection matched to local ASGS reference |",
+            f"| SA2 rows in selected area | {_md_value(selected_asgs.get('sa2_count'))} | [P2] {_md_value(selected_asgs.get('source_file'))} |",
+            f"| SA3 reference | {_md_value(selected_asgs.get('sa3_names'))} | [P2] Processed ABS ASGS hierarchy |",
+            f"| SA4 reference | {_md_value(selected_asgs.get('sa4_names'))} | [P2] Processed ABS ASGS hierarchy |",
+            f"| GCCSA reference | {_md_value(selected_asgs.get('gccsa_names'))} | [P2] Processed ABS ASGS hierarchy |",
+            f"| Albers area | {_md_value(_with_unit(selected_asgs.get('area_albers_sqkm'), 'sq km'))} | [P2] Processed ABS ASGS allocation area field |",
+            "",
+            "### Evidence Table 2: Community Indicators",
+            "",
+            "| Indicator | Value | Source / note |",
+            "| --- | --- | --- |",
+            f"| Matched community profile | {_md_value(community.get('matched_location'))} | [P2] Processed geographic match |",
+            f"| Population | {_md_value(indicators.get('population'))} | [P2] ABS-origin local processed data |",
+            f"| Older people percentage | {_md_value(_with_unit(indicators.get('older_people_pct'), '%'))} | [P2] Derived from processed ABS-origin fields |",
+            f"| Language other than English at home | {_md_value(_with_unit(indicators.get('language_other_than_english_pct'), '%'))} | [P2] Derived from processed ABS-origin fields |",
+            f"| Language support need | {_md_value(indicators.get('language_support_needed'))} | [R3] Threshold-based interpretation of processed data |",
+            f"| Matched SA2 count | {_md_value(indicators.get('matched_sa2_count'))} | [P2] Processed geographic aggregation |",
+            f"| Transport vulnerability | {_md_value(indicators.get('no_car_households_pct'))} | [U0] To be confirmed if blank |",
+            "",
+            "### Evidence Table 3: LGA 2025 Candidate Reference",
+            "",
+            "| LGA code | LGA name | State / territory | Mesh blocks | Albers area | Source |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+    )
 
     if lga_candidates:
         for item in lga_candidates:
@@ -116,10 +153,10 @@ def build_evidence_tables(analysis):
                 f"{_md_value(item.get('state_name_2021'))} | "
                 f"{_md_value(item.get('mesh_block_count'))} | "
                 f"{_md_value(_with_unit(item.get('area_albers_sqkm'), 'sq km'))} | "
-                f"{_md_value(item.get('source_file'))} |"
+                f"[P2] {_md_value(item.get('source_file'))} |"
             )
     else:
-        lines.append("| To be confirmed | To be confirmed | To be confirmed | To be confirmed | To be confirmed | No LGA candidate matched from local ASGS summary |")
+        lines.append("| To be confirmed | To be confirmed | To be confirmed | To be confirmed | To be confirmed | [U0] No LGA candidate matched from local ASGS summary |")
 
     lines.extend(
         [
@@ -133,17 +170,26 @@ def build_evidence_tables(analysis):
     for source in data_result.get("sources", []):
         lines.append(
             "| "
-            f"{_md_value(source.get('name'))} | "
+            f"[O1] {_md_value(source.get('name'))} | "
             f"{_md_value(source.get('purpose'))} | "
             f"{_md_value(source.get('url'))} |"
         )
     if not data_result.get("sources"):
-        lines.append("| To be confirmed | No official source matched by the data agent | To be confirmed |")
+        lines.append("| [U0] To be confirmed | No official source matched by the data agent | To be confirmed |")
 
     lines.extend(
         [
             "",
-            "### Evidence Table 5: Limitations Requiring Human Review",
+            "### Evidence Table 5: Rule and AI Contributions",
+            "",
+            "| Contribution | Current output | Evidence level / note |",
+            "| --- | --- | --- |",
+            f"| Matched risk rules | {_md_value(', '.join(item for item in risk_context.get('matched_rule_ids', []) if item))} | [R3] Deterministic configured-rule match; validate locally |",
+            f"| Risk context | {_md_value('; '.join(risk_context.get('risk_points', [])))} | [R3] Rule-derived planning context, not observed incident evidence |",
+            f"| Planning priorities | {_md_value('; '.join(analysis.get('plan', {}).get('planning_priorities', [])))} | [R3] Deterministic planning transformation |",
+            "| Narrative report body | Generated by the configured language model | [A4] Draft synthesis; not an evidence source and requires human verification |",
+            "",
+            "### Evidence Table 6: Limitations Requiring Human Review",
             "",
         ]
     )
@@ -214,6 +260,8 @@ def build_report_prompt(
     extra = extra_context.strip() if extra_context.strip() else "No additional context provided."
     if analysis is None:
         analysis = run_analysis_pipeline(location, audience, scenario, concerns, timeframe, extra_context, area_selection=area_selection)
+    confidence_rows = analysis.get("evidence_confidence") or build_evidence_confidence_rows(analysis)
+    confidence_context = format_evidence_confidence_for_prompt(confidence_rows)
     section_text = "\n".join(
         f"{title}\nWriting requirement: {instruction}" for title, instruction in REPORT_TEMPLATE_SECTIONS
     )
@@ -231,6 +279,9 @@ Additional context: {extra}
 
 {analysis["prompt_context"]}
 
+Evidence confidence and provenance rules:
+{confidence_context}
+
 Follow this fixed report structure. Do not omit sections and do not change the section order:
 {section_text}
 
@@ -244,5 +295,6 @@ Formatting and safety requirements:
 - Do not invent live fire conditions, evacuation orders, fire bans, road closures or unverified official links.
 - If information is missing, write "To be confirmed by the responsible organisation / official source".
 - Include data sources, data limitations and human review requirements.
+- Use O1, P2, R3, A4 and U0 consistently when describing evidence provenance. Do not present A4 model-generated text as evidence.
 - Official sources are verification entry points only. Live warnings, fire bans, evacuation orders and life-safety decisions must come from official emergency services. Call 000 in life-threatening emergencies.
 """

@@ -35,6 +35,7 @@ Not ready for:
 - Uses a form-first workflow rather than a generic chatbot flow.
 - Runs a local Australia-focused multi-agent analysis pipeline.
 - Shows an Evidence Trail with profile, official source, community vulnerability, risk and planning outputs.
+- Labels report provenance as O1 official reference, P2 processed data, R3 rule inference, A4 AI draft or U0 unverified input.
 - Uses local ABS / ASGS-derived geography and community context.
 - Provides official source, data and licence registers.
 - Adds draft notices, evidence tables, safety disclaimers and human review sign-off.
@@ -47,6 +48,7 @@ Not ready for:
 - Designed a deterministic multi-agent pipeline covering profile parsing, Australian data context, community vulnerability, risk context, planning and report quality checks.
 - Replaced cloud-only OpenAI usage with local Ollama inference for offline-friendly demonstrations and no-cloud-key environments.
 - Built a reviewable evidence trail, governance notice, human sign-off section and audit-ready pilot export package.
+- Added deterministic evidence-confidence labels so official references, processed data, rule inference and AI prose are not presented as equivalent evidence.
 - Added Australia-specific official source, licence, data status and safety-boundary registries for more transparent outputs.
 
 ## Example Output
@@ -177,6 +179,7 @@ Streamlit UI
       -> Risk Context Agent
       -> Planner Agent
       -> Report Agent
+      -> Evidence confidence classification
       -> Report Quality Agent
   -> Local Ollama generation
   -> Evidence tables, sign-off and audit JSON
@@ -206,6 +209,7 @@ src/report_workflow.py              Report generation, audit and human-review wo
 src/ui/                             Streamlit UI modules
 src/app_catalog.py                  Official sources, form options and pilot examples
 src/report_template.py              Fixed English report prompt and report structure
+src/evidence_confidence.py          Shared O1 / P2 / R3 / A4 / U0 provenance rules
 src/agents/                         Australia-focused multi-agent pipeline
 src/assistants/                     Model client and conversation assistant layer
 src/coverage_map.py                 SA2 / SA3 / SA4 map and community profile loading
@@ -304,6 +308,6 @@ Ignored local files include `.env`, `.venv/`, `.claude/`, `.agents/`, runtime ch
 Without expanding the feature set, the next polishing work is:
 
 - Keep README and docs aligned as the project changes.
-- Add data-confidence wording to reports and demo materials.
+- Validate evidence labels and confidence boundaries with data, GIS and emergency-management reviewers.
 - Prepare a polished sample report package for one scenario.
 - Review licence and disclaimer language with a legal/risk advisor before any commercial positioning.

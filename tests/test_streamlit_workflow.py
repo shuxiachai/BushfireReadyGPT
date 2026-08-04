@@ -116,7 +116,7 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert not app.exception
     model_call.assert_called_once()
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
-    assert app.session_state["latest_quality"]["summary"]["total"] == 10
+    assert app.session_state["latest_quality"]["summary"]["total"] == 11
     assert app.session_state["latest_audit_path"].startswith(str(TEST_AUDIT_DIR))
     assert any("Latest Report Preview" in markdown.value for markdown in app.markdown)
     assert any("Hobart School Bushfire Preparedness Draft" in markdown.value for markdown in app.markdown)

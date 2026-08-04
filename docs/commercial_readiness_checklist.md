@@ -16,6 +16,7 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 - [ ] Replace approximate geography matching with official correspondence files where required.
 - [ ] Add data freshness indicators to every generated report.
 - [x] Add source citations or source notes to generated report evidence tables.
+- [x] Distinguish official references, processed data, rule inference, AI-generated text and unverified user inputs.
 - [ ] Document all derived indicators and aggregation methods.
 - [ ] Add a data quality warning when a selected geography has limited coverage.
 

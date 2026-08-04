@@ -287,8 +287,10 @@ def render_usage_guide():
 
             The Report Quality Agent checks required sections, official sources, safety disclaimer,
             000 guidance, action plan, checklist, roles and responsibilities, and safe wording
-            around assembly points. Government pilot mode also adds a data register, audit JSON
-            and human review checklist.
+            around assembly points. It also verifies O1 / P2 / R3 / A4 / U0 evidence labels so
+            official references, processed data, rule inference, AI text and unverified inputs are
+            not treated as equivalent evidence. Government pilot mode also adds a data register,
+            audit JSON and human review checklist.
 
             **Workflow**
 

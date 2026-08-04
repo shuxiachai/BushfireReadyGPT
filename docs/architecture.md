@@ -21,6 +21,8 @@ flowchart LR
     Risk --> RiskRules[data_australia/risk_context_rules.yml]
 
     ReportContext --> Prompt[src/report_template.py]
+    Pipeline --> Confidence[Evidence confidence classifier<br/>O1 / P2 / R3 / A4 / U0]
+    Confidence --> Prompt
     Prompt --> Ollama[Local Ollama model<br/>OpenAI-compatible client]
     Chat --> Ollama
     Ollama --> Report[Generated emergency preparedness report]
@@ -68,6 +70,8 @@ flowchart TD
 | Planner Agent | Converts risk and scenario into planning priorities | Action priorities |
 | Report Agent | Formats deterministic findings for the LLM prompt | Multi-agent prompt context |
 | Report Quality Agent | Checks generated report completeness and safety boundaries | Pass/warning/fail checklist |
+
+The evidence confidence classifier is a deterministic shared component rather than an LLM agent. It records provenance in the analysis and audit JSON, supplies the prompt boundary, renders in the Evidence Trail and is appended to every exported report.
 
 ## Current Boundary
 

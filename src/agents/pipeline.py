@@ -4,6 +4,7 @@ from src.agents.planner_agent import PlannerAgent
 from src.agents.profile_agent import ProfileAgent
 from src.agents.report_agent import ReportAgent
 from src.agents.risk_context_agent import RiskContextAgent
+from src.evidence_confidence import build_evidence_confidence_rows
 
 
 def run_analysis_pipeline(location, audience, scenario, concerns, timeframe, extra_context, area_selection=None):
@@ -16,7 +17,7 @@ def run_analysis_pipeline(location, audience, scenario, concerns, timeframe, ext
     plan_result = PlannerAgent().run(profile, risk_context)
     prompt_context = ReportAgent().run(profile, data_result, risk_context, plan_result, community_result)
 
-    return {
+    analysis = {
         "profile": profile,
         "data": data_result,
         "community": community_result,
@@ -25,3 +26,5 @@ def run_analysis_pipeline(location, audience, scenario, concerns, timeframe, ext
         "area_selection": area_selection,
         "prompt_context": prompt_context,
     }
+    analysis["evidence_confidence"] = build_evidence_confidence_rows(analysis)
+    return analysis

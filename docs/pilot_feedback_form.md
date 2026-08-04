@@ -30,6 +30,8 @@ Rate each item from 1 to 5.
 | The Evidence Trail was understandable. |  |  |
 | The selected geography was clear. |  |  |
 | The data limitations were clear. |  |  |
+| The O1 / P2 / R3 / A4 / U0 evidence labels were understandable. |  |  |
+| It was clear that A4 AI-generated text is not evidence. |  |  |
 | The official source register was useful. |  |  |
 | The human review checklist was useful. |  |  |
 | The audit JSON would support internal review. |  |  |
@@ -82,4 +84,3 @@ Would your organisation consider a controlled follow-up pilot?
 - [ ] No
 
 If yes or maybe, what would be required?
-
