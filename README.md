@@ -1,6 +1,14 @@
-# BushfireReadyGPT
+# BushfireReadyGPT: Local-First Multi-Agent AI for Australian Bushfire Preparedness
 
 [![Tests](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml/badge.svg)](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-111111)](https://ollama.com/)
+[![License](https://img.shields.io/github/license/shuxiachai/BushfireReadyGPT)](LICENSE)
+
+> Turn Australian location and community context into auditable bushfire preparedness drafts through a local Ollama-powered multi-agent workflow.
+
+**Local-first AI | Multi-agent evidence trail | ABS / ASGS context | Human-in-the-loop review | Markdown / PDF / DOCX exports**
 
 BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It helps councils, schools and community resilience teams generate structured draft preparedness reports from a selected location, audience, scenario and planning focus.
 
