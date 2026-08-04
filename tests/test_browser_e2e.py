@@ -122,8 +122,10 @@ def _wait_for_health(process, health_url, timeout_seconds=45):
 
 
 def _choose_option(page, label, option):
-    page.get_by_role("combobox", name=label).click()
-    page.get_by_role("option", name=option, exact=True).click()
+    combobox = page.get_by_role("combobox", name=label)
+    combobox.click()
+    combobox.fill(option)
+    combobox.press("Enter")
 
 
 def _stop_process(process):
