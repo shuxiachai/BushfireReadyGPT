@@ -124,7 +124,7 @@ Mention the agents:
 Open:
 
 ```text
-Report Quality Check
+Structural Report Check
 Human Review Checklist
 Reviewer Approval / Human Sign-off
 ```

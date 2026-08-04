@@ -14,18 +14,17 @@ Safety disclaimer: live warnings, fire bans, evacuation orders and life-safety d
 
 
 def apply_governance_notice(report_text):
-    text = report_text or ""
-    if "DRAFT STATUS NOTICE" in text:
+    text = (report_text or "").strip()
+    if text.startswith(GOVERNANCE_NOTICE_MARKDOWN.strip()):
         return text
+    text = _remove_governance_notice(text)
     return f"{GOVERNANCE_NOTICE_MARKDOWN}\n\n{text.lstrip()}"
 
 
 def append_evidence_tables(report_text, analysis):
     """Append deterministic evidence tables so exported reports keep source traceability."""
 
-    text = report_text or ""
-    if "## Evidence Tables" in text:
-        return text
+    text = _remove_section(report_text or "", "## Evidence Tables")
 
     appendix = build_evidence_tables(analysis or {})
     if not appendix:
@@ -224,6 +223,22 @@ def _remove_section(text, heading):
     if next_heading == -1:
         return text[:marker].rstrip()
     return f"{text[:marker].rstrip()}\n\n{text[next_heading + 1:].lstrip()}"
+
+
+def _remove_governance_notice(text):
+    marker = text.find("**DRAFT STATUS NOTICE**")
+    if marker == -1:
+        return text
+    disclaimer = text.find("Safety disclaimer:", marker)
+    if disclaimer == -1:
+        next_heading = text.find("\n#", marker + len("**DRAFT STATUS NOTICE**"))
+        if next_heading == -1:
+            return text[:marker].rstrip()
+        return f"{text[:marker].rstrip()}\n\n{text[next_heading + 1:].lstrip()}".strip()
+    end = text.find("\n", disclaimer)
+    if end == -1:
+        end = len(text)
+    return f"{text[:marker].rstrip()}\n\n{text[end:].lstrip()}".strip()
 
 
 REPORT_TEMPLATE_SECTIONS = [

@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 
 
 AUDIT_DIR = Path(os.environ.get("BUSHFIRE_AUDIT_DIR", "chat_history/audit"))
@@ -9,9 +10,9 @@ AUDIT_DIR = Path(os.environ.get("BUSHFIRE_AUDIT_DIR", "chat_history/audit"))
 
 def save_report_audit(payload):
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     location_slug = _slugify(payload.get("inputs", {}).get("location", "unknown"))
-    output_path = AUDIT_DIR / f"audit_{timestamp}_{location_slug}.json"
+    output_path = AUDIT_DIR / f"audit_{timestamp}_{location_slug}_{uuid4().hex[:8]}.json"
     audit_payload = {
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "app_name": "BushfireReadyGPT",

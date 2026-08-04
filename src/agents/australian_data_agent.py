@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import yaml
@@ -8,8 +9,11 @@ from src.agents.profile_agent import STATE_SHORT
 class AustralianDataAgent:
     """Selects relevant Australian official sources from local metadata."""
 
-    def __init__(self, source_path="data_australia/official_sources.yml"):
-        self.source_path = Path(source_path)
+    def __init__(self, source_path=None):
+        self.source_path = Path(
+            source_path
+            or os.environ.get("BUSHFIRE_OFFICIAL_SOURCES_PATH", "data_australia/official_sources.yml")
+        )
 
     def run(self, profile):
         sources = self._load_sources()
@@ -36,7 +40,6 @@ class AustralianDataAgent:
 
     def _profile_tags(self, profile):
         tags = {"australia"}
-        location = profile["location"].lower()
 
         # Use resolved state from ProfileAgent output when available
         state = profile.get("state", "")
@@ -48,7 +51,7 @@ class AustralianDataAgent:
 
         # Locality-level tag (e.g. "cairns")
         locality = profile.get("locality", "").lower()
-        if locality and locality != location:
+        if locality:
             tags.add(locality)
 
         return tags

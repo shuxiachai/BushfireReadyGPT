@@ -43,11 +43,7 @@ def render_report_form(
                 SCENARIO_OPTIONS,
                 key="form_scenario",
             )
-            st.selectbox(
-                "Report status",
-                ["Draft - human review required", "Reviewed draft", "Approved by organisation"],
-                key="report_status",
-            )
+            st.caption("Every newly generated or revised report starts as a draft. Record review status in Review & Export.")
             st.multiselect(
                 "Focus areas",
                 CONCERN_OPTIONS,
@@ -91,7 +87,12 @@ def render_latest_report_preview(
     if not latest_report:
         return
     st.markdown("### Latest Report Preview")
-    st.caption("This shows the most recent generated or edited report. Downloads and save actions use this content.")
+    latest_record = st.session_state.get("latest_report") or {}
+    version = latest_record.get("version", 1)
+    report_id = latest_record.get("id", "legacy")
+    st.caption(
+        f"Governed report version {version} | ID {report_id}. Downloads, quality checks and audit records use this exact content."
+    )
     action_cols = st.columns(5)
     with action_cols[0]:
         st.download_button(

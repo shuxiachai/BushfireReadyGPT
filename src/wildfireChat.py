@@ -1,6 +1,4 @@
 from datetime import datetime
-import json
-import os
 
 import streamlit as st
 
@@ -16,15 +14,16 @@ from src.app_catalog import (
     SCENARIO_OPTIONS,
     TIMEFRAME_OPTIONS,
 )
-from src.assistants.assistant import ModelServiceError
 from src.report_workflow import (
     collect_review_record,
     generate_current_report as run_generate_current_report,
     get_package_context,
+    revise_current_report as run_revise_current_report,
     update_latest_audit_review,
     update_latest_report_signoff as run_update_latest_report_signoff,
+    validate_review_record,
 )
-from src.session_store import INTERACTION_LOG_PATH, clear_conversation, initialize_state, persist_session_state
+from src.session_store import clear_conversation, initialize_state, persist_session_state
 from src.ui.data_views import (
     render_data_register,
     render_data_status,
@@ -100,6 +99,8 @@ def initialize_form_defaults():
         "approval_review_notes": "",
         "active_demo_scenario": "",
         "demo_generation_notice": "",
+        "selected_map_area": None,
+        "official_status_result": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -132,6 +133,7 @@ def apply_map_selection(map_selection):
     st.session_state.map_level = map_selection.get("level", "SA4")
     st.session_state.map_area = map_selection.get("area_name", "")
     st.session_state.map_search = ""
+    st.session_state.official_status_result = None
 
 
 def load_demo_scenario(demo):
@@ -147,13 +149,20 @@ def generate_current_report():
     return run_generate_current_report(persist_session_state)
 
 
+def revise_current_report(edit_request):
+    return run_revise_current_report(edit_request, persist_session_state)
+
+
 def on_copy_click(text):
     st.session_state.copied.append(text)
     if clipboard is not None:
-        clipboard.copy(text)
+        try:
+            clipboard.copy(text)
+        except Exception:
+            return
 
 
-def display_feedback(message, index, file):
+def display_feedback(message, index):
     increment = 0
     if message["role"] == "assistant":
         st.button("Copy response", on_click=on_copy_click, args=(message["content"],), key=f"copy_{index}")
@@ -162,26 +171,20 @@ def display_feedback(message, index, file):
             if note:
                 message["note"] = note
         increment = 1
-    message_save = {k: v for k, v in message.items() if k != "content"}
-    message_save["content"] = message["content"] if isinstance(message["content"], str) else message["content"][0]
-    file.write(json.dumps(message_save, ensure_ascii=False) + "\n")
-    file.flush()
     return increment
 
 
-def display_response(message, index=0, file=None):
+def display_response(message, index=0):
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        return display_feedback(message, index, file)
+        return display_feedback(message, index)
 
 
 def render_conversation_history():
     index = 0
-    os.makedirs("chat_history", exist_ok=True)
-    with open(INTERACTION_LOG_PATH, "w", encoding="utf-8") as file:
-        with st.expander("Conversation History", expanded=False):
-            for message in st.session_state.messages:
-                index += display_response(message, index, file)
+    with st.expander("Conversation History", expanded=False):
+        for message in st.session_state.messages:
+            index += display_response(message, index)
 
 
 def render_workspace_tabs():
@@ -219,6 +222,7 @@ def render_workspace_tabs():
             collect_review_record,
             update_latest_report_signoff,
             update_latest_audit_review,
+            validate_review_record,
             persist_session_state,
         )
         render_pilot_export_package(get_latest_assistant_text, collect_review_record, get_package_context)
@@ -252,32 +256,26 @@ render_sidebar(
 )
 render_header()
 initialize_state()
+if st.session_state.get("pending_approval_reset"):
+    st.session_state.approval_status = "Draft - human review required"
+    st.session_state.approval_review_notes = ""
+    for key in list(st.session_state.keys()):
+        if str(key).startswith("review_check_"):
+            del st.session_state[key]
+    st.session_state.pending_approval_reset = False
 render_workspace_tabs()
 
-if user_prompt := st.chat_input("Enter an additional location, audience detail or edit request"):
+if user_prompt := st.chat_input("Request a wording or content revision; change geography in the form"):
     with st.chat_message("user"):
         st.markdown(user_prompt)
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
 
     with st.chat_message("assistant"):
-        try:
-            full_response = st.session_state.assistant.get_assistant_response(user_prompt)
-        except ModelServiceError as error:
-            full_response = None
-            st.error(str(error))
-            st.caption("No assistant response was saved. Restore the model service and retry your request.")
+        with st.spinner("Revising the governed report..."):
+            full_response, error = revise_current_report(user_prompt)
+        if error:
+            st.warning(error)
+            st.caption("No report version was created. Restore the model service or generate a report first.")
         else:
             st.markdown(full_response)
-            for viz in getattr(st.session_state.assistant, "pending_visualizations", []):
-                st.plotly_chart(viz, width="stretch")
-            st.session_state.assistant.pending_visualizations = []
-
-    if full_response is None:
-        if st.session_state.messages and st.session_state.messages[-1] == {"role": "user", "content": user_prompt}:
-            st.session_state.messages.pop()
-        persist_session_state()
-        st.stop()
-
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
-    persist_session_state()
-    st.rerun()
+    if full_response:
+        st.rerun()

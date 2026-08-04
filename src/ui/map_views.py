@@ -61,10 +61,29 @@ def render_all_australia_map_selector(active_location):
         area_name = _selectbox_with_default("Select area", display_options, "map_area", inferred_area)
     if not options:
         st.info("No matching area was found. Try another keyword or switch between SA4, SA3 and SA2.")
-        st.session_state.selected_map_area = None
         return
-    st.session_state.selected_map_area = {"state": state, "level": level, "area_name": area_name}
-    st.caption(f"Current map selection: {state} / {level} / {area_name}")
+    preview_selection = {"state": state, "level": level, "area_name": area_name}
+    st.caption(f"Map preview: {state} / {level} / {area_name}")
+    apply_col, clear_col = st.columns(2)
+    with apply_col:
+        if st.button("Use previewed area for report", width="stretch"):
+            st.session_state.selected_map_area = preview_selection
+            st.session_state.official_status_result = None
+            st.success("The previewed area is now the active report geography.")
+    with clear_col:
+        if st.button("Clear active report geography", width="stretch"):
+            st.session_state.selected_map_area = None
+            st.session_state.official_status_result = None
+            st.success("The report will use the form location and best available data match.")
+    active_selection = st.session_state.get("selected_map_area")
+    if active_selection:
+        st.caption(
+            "Active report geography: "
+            f"{active_selection.get('state')} / {active_selection.get('level')} / "
+            f"{active_selection.get('area_name')}"
+        )
+    else:
+        st.caption("Active report geography: none")
     deck = build_all_australia_deck(level, area_name, state=state)
     table_rows = get_all_australia_table(level, area_name, state=state)
     if deck:

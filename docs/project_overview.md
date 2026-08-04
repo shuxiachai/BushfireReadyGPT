@@ -31,8 +31,9 @@ This version has been rebuilt around an Australian preparedness use case:
 4. The multi-agent pipeline prepares local context and planning evidence.
 5. The local Ollama model generates a formal English draft report.
 6. The app appends governance notices, provenance-labelled evidence tables and human review sign-off.
-7. The reviewer checks the evidence trail, data sources, map context and quality checks.
-8. The report can be exported as Markdown, PDF, DOCX or a pilot package zip.
+7. A follow-up edit creates a new report ID/version, rebuilds deterministic evidence, reruns structural checks and writes a separate audit record.
+8. The reviewer checks the evidence trail, data sources, map context and structural checks, then records sign-off; every new version starts as a draft with an empty checklist.
+9. The report can be exported as Markdown, PDF, DOCX or a pilot package zip.
 
 ## Multi-Agent Architecture
 
@@ -68,6 +69,7 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - Multi-agent analysis with visible intermediate evidence.
 - Local model generation through Ollama.
 - Human review and approval boundary.
+- Versioned, governed report revisions with approval reset and per-version audit files.
 - Evidence tables and audit records.
 - Evidence provenance labels that separate official references, processed data, deterministic inference, AI prose and unverified inputs.
 - Export to Markdown, PDF, DOCX and pilot package zip.
@@ -80,6 +82,8 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - It does not confirm safe routes or safe assembly points.
 - It does not replace official emergency services.
 - It does not yet include authentication, role-based approvals or production deployment hardening.
+- Its quality checks verify structure and safety wording only; they do not establish factual, legal or operational correctness.
+- Browser state is isolated in memory by default; optional JSON persistence is single-user only and is not a multi-user database.
 - It still requires legal, licence, security, privacy and user testing before commercial or government use.
 
 ## Best Current Positioning

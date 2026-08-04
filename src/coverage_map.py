@@ -49,7 +49,7 @@ def load_coverage_geojson():
         return None
 
 
-@lru_cache(maxsize=16)
+@lru_cache(maxsize=3)
 def load_all_sa2_geojson(state=None):
     path = _state_geojson_path(state)
     if not path.exists():

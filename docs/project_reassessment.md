@@ -13,10 +13,10 @@ The strongest current use case is a controlled pilot demonstration for councils,
 | Product workflow | Clear form-to-report flow with review/export tabs. |
 | Multi-agent layer | Profile, data, community vulnerability, risk context, planner, report and quality agents are separated. |
 | Australian data context | Local ABS/ASGS processed data and official source registers are available. |
-| Governance boundary | Reports include draft notices, provenance-labelled evidence tables, human review sign-off and audit JSON. |
+| Governance boundary | Reports include version lineage, draft notices, program-generated evidence tables, approval validation, sign-off and audit JSON. |
 | Exports | Markdown, PDF, DOCX and pilot zip package are implemented. |
 | Local model runtime | Ollama is the default provider, so no OpenAI API key is required. |
-| Testing | Deterministic tests cover the core pipeline, appendices, registers, export package, validation and quality checks. |
+| Testing | 28 fast tests and one Chromium E2E cover the core pipeline, persistence, appendices, exports, validation, Streamlit health and browser workflow. |
 
 ## Main Gaps
 
@@ -39,11 +39,16 @@ The strongest current use case is a controlled pilot demonstration for councils,
 - Renamed the generic LLM response helper internally while preserving the old alias for compatibility.
 - Added tests for approval validation and quality checklist detection.
 - Added O1 / P2 / R3 / A4 / U0 provenance labels to analysis, reports, audits, UI review and quality checks.
+- Routed follow-up edits through a governed revision workflow with report IDs, version lineage, new audit records and deterministic evidence regeneration.
+- Reset prior approval/checklist state on each new version and require identity fields plus a complete checklist before organisational approval.
+- Replaced shared pickle state with isolated in-memory sessions by default and optional single-user JSON persistence.
+- Separated map preview from active report geography and rejected cross-state form/map conflicts.
+- Hardened unique audit filenames and project-local duplicate-start detection.
 
 ## Suggested Next Build Order
 
-1. **Project health panel**
-   Add a small admin/readiness panel showing Ollama status, data files present, latest data update, latest audit path and test command.
+1. **Controlled stakeholder validation**
+   Run the existing pilot feedback workflow with school or council reviewers and record which report sections and evidence labels they can use reliably.
 
 2. **Evidence confidence validation**
    Review O1 / P2 / R3 / A4 / U0 labels with data, GIS and emergency-management stakeholders and add dataset freshness metadata.

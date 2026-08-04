@@ -14,7 +14,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | User workflow | 8/10 | Strong MVP | Form, demo mode, evidence trail, reviewer sign-off and export package are in place. |
 | Data foundation | 6/10 | Pilot ready | ABS SA2/ASGS data is local and traceable; live warning data is not integrated. |
 | Multi-agent architecture | 7/10 | Pilot ready | Agent responsibilities are separated and visible, but testing and orchestration can be strengthened. |
-| Governance and audit | 7/10 | Pilot ready | Draft notices, evidence tables, sign-off and audit JSON exist; role-based approval is still missing. |
+| Governance and audit | 7/10 | Pilot ready | Versioned drafts, deterministic evidence, approval validation and audit JSON exist; authenticated role-based approval is still missing. |
 | Commercial readiness | 4/10 | Not commercial yet | Needs licence review, legal boundary, deployment, privacy and user testing. |
 | Government procurement readiness | 3/10 | Early | Needs security, accessibility, procurement documentation and official data agreements. |
 
@@ -29,6 +29,8 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - O1 / P2 / R3 / A4 / U0 evidence confidence and provenance labels.
 - Evidence Tables appended to generated reports.
 - Reviewer Approval / Human Sign-off workflow.
+- Governed report revisions with new IDs, version lineage, structural re-checks and approval reset.
+- In-memory session isolation by default and optional single-user JSON persistence without executable pickle loading.
 - Markdown, PDF, DOCX, audit JSON and pilot export package.
 - Demo Mode, Presentation Mode and sample scenario pack.
 
@@ -42,7 +44,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | P1 | User testing | The report format has not been validated by real school/council/community reviewers. | Run a controlled pilot with 3-5 reviewers using the pilot feedback form. |
 | P1 | Authentication and approval | Reviewer fields exist, but there are no user accounts, permissions or signed approval states. | Design roles for drafter, reviewer and admin; later add login and immutable approval records. |
 | P2 | Deployment | The app runs locally, but is not packaged for secure hosting. | Add Docker, environment profiles, health checks, logs and deployment notes. |
-| P2 | Automated testing | Unit, Streamlit and Chromium tests exist, but visual export regression and real-model quality benchmarking remain limited. | Add rendered PDF/DOCX visual checks and a controlled real-Ollama scenario benchmark. |
+| P2 | Automated testing | 28 fast tests plus one Chromium workflow cover core, exports, Streamlit health and UI flow, but visual export regression and real-model quality benchmarking remain limited. | Add rendered PDF/DOCX visual checks and a controlled real-Ollama scenario benchmark. |
 
 ## Recommended Roadmap
 

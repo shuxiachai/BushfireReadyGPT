@@ -32,6 +32,7 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 
 - [ ] Review disclaimers with a legal or risk advisor.
 - [x] Define human review and approval workflow.
+- [x] Add versioned report records and reset prior approval/checklist state after every generation or revision.
 - [ ] Define liability boundaries for generated reports.
 - [ ] Add versioning for report templates.
 - [x] Add audit logs for inputs, outputs, model version, data version and reviewer actions.
@@ -39,7 +40,7 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 
 ## 5. Security And Privacy
 
-- [ ] Define whether user data is stored locally, in cloud storage or in a database.
+- [x] Define current storage: isolated in-memory browser sessions by default, with local reports/audits and optional single-user JSON session persistence.
 - [ ] Add authentication for multi-user deployments.
 - [ ] Add role-based permissions for draft, reviewer and admin users.
 - [ ] Avoid storing sensitive personal data unless necessary.
@@ -52,15 +53,15 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 - [ ] Containerise the app.
 - [ ] Add environment-specific configuration.
 - [ ] Add health checks and logging.
-- [ ] Add model availability checks for Ollama or the chosen model service.
-- [ ] Add graceful errors when data files or model services are unavailable.
+- [x] Add model availability checks for Ollama or the chosen model service.
+- [ ] Add graceful errors for every missing/corrupt data file; model-service errors and normal data limitation states are already handled.
 
 ## 7. Quality Assurance
 
 - [x] Add automated tests for the report template.
 - [x] Add automated tests for the agent pipeline.
-- [ ] Add export tests for PDF and DOCX.
-- [ ] Add UI smoke tests for the main workflow.
+- [x] Add export tests for PDF and DOCX.
+- [x] Add Streamlit health smoke, AppTest workflow and Chromium end-to-end tests.
 - [ ] Add regression examples for each supported scenario.
 - [x] Add a human review checklist to every generated report.
 

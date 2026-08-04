@@ -8,7 +8,7 @@ The project runs locally through Ollama, exposes a deterministic multi-agent evi
 
 **中文简介：** 本项目是一个面向澳洲山火应急准备场景的多智能体报告生成系统原型。系统支持本地 Ollama 大模型推理、结构化表单输入、澳洲地区数据上下文、多 Agent 分析证据链、报告质量检查以及 Markdown / PDF / DOCX 导出。项目当前定位为 MVP / Prototype，适用于学习展示、作品集和受控试点讨论，不用于真实火情判断、撤离命令或生命安全决策。
 
-This project was adapted from the open-source WildfireGPT / MARSHA project. Original United States wildfire data, experiments and inactive tools are treated as local legacy reference material only; the active application is now positioned around Australian bushfire preparedness.
+This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT](https://github.com/project-araia/WildfireGPT) / MARSHA project. Original United States wildfire data, experiments and inactive tools are treated as local legacy reference material only; the active application is now positioned around Australian bushfire preparedness. See [UPSTREAM.md](UPSTREAM.md) for provenance and modification notes.
 
 ## Current Status
 
@@ -39,6 +39,7 @@ Not ready for:
 - Uses local ABS / ASGS-derived geography and community context.
 - Provides official source, data and licence registers.
 - Adds draft notices, evidence tables, safety disclaimers and human review sign-off.
+- Treats follow-up edits as governed report revisions with a new report ID, version, quality result and audit record.
 - Exports Markdown, PDF, DOCX and pilot export packages.
 - Runs locally with Ollama, so no OpenAI API key is required.
 
@@ -49,6 +50,8 @@ Not ready for:
 - Replaced cloud-only OpenAI usage with local Ollama inference for offline-friendly demonstrations and no-cloud-key environments.
 - Built a reviewable evidence trail, governance notice, human sign-off section and audit-ready pilot export package.
 - Added deterministic evidence-confidence labels so official references, processed data, rule inference and AI prose are not presented as equivalent evidence.
+- Added report versioning, approval validation and review-checklist reset so revised content cannot silently inherit an earlier approval.
+- Isolated browser sessions in memory by default and replaced optional pickle persistence with explicitly enabled JSON persistence for single-user installations.
 - Added Australia-specific official source, licence, data status and safety-boundary registries for more transparent outputs.
 
 ## Example Output
@@ -105,6 +108,8 @@ OLLAMA_BASE_URL=http://localhost:11434/v1
 OLLAMA_MODEL=qwen2.5:7b
 ```
 
+Browser sessions are isolated in memory by default. For an explicitly single-user local installation, optional JSON session persistence can be enabled with `BUSHFIRE_SESSION_STATE_PATH=chat_history/session_state.json`. Do not use one shared state file for a multi-user deployment.
+
 Windows double-click startup:
 
 ```text
@@ -125,7 +130,7 @@ Or run from PowerShell:
 powershell -ExecutionPolicy Bypass -File .\start_app.ps1
 ```
 
-The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It automatically selects an available port from `8501` to `8505`. Keep the terminal open while using the app. Press `Ctrl + C` or close the terminal to stop Streamlit and release the port.
+The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It records the active project port locally, avoids launching a duplicate instance, and automatically selects an available port from `8501` to `8505`. Keep the terminal open while using the app. Press `Ctrl + C` or close this terminal to stop Streamlit and release the port.
 
 ## Demo Path
 
@@ -137,7 +142,7 @@ For the cleanest demonstration:
 4. Click `Load example`.
 5. Click `Generate report`.
 6. Show `Latest Report Preview`.
-7. Open `Review & Export` and show the Evidence Trail, Report Quality Check and Human Review Checklist.
+7. Open `Review & Export` and show the Evidence Trail, Structural Report Check and Human Review Checklist.
 8. Open `Data & Map` and show official sources, data status, licence register and map context.
 9. Download the pilot export package.
 10. Explain the safety boundary and current commercial limitations.
@@ -261,7 +266,7 @@ Run the fast unit, integration, Streamlit smoke and AppTest workflow suite:
 Expected fast-suite result:
 
 ```text
-19 passed
+28 passed
 ```
 
 Install the browser-test dependencies and matching Chromium build once:
@@ -278,7 +283,7 @@ Run the real-browser workflow or the complete suite:
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-The complete expected result is `20 passed`.
+The complete expected result is `29 passed`.
 
 GitHub Actions runs the same suite automatically on Python 3.11 and 3.13 for
 pushes to `main`, pull requests targeting `main`, and manual workflow runs. The
@@ -286,8 +291,8 @@ workflow also checks installed dependency consistency and does not require an
 Ollama service because model-service failure paths are tested with controlled
 mocks. The suite also renders the Streamlit app, starts a headless server, and
 verifies both the health endpoint and the root web page. UI workflow tests cover
-required-field validation, pilot-example loading, and report generation with a
-controlled model response. A separate Chromium job exercises pilot loading,
+required-field validation, pilot-example loading, governed report generation and
+versioned revision with a controlled model response. A separate Chromium job exercises pilot loading,
 report generation through a local mock model endpoint, Markdown and ZIP downloads,
 reviewer sign-off, audit updates, package-manifest verification, Cairns-to-Brisbane
 map filtering, controlled official-source reachability and data-status rendering.

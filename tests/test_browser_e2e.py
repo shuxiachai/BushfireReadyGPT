@@ -251,7 +251,7 @@ def test_browser_report_data_map_and_human_signoff_workflow():
             "LLM_PROVIDER": "ollama",
             "OLLAMA_BASE_URL": f"http://127.0.0.1:{model_server.server_port}/v1",
             "OLLAMA_MODEL": "e2e-model",
-            "BUSHFIRE_SESSION_STATE_PATH": str(RUNTIME_DIR / "session_state.pkl"),
+            "BUSHFIRE_SESSION_STATE_PATH": str(RUNTIME_DIR / "session_state.json"),
             "BUSHFIRE_INTERACTION_LOG_PATH": str(RUNTIME_DIR / "interaction.jsonl"),
             "BUSHFIRE_AUDIT_DIR": str(RUNTIME_DIR / "audit"),
             "BUSHFIRE_ALL_SA2_PROFILE_PATH": str(map_profile_path),
@@ -357,7 +357,7 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 page.get_by_role("tab", name="Data & Map", exact=True).click()
                 expect(
                     page.get_by_text(
-                        "Current map selection: Queensland / SA4 / Cairns",
+                        "Active report geography: Queensland / SA4 / Cairns",
                         exact=True,
                     )
                 ).to_be_visible(
@@ -366,14 +366,18 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 search_area = page.get_by_label("Search area", exact=True)
                 search_area.fill("Brisbane")
                 search_area.press("Enter")
+                page.get_by_role("button", name="Use previewed area for report", exact=True).click()
                 expect(
                     page.get_by_text(
-                        "Current map selection: Queensland / SA4 / Brisbane - East",
+                        "Active report geography: Queensland / SA4 / Brisbane - East",
                         exact=True,
                     )
                 ).to_be_visible(timeout=30_000)
 
-                expect(page.get_by_text("Mock Queensland Official Source", exact=True)).to_be_visible()
+                data_map_panel = page.get_by_label("Data & Map")
+                expect(
+                    data_map_panel.get_by_text("Mock Queensland Official Source", exact=True)
+                ).to_be_visible()
                 page.get_by_role("button", name="Check official source status", exact=True).click()
                 reachable_card = page.locator(".status-card").filter(has_text="Reachable")
                 expect(reachable_card).to_contain_text("1", timeout=30_000)

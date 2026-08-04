@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+from uuid import uuid4
 
 import streamlit as st
 
@@ -13,10 +14,6 @@ OLD_WELCOME_MARKERS = [
     "\u751f\u6210\u4e00\u4efd\u6b63\u5f0f\u7684\u6fb3\u6d32\u5c71\u706b\u5e94\u6025\u51c6\u5907\u62a5\u544a",
     "Complete the form above to generate a formal Australian bushfire preparedness report",
 ]
-
-
-def contains_chinese(text):
-    return any("\u4e00" <= char <= "\u9fff" for char in str(text))
 
 
 def is_welcome_message(text):
@@ -38,11 +35,14 @@ def normalise_loaded_messages(messages):
 
 
 def get_active_analysis_location():
+    form_location = st.session_state.get("form_location", "")
+    if form_location:
+        return form_location
     analysis = st.session_state.get("latest_analysis") or {}
     profile = analysis.get("profile") or {}
     if profile.get("location"):
         return profile["location"]
-    return st.session_state.get("form_location", "")
+    return ""
 
 
 def get_active_map_selection_label():
@@ -53,14 +53,17 @@ def get_active_map_selection_label():
 
 
 def get_latest_assistant_text():
+    latest_report = st.session_state.get("latest_report") or {}
+    report_text = latest_report.get("text") if isinstance(latest_report, dict) else ""
+    if report_text:
+        return report_text
+
     for message in reversed(st.session_state.get("messages", [])):
-        if message.get("role") == "assistant":
+        if message.get("role") == "assistant" and message.get("kind") == "report":
             content = message.get("content", "")
             if isinstance(content, list):
                 content = content[0] if content else ""
             if is_welcome_message(content):
-                continue
-            if contains_chinese(content):
                 continue
             return content
     return ""
@@ -71,8 +74,8 @@ def save_latest_report():
     if not report:
         return None
     os.makedirs("chat_history", exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    path = f"chat_history/bushfire_report_{timestamp}.md"
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    path = f"chat_history/bushfire_report_{timestamp}_{uuid4().hex[:8]}.md"
     with open(path, "w", encoding="utf-8") as file:
         file.write("# BushfireReadyGPT Report\n\n")
         file.write(report)

@@ -10,7 +10,7 @@ from src.assistants.assistant import THREAD_MESSAGES
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
-TEST_SESSION_PATH = PROJECT_ROOT / "chat_history" / "test_session_state.pkl"
+TEST_SESSION_PATH = PROJECT_ROOT / "chat_history" / "test_session_state.json"
 TEST_INTERACTION_PATH = PROJECT_ROOT / "chat_history" / "test_interaction.jsonl"
 TEST_AUDIT_DIR = PROJECT_ROOT / "chat_history" / "test_audit"
 
@@ -70,6 +70,8 @@ def _button(app, label):
 def test_report_form_rejects_empty_required_fields(isolated_app_storage):
     app = _run_app()
 
+    assert app.session_state["selected_map_area"] is None
+
     _button(app, "Generate report").click().run(timeout=30)
 
     assert not app.exception
@@ -118,5 +120,45 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
     assert app.session_state["latest_quality"]["summary"]["total"] == 11
     assert app.session_state["latest_audit_path"].startswith(str(TEST_AUDIT_DIR))
+    assert app.session_state["latest_report"]["version"] == 1
+    assert app.session_state["latest_report"]["audit_path"] == app.session_state["latest_audit_path"]
     assert any("Latest Report Preview" in markdown.value for markdown in app.markdown)
     assert any("Hobart School Bushfire Preparedness Draft" in markdown.value for markdown in app.markdown)
+
+
+def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
+    revised_report = MOCK_REPORT.replace(
+        "Confirm routes and candidate assembly points",
+        "Confirm accessible routes and two candidate assembly point options",
+    )
+    with patch(
+        "src.assistants.assistant_router.AssistantRouter.get_assistant_response",
+        autospec=True,
+        side_effect=[MOCK_REPORT, revised_report],
+    ) as model_call:
+        app = _run_app()
+        app.text_input(key="form_location").set_value("Hobart, Tasmania")
+        app.text_input(key="form_audience").set_value("Students and teachers")
+        app.multiselect(key="form_concerns").set_value(
+            ["Evacuation", "Candidate assembly points", "Official information sources"]
+        )
+        _button(app, "Generate report").click().run(timeout=30)
+        first_report = dict(app.session_state["latest_report"])
+        app.checkbox[0].check().run(timeout=30)
+        assert app.checkbox[0].value is True
+
+        app.chat_input[0].set_value("Add accessibility detail to the evacuation section.").run(timeout=30)
+
+    second_report = app.session_state["latest_report"]
+    assert not app.exception
+    assert model_call.call_count == 2
+    assert second_report["version"] == 2
+    assert second_report["parent_report_id"] == first_report["id"]
+    assert second_report["id"] != first_report["id"]
+    assert second_report["audit_path"] != first_report["audit_path"]
+    assert "accessible routes" in second_report["text"]
+    assert "## Evidence Tables" in second_report["text"]
+    assert "## Human Review Sign-off" in second_report["text"]
+    assert second_report["quality"] == app.session_state["latest_quality"]
+    assert app.session_state["report_status"] == "Draft - human review required"
+    assert not any(checkbox.value for checkbox in app.checkbox)

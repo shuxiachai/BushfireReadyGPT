@@ -1,21 +1,30 @@
 import json
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
+from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
 import httpx
 from openai import APIConnectionError, APIStatusError
 
 from src.agents import run_analysis_pipeline
+from src.agents.profile_agent import ProfileAgent
 from src.assistants.assistant import model_service_error_message
+from src.audit import save_report_audit
 from src.docx_export import create_report_docx
 from src.agents.report_quality_agent import ReportQualityAgent
 from src.data_status import get_community_data_status
 from src.export_package import create_pilot_export_package
 from src.licence_register import get_licence_register, licence_register_csv
 from src.pdf_export import create_report_pdf
-from src.report_workflow import validate_report_inputs
+from src.report_workflow import (
+    validate_geography_consistency,
+    validate_report_inputs,
+    validate_review_record,
+)
 from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
+from src import session_store
 
 
 SAMPLE_REPORT = """# Cairns Campus Preparedness Report
@@ -100,6 +109,70 @@ def test_report_appendices_are_idempotent():
     assert "[U0]" in report
     assert "## Human Review Sign-off" in report
     assert "Test Reviewer" in report
+
+
+def test_deterministic_evidence_tables_replace_model_modified_tables():
+    analysis = run_analysis_pipeline(
+        location="Cairns, Queensland",
+        audience="students and teachers",
+        scenario="School Preparedness",
+        concerns=["official sources"],
+        timeframe="One-week action plan",
+        extra_context="",
+    )
+    model_modified = """# Draft
+
+## Evidence Tables
+
+MODEL MODIFIED EVIDENCE THAT MUST NOT SURVIVE
+
+## Human Review Sign-off
+
+Old sign-off.
+"""
+
+    report = append_evidence_tables(model_modified, analysis)
+    report = append_human_signoff(report, {"reviewer_name": "Test Reviewer"})
+
+    assert "MODEL MODIFIED EVIDENCE" not in report
+    assert report.count("## Evidence Tables") == 1
+    assert report.index("## Evidence Tables") < report.index("## Human Review Sign-off")
+
+
+def test_governance_notice_replaces_modified_notice_without_losing_report_body():
+    modified = """**DRAFT STATUS NOTICE**
+
+Modified model wording that must not survive.
+
+# Preparedness Report
+
+## Executive Summary
+Keep this report body.
+"""
+
+    report = apply_governance_notice(modified)
+
+    assert report.count("DRAFT STATUS NOTICE") == 1
+    assert "Modified model wording" not in report
+    assert "# Preparedness Report" in report
+    assert "Keep this report body" in report
+
+
+def test_session_state_persistence_uses_json_and_round_trips(monkeypatch):
+    with TemporaryDirectory() as directory:
+        target = Path(directory) / "session.json"
+        state = {
+            "messages": [{"role": "assistant", "content": "Draft", "kind": "report"}],
+            "latest_report": {"id": "report-1", "version": 2, "text": "Draft"},
+        }
+        monkeypatch.setattr(session_store, "SESSION_STATE_PATH", str(target))
+        monkeypatch.setattr(session_store, "st", SimpleNamespace(session_state=state))
+
+        session_store.persist_session_state()
+        saved = json.loads(target.read_text(encoding="utf-8"))
+
+        assert saved["latest_report"]["version"] == 2
+        assert session_store._load_persisted_state() == saved
 
 
 def test_data_and_licence_registers_load():
@@ -365,3 +438,79 @@ def test_cairns_still_receives_queensland_and_local_sources():
     assert "Queensland Fire" in source_text
     assert "Cairns Regional Council" in source_text
     assert "Triple Zero" in source_text
+
+
+def test_state_abbreviations_require_word_boundaries():
+    profile = ProfileAgent().run(
+        "Wagga Wagga",
+        "community residents",
+        "Community preparedness",
+        ["Evacuation"],
+        "7-day action plan",
+        "",
+    )
+
+    assert profile["state"] == "New South Wales"
+
+
+def test_exact_cairns_location_keeps_local_official_source():
+    analysis = run_analysis_pipeline(
+        location="Cairns",
+        audience="school staff",
+        scenario="School bushfire preparedness",
+        concerns=["Official information sources"],
+        timeframe="7-day action plan",
+        extra_context="",
+    )
+
+    source_names = [source.get("name", "") for source in analysis["data"].get("sources", [])]
+    assert any("Cairns Regional Council" in name for name in source_names)
+
+
+def test_geography_validation_rejects_cross_state_map_selection():
+    inputs = {
+        "location": "Hobart, Tasmania",
+        "audience": "community residents",
+        "scenario": "Community preparedness",
+        "concerns": ["Evacuation"],
+        "timeframe": "7-day action plan",
+        "extra_context": "",
+    }
+
+    error = validate_geography_consistency(
+        inputs,
+        {"state": "Queensland", "level": "SA4", "area_name": "Cairns"},
+    )
+
+    assert "Tasmania" in error
+    assert "Queensland" in error
+    assert validate_geography_consistency(
+        inputs,
+        {"state": "Tasmania", "level": "SA4", "area_name": "Hobart"},
+    ) is None
+
+
+def test_approved_review_requires_identity_fields_and_completed_checklist():
+    record = {
+        "approval_status": "Approved by organisation",
+        "organisation_name": "Cairns Council",
+        "reviewer_name": "Test Reviewer",
+        "reviewer_role": "Preparedness officer",
+        "review_checklist_complete": False,
+    }
+
+    assert "Complete every Human Review Checklist" in validate_review_record(record)
+    record["review_checklist_complete"] = True
+    assert validate_review_record(record) is None
+
+
+def test_audit_paths_are_unique_for_rapid_successive_reports(monkeypatch):
+    with TemporaryDirectory() as directory:
+        monkeypatch.setattr("src.audit.AUDIT_DIR", Path(directory))
+        payload = {"inputs": {"location": "Cairns"}, "report_text": "Draft"}
+
+        first = save_report_audit(payload)
+        second = save_report_audit(payload)
+
+        assert first != second
+        assert len(list(Path(directory).glob("audit_*.json"))) == 2

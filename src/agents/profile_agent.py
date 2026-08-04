@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 import yaml
 
@@ -35,8 +36,8 @@ class ProfileAgent:
 
     # Tier 3: recognise major city names when no state keyword is present
     _CITY_KEYWORDS = {
-        "New South Wales": ["sydney", "newcastle", "wollongong", "central coast"],
-        "Victoria": ["melbourne", "geelong", "ballarat", "bendigo"],
+        "New South Wales": ["sydney", "newcastle", "wollongong", "central coast", "wagga wagga"],
+        "Victoria": ["melbourne", "geelong", "ballarat", "bendigo", "warrnambool"],
         "Queensland": ["brisbane", "gold coast", "sunshine coast"],
         "Western Australia": ["perth", "fremantle", "bunbury"],
         "South Australia": ["adelaide", "port augusta", "mount gambier"],
@@ -68,13 +69,18 @@ class ProfileAgent:
                 return info["locality"], info["state"]
         # Tier 2: state name or postal code in the location string
         for state, keywords in self._STATE_KEYWORDS.items():
-            if any(kw in lower for kw in keywords):
+            if any(self._matches_location_keyword(lower, keyword) for keyword in keywords):
                 return location_text, state
         # Tier 3: major city names
         for state, cities in self._CITY_KEYWORDS.items():
             if any(city in lower for city in cities):
                 return location_text, state
         return location_text, "Australia"
+
+    def _matches_location_keyword(self, location, keyword):
+        if len(keyword) <= 3:
+            return re.search(rf"(?<![a-z]){re.escape(keyword)}(?![a-z])", location) is not None
+        return keyword in location
 
     def run(self, location, audience, scenario, concerns, timeframe, extra_context):
         location_text = location.strip()

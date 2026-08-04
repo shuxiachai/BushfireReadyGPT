@@ -70,6 +70,10 @@ class ReportQualityAgent:
                 "failed": failed,
                 "total": len(checks),
             },
+            "assessment_scope": (
+                "Deterministic structural lint only. Passing checks do not verify factual accuracy, "
+                "official currency, legal validity or operational safety."
+            ),
         }
 
     def _check_sections(self, text):

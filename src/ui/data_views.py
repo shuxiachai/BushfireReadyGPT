@@ -37,8 +37,7 @@ def _get_display_sources(profile=None):
         if short:
             tags.add(short)
         locality = profile.get("locality", "").lower()
-        location = profile.get("location", "").lower()
-        if locality and locality != location:
+        if locality:
             tags.add(locality)
 
     selected = []

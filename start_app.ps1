@@ -9,6 +9,8 @@ if (-not (Test-Path $python)) {
 }
 
 $envFile = Join-Path $projectRoot ".env"
+$runtimeDir = Join-Path $projectRoot "chat_history"
+$portMarker = Join-Path $runtimeDir "bushfire_ready_port.txt"
 
 function Get-DotEnvValue {
     param(
@@ -62,6 +64,22 @@ function Resolve-OllamaExecutable {
     }
 
     return $null
+}
+
+if (Test-Path $portMarker) {
+    $markedPort = (Get-Content -Encoding UTF8 $portMarker -ErrorAction SilentlyContinue | Select-Object -First 1)
+    if ($markedPort -match '^\d+$') {
+        try {
+            $health = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:$markedPort/_stcore/health" -TimeoutSec 2
+            if ($health.StatusCode -eq 200 -and $health.Content.Trim().ToLowerInvariant() -eq "ok") {
+                Write-Host "BushfireReadyGPT is already running at http://localhost:$markedPort"
+                exit 0
+            }
+        } catch {
+            # The marker is stale and will be replaced below.
+        }
+    }
+    Remove-Item -LiteralPath $portMarker -Force -ErrorAction SilentlyContinue
 }
 
 $provider = (Get-DotEnvValue -Name "LLM_PROVIDER" -DefaultValue "ollama").ToLowerInvariant()
@@ -137,29 +155,6 @@ $selectedPort = $null
 
 foreach ($port in $ports) {
     $running = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-    if ($running) {
-        try {
-            $response = Invoke-WebRequest -UseBasicParsing "http://localhost:$port" -TimeoutSec 2
-            if ($response.Content -match "BushfireReadyGPT") {
-                $selectedPort = $port
-                break
-            }
-            Write-Host "Port $port is already in use by another app. Trying next port..."
-            continue
-        } catch {
-            Write-Host "Port $port is busy but did not respond as BushfireReadyGPT. Trying next port..."
-            continue
-        }
-    }
-}
-
-if ($selectedPort) {
-    Write-Host "BushfireReadyGPT is already running at http://localhost:$selectedPort"
-    exit 0
-}
-
-foreach ($port in $ports) {
-    $running = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
     if (-not $running) {
         $selectedPort = $port
         break
@@ -173,4 +168,18 @@ if (-not $selectedPort) {
 Write-Host "Starting BushfireReadyGPT at http://localhost:$selectedPort"
 Write-Host "Keep this terminal open while using the app. Press Ctrl+C or close this terminal to stop Streamlit."
 
-& $python -m streamlit run src/wildfireChat.py --server.port $selectedPort
+New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
+Set-Content -LiteralPath $portMarker -Value $selectedPort -Encoding UTF8
+$streamlitExitCode = 0
+try {
+    & $python -m streamlit run src/wildfireChat.py --server.port $selectedPort
+    $streamlitExitCode = $LASTEXITCODE
+} finally {
+    if (Test-Path $portMarker) {
+        $currentMarker = (Get-Content -Encoding UTF8 $portMarker -ErrorAction SilentlyContinue | Select-Object -First 1)
+        if ($currentMarker -eq [string]$selectedPort) {
+            Remove-Item -LiteralPath $portMarker -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+exit $streamlitExitCode

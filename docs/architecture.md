@@ -6,7 +6,7 @@
 flowchart LR
     User[User in browser] --> UI[Streamlit UI<br/>src/wildfireChat.py]
     UI --> Form[Report form<br/>location, audience, scenario, concerns]
-    UI --> Chat[Follow-up chat]
+    UI --> Revision[Governed revision request]
 
     Form --> Pipeline[Deterministic multi-agent pipeline<br/>src/agents/pipeline.py]
     Pipeline --> Profile[Profile Agent]
@@ -24,11 +24,16 @@ flowchart LR
     Pipeline --> Confidence[Evidence confidence classifier<br/>O1 / P2 / R3 / A4 / U0]
     Confidence --> Prompt
     Prompt --> Ollama[Local Ollama model<br/>OpenAI-compatible client]
-    Chat --> Ollama
-    Ollama --> Report[Generated emergency preparedness report]
+    Revision --> Workflow[Report workflow<br/>version and policy controls]
+    Workflow --> Ollama
+    Ollama --> Workflow
+    Workflow --> Report[Versioned draft preparedness report]
+    Ollama --> Report
 
-    Report --> Quality[Report Quality Agent]
-    Report --> Exports[Markdown / PDF / DOCX exports]
+    Report --> Deterministic[Canonical notice, evidence tables<br/>and human sign-off]
+    Deterministic --> Quality[Structural Report Quality Agent]
+    Deterministic --> Audit[Versioned audit JSON]
+    Deterministic --> Exports[Markdown / PDF / DOCX exports]
     Quality --> UI
     Exports --> UI
 ```
@@ -71,8 +76,10 @@ flowchart TD
 | Report Agent | Formats deterministic findings for the LLM prompt | Multi-agent prompt context |
 | Report Quality Agent | Checks generated report completeness and safety boundaries | Pass/warning/fail checklist |
 
-The evidence confidence classifier is a deterministic shared component rather than an LLM agent. It records provenance in the analysis and audit JSON, supplies the prompt boundary, renders in the Evidence Trail and is appended to every exported report.
+The evidence confidence classifier is a deterministic shared component rather than an LLM agent. It records provenance in the analysis and audit JSON, supplies the prompt boundary, renders in the Evidence Trail and is appended to every exported report. Follow-up edits create a new governed report version; canonical evidence tables are rebuilt from stored analysis rather than trusted from model output, and the previous approval checklist is reset.
+
+Browser sessions are isolated in memory by default. Optional JSON persistence is intended only for an explicitly single-user local installation. Audit records and manually saved reports remain local files; the prototype has no authenticated multi-user database.
 
 ## Current Boundary
 
-The project is a planning and course-demonstration tool. It does not provide live fire conditions, evacuation orders, fire bans, or life-safety decisions. Live emergency instructions must come from official emergency services, and life-threatening emergencies require calling `000`.
+The project is a planning and course-demonstration tool. Its Report Quality Agent is deterministic structural lint, not factual, legal or operational verification. It does not provide live fire conditions, evacuation orders, fire bans, or life-safety decisions. Live emergency instructions must come from official emergency services, and life-threatening emergencies require calling `000`.

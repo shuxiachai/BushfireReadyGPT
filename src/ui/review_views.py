@@ -164,7 +164,10 @@ def render_report_quality_summary():
         return
 
     summary = quality.get("summary", {})
-    with st.expander("Report Quality Check", expanded=False):
+    with st.expander("Structural Report Check", expanded=False):
+        st.caption(
+            quality.get("assessment_scope", "Structural checks do not establish factual or operational accuracy.")
+        )
         st.markdown(
             f"**Passed:** {summary.get('passed', 0)} / {summary.get('total', 0)}  "
             f"**Warnings:** {summary.get('warnings', 0)}  "
@@ -228,6 +231,7 @@ def render_reviewer_approval(
     collect_review_record,
     update_latest_report_signoff,
     update_latest_audit_review,
+    validate_review_record,
     persist_session_state,
 ):
     if st.session_state.get("organisation_name") and not st.session_state.get("approval_organisation_name"):
@@ -276,6 +280,15 @@ def render_reviewer_approval(
 
     if submitted:
         review_record = collect_review_record()
+        validation_error = validate_review_record(review_record)
+        if validation_error:
+            latest_report = st.session_state.get("latest_report") or {}
+            previous_review = latest_report.get("review_record") or {}
+            st.session_state.report_status = previous_review.get(
+                "approval_status", "Draft - human review required"
+            )
+            st.warning(validation_error)
+            return
         st.session_state.latest_review_record = review_record
         report_updated = update_latest_report_signoff(review_record)
         audit_updated = update_latest_audit_review(review_record)

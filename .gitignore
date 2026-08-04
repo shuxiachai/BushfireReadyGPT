@@ -8,6 +8,7 @@ data_australia/processed/sa2_boundaries_by_state/
 legacy/
 
 **/session_state.pkl
+**/session_state.json
 chat_history/*
 !chat_history/.gitkeep
 
