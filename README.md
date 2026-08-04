@@ -285,7 +285,8 @@ verifies both the health endpoint and the root web page. UI workflow tests cover
 required-field validation, pilot-example loading, and report generation with a
 controlled model response. A separate Chromium job exercises pilot loading,
 report generation through a local mock model endpoint, Markdown and ZIP downloads,
-reviewer sign-off, audit updates and package-manifest verification.
+reviewer sign-off, audit updates, package-manifest verification, Cairns-to-Brisbane
+map filtering, controlled official-source reachability and data-status rendering.
 
 ## Git And Repository Hygiene
 
@@ -303,7 +304,6 @@ Ignored local files include `.env`, `.venv/`, `.claude/`, `.agents/`, runtime ch
 Without expanding the feature set, the next polishing work is:
 
 - Keep README and docs aligned as the project changes.
-- Add browser coverage for map filtering and source-status interactions.
 - Add data-confidence wording to reports and demo materials.
 - Prepare a polished sample report package for one scenario.
 - Review licence and disclaimer language with a legal/risk advisor before any commercial positioning.

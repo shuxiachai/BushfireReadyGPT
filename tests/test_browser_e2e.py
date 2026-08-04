@@ -23,18 +23,18 @@ RUNTIME_DIR = PROJECT_ROOT / "chat_history" / "e2e_runtime"
 MOCK_REPORT = """# Cairns Council Bushfire Preparedness Draft
 
 ## Executive Summary
-This draft supports school preparedness planning and requires human review.
+This draft supports council community preparedness planning and requires human review.
 
 ## Location and Assumptions
 The planning area is Cairns, Queensland. Local arrangements must be verified by the responsible organisation.
 
 ## Evacuation and Candidate Assembly Points
-Confirm evacuation routes and candidate assembly points with school leadership and official emergency services.
+Confirm evacuation arrangements and candidate assembly points with council partners and official emergency services.
 
 ## Roles, Communication and First Aid Training
-Assign wardens, maintain contact lists, account for students and schedule first aid training.
+Assign responsible officers, maintain contact lists and schedule first aid training with local partners.
 
-## Seven-Day Action Plan
+## This-Month Action Plan
 - [ ] Confirm official information sources.
 - [ ] Review evacuation arrangements.
 - [ ] Record the responsible reviewer.
@@ -46,6 +46,16 @@ This report is not live emergency advice. Follow official emergency services and
 
 class MockModelHandler(BaseHTTPRequestHandler):
     request_count = 0
+    official_request_count = 0
+
+    def do_HEAD(self):
+        if self.path != "/official/healthy":
+            self.send_error(404)
+            return
+        type(self).official_request_count += 1
+        self.send_response(200)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_POST(self):
         if self.path != "/v1/chat/completions":
@@ -132,8 +142,92 @@ def _stop_process(process):
         process.wait(timeout=10)
 
 
+def _write_map_fixture():
+    profile_path = RUNTIME_DIR / "sa2_profiles_all.csv"
+    profile_path.write_text(
+        "state_name,sa4_name,sa3_name,sa2_name,population,older_people_count,"
+        "language_other_than_english_count,language_support_needed\n"
+        "Queensland,Cairns,Cairns - North,Cairns City,171000,25650,34200,high\n"
+        "Queensland,Brisbane - East,Brisbane East,Bayside,205000,28700,41000,high\n",
+        encoding="utf-8",
+    )
+    boundary_path = RUNTIME_DIR / "sa2_boundaries_all.geojson"
+    features = [
+        {
+            "type": "Feature",
+            "properties": {
+                "state_name_2021": "Queensland",
+                "sa4_name_2021": "Cairns",
+                "sa3_name_2021": "Cairns - North",
+                "sa2_name_2021": "Cairns City",
+                "population": "171000",
+                "language_support_needed": "high",
+                "fill_color": [31, 157, 138, 150],
+                "line_color": [12, 74, 110, 220],
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [145.7, -17.0],
+                        [145.9, -17.0],
+                        [145.9, -16.8],
+                        [145.7, -16.8],
+                        [145.7, -17.0],
+                    ]
+                ],
+            },
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "state_name_2021": "Queensland",
+                "sa4_name_2021": "Brisbane - East",
+                "sa3_name_2021": "Brisbane East",
+                "sa2_name_2021": "Bayside",
+                "population": "205000",
+                "language_support_needed": "high",
+                "fill_color": [255, 127, 14, 150],
+                "line_color": [12, 74, 110, 220],
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [153.0, -27.6],
+                        [153.2, -27.6],
+                        [153.2, -27.4],
+                        [153.0, -27.4],
+                        [153.0, -27.6],
+                    ]
+                ],
+            },
+        },
+    ]
+    boundary_path.write_text(
+        json.dumps({"type": "FeatureCollection", "features": features}),
+        encoding="utf-8",
+    )
+    return profile_path, boundary_path
+
+
+def _write_official_sources_fixture(server_port):
+    path = RUNTIME_DIR / "official_sources.yml"
+    path.write_text(
+        "sources:\n"
+        "  - id: mock_qld_source\n"
+        "    name: Mock Queensland Official Source\n"
+        f"    url: http://127.0.0.1:{server_port}/official/healthy\n"
+        "    scope: [australia, queensland]\n"
+        "    purpose: Controlled entry-point reachability test.\n"
+        "    use_when: Browser E2E verification only.\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 @pytest.mark.e2e
-def test_browser_report_download_and_human_signoff_workflow():
+def test_browser_report_data_map_and_human_signoff_workflow():
     from playwright.sync_api import expect, sync_playwright
 
     shutil.rmtree(ARTIFACT_DIR, ignore_errors=True)
@@ -142,9 +236,12 @@ def test_browser_report_download_and_human_signoff_workflow():
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
     MockModelHandler.request_count = 0
+    MockModelHandler.official_request_count = 0
     model_server = ThreadingHTTPServer(("127.0.0.1", 0), MockModelHandler)
     model_thread = threading.Thread(target=model_server.serve_forever, daemon=True)
     model_thread.start()
+    map_profile_path, map_boundary_path = _write_map_fixture()
+    official_sources_path = _write_official_sources_fixture(model_server.server_port)
 
     app_port = _available_port()
     app_url = f"http://127.0.0.1:{app_port}"
@@ -157,6 +254,10 @@ def test_browser_report_download_and_human_signoff_workflow():
             "BUSHFIRE_SESSION_STATE_PATH": str(RUNTIME_DIR / "session_state.pkl"),
             "BUSHFIRE_INTERACTION_LOG_PATH": str(RUNTIME_DIR / "interaction.jsonl"),
             "BUSHFIRE_AUDIT_DIR": str(RUNTIME_DIR / "audit"),
+            "BUSHFIRE_ALL_SA2_PROFILE_PATH": str(map_profile_path),
+            "BUSHFIRE_ALL_SA2_BOUNDARY_PATH": str(map_boundary_path),
+            "BUSHFIRE_ALL_SA2_BOUNDARY_BY_STATE_DIR": str(RUNTIME_DIR / "boundaries_by_state"),
+            "BUSHFIRE_OFFICIAL_SOURCES_PATH": str(official_sources_path),
             "STREAMLIT_BROWSER_GATHER_USAGE_STATS": "false",
         }
     )
@@ -237,6 +338,34 @@ def test_browser_report_download_and_human_signoff_workflow():
                 assert "governance/package_manifest.json" in names
                 assert any(name.endswith(".md") for name in names)
                 assert MockModelHandler.request_count == 1
+
+                page.get_by_role("tab", name="Data & Map", exact=True).click()
+                expect(
+                    page.get_by_text(
+                        "Current map selection: Queensland / SA4 / Cairns",
+                        exact=True,
+                    )
+                ).to_be_visible(
+                    timeout=30_000,
+                )
+                search_area = page.get_by_label("Search area", exact=True)
+                search_area.fill("Brisbane")
+                search_area.press("Enter")
+                expect(
+                    page.get_by_text(
+                        "Current map selection: Queensland / SA4 / Brisbane - East",
+                        exact=True,
+                    )
+                ).to_be_visible(timeout=30_000)
+
+                expect(page.get_by_text("Mock Queensland Official Source", exact=True)).to_be_visible()
+                page.get_by_role("button", name="Check official source status", exact=True).click()
+                reachable_card = page.locator(".status-card").filter(has_text="Reachable")
+                expect(reachable_card).to_contain_text("1", timeout=30_000)
+                assert MockModelHandler.official_request_count == 1
+
+                active_data_card = page.locator(".status-card").filter(has_text="Active data")
+                expect(active_data_card).to_contain_text("ABS processed data")
                 workflow_completed = True
             except Exception:
                 if page is not None:

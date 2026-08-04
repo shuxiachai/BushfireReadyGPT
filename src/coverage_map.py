@@ -1,16 +1,42 @@
 import csv
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 
 import pydeck as pdk
 
 
-COMMUNITY_PROFILE_PATH = Path("data_australia/processed/community_profiles.csv")
-SA2_COVERAGE_PATH = Path("data_australia/processed/sa2_coverage.geojson")
-ALL_SA2_PROFILE_PATH = Path("data_australia/processed/sa2_profiles_all.csv")
-ALL_SA2_BOUNDARY_PATH = Path("data_australia/processed/sa2_boundaries_all.geojson")
-ALL_SA2_BOUNDARY_BY_STATE_DIR = Path("data_australia/processed/sa2_boundaries_by_state")
+COMMUNITY_PROFILE_PATH = Path(
+    os.environ.get(
+        "BUSHFIRE_COMMUNITY_PROFILE_PATH",
+        "data_australia/processed/community_profiles.csv",
+    )
+)
+SA2_COVERAGE_PATH = Path(
+    os.environ.get(
+        "BUSHFIRE_SA2_COVERAGE_PATH",
+        "data_australia/processed/sa2_coverage.geojson",
+    )
+)
+ALL_SA2_PROFILE_PATH = Path(
+    os.environ.get(
+        "BUSHFIRE_ALL_SA2_PROFILE_PATH",
+        "data_australia/processed/sa2_profiles_all.csv",
+    )
+)
+ALL_SA2_BOUNDARY_PATH = Path(
+    os.environ.get(
+        "BUSHFIRE_ALL_SA2_BOUNDARY_PATH",
+        "data_australia/processed/sa2_boundaries_all.geojson",
+    )
+)
+ALL_SA2_BOUNDARY_BY_STATE_DIR = Path(
+    os.environ.get(
+        "BUSHFIRE_ALL_SA2_BOUNDARY_BY_STATE_DIR",
+        "data_australia/processed/sa2_boundaries_by_state",
+    )
+)
 
 
 @lru_cache(maxsize=1)

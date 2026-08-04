@@ -1,3 +1,4 @@
+import os
 from html import escape
 from pathlib import Path
 
@@ -17,7 +18,12 @@ def _get_display_sources(profile=None):
 
     Falls back to national-scope sources when no profile is available.
     """
-    path = Path("data_australia/official_sources.yml")
+    path = Path(
+        os.environ.get(
+            "BUSHFIRE_OFFICIAL_SOURCES_PATH",
+            "data_australia/official_sources.yml",
+        )
+    )
     if not path.exists():
         return []
     with open(path, "r", encoding="utf-8") as f:
