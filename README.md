@@ -248,17 +248,33 @@ To rebuild ASGS allocation and correspondence reference data:
 
 ## Tests
 
-Run the deterministic test suite:
+Run the fast unit, integration, Streamlit smoke and AppTest workflow suite:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -m "not e2e" -q
 ```
 
-Current expected result:
+Expected fast-suite result:
 
 ```text
 19 passed
 ```
+
+Install the browser-test dependencies and matching Chromium build once:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-e2e.txt
+.\.venv\Scripts\python.exe -m playwright install chromium
+```
+
+Run the real-browser workflow or the complete suite:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -m e2e -q
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+The complete expected result is `20 passed`.
 
 GitHub Actions runs the same suite automatically on Python 3.11 and 3.13 for
 pushes to `main`, pull requests targeting `main`, and manual workflow runs. The
@@ -267,7 +283,9 @@ Ollama service because model-service failure paths are tested with controlled
 mocks. The suite also renders the Streamlit app, starts a headless server, and
 verifies both the health endpoint and the root web page. UI workflow tests cover
 required-field validation, pilot-example loading, and report generation with a
-controlled model response.
+controlled model response. A separate Chromium job exercises pilot loading,
+report generation through a local mock model endpoint, Markdown and ZIP downloads,
+reviewer sign-off, audit updates and package-manifest verification.
 
 ## Git And Repository Hygiene
 
@@ -285,7 +303,7 @@ Ignored local files include `.env`, `.venv/`, `.claude/`, `.agents/`, runtime ch
 Without expanding the feature set, the next polishing work is:
 
 - Keep README and docs aligned as the project changes.
-- Extend UI coverage to browser-level download and reviewer sign-off journeys.
+- Add browser coverage for map filtering and source-status interactions.
 - Add data-confidence wording to reports and demo materials.
 - Prepare a polished sample report package for one scenario.
 - Review licence and disclaimer language with a legal/risk advisor before any commercial positioning.

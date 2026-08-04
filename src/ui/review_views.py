@@ -191,6 +191,17 @@ def render_human_review_checklist(review_checklist):
             st.checkbox(item, key=f"review_check_{index}")
 
 
+def _sync_approval_form_to_report_state():
+    st.session_state.reviewer_name = st.session_state.get("approval_reviewer_name", "")
+    st.session_state.reviewer_role = st.session_state.get("approval_reviewer_role", "")
+    st.session_state.organisation_name = st.session_state.get("approval_organisation_name", "")
+    st.session_state.report_status = st.session_state.get(
+        "approval_status", "Draft - human review required"
+    )
+    st.session_state.review_date = st.session_state.get("approval_review_date", "")
+    st.session_state.review_notes = st.session_state.get("approval_review_notes", "")
+
+
 def render_reviewer_approval(
     collect_review_record,
     update_latest_report_signoff,
@@ -235,15 +246,13 @@ def render_reviewer_approval(
             )
             st.date_input("Review date", key="approval_review_date")
         st.text_area("Review notes", key="approval_review_notes", height=90)
-        submitted = st.form_submit_button("Update sign-off record", width="stretch")
+        submitted = st.form_submit_button(
+            "Update sign-off record",
+            width="stretch",
+            on_click=_sync_approval_form_to_report_state,
+        )
 
     if submitted:
-        st.session_state.reviewer_name = st.session_state.get("approval_reviewer_name", "")
-        st.session_state.reviewer_role = st.session_state.get("approval_reviewer_role", "")
-        st.session_state.organisation_name = st.session_state.get("approval_organisation_name", "")
-        st.session_state.report_status = st.session_state.get("approval_status", "Draft - human review required")
-        st.session_state.review_date = st.session_state.get("approval_review_date", "")
-        st.session_state.review_notes = st.session_state.get("approval_review_notes", "")
         review_record = collect_review_record()
         st.session_state.latest_review_record = review_record
         report_updated = update_latest_report_signoff(review_record)

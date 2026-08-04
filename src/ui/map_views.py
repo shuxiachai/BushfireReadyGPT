@@ -31,25 +31,34 @@ def render_coverage_analysis_tools(active_location):
         render_configured_map_selector(active_location)
 
 
+def _selectbox_with_default(label, options, key, preferred=None):
+    resolved_options = list(options)
+    default = preferred if preferred in resolved_options else resolved_options[0]
+    if st.session_state.get(key) not in resolved_options:
+        st.session_state[key] = default
+    return st.selectbox(label, resolved_options, key=key)
+
+
 def render_all_australia_map_selector(active_location):
     inferred = resolve_all_australia_selection(active_location)
     states = get_states()
     default_state = inferred.get("state") if inferred else None
-    state_index = states.index(default_state) if default_state in states else 0
     control_cols = st.columns([1, 1, 1.4, 1.6])
     with control_cols[0]:
-        state = st.selectbox("State / territory", states, index=state_index, key="map_state")
+        state = _selectbox_with_default("State / territory", states, "map_state", default_state)
     with control_cols[1]:
         default_level = inferred.get("level") if inferred else "SA4"
         level_options = ["SA4", "SA3", "SA2"]
-        level = st.selectbox("Geography level", level_options, index=level_options.index(default_level), key="map_level")
+        level = _selectbox_with_default("Geography level", level_options, "map_level", default_level)
     with control_cols[2]:
-        search = st.text_input("Search area", value="", placeholder="e.g. Cairns / Brisbane / Darwin", key="map_search")
+        if "map_search" not in st.session_state:
+            st.session_state.map_search = ""
+        search = st.text_input("Search area", placeholder="e.g. Cairns / Brisbane / Darwin", key="map_search")
     options = get_area_options(level, state=state, search=search)
     inferred_area = inferred.get("area_name") if inferred and inferred.get("level") == level and inferred.get("state") == state else None
-    selected_index = options.index(inferred_area) if inferred_area in options else 0
+    display_options = options or ["No matches"]
     with control_cols[3]:
-        area_name = st.selectbox("Select area", options or ["No matches"], index=selected_index, key="map_area")
+        area_name = _selectbox_with_default("Select area", display_options, "map_area", inferred_area)
     if not options:
         st.info("No matching area was found. Try another keyword or switch between SA4, SA3 and SA2.")
         st.session_state.selected_map_area = None

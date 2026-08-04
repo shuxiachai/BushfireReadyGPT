@@ -8,8 +8,8 @@ from src.assistants.assistant import THREAD_MESSAGES
 from src.assistants.assistant_router import AssistantRouter
 
 
-SESSION_STATE_PATH = "chat_history/session_state.pkl"
-INTERACTION_LOG_PATH = "chat_history/interaction.jsonl"
+SESSION_STATE_PATH = os.environ.get("BUSHFIRE_SESSION_STATE_PATH", "chat_history/session_state.pkl")
+INTERACTION_LOG_PATH = os.environ.get("BUSHFIRE_INTERACTION_LOG_PATH", "chat_history/interaction.jsonl")
 
 
 def initialize_state():

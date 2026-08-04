@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-AUDIT_DIR = Path("chat_history/audit")
+AUDIT_DIR = Path(os.environ.get("BUSHFIRE_AUDIT_DIR", "chat_history/audit"))
 
 
 def save_report_audit(payload):
