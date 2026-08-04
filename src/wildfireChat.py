@@ -247,14 +247,6 @@ def render_workspace_tabs():
 
 
 apply_theme()
-render_sidebar(
-    clear_conversation,
-    get_latest_assistant_text,
-    collect_review_record,
-    get_package_context,
-    save_latest_report,
-)
-render_header()
 initialize_state()
 if st.session_state.get("pending_approval_reset"):
     st.session_state.approval_status = "Draft - human review required"
@@ -263,6 +255,14 @@ if st.session_state.get("pending_approval_reset"):
         if str(key).startswith("review_check_"):
             del st.session_state[key]
     st.session_state.pending_approval_reset = False
+render_sidebar(
+    clear_conversation,
+    get_latest_assistant_text,
+    collect_review_record,
+    get_package_context,
+    save_latest_report,
+)
+render_header()
 render_workspace_tabs()
 
 if user_prompt := st.chat_input("Request a wording or content revision; change geography in the form"):
