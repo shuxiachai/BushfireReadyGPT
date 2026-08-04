@@ -38,6 +38,8 @@ If you only have a few minutes, read these in order:
 | `commercial_gap_assessment.md` | Commercial and government-readiness gap assessment. |
 | `commercial_readiness_checklist.md` | Checklist of what is done and what remains before commercial positioning. |
 | `licence_register.md` | Explanation of licence assumptions tracked in `data_australia/licence_register.yml`. |
+| `releases/v0.1.0.md` | Scope, highlights, validation and limitations for the first public MVP release. |
+
 ## Removed Redundant Docs
 
 The older `demo_guide.md` and `demo_script.md` files were removed because their content is now covered more clearly by:

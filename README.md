@@ -1,6 +1,7 @@
 # BushfireReadyGPT: Local-First Multi-Agent AI for Australian Bushfire Preparedness
 
 [![Tests](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml/badge.svg)](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml)
+[![Release](https://img.shields.io/github/v/release/shuxiachai/BushfireReadyGPT)](https://github.com/shuxiachai/BushfireReadyGPT/releases/latest)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-111111)](https://ollama.com/)
@@ -21,6 +22,8 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 ## Current Status
 
 **Stage:** Government-pilot MVP
+
+**Current release:** `v0.1.0`
 
 Ready for:
 
