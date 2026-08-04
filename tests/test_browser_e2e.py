@@ -20,7 +20,7 @@ APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
 ARTIFACT_DIR = PROJECT_ROOT / "output" / "playwright"
 RUNTIME_DIR = PROJECT_ROOT / "chat_history" / "e2e_runtime"
 
-MOCK_REPORT = """# Cairns School Bushfire Preparedness Draft
+MOCK_REPORT = """# Cairns Council Bushfire Preparedness Draft
 
 ## Executive Summary
 This draft supports school preparedness planning and requires human review.
@@ -121,13 +121,6 @@ def _wait_for_health(process, health_url, timeout_seconds=45):
     raise AssertionError(f"Streamlit health check timed out: {last_error}")
 
 
-def _choose_option(page, label, option):
-    combobox = page.get_by_role("combobox", name=label)
-    combobox.click()
-    combobox.fill(option)
-    combobox.press("Enter")
-
-
 def _stop_process(process):
     if process.poll() is not None:
         return
@@ -203,11 +196,10 @@ def test_browser_report_download_and_human_signoff_workflow():
                     page.get_by_role("heading", name="BushfireReadyGPT Command Workspace", exact=True)
                 ).to_be_visible(timeout=30_000)
 
-                _choose_option(page, "Pilot example", "Cairns school pilot")
                 page.get_by_role("button", name="Load example", exact=True).click()
                 expect(page.get_by_label("Location", exact=True)).to_have_value("Cairns, Queensland")
                 expect(page.get_by_label("Audience", exact=True)).to_have_value(
-                    "Students, teachers, school administrators and parents"
+                    "Council community resilience officers, school safety leads, and local service partners"
                 )
 
                 page.get_by_role("button", name="Generate report", exact=True).click()
@@ -215,14 +207,14 @@ def test_browser_report_download_and_human_signoff_workflow():
                     page.get_by_role("heading", name="Latest Report Preview", exact=True)
                 ).to_be_visible(timeout=60_000)
                 expect(
-                    page.get_by_role("heading", name="Cairns School Bushfire Preparedness Draft", exact=True).first
+                    page.get_by_role("heading", name="Cairns Council Bushfire Preparedness Draft", exact=True).first
                 ).to_be_visible()
 
                 with page.expect_download(timeout=30_000) as markdown_download_info:
                     page.get_by_role("button", name="Download Markdown", exact=True).click()
                 markdown_download = markdown_download_info.value
                 assert markdown_download.suggested_filename == "bushfire_ready_report.md"
-                assert "Cairns School Bushfire Preparedness Draft" in Path(markdown_download.path()).read_text(
+                assert "Cairns Council Bushfire Preparedness Draft" in Path(markdown_download.path()).read_text(
                     encoding="utf-8"
                 )
 
@@ -231,7 +223,6 @@ def test_browser_report_download_and_human_signoff_workflow():
                 reviewer_name.fill("Browser E2E Reviewer")
                 page.get_by_label("Reviewer role / title", exact=True).fill("School safety reviewer")
                 page.get_by_label("Organisation / department", exact=True).last.fill("Cairns Campus Pilot")
-                _choose_option(page, "Approval status", "Reviewed draft")
                 page.get_by_label("Review notes", exact=True).fill("Reviewed through the automated browser workflow.")
                 page.get_by_role("button", name="Update sign-off record", exact=True).click()
 
