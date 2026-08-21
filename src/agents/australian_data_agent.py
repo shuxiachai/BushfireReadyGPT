@@ -1,19 +1,16 @@
-import os
 from pathlib import Path
 
-import yaml
-
 from src.agents.profile_agent import STATE_SHORT
+from src.data_artifacts import load_yaml_mapping
+from src.data_paths import get_data_paths
 
 
 class AustralianDataAgent:
     """Selects relevant Australian official sources from local metadata."""
 
-    def __init__(self, source_path=None):
-        self.source_path = Path(
-            source_path
-            or os.environ.get("BUSHFIRE_OFFICIAL_SOURCES_PATH", "data_australia/official_sources.yml")
-        )
+    def __init__(self, source_path=None, data_paths=None):
+        self.data_paths = data_paths or get_data_paths()
+        self.source_path = Path(source_path) if source_path else self.data_paths.official_sources
 
     def run(self, profile):
         sources = self._load_sources()
@@ -34,8 +31,7 @@ class AustralianDataAgent:
         }
 
     def _load_sources(self):
-        with open(self.source_path, "r", encoding="utf-8") as file:
-            data = yaml.safe_load(file) or {}
+        data = load_yaml_mapping(self.source_path, label="official-source register")
         return data.get("sources", [])
 
     def _profile_tags(self, profile):

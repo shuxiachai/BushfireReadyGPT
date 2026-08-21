@@ -14,7 +14,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | User workflow | 8/10 | Strong MVP | Form, demo mode, evidence trail, reviewer sign-off and export package are in place. |
 | Data foundation | 6/10 | Pilot ready | ABS SA2/ASGS data is local and traceable; live warning data is not integrated. |
 | Multi-agent architecture | 7/10 | Pilot ready | Agent responsibilities are separated and visible, but testing and orchestration can be strengthened. |
-| Governance and audit | 7/10 | Pilot ready | Versioned drafts, deterministic evidence, approval validation and audit JSON exist; authenticated role-based approval is still missing. |
+| Governance and audit | 7/10 | Pilot ready | v4 events bind exact report/review/data snapshots and recursive revision lineage; authenticated role-based approval and external immutable storage are still missing. |
 | Commercial readiness | 4/10 | Not commercial yet | Needs licence review, legal boundary, deployment, privacy and user testing. |
 | Government procurement readiness | 3/10 | Early | Needs security, accessibility, procurement documentation and official data agreements. |
 
@@ -23,15 +23,19 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - Australia-specific bushfire preparedness positioning.
 - Form-first report generation instead of generic chatbot flow.
 - Local Ollama model service, no OpenAI API requirement.
+- Local hybrid RAG with page-level provenance, all-jurisdiction coverage, hard-negative evaluation and deterministic abstention.
+- One-click Windows setup, startup preflight and a dedicated 16K-context report model.
 - Local multi-agent analysis pipeline with visible Evidence Trail.
-- ABS all-Australia SA2/SA3/SA4 map selection.
+- A bundled small demo map plus optional all-Australia SA2/SA3/SA4 map selection.
 - ABS ASGS allocation and LGA 2025 reference data.
 - O1 / P2 / R3 / A4 / U0 evidence confidence and provenance labels.
 - Evidence Tables appended to generated reports.
 - Reviewer Approval / Human Sign-off workflow.
 - Governed report revisions with new IDs, version lineage, structural re-checks and approval reset.
+- Manifest-verified bundled core data, central data paths and transactionally published refresh bundles.
+- Stateless/tool-free governed model calls with an explicit external-provider privacy boundary.
 - In-memory session isolation by default and optional single-user JSON persistence without executable pickle loading.
-- Markdown, PDF, DOCX, audit JSON and pilot export package.
+- Audit-bound Markdown, PDF, DOCX, audit JSON and pilot export package with frozen registers and recursive parent lineage.
 - Demo Mode, Presentation Mode and sample scenario pack.
 
 ## Main Gaps
@@ -44,7 +48,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | P1 | User testing | The report format has not been validated by real school/council/community reviewers. | Run a controlled pilot with 3-5 reviewers using the pilot feedback form. |
 | P1 | Authentication and approval | Reviewer fields exist, but there are no user accounts, permissions or signed approval states. | Design roles for drafter, reviewer and admin; later add login and immutable approval records. |
 | P2 | Deployment | The app runs locally, but is not packaged for secure hosting. | Add Docker, environment profiles, health checks, logs and deployment notes. |
-| P2 | Automated testing | 28 fast tests plus one Chromium workflow cover core, exports, Streamlit health and UI flow, but visual export regression and real-model quality benchmarking remain limited. | Add rendered PDF/DOCX visual checks and a controlled real-Ollama scenario benchmark. |
+| P2 | Automated testing | Unit, integration, Streamlit AppTest, Chromium, retrieval evaluation and a three-scenario real-Ollama benchmark cover the main paths, but visual export regression and the real-model sample remain limited. | Add rendered PDF/DOCX visual checks and grow the governed real-model scenario set from stakeholder feedback. |
 
 ## Recommended Roadmap
 

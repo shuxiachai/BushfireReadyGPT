@@ -1,7 +1,8 @@
-from datetime import datetime
-from io import BytesIO
+import logging
 import os
 import re
+from datetime import datetime
+from io import BytesIO
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -10,13 +11,20 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import ListFlowable, ListItem, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
+from reportlab.platypus import (
+    ListFlowable,
+    ListItem,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 FONT_NAME = "BushfireReadyPDF"
-DRAFT_NOTICE = (
-    "DRAFT - NOT EMERGENCY ADVICE - HUMAN REVIEW REQUIRED"
-)
+LOGGER = logging.getLogger(__name__)
+DRAFT_NOTICE = "DRAFT - NOT EMERGENCY ADVICE - HUMAN REVIEW REQUIRED"
 DRAFT_NOTICE_DETAIL = (
     "Preparedness planning support only. This document does not provide live fire conditions, "
     "fire bans, evacuation orders or life-safety directions. The responsible organisation must "
@@ -36,17 +44,14 @@ def _register_pdf_font():
             try:
                 pdfmetrics.registerFont(TTFont(FONT_NAME, font_path))
                 return FONT_NAME
-            except Exception:
+            except Exception as error:
+                LOGGER.debug("Could not register PDF font %s: %s", font_path, error)
                 continue
     return "Helvetica"
 
 
 def _escape_text(text):
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _format_inline_markdown(text):
@@ -238,8 +243,7 @@ def _flush_bullets(story, bullet_items, styles):
     if not bullet_items:
         return
     flowable_items = [
-        ListItem(Paragraph(_format_inline_markdown(item), styles["bullet"]), leftIndent=8)
-        for item in bullet_items
+        ListItem(Paragraph(_format_inline_markdown(item), styles["bullet"]), leftIndent=8) for item in bullet_items
     ]
     story.append(
         ListFlowable(
@@ -362,7 +366,9 @@ def _draw_header_footer(canvas, document):
     canvas.setFillColor(colors.HexColor("#667085"))
     canvas.drawString(document.leftMargin, height - 0.85 * cm, "BushfireReadyGPT")
     canvas.drawRightString(width - document.rightMargin, 0.65 * cm, f"Page {document.page}")
-    canvas.drawString(document.leftMargin, 0.65 * cm, "Planning support only. Verify official emergency sources before acting.")
+    canvas.drawString(
+        document.leftMargin, 0.65 * cm, "Planning support only. Verify official emergency sources before acting."
+    )
     canvas.restoreState()
 
 

@@ -4,14 +4,14 @@ from pathlib import Path
 
 import yaml
 
+from src.data_paths import get_data_paths
 
-LICENCE_REGISTER_PATH = Path("data_australia/licence_register.yml")
 
-
-def get_licence_register(path=LICENCE_REGISTER_PATH):
-    if not Path(path).exists():
+def get_licence_register(path=None, data_paths=None):
+    resolved_path = Path(path) if path is not None else (data_paths or get_data_paths()).licence_register
+    if not resolved_path.exists():
         return {"licence_register": [], "notes": ["Licence register file not found."]}
-    with open(path, "r", encoding="utf-8") as file:
+    with open(resolved_path, "r", encoding="utf-8") as file:
         payload = yaml.safe_load(file) or {}
     return {
         "licence_register": payload.get("licence_register", []),
@@ -19,12 +19,13 @@ def get_licence_register(path=LICENCE_REGISTER_PATH):
     }
 
 
-def licence_register_rows():
-    return get_licence_register().get("licence_register", [])
+def licence_register_rows(payload=None):
+    values = get_licence_register() if payload is None else payload
+    return values.get("licence_register", []) if isinstance(values, dict) else []
 
 
-def licence_register_csv():
-    rows = licence_register_rows()
+def licence_register_csv(payload=None):
+    rows = licence_register_rows(payload)
     output = StringIO()
     fieldnames = [
         "id",
@@ -44,8 +45,9 @@ def licence_register_csv():
     return output.getvalue()
 
 
-def licence_register_markdown():
-    payload = get_licence_register()
+def licence_register_markdown(payload=None):
+    payload = get_licence_register() if payload is None else payload
+    payload = payload if isinstance(payload, dict) else {"licence_register": [], "notes": []}
     lines = [
         "# Licence Register",
         "",

@@ -13,17 +13,19 @@ The strongest current use case is a controlled pilot demonstration for councils,
 | Product workflow | Clear form-to-report flow with review/export tabs. |
 | Multi-agent layer | Profile, data, community vulnerability, risk context, planner, report and quality agents are separated. |
 | Australian data context | Local ABS/ASGS processed data and official source registers are available. |
-| Governance boundary | Reports include version lineage, draft notices, program-generated evidence tables, approval validation, sign-off and audit JSON. |
+| Governance boundary | v4 audits bind exact report/review/data snapshots, deterministic sign-off and recursively verifiable version lineage. |
 | Exports | Markdown, PDF, DOCX and pilot zip package are implemented. |
 | Local model runtime | Ollama is the default provider, so no OpenAI API key is required. |
-| Testing | 28 fast tests and one Chromium E2E cover the core pipeline, persistence, appendices, exports, validation, Streamlit health and browser workflow. |
+| Official knowledge RAG | Nine page-level sources cover all states/territories with hybrid retrieval, abstention and answerable/unanswerable evaluation. |
+| Local setup | One-click Windows setup creates the environment, models, RAG index and verifies startup prerequisites. |
+| Testing | Unit, integration, Streamlit AppTest and Chromium E2E suites cover the core pipeline, persistence, governance, exports, validation, data integrity and browser workflow. |
 
 ## Main Gaps
 
 | Priority | Gap | Why it matters | Recommended action |
 | --- | --- | --- | --- |
 | P0 | Legal and licence review is incomplete | Commercial or government use requires clear reuse rights, liability boundaries and procurement-safe wording. | Keep outputs as drafts; expand the licence register; prepare a legal review brief. |
-| P0 | No authenticated approval workflow | Current reviewer fields are useful for pilots but not enough for formal approval records. | Add user roles, login, immutable sign-off records and audit history. |
+| P0 | No authenticated approval workflow | Current reviewer fields are useful for pilots but not enough for formal approval records. | Add user roles, login, signed identities and externally anchored/WORM audit retention. |
 | P0 | No live emergency interpretation | The app must not imply real-time warnings, evacuation status or safety decisions. | Keep the official status panel as source reachability only; add stricter copy around non-decision use. |
 | P1 | Data matching is still pilot-level | Some geography and community vulnerability matches are approximations. | Validate the new P2/R3 confidence boundaries with data and GIS owners, then replace approximations where required. |
 | P1 | Accessibility and procurement readiness not checked | Government buyers often require accessibility, security and maintainability evidence. | Add WCAG review, deployment docs, privacy statement and security checklist. |
@@ -43,7 +45,15 @@ The strongest current use case is a controlled pilot demonstration for councils,
 - Reset prior approval/checklist state on each new version and require identity fields plus a complete checklist before organisational approval.
 - Replaced shared pickle state with isolated in-memory sessions by default and optional single-user JSON persistence.
 - Separated map preview from active report geography and rejected cross-state form/map conflicts.
-- Hardened unique audit filenames and project-local duplicate-start detection.
+- Added privacy-minimised, append-only hash-linked audit events with report/review binding, per-report locking and export-chain verification.
+- Upgraded governed records to v4 with positive versions, deterministic sign-off, frozen register snapshots, single-child revision claims, recursive ancestry and interrupted-write recovery.
+- Centralised active data paths, verified bundled files against a manifest before analysis and added before/after provenance checks.
+- Made all three data rebuilders validate and transactionally publish complete bundles with recovery metadata.
+- Made governed model calls stateless and tool-free, with explicit acknowledgement before any external endpoint receives report inputs.
+- Added a locked Poetry environment, coverage threshold, static analysis, dependency audit and pinned CI actions.
+- Added page-level licensed local RAG, all-jurisdiction coverage, hard negatives and a real-model report benchmark.
+- Added bounded model memory, HTTPS-only external endpoints, interrupted-stream handling and structural repair.
+- Added Windows setup/preflight CI, concurrent source reachability checks, formatting enforcement and a complexity ceiling.
 
 ## Suggested Next Build Order
 

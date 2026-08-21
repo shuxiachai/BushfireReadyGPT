@@ -1,24 +1,15 @@
+import re
+
+from src.report_template import REPORT_TEMPLATE_SECTIONS, extract_narrative_body
+
+
 class ReportQualityAgent:
     """Checks generated reports against the project quality requirements."""
 
-    REQUIRED_TERMS = [
-        "Executive Summary",
-        "Purpose",
-        "Scope",
-        "Selected Geography",
-        "Data Sources",
-        "Local Risk Context",
-        "Evacuation",
-        "Assembly Point",
-        "Roles",
-        "Communication",
-        "First Aid",
-        "Action Plan",
-        "Checklist",
-        "Official",
-        "Evidence Tables",
-        "ASGS",
-        "Safety Disclaimer",
+    REQUIRED_SECTION_HEADINGS = [
+        title.partition(". ")[2]
+        for title, _instruction in REPORT_TEMPLATE_SECTIONS
+        if title.partition(". ")[2] != "Title"
     ]
 
     OFFICIAL_SOURCE_TERMS = [
@@ -41,17 +32,40 @@ class ReportQualityAgent:
         "administration building",
     ]
     UNSAFE_CONFIRMATION_TERMS = ["confirmed safe", "confirmed assembly point", "guaranteed safe"]
+    STOPWORDS = {
+        "and",
+        "are",
+        "for",
+        "from",
+        "has",
+        "have",
+        "into",
+        "must",
+        "not",
+        "of",
+        "on",
+        "or",
+        "should",
+        "that",
+        "the",
+        "their",
+        "this",
+        "to",
+        "with",
+    }
 
     def run(self, report_text):
         text = report_text or ""
+        narrative = extract_narrative_body(text)
         checks = [
-            self._check_sections(text),
-            self._check_official_sources(text),
+            self._check_substantive_narrative(narrative),
+            self._check_sections(narrative),
+            self._check_official_sources(narrative),
             self._check_safety_disclaimer(text),
             self._check_emergency_number(text),
-            self._check_action_plan(text),
-            self._check_checklist(text),
-            self._check_role_assignment(text),
+            self._check_action_plan(narrative),
+            self._check_checklist(narrative),
+            self._check_role_assignment(narrative),
             self._check_candidate_assembly_language(text),
             self._check_evidence_tables(text),
             self._check_evidence_confidence(text),
@@ -61,6 +75,9 @@ class ReportQualityAgent:
         passed = sum(1 for item in checks if item["status"] == "pass")
         warnings = sum(1 for item in checks if item["status"] == "warning")
         failed = sum(1 for item in checks if item["status"] == "fail")
+        blocking_failures = [
+            {"name": item["name"], "detail": item["detail"]} for item in checks if item["status"] == "fail"
+        ]
 
         return {
             "checks": checks,
@@ -70,24 +87,91 @@ class ReportQualityAgent:
                 "failed": failed,
                 "total": len(checks),
             },
+            "approval_gate": {
+                "passed": not blocking_failures,
+                "status": "passed" if not blocking_failures else "blocked",
+                "blocking_failures": blocking_failures,
+            },
             "assessment_scope": (
                 "Deterministic structural lint only. Passing checks do not verify factual accuracy, "
                 "official currency, legal validity or operational safety."
             ),
         }
 
+    def _check_substantive_narrative(self, text):
+        headings = re.findall(r"(?m)^ {0,3}#{1,6}\s+\S.*$", text)
+        content_lines = [
+            line
+            for line in text.splitlines()
+            if line.strip() and not line.lstrip().startswith(("#", "|", "- [ ]", "- [x]", "- [X]"))
+        ]
+        words = [word.lower() for word in re.findall(r"\b[A-Za-z][A-Za-z'-]*\b", "\n".join(content_lines))]
+        content_words = [word for word in words if word not in self.STOPWORDS and len(word) > 2]
+        unique_content_words = set(content_words)
+        max_word_frequency = max(
+            (content_words.count(word) for word in unique_content_words),
+            default=0,
+        )
+        sentence_count = len(re.findall(r"[.!?](?:\s|$)", "\n".join(content_lines)))
+        normalised_lines = {re.sub(r"\s+", " ", line.strip().lower()) for line in content_lines}
+        line_diversity = len(normalised_lines) / max(len(content_lines), 1)
+        is_diverse = (
+            len(unique_content_words) >= 55
+            and max_word_frequency <= max(12, int(len(content_words) * 0.12))
+            and sentence_count >= 10
+            and line_diversity >= 0.55
+        )
+        if len(words) >= 250 and len(headings) >= 10 and len(content_lines) >= 10 and is_diverse:
+            return self._result(
+                "pass",
+                "Substantive narrative",
+                "The model-authored body contains substantial prose and multi-section structure.",
+            )
+        return self._result(
+            "fail",
+            "Substantive narrative",
+            (
+                "The model-authored body is too short or insufficiently structured "
+                f"({len(words)} prose words, {len(unique_content_words)} distinct content words, "
+                f"{sentence_count} sentences, {len(headings)} headings, "
+                f"{len(content_lines)} content lines)."
+            ),
+        )
+
     def _check_sections(self, text):
-        missing = [section for section in self.REQUIRED_TERMS if section.lower() not in text.lower()]
-        if not missing:
-            return self._result("pass", "Required sections", "The report covers the main required sections.")
-        return self._result("warning", "Required sections", "Potentially missing: " + ", ".join(missing))
+        sections = self._extract_sections(text)
+        missing = [section for section in self.REQUIRED_SECTION_HEADINGS if section.lower() not in sections]
+        shallow = []
+        for section in self.REQUIRED_SECTION_HEADINGS:
+            if section.lower() not in sections or "checklist" in section.lower():
+                continue
+            words = re.findall(r"\b[A-Za-z][A-Za-z'-]*\b", sections[section.lower()])
+            unique = {word.lower() for word in words if word.lower() not in self.STOPWORDS and len(word) > 2}
+            if len(words) < 7 or len(unique) < 4:
+                shallow.append(section)
+        if not missing and not shallow:
+            return self._result(
+                "pass",
+                "Required sections",
+                "Every required heading contains section-specific substantive content.",
+            )
+        detail = []
+        if missing:
+            detail.append("missing: " + ", ".join(missing))
+        if shallow:
+            detail.append("insufficient content: " + ", ".join(shallow))
+        return self._result(
+            "fail", "Required sections", "Required structure is incomplete (" + "; ".join(detail) + ")."
+        )
 
     def _check_official_sources(self, text):
         found = [term for term in self.OFFICIAL_SOURCE_TERMS if term.lower() in text.lower()]
         if len(found) >= 4:
-            return self._result("pass", "Official sources", "The report includes multiple official information sources.")
+            return self._result(
+                "pass", "Official sources", "The report includes multiple official information sources."
+            )
         return self._result(
-            "warning",
+            "fail",
             "Official sources",
             "Add the state fire service, local council, Bureau of Meteorology and 000 where relevant.",
         )
@@ -113,34 +197,68 @@ class ReportQualityAgent:
         return self._result("fail", "Emergency number 000", "The report does not mention 000.")
 
     def _check_action_plan(self, text):
-        lowered = text.lower()
-        if "action plan" in lowered and "day 1" in lowered:
-            return self._result("pass", "Action plan", "The report includes a day-based action plan.")
-        return self._result("warning", "Action plan", "The report should include a Day 1 style action plan.")
+        action_plan = self._extract_sections(text).get("action plan", "")
+        immediate_patterns = (
+            r"\bdays?\s*(?:1|one)\b",
+            r"\bfirst\s+day\b",
+            r"\btoday\b",
+            r"\bimmediate(?:ly)?\b",
+            r"\bwithin\s+(?:the\s+)?(?:first\s+)?24\s*(?:hours?|hrs?)\b",
+            r"\b(?:0|zero)\s*(?:-|\u2013|\u2014|to)\s*24\s*(?:hours?|hrs?)\b",
+            r"(?m)^\s*(?:\|\s*)?1\s*(?:\||[.)])",
+        )
+        if action_plan and any(re.search(pattern, action_plan, flags=re.IGNORECASE) for pattern in immediate_patterns):
+            return self._result("pass", "Action plan", "The report includes an immediate, time-based action plan.")
+        return self._result(
+            "fail",
+            "Action plan",
+            "The report should include a Day 1, today or first-24-hours action item.",
+        )
 
     def _check_checklist(self, text):
         lowered = text.lower()
         has_markdown_checkbox = "- [ ]" in text or "- [x]" in lowered
         if "checklist" in lowered and has_markdown_checkbox:
             return self._result("pass", "Checklist", "The report includes a checkable checklist.")
-        return self._result("warning", "Checklist", "Use Markdown checkboxes for the checklist.")
+        return self._result("fail", "Checklist", "Use Markdown checkboxes for the checklist.")
 
     def _check_role_assignment(self, text):
-        role_terms = ["roles", "teacher", "student", "first aid", "communication"]
+        role_terms = [
+            "roles",
+            "responsib",
+            "coordinator",
+            "warden",
+            "teacher",
+            "student",
+            "first aid",
+            "communication",
+            "backup",
+        ]
         found = [term for term in role_terms if term in text.lower()]
         if len(found) >= 4:
             return self._result("pass", "Roles and responsibilities", "The report covers key role responsibilities.")
         return self._result(
-            "warning",
+            "fail",
             "Roles and responsibilities",
             "Add management, staff/teachers, students, wardens, first aiders and communications roles.",
         )
 
     def _check_candidate_assembly_language(self, text):
         lowered = text.lower()
-        mentions_place = any(term in lowered for term in self.CANDIDATE_PLACE_TERMS)
-        confirms_safety = any(term in lowered for term in self.UNSAFE_CONFIRMATION_TERMS)
-        if mentions_place and confirms_safety:
+        unsafe_sentence = None
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", lowered):
+            if not any(term in sentence for term in self.CANDIDATE_PLACE_TERMS):
+                continue
+            if not any(term in sentence for term in self.UNSAFE_CONFIRMATION_TERMS):
+                continue
+            negated = re.search(
+                r"\b(?:not|never|cannot|must not|should not|no)\b.{0,80}\b(?:confirmed|guaranteed) safe\b",
+                sentence,
+            )
+            if not negated:
+                unsafe_sentence = sentence
+                break
+        if unsafe_sentence:
             return self._result(
                 "fail",
                 "Assembly point wording",
@@ -156,9 +274,11 @@ class ReportQualityAgent:
         lowered = text.lower()
         required = ["evidence tables", "selected geography", "community indicators", "official source register"]
         if all(term in lowered for term in required):
-            return self._result("pass", "Evidence tables", "The report includes deterministic evidence tables for review.")
+            return self._result(
+                "pass", "Evidence tables", "The report includes deterministic evidence tables for review."
+            )
         return self._result(
-            "warning",
+            "fail",
             "Evidence tables",
             "Add selected geography, community indicator and official source evidence tables.",
         )
@@ -187,10 +307,23 @@ class ReportQualityAgent:
                 "The report includes a human review sign-off section and draft boundary.",
             )
         return self._result(
-            "warning",
+            "fail",
             "Human review status",
             "Add a human review sign-off section and keep unapproved outputs marked as drafts.",
         )
+
+    def _extract_sections(self, text):
+        sections = {}
+        current = None
+        for line in text.splitlines():
+            match = re.match(r"^ {0,3}#{1,6}\s+(.+?)\s*$", line)
+            if match:
+                heading = re.sub(r"^\d+[.)]\s*", "", match.group(1).strip()).lower()
+                current = heading
+                sections.setdefault(current, [])
+            elif current is not None:
+                sections[current].append(line)
+        return {heading: "\n".join(lines) for heading, lines in sections.items()}
 
     def _result(self, status, name, detail):
         return {

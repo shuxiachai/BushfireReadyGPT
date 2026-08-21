@@ -33,6 +33,8 @@ def render_coverage_analysis_tools(active_location):
 
 def _selectbox_with_default(label, options, key, preferred=None):
     resolved_options = list(options)
+    if not resolved_options:
+        return None
     default = preferred if preferred in resolved_options else resolved_options[0]
     if st.session_state.get(key) not in resolved_options:
         st.session_state[key] = default
@@ -42,6 +44,12 @@ def _selectbox_with_default(label, options, key, preferred=None):
 def render_all_australia_map_selector(active_location):
     inferred = resolve_all_australia_selection(active_location)
     states = get_states()
+    if not states:
+        st.info(
+            "National-map files contain no selectable states. Refresh the optional "
+            "map bundle before using the national selector."
+        )
+        return
     default_state = inferred.get("state") if inferred else None
     control_cols = st.columns([1, 1, 1.4, 1.6])
     with control_cols[0]:
@@ -55,7 +63,11 @@ def render_all_australia_map_selector(active_location):
             st.session_state.map_search = ""
         search = st.text_input("Search area", placeholder="e.g. Cairns / Brisbane / Darwin", key="map_search")
     options = get_area_options(level, state=state, search=search)
-    inferred_area = inferred.get("area_name") if inferred and inferred.get("level") == level and inferred.get("state") == state else None
+    inferred_area = (
+        inferred.get("area_name")
+        if inferred and inferred.get("level") == level and inferred.get("state") == state
+        else None
+    )
     display_options = options or ["No matches"]
     with control_cols[3]:
         area_name = _selectbox_with_default("Select area", display_options, "map_area", inferred_area)
@@ -89,7 +101,9 @@ def render_all_australia_map_selector(active_location):
     if deck:
         st.pydeck_chart(deck, width="stretch")
     else:
-        st.info("No SA2 boundary was found for this area. Re-run scripts/download_abs_sa2_all.py to generate all-Australia map data.")
+        st.info(
+            "No SA2 boundary was found for this area. Re-run scripts/download_abs_sa2_all.py to generate all-Australia map data."
+        )
     if table_rows:
         with st.expander("View aggregated profile for the selected area", expanded=True):
             st.dataframe(table_rows, width="stretch", hide_index=True)
@@ -108,7 +122,9 @@ def render_configured_map_selector(active_location):
     if deck:
         st.pydeck_chart(deck, width="stretch")
     else:
-        st.info("No SA2 coverage GeoJSON was found. Run scripts/download_abs_community_profiles.py to generate map data.")
+        st.info(
+            "No SA2 coverage GeoJSON was found. Run scripts/download_abs_community_profiles.py to generate map data."
+        )
     if table_rows:
         with st.expander("View community profile data table", expanded=False):
             st.dataframe(table_rows, width="stretch", hide_index=True)

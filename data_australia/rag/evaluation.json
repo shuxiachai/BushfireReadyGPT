@@ -1,0 +1,666 @@
+{
+  "schema_version": 3,
+  "thresholds": {
+    "passage_recall_at_k": 0.9,
+    "mean_reciprocal_rank": 0.75,
+    "unanswerable_accuracy": 0.8
+  },
+  "questions": [
+    {
+      "id": "qld_roof_gutters",
+      "query": "What should Queensland households remove from rooftops and gutters before bushfire season?",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "expected_source_ids": ["qld_prepare_home"],
+      "expected_terms": ["rooftops", "gutters"]
+    },
+    {
+      "id": "qld_roof_sarking",
+      "query": "What Queensland guidance covers damaged roofing materials and sarking?",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "expected_source_ids": ["qld_prepare_home"],
+      "expected_terms": ["sarking", "roofing materials"]
+    },
+    {
+      "id": "qld_wall_cladding",
+      "query": "How should missing wall panels and cladding be handled for Queensland bushfire preparation?",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "expected_source_ids": ["qld_prepare_home"],
+      "expected_terms": ["panels", "cladding"]
+    },
+    {
+      "id": "qld_underfloor_storage",
+      "query": "Should combustible materials be stored in underfloor spaces in Queensland homes?",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "expected_source_ids": ["qld_prepare_home"],
+      "expected_terms": ["underfloor spaces", "combustible materials"]
+    },
+    {
+      "id": "qld_deck_debris",
+      "query": "What maintenance is recommended for debris accumulated around decks?",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "expected_source_ids": ["qld_prepare_home"],
+      "expected_terms": ["decks", "debris"]
+    },
+    {
+      "id": "qld_lpg_valves",
+      "query": "Which direction should LPG cylinder relief valves face during home preparation?",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "expected_source_ids": ["qld_prepare_home"],
+      "expected_terms": ["lpg cylinder", "relief valves"]
+    },
+    {
+      "id": "qld_draught_seals",
+      "query": "How can gaps between a door and doorframe be minimised in Queensland?",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "expected_source_ids": ["qld_prepare_home"],
+      "expected_terms": ["draught seals", "doorframe"]
+    },
+    {
+      "id": "qld_wire_mesh",
+      "query": "Where does Queensland guidance suggest installing steel wire mesh screens?",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "expected_source_ids": ["qld_prepare_home"],
+      "expected_terms": ["steel wire mesh", "weep holes"]
+    },
+    {
+      "id": "qld_local_routes",
+      "query": "Who should Queensland residents ask about warning systems and nominated evacuation routes?",
+      "jurisdiction": "Queensland",
+      "category": "evacuation",
+      "expected_source_ids": ["qld_evacuation_plan"],
+      "expected_terms": ["local council", "nominated evacuation routes"]
+    },
+    {
+      "id": "qld_support_agencies",
+      "query": "Where should a household that needs evacuation assistance find available support?",
+      "jurisdiction": "Queensland",
+      "category": "accessibility",
+      "expected_source_ids": ["qld_evacuation_plan"],
+      "expected_terms": ["support agencies", "help is available"]
+    },
+    {
+      "id": "qld_pets_unavailable",
+      "query": "What should a Queensland evacuation plan decide if pets cannot be taken?",
+      "jurisdiction": "Queensland",
+      "category": "animals",
+      "expected_source_ids": ["qld_evacuation_plan"],
+      "expected_terms": ["prepare your pets", "cannot take them"]
+    },
+    {
+      "id": "qld_safe_place",
+      "query": "What kind of safe evacuation destination does Queensland guidance prefer?",
+      "jurisdiction": "Queensland",
+      "category": "evacuation",
+      "expected_source_ids": ["qld_evacuation_plan"],
+      "expected_terms": ["secure accommodation", "higher ground"]
+    },
+    {
+      "id": "qld_destination_records",
+      "query": "What details about evacuation options should be recorded in a Queensland plan?",
+      "jurisdiction": "Queensland",
+      "category": "planning",
+      "expected_source_ids": ["qld_evacuation_plan"],
+      "expected_terms": ["contact and location details", "evacuation options"]
+    },
+    {
+      "id": "qld_predeparture_checklist",
+      "query": "What utility shutoff tasks can appear on a Queensland pre-evacuation checklist?",
+      "jurisdiction": "Queensland",
+      "category": "evacuation",
+      "expected_source_ids": ["qld_evacuation_plan"],
+      "expected_terms": ["water, power and gas", "checklist"]
+    },
+    {
+      "id": "qld_evacuation_kit",
+      "query": "How does a Queensland evacuation kit relate to an emergency kit?",
+      "jurisdiction": "Queensland",
+      "category": "kits",
+      "expected_source_ids": ["qld_evacuation_plan"],
+      "expected_terms": ["addition to your emergency kit", "additional supplies"]
+    },
+    {
+      "id": "qld_kit_storage",
+      "query": "How should a Queensland evacuation kit be stored for quick access?",
+      "jurisdiction": "Queensland",
+      "category": "kits",
+      "expected_source_ids": ["qld_evacuation_plan"],
+      "expected_terms": ["waterproof storage box", "easy to access"]
+    },
+    {
+      "id": "tas_local_safety_options",
+      "query": "What safety options are included in a Tasmanian Community Bushfire Protection Plan?",
+      "jurisdiction": "Tasmania",
+      "category": "community",
+      "expected_source_ids": ["tas_community_protection_plan"],
+      "expected_terms": ["nearby safer places", "evacuation routes"]
+    },
+    {
+      "id": "tas_response_priorities",
+      "query": "What information does a Tasmanian Bushfire Response Plan identify for responders?",
+      "jurisdiction": "Tasmania",
+      "category": "response_planning",
+      "expected_source_ids": ["tas_community_protection_plan"],
+      "expected_terms": ["protection priorities", "operational information"]
+    },
+    {
+      "id": "tas_local_knowledge",
+      "query": "What kinds of knowledge do Tasmania response plans bring together?",
+      "jurisdiction": "Tasmania",
+      "category": "response_planning",
+      "expected_source_ids": ["tas_community_protection_plan"],
+      "expected_terms": ["corporate and local knowledge", "firefighting resources"]
+    },
+    {
+      "id": "tas_mitigation_fuel",
+      "query": "What fuel-management subjects are covered by Tasmanian Bushfire Mitigation Plans?",
+      "jurisdiction": "Tasmania",
+      "category": "mitigation",
+      "expected_source_ids": ["tas_community_protection_plan"],
+      "expected_terms": ["prescribed burning", "fuel treatment"]
+    },
+    {
+      "id": "tas_safer_last_resort",
+      "query": "How are Nearby Safer Places characterised in Tasmania?",
+      "jurisdiction": "Tasmania",
+      "category": "evacuation",
+      "expected_source_ids": ["tas_community_protection_plan"],
+      "expected_terms": ["place of last resort", "backup plan"]
+    },
+    {
+      "id": "tas_not_centres",
+      "query": "Are Tasmanian Nearby Safer Places evacuation centres or assembly areas?",
+      "jurisdiction": "Tasmania",
+      "category": "evacuation",
+      "expected_source_ids": ["tas_community_protection_plan"],
+      "expected_terms": ["not evacuation centres", "assembly areas"]
+    },
+    {
+      "id": "tas_no_amenities",
+      "query": "What facilities or support should people expect at a Tasmanian Nearby Safer Place?",
+      "jurisdiction": "Tasmania",
+      "category": "evacuation",
+      "expected_source_ids": ["tas_community_protection_plan"],
+      "expected_terms": ["no facilities", "support provided"]
+    },
+    {
+      "id": "tas_evacuation_amenities",
+      "query": "What basic amenities may a Tasmanian Evacuation Centre offer?",
+      "jurisdiction": "Tasmania",
+      "category": "evacuation",
+      "expected_source_ids": ["tas_community_protection_plan"],
+      "expected_terms": ["drinking water", "toilet facilities"]
+    },
+    {
+      "id": "nsw_four_steps",
+      "query": "What are the four simple NSW bush fire preparation steps?",
+      "jurisdiction": "New South Wales",
+      "category": "planning",
+      "expected_source_ids": ["nsw_bush_fire_survival_plan"],
+      "expected_terms": ["four simple steps", "discuss"]
+    },
+    {
+      "id": "nsw_household_discussion",
+      "query": "When does NSW RFS suggest households discuss what to do if fire threatens?",
+      "jurisdiction": "New South Wales",
+      "category": "planning",
+      "expected_source_ids": ["nsw_bush_fire_survival_plan"],
+      "expected_terms": ["discussion over dinner", "everybody is together"]
+    },
+    {
+      "id": "nsw_grass_clear",
+      "query": "What simple NSW home preparation includes keeping grass low?",
+      "jurisdiction": "New South Wales",
+      "category": "property",
+      "expected_source_ids": ["nsw_bush_fire_survival_plan"],
+      "expected_terms": ["grass low", "cleared area"]
+    },
+    {
+      "id": "nsw_alert_app",
+      "query": "Where can NSW residents find a local bush fire alert level?",
+      "jurisdiction": "New South Wales",
+      "category": "communications",
+      "expected_source_ids": ["nsw_bush_fire_survival_plan"],
+      "expected_terms": ["fires near me", "rfs website"]
+    },
+    {
+      "id": "nsw_keep_informed",
+      "query": "What does the KEEP step say about NSW bush fire information channels?",
+      "jurisdiction": "New South Wales",
+      "category": "communications",
+      "expected_source_ids": ["nsw_bush_fire_survival_plan"],
+      "expected_terms": ["numbers, websites and apps", "stay up to date"]
+    },
+    {
+      "id": "nsw_online_plan",
+      "query": "How quickly can someone start a NSW plan using MyFirePlan?",
+      "jurisdiction": "New South Wales",
+      "category": "planning",
+      "expected_source_ids": ["nsw_bush_fire_survival_plan"],
+      "expected_terms": ["five minutes", "myfireplan"]
+    },
+    {
+      "id": "nsw_home_survival",
+      "query": "Why does NSW RFS emphasise preparing both people and the home?",
+      "jurisdiction": "New South Wales",
+      "category": "property",
+      "expected_source_ids": ["nsw_bush_fire_survival_plan"],
+      "expected_terms": ["home are well prepared", "better chance"]
+    },
+    {
+      "id": "nsw_step_two",
+      "query": "Which NSW four-step stage gets a home ready for bush fire season?",
+      "jurisdiction": "New South Wales",
+      "category": "property",
+      "expected_source_ids": ["nsw_bush_fire_survival_plan"],
+      "expected_terms": ["step 2", "prepare your home"]
+    },
+    {
+      "id": "vic_risk_landscape",
+      "query": "Which landscapes can put Victorian residents at bushfire risk even outside the country?",
+      "jurisdiction": "Victoria",
+      "category": "risk",
+      "expected_source_ids": ["vic_your_bushfire_plan"],
+      "expected_terms": ["long grass", "coastal scrub"]
+    },
+    {
+      "id": "vic_written_practised",
+      "query": "Why does CFA recommend a written and practised bushfire plan?",
+      "jurisdiction": "Victoria",
+      "category": "planning",
+      "expected_source_ids": ["vic_your_bushfire_plan"],
+      "expected_terms": ["written", "well-practised plan"]
+    },
+    {
+      "id": "vic_leave_signs",
+      "query": "What does leaving early mean in Victoria relative to flames or smoke?",
+      "jurisdiction": "Victoria",
+      "category": "evacuation",
+      "expected_source_ids": ["vic_your_bushfire_plan"],
+      "expected_terms": ["before there are any signs", "smell smoke"]
+    },
+    {
+      "id": "vic_catastrophic_homes",
+      "query": "What does CFA say about defending homes on Catastrophic fire danger days?",
+      "jurisdiction": "Victoria",
+      "category": "risk",
+      "expected_source_ids": ["vic_your_bushfire_plan"],
+      "expected_terms": ["catastrophic conditions", "most homes"]
+    },
+    {
+      "id": "vic_trigger_route",
+      "query": "Which trigger and alternative route questions belong in a Victorian fire plan?",
+      "jurisdiction": "Victoria",
+      "category": "evacuation",
+      "expected_source_ids": ["vic_your_bushfire_plan"],
+      "expected_terms": ["fire danger rating", "alternative"]
+    },
+    {
+      "id": "vic_pets_movements",
+      "query": "What should a Victorian plan decide about animals and informing others of movements?",
+      "jurisdiction": "Victoria",
+      "category": "animals",
+      "expected_source_ids": ["vic_your_bushfire_plan"],
+      "expected_terms": ["pets or livestock", "informed of your movements"]
+    },
+    {
+      "id": "vic_care_support",
+      "query": "What is advised for Victorians who rely on others for care and support on serious fire risk days?",
+      "jurisdiction": "Victoria",
+      "category": "accessibility",
+      "expected_source_ids": ["vic_your_bushfire_plan"],
+      "expected_terms": ["care and support", "never wait"]
+    },
+    {
+      "id": "vic_share_plan",
+      "query": "Who should Victorians share a completed bushfire plan with?",
+      "jurisdiction": "Victoria",
+      "category": "communications",
+      "expected_source_ids": ["vic_your_bushfire_plan"],
+      "expected_terms": ["family, friends and neighbours", "share the details"]
+    },
+    {
+      "id": "wa_plan_update",
+      "query": "What can the Emergency WA planning tool do with a household emergency plan?",
+      "jurisdiction": "Western Australia",
+      "category": "planning",
+      "expected_source_ids": ["wa_prepare_bushfire"],
+      "expected_terms": ["store, print, share and update", "emergency plan"]
+    },
+    {
+      "id": "wa_watch_zone",
+      "query": "What is the benefit of attaching an Emergency WA plan to a watch zone?",
+      "jurisdiction": "Western Australia",
+      "category": "communications",
+      "expected_source_ids": ["wa_prepare_bushfire"],
+      "expected_terms": ["watch zone", "instantly notified"]
+    },
+    {
+      "id": "wa_four_ratings",
+      "query": "How many simplified levels are in the Australian Fire Danger Rating System used in WA?",
+      "jurisdiction": "Western Australia",
+      "category": "risk",
+      "expected_source_ids": ["wa_prepare_bushfire"],
+      "expected_terms": ["four simplified rating levels", "nationally consistent"]
+    },
+    {
+      "id": "wa_catastrophic_leave",
+      "query": "What preparation does WA guidance recommend for the most dangerous fire conditions?",
+      "jurisdiction": "Western Australia",
+      "category": "evacuation",
+      "expected_source_ids": ["wa_prepare_bushfire"],
+      "expected_terms": ["safer location", "night before"]
+    },
+    {
+      "id": "wa_warning_levels",
+      "query": "How are the three Western Australian bushfire warning levels communicated?",
+      "jurisdiction": "Western Australia",
+      "category": "communications",
+      "expected_source_ids": ["wa_prepare_bushfire"],
+      "expected_terms": ["three warning levels", "action statement"]
+    },
+    {
+      "id": "wa_kit_accessible",
+      "query": "When and where should a WA household prepare its emergency evacuation kit?",
+      "jurisdiction": "Western Australia",
+      "category": "kits",
+      "expected_source_ids": ["wa_prepare_bushfire"],
+      "expected_terms": ["before the bushfire season", "accessible spot"]
+    },
+    {
+      "id": "wa_apz",
+      "query": "What is the minimum defendable-space width described for a WA Asset Protection Zone?",
+      "jurisdiction": "Western Australia",
+      "category": "property",
+      "expected_source_ids": ["wa_prepare_bushfire"],
+      "expected_terms": ["three metres", "asset protection zone"]
+    },
+    {
+      "id": "wa_pet_identity",
+      "query": "How should Western Australian households identify pets and document livestock?",
+      "jurisdiction": "Western Australia",
+      "category": "animals",
+      "expected_source_ids": ["wa_prepare_bushfire"],
+      "expected_terms": ["name tag or microchip", "stock registers"]
+    },
+    {
+      "id": "sa_seven_keys",
+      "query": "How many keys does SA CFS recommend reviewing for a Bushfire Survival Plan?",
+      "jurisdiction": "South Australia",
+      "category": "planning",
+      "expected_source_ids": ["sa_bushfire_survival_plan"],
+      "expected_terms": ["7 keys", "surviving a bushfire"]
+    },
+    {
+      "id": "sa_behaviour_factors",
+      "query": "How do vegetation, topography and climate influence bushfire behaviour?",
+      "jurisdiction": "South Australia",
+      "category": "risk",
+      "expected_source_ids": ["sa_bushfire_survival_plan"],
+      "expected_terms": ["vegetation, topography and climate", "bushfire behaviour"]
+    },
+    {
+      "id": "sa_three_kits",
+      "query": "Which emergency kit types include relocation, recovery and last resort kits?",
+      "jurisdiction": "South Australia",
+      "category": "kits",
+      "expected_source_ids": ["sa_bushfire_survival_plan"],
+      "expected_terms": ["relocation kit", "recovery kit"]
+    },
+    {
+      "id": "sa_emotional_readiness",
+      "query": "What emotional realities should a South Australian family consider before bushfire?",
+      "jurisdiction": "South Australia",
+      "category": "accessibility",
+      "expected_source_ids": ["sa_bushfire_survival_plan"],
+      "expected_terms": ["fear, stress", "physical and emotional"]
+    },
+    {
+      "id": "sa_plan_practice",
+      "query": "How often should a South Australian Bushfire Survival Plan be reviewed and practised?",
+      "jurisdiction": "South Australia",
+      "category": "planning",
+      "expected_source_ids": ["sa_bushfire_survival_plan"],
+      "expected_terms": ["reviewed each year", "practiced regularly"]
+    },
+    {
+      "id": "sa_leaving_late",
+      "query": "What does SA CFS say about making a choice and leaving at the last moment?",
+      "jurisdiction": "South Australia",
+      "category": "evacuation",
+      "expected_source_ids": ["sa_bushfire_survival_plan"],
+      "expected_terms": ["leaving late", "deadly option"]
+    },
+    {
+      "id": "sa_changed_household",
+      "query": "Which changing household situations should a South Australian plan consider?",
+      "jurisdiction": "South Australia",
+      "category": "planning",
+      "expected_source_ids": ["sa_bushfire_survival_plan"],
+      "expected_terms": ["weekends or weekdays", "children are at school"]
+    },
+    {
+      "id": "sa_rating_variants",
+      "query": "Can South Australian households use different plans for Extreme and Catastrophic ratings?",
+      "jurisdiction": "South Australia",
+      "category": "risk",
+      "expected_source_ids": ["sa_bushfire_survival_plan"],
+      "expected_terms": ["extreme", "catastrophic"]
+    },
+    {
+      "id": "act_bushfire_season",
+      "query": "When does the standard ACT bushfire season start and finish?",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "risk",
+      "expected_source_ids": ["act_bushfire_readiness"],
+      "expected_terms": ["1 October", "31 March"]
+    },
+    {
+      "id": "act_ladder_fuels",
+      "query": "How does ACT guidance describe ladder fuels?",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "property",
+      "expected_source_ids": ["act_bushfire_readiness"],
+      "expected_terms": ["ladder fuels", "2 metres"]
+    },
+    {
+      "id": "act_slope_rate",
+      "query": "How does an extra ten degrees of slope affect bushfire spread in the ACT?",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "risk",
+      "expected_source_ids": ["act_bushfire_readiness"],
+      "expected_terms": ["double", "10 degrees"]
+    },
+    {
+      "id": "act_farm_firewise_map",
+      "query": "What property details can an ACT Farm FireWise map identify?",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "planning",
+      "expected_source_ids": ["act_bushfire_readiness"],
+      "expected_terms": ["property access", "asset protection zones"]
+    },
+    {
+      "id": "act_city_rural_interface",
+      "query": "Who is classified as living on the ACT city-rural interface?",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "community",
+      "expected_source_ids": ["act_bushfire_readiness"],
+      "expected_terms": ["open spaces", "city-rural interface"]
+    },
+    {
+      "id": "act_bpa_dwellings",
+      "query": "Approximately what share of ACT dwellings are in a Bushfire Prone Area?",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "risk",
+      "expected_source_ids": ["act_bushfire_readiness"],
+      "expected_terms": ["quarter", "dwellings"]
+    },
+    {
+      "id": "nt_prepare_advance",
+      "query": "Why should Territorians prepare for bushfire in advance?",
+      "jurisdiction": "Northern Territory",
+      "category": "planning",
+      "expected_source_ids": ["nt_bushfire_safety"],
+      "expected_terms": ["extremely common", "prepare in advance"]
+    },
+    {
+      "id": "nt_three_alerts",
+      "query": "How many types of NT bushfire alerts are listed?",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "expected_source_ids": ["nt_bushfire_safety"],
+      "expected_terms": ["three types", "bushfire alerts"]
+    },
+    {
+      "id": "nt_advice_alert",
+      "query": "What does an NT Advice alert mean?",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "expected_source_ids": ["nt_bushfire_safety"],
+      "expected_terms": ["no immediate danger", "stay up to date"]
+    },
+    {
+      "id": "nt_watch_and_act",
+      "query": "What action is described for an NT Watch and Act alert?",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "expected_source_ids": ["nt_bushfire_safety"],
+      "expected_terms": ["heightened level of threat", "start taking action"]
+    },
+    {
+      "id": "nt_emergency_warning",
+      "query": "How is an NT Emergency Warning alert characterised?",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "expected_source_ids": ["nt_bushfire_safety"],
+      "expected_terms": ["highest level of warning", "delay now puts your life at risk"]
+    },
+    {
+      "id": "nt_alert_channels",
+      "query": "Which channels does NT PFES list for receiving bushfire alerts and warnings?",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "expected_source_ids": ["nt_bushfire_safety"],
+      "expected_terms": ["facebook page", "Fire Incident Map"]
+    },
+    {
+      "id": "negative_flood_insurance",
+      "query": "How do I claim flood insurance after storm damage?",
+      "jurisdiction": "Australia",
+      "category": "out_of_domain",
+      "answerable": false
+    },
+    {
+      "id": "negative_solar_tax",
+      "query": "What are the tax deductions for installing rooftop solar panels?",
+      "jurisdiction": "Australia",
+      "category": "out_of_domain",
+      "answerable": false
+    },
+    {
+      "id": "negative_asthma_diagnosis",
+      "query": "How should a school diagnose and treat asthma?",
+      "jurisdiction": "Australia",
+      "category": "medical",
+      "answerable": false
+    },
+    {
+      "id": "negative_crypto_investment",
+      "query": "Which cryptocurrency should a council invest in?",
+      "jurisdiction": "Australia",
+      "category": "financial",
+      "answerable": false
+    },
+    {
+      "id": "negative_earthquake",
+      "query": "What is the earthquake liquefaction risk for this building?",
+      "jurisdiction": "Australia",
+      "category": "out_of_domain",
+      "answerable": false
+    },
+    {
+      "id": "negative_building_permit",
+      "query": "How do I apply for a residential building permit?",
+      "jurisdiction": "Australia",
+      "category": "legal",
+      "answerable": false
+    },
+    {
+      "id": "negative_cyclone_live",
+      "query": "Where is the nearest cyclone shelter open right now?",
+      "jurisdiction": "Northern Territory",
+      "category": "live_operations",
+      "answerable": false
+    },
+    {
+      "id": "negative_live_roads",
+      "query": "Which roads are currently closed by a live bushfire?",
+      "jurisdiction": "Australia",
+      "category": "live_operations",
+      "answerable": false
+    },
+    {
+      "id": "negative_defend_today",
+      "query": "Is my property safe to defend during the fire burning today?",
+      "jurisdiction": "Australia",
+      "category": "live_operations",
+      "answerable": false
+    },
+    {
+      "id": "negative_active_order",
+      "query": "What evacuation order is active for my suburb right now?",
+      "jurisdiction": "Australia",
+      "category": "live_operations",
+      "answerable": false
+    },
+    {
+      "id": "negative_survival_guarantee",
+      "query": "Can this system guarantee my family will survive a bushfire?",
+      "jurisdiction": "Australia",
+      "category": "life_safety",
+      "answerable": false
+    },
+    {
+      "id": "negative_antibiotics",
+      "query": "What antibiotics should I take for smoke inhalation?",
+      "jurisdiction": "Australia",
+      "category": "medical",
+      "answerable": false
+    },
+    {
+      "id": "negative_tractor_repair",
+      "query": "How can I repair a diesel tractor engine?",
+      "jurisdiction": "Australia",
+      "category": "out_of_domain",
+      "answerable": false
+    },
+    {
+      "id": "negative_pet_import",
+      "query": "What are the rules for importing pets into Australia?",
+      "jurisdiction": "Australia",
+      "category": "out_of_domain",
+      "answerable": false
+    },
+    {
+      "id": "negative_football",
+      "query": "Who won the latest Australian football match?",
+      "jurisdiction": "Australia",
+      "category": "out_of_domain",
+      "answerable": false
+    },
+    {
+      "id": "negative_legal_contract",
+      "query": "Write a legal contract for a council supplier.",
+      "jurisdiction": "Australia",
+      "category": "legal",
+      "answerable": false
+    }
+  ]
+}

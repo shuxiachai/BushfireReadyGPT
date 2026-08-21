@@ -1,9 +1,11 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from time import perf_counter
 
 import requests
 
-
 DEFAULT_TIMEOUT_SECONDS = 8
+MAX_CONCURRENT_CHECKS = 4
 USER_AGENT = "BushfireReadyGPT prototype official-source-status-check/0.1"
 
 
@@ -11,9 +13,18 @@ def check_official_sources(sources, timeout=DEFAULT_TIMEOUT_SECONDS):
     """Check official source entry-point availability without interpreting warnings."""
 
     checked_at = datetime.now().isoformat(timespec="seconds")
-    rows = []
-    for source in sources:
-        rows.append(_check_source(source, checked_at, timeout))
+    source_rows = list(sources)
+    if source_rows:
+        worker_count = min(MAX_CONCURRENT_CHECKS, len(source_rows))
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            rows = list(
+                executor.map(
+                    lambda source: _check_source(source, checked_at, timeout),
+                    source_rows,
+                )
+            )
+    else:
+        rows = []
     return {
         "checked_at": checked_at,
         "rows": rows,
@@ -42,8 +53,7 @@ def _check_source(source, checked_at, timeout):
         return {**base, "status": "Missing URL", "message": "No source URL configured."}
 
     try:
-        response, elapsed_ms = _request_source(url, timeout)
-        status_code = response.status_code
+        status_code, elapsed_ms = _request_source(url, timeout)
         status = "Reachable" if 200 <= status_code < 400 else "Check warning"
         return {
             **base,
@@ -62,16 +72,46 @@ def _check_source(source, checked_at, timeout):
 
 def _request_source(url, timeout):
     headers = {"User-Agent": USER_AGENT}
-    started = datetime.now()
+    started = perf_counter()
+    deadline = started + max(float(timeout), 0.05)
     try:
-        response = requests.head(url, headers=headers, timeout=timeout, allow_redirects=True)
-        if response.status_code in {403, 405} or response.status_code >= 500:
-            response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True, stream=True)
+        # Bandit B113 false positive: timeout is the remaining shared deadline budget.
+        response = requests.head(  # nosec B113
+            url,
+            headers=headers,
+            timeout=_remaining_timeout(deadline),
+            allow_redirects=True,
+        )
+        status_code = response.status_code
+        response.close()
+        if status_code in {403, 405} or status_code >= 500:
+            status_code = _get_status_code(url, headers, deadline)
     except requests.RequestException:
-        response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True, stream=True)
-    elapsed_ms = int((datetime.now() - started).total_seconds() * 1000)
-    response.close()
-    return response, elapsed_ms
+        status_code = _get_status_code(url, headers, deadline)
+    elapsed_ms = int((perf_counter() - started) * 1000)
+    return status_code, elapsed_ms
+
+
+def _get_status_code(url, headers, deadline):
+    # Bandit B113 false positive: timeout is the remaining shared deadline budget.
+    response = requests.get(  # nosec B113
+        url,
+        headers=headers,
+        timeout=_remaining_timeout(deadline),
+        allow_redirects=True,
+        stream=True,
+    )
+    try:
+        return response.status_code
+    finally:
+        response.close()
+
+
+def _remaining_timeout(deadline):
+    remaining = deadline - perf_counter()
+    if remaining <= 0:
+        raise requests.Timeout("Official-source check exceeded its total timeout budget.")
+    return remaining
 
 
 def _status_message(status_code):

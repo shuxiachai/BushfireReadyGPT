@@ -1,0 +1,6 @@
+data_australia/*.csv text eol=lf
+data_australia/*.json text eol=lf
+data_australia/*.yml text eol=lf
+data_australia/processed/**/*.csv text eol=lf
+data_australia/processed/**/*.json text eol=lf
+data_australia/processed/sa2_coverage.geojson text eol=lf

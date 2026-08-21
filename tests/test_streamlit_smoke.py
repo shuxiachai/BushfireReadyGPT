@@ -9,7 +9,6 @@ from urllib.request import urlopen
 
 from streamlit.testing.v1 import AppTest
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
 
@@ -32,9 +31,7 @@ def _wait_for_health(process, health_url, timeout_seconds=30):
 
     while time.monotonic() < deadline:
         if process.poll() is not None:
-            raise AssertionError(
-                "Streamlit exited before becoming healthy.\n" + _process_output(process)
-            )
+            raise AssertionError("Streamlit exited before becoming healthy.\n" + _process_output(process))
 
         try:
             with urlopen(health_url, timeout=1) as response:

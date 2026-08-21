@@ -1,0 +1,155 @@
+schema_version: 1
+sources:
+  - source_id: qld_prepare_home
+    title: Prepare your home for bushfire season
+    agency: Queensland Government
+    url: https://www.qld.gov.au/emergency/dealing-disasters/disaster-types/bushfires/bushfire-prepare/prepare-your-home-for-bushfire-season
+    format: html
+    local_path: raw/qld_prepare_home.html
+    content_selector: "#content"
+    jurisdictions: [Queensland]
+    audiences: [community, school, council, aged_care]
+    scenarios: [preparedness, evacuation, property_preparation]
+    document_date: "2024-02-26"
+    licence: Creative Commons Attribution 4.0 as declared in the page metadata.
+    licence_url: https://www.qld.gov.au/legal/copyright
+    reuse_status: open_with_attribution
+    last_verified_date: "2026-08-21"
+
+  - source_id: qld_evacuation_plan
+    title: Evacuation plan
+    agency: Queensland Government
+    url: https://www.qld.gov.au/emergency/dealing-disasters/evacuation-plan
+    format: html
+    local_path: raw/qld_evacuation_plan.html
+    content_selector: "#content"
+    jurisdictions: [Queensland]
+    audiences: [community, school, council]
+    scenarios: [preparedness, evacuation, contingency_planning]
+    document_date: "2022-03-03"
+    licence: Creative Commons Attribution 4.0 as declared in the page metadata.
+    licence_url: https://www.qld.gov.au/legal/copyright
+    reuse_status: open_with_attribution
+    last_verified_date: "2026-08-21"
+
+  - source_id: tas_community_protection_plan
+    title: Community Bushfire Protection Plans
+    agency: Tasmania Fire Service
+    url: https://www.fire.tas.gov.au/Show?pageId=communityProtectionPlan
+    format: html
+    local_path: raw/tas_community_protection_plan.html
+    content_selector: "#information-on-defending-your-home"
+    jurisdictions: [Tasmania]
+    audiences: [community, council, school]
+    scenarios: [preparedness, evacuation, community_protection]
+    document_date: "unknown"
+    licence: Tasmania Fire Service terms permit personal, non-commercial use only; obtain permission before redistribution or commercial use.
+    licence_url: https://www.fire.tas.gov.au/Show?pageId=colCopyright
+    reuse_status: restricted_noncommercial
+    last_verified_date: "2026-08-21"
+
+  - source_id: nsw_bush_fire_survival_plan
+    title: Bush fire survival plan
+    agency: NSW Rural Fire Service
+    url: https://www.rfs.nsw.gov.au/plan-and-prepare/bush-fire-survival-plan
+    format: html
+    local_path: raw/nsw_bush_fire_survival_plan.html
+    content_selector: "#new_div_23427_23427"
+    jurisdictions: [New South Wales]
+    audiences: [community, school, council, aged_care]
+    scenarios: [preparedness, evacuation, property_preparation, emergency_kits]
+    document_date: "unknown"
+    licence: NSW RFS states CC BY 4.0 for most website material but also publishes additional reuse limits; retain only for local research and obtain a page-level legal review before commercial redistribution.
+    licence_url: https://www.rfs.nsw.gov.au/about-us/privacy
+    reuse_status: permission_review_required
+    last_verified_date: "2026-08-21"
+
+  - source_id: vic_your_bushfire_plan
+    title: Your Bushfire Plan
+    agency: Country Fire Authority
+    url: https://www.cfa.vic.gov.au/plan-prepare/before-and-during-a-fire/your-bushfire-plan
+    format: html
+    local_path: raw/vic_your_bushfire_plan.html
+    content_selector: "#page-content"
+    jurisdictions: [Victoria]
+    audiences: [community, school, council, aged_care]
+    scenarios: [preparedness, evacuation, contingency_planning, animals]
+    document_date: "2026-02-10"
+    licence: State of Victoria copyright; no page-specific open licence was identified for this HTML page. Retain only for local research and obtain permission before redistribution.
+    licence_url: https://www.cfa.vic.gov.au/disclaimer
+    reuse_status: permission_required
+    last_verified_date: "2026-08-21"
+
+  - source_id: wa_prepare_bushfire
+    title: Prepare for a bushfire
+    agency: Department of Fire and Emergency Services Western Australia
+    url: https://dfes.wa.gov.au/hazard-information/bushfire/prepare
+    format: html
+    local_path: raw/wa_prepare_bushfire.html
+    content_selectors:
+      - "#emergency-plan"
+      - "#fire-danger-ratings"
+      - "#my-bushfire-plan"
+      - "#alerts-and-warnings"
+      - "#emergency-kit"
+      - "#prepare-your-property"
+      - "#managing-vegetation"
+      - "#asset-protection-zones"
+      - "#pets-and-livestock"
+      - "#bushfire-ready"
+    jurisdictions: [Western Australia]
+    audiences: [community, school, council, aged_care]
+    scenarios: [preparedness, emergency_plan, fire_danger_ratings]
+    document_date: "unknown"
+    licence: Western Australian Government copyright; reproduction or reuse requires written permission except where a statutory exception applies.
+    licence_url: https://www.dfes.wa.gov.au/copyright
+    reuse_status: permission_required
+    last_verified_date: "2026-08-21"
+
+  - source_id: sa_bushfire_survival_plan
+    title: Bushfire Survival Plan
+    agency: South Australian Country Fire Service
+    url: https://www.cfs.sa.gov.au/plan-prepare/before-a-fire-be-prepared/make-a-plan/bushfire-survival-plan/
+    format: html
+    local_path: raw/sa_bushfire_survival_plan.html
+    content_selectors: ["#main_content_3", "#main_body"]
+    jurisdictions: [South Australia]
+    audiences: [community, school, council, aged_care]
+    scenarios: [preparedness, evacuation, emergency_kits, physical_preparation]
+    document_date: "unknown"
+    licence: Creative Commons Attribution 4.0, excluding emblems, images, trademarks and third-party material.
+    licence_url: https://cfs.sa.gov.au/home/copyright/
+    reuse_status: open_with_attribution
+    last_verified_date: "2026-08-21"
+
+  - source_id: act_bushfire_readiness
+    title: Bushfires
+    agency: ACT Emergency Services Agency
+    url: https://esa.act.gov.au/be-emergency-ready/bushfires
+    format: html
+    local_path: raw/act_bushfire_readiness.html
+    content_selector: "#block-system-main-block"
+    jurisdictions: [Australian Capital Territory]
+    audiences: [community, school, council, aged_care]
+    scenarios: [preparedness, evacuation, emergency_kits, animals]
+    document_date: "unknown"
+    licence: Creative Commons Attribution 4.0 under the ACT Government and Justice and Community Safety Directorate default copyright policy, excluding logos, trademarks and third-party material.
+    licence_url: https://www.justice.act.gov.au/copyright
+    reuse_status: open_with_attribution
+    last_verified_date: "2026-08-21"
+
+  - source_id: nt_bushfire_safety
+    title: Bushfire safety
+    agency: Northern Territory Police, Fire and Emergency Services
+    url: https://pfes.nt.gov.au/fire-and-rescue-service/fire-safety/bushfire-safety
+    format: html
+    local_path: raw/nt_bushfire_safety.html
+    content_selector: "#block-pfes-content--2"
+    jurisdictions: [Northern Territory]
+    audiences: [community, school, council, aged_care]
+    scenarios: [preparedness, evacuation, emergency_kits, property_preparation]
+    document_date: "unknown"
+    licence: NTPFES permits reproduction for non-commercial purposes; all other use or adaptation requires express written consent.
+    licence_url: https://pfes.nt.gov.au/node/849
+    reuse_status: restricted_noncommercial
+    last_verified_date: "2026-08-21"

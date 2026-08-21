@@ -23,7 +23,7 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 
 **Stage:** Government-pilot MVP
 
-**Current release:** `v0.1.0`
+**Current release:** `v0.2.0`
 
 Ready for:
 
@@ -64,6 +64,11 @@ Not ready for:
 - Added report versioning, approval validation and review-checklist reset so revised content cannot silently inherit an earlier approval.
 - Isolated browser sessions in memory by default and replaced optional pickle persistence with explicitly enabled JSON persistence for single-user installations.
 - Added Australia-specific official source, licence, data status and safety-boundary registries for more transparent outputs.
+- Centralised every active data path, fail-closed bundled-core integrity validation and before/after analysis provenance checks.
+- Added v4 append-only audit events that bind the exact report, deterministic sign-off, quality result, inputs, model boundary, frozen registers and recursive revision lineage.
+- Made governed external-model calls stateless, tool-free and subject to an explicit per-session privacy acknowledgement.
+- Added a local hybrid RAG pipeline with nine page-level licensed sources covering all eight Australian states and territories, deterministic abstention and hard-negative evaluation.
+- Added one-click Windows setup, startup preflight checks, a dedicated 16K-context Ollama model and Windows CI coverage.
 
 ## Example Output
 
@@ -81,6 +86,22 @@ It is a preparedness planning and draft reporting tool. In an emergency, follow 
 
 ## Quick Start
 
+On Windows, install [Python 3.11-3.13](https://www.python.org/downloads/windows/)
+and [Ollama](https://ollama.com/download/windows), then use the two launchers in
+the project folder:
+
+```text
+1. Double-click Setup BushfireReadyGPT.bat once.
+2. Double-click Start BushfireReadyGPT.bat whenever you want to run the app.
+```
+
+Setup creates the local environment, installs the locked dependencies, starts
+Ollama, downloads both models, creates the dedicated 16K-context report model,
+builds the RAG index and runs a startup preflight. The Start launcher also offers
+to run setup automatically when `.venv` is absent.
+
+### Manual setup
+
 These commands assume Windows PowerShell from the project root.
 
 Create and activate a virtual environment:
@@ -89,19 +110,48 @@ Create and activate a virtual environment:
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
+python -m pip install poetry==2.3.4
 ```
 
-Install Python dependencies:
+Install the locked runtime and development dependencies:
 
 ```powershell
-pip install -r requirements.txt
+poetry install --with dev --no-root
 ```
+
+`pyproject.toml` and the committed `poetry.lock` are the reproducible source of
+truth. `requirements.txt`, `requirements-dev.txt` and
+`requirements-e2e.txt` remain runtime/development/browser-test compatibility
+files for environments that cannot use Poetry; they are not lock files.
 
 Install Ollama, then download the configured local model:
 
 ```powershell
 ollama pull qwen2.5:7b
+ollama pull embeddinggemma
+ollama create bushfire-ready-qwen -f .\Modelfile
 ```
+
+The first model writes the report; the second powers the optional local RAG
+retriever. Build the RAG index from its declared official static sources:
+
+```powershell
+poetry run python scripts\build_rag_index.py --download
+poetry run python scripts\evaluate_rag.py --top-k 5 --warmup --summary-only
+```
+
+The RAG corpus covers nine official pages across all eight states and territories. Retrieval combines
+local dense embeddings with BM25 using reciprocal-rank fusion, applies a
+deterministic source-diversity cap and exposes both component ranks in the
+Evidence Trail. The committed 84-query benchmark includes 68 answerable cases
+and 16 hard negatives. The documented local baseline achieves 0.9706 passage
+Recall@5, 0.8922 MRR, 0.8235 Top-1 accuracy and 1.0000 unanswerable accuracy.
+
+Raw RAG downloads, the verified document snapshot and Qdrant files stay local and are ignored by Git. The app
+still works if the optional index is absent, stale or disabled with
+`BUSHFIRE_RAG_ENABLED=false`; in that case no retrieved passage is sent to the
+report model. See [docs/rag.md](docs/rag.md) for the data contract, integrity
+checks, evaluation method and safety boundary.
 
 The project launcher starts the local Ollama service automatically when needed. To run or troubleshoot Ollama manually, open a separate PowerShell terminal and run:
 
@@ -115,11 +165,28 @@ Create `.env` in the project root:
 
 ```env
 LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434/v1
-OLLAMA_MODEL=qwen2.5:7b
+OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
+OLLAMA_MODEL=bushfire-ready-qwen
 ```
 
-Browser sessions are isolated in memory by default. For an explicitly single-user local installation, optional JSON session persistence can be enabled with `BUSHFIRE_SESSION_STATE_PATH=chat_history/session_state.json`. Do not use one shared state file for a multi-user deployment.
+Browser sessions are isolated in memory by default. For an explicitly single-user local installation, optional JSON session persistence can be enabled with `BUSHFIRE_SESSION_STATE_PATH=chat_history/session_state.json`. That plaintext file can contain complete reports, locations and reviewer sign-off identity; protect it with operating-system access controls and a retention policy. Do not use one shared state file for a multi-user deployment.
+
+Endpoints on `localhost`, `127.0.0.0/8` or `::1` keep the default local-model workflow. Any other endpoint, including a remote Ollama server, is treated as external and fails closed unless the operator sets `BUSHFIRE_ALLOW_EXTERNAL_MODEL=true` and the user acknowledges the privacy disclosure for the current browser session. The disclosure lists the fields sent and warns that provider retention depends on the configured service and account; sensitive personal data and live incident or life-safety requests must not be entered.
+
+For an external provider, generation sends the location, audience, scenario,
+focus areas, timeframe, additional context, selected geography and deterministic
+analysis context. Revision sends the requested change and current report body,
+with the human sign-off removed. Governed calls are isolated and tool-free;
+organisation and reviewer identity fields are not sent. The configured provider's
+retention, training and deletion terms still apply.
+
+Every generated report writes a privacy-minimised audit event to local disk. The
+default event stores content hashes and bounded metadata, not the full report,
+reviewer name or free-text notes. Setting
+`BUSHFIRE_AUDIT_INCLUDE_SENSITIVE_CONTENT=true` opts into the complete payload and
+requires an operator-approved access, retention and deletion policy. Clearing the
+current conversation removes in-app/session state only; retained audit events,
+manually saved reports and already downloaded packages remain.
 
 Windows double-click startup:
 
@@ -141,7 +208,7 @@ Or run from PowerShell:
 powershell -ExecutionPolicy Bypass -File .\start_app.ps1
 ```
 
-The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It records the active project port locally, avoids launching a duplicate instance, and automatically selects an available port from `8501` to `8505`. Keep the terminal open while using the app. Press `Ctrl + C` or close this terminal to stop Streamlit and release the port.
+The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It records the active project port locally, avoids launching a duplicate instance, and automatically selects an available port from `8501` to `8505`. Streamlit is explicitly bound to `127.0.0.1` with usage telemetry disabled. Keep the terminal open while using the app. Press `Ctrl + C` or close this terminal to stop Streamlit and release the port.
 
 ## Demo Path
 
@@ -155,8 +222,9 @@ For the cleanest demonstration:
 6. Show `Latest Report Preview`.
 7. Open `Review & Export` and show the Evidence Trail, Structural Report Check and Human Review Checklist.
 8. Open `Data & Map` and show official sources, data status, licence register and map context.
-9. Download the pilot export package.
-10. Explain the safety boundary and current commercial limitations.
+9. Show the verified RAG index card and retrieved passage provenance in the Evidence Trail.
+10. Download the pilot export package.
+11. Explain the safety boundary and current commercial limitations.
 
 See [docs/demo_walkthrough.md](docs/demo_walkthrough.md) for a full presentation script.
 
@@ -173,6 +241,7 @@ Start with:
 Project and commercial context:
 
 - [docs/architecture.md](docs/architecture.md) - Architecture, agent responsibilities and data flow.
+- [docs/rag.md](docs/rag.md) - Local RAG design, build, evaluation and trust boundary.
 - [docs/project_reassessment.md](docs/project_reassessment.md) - Current maturity, gaps and next build order.
 - [docs/commercial_gap_assessment.md](docs/commercial_gap_assessment.md) - Commercial and government-readiness gap assessment.
 - [docs/commercial_readiness_checklist.md](docs/commercial_readiness_checklist.md) - Commercial readiness checklist.
@@ -191,6 +260,7 @@ Streamlit UI
   -> Deterministic multi-agent pipeline
       -> Profile Agent
       -> Australian Data Agent
+      -> Official Knowledge Agent (optional local RAG)
       -> Community Vulnerability Agent
       -> Risk Context Agent
       -> Planner Agent
@@ -206,13 +276,14 @@ Streamlit UI
 flowchart LR
     A[User report form] --> B[Profile Agent]
     B --> C[Australian Data Agent]
-    C --> D[Community Vulnerability Agent]
-    D --> E[Risk Context Agent]
-    E --> F[Planner Agent]
-    F --> G[Ollama-backed Report Generation]
-    G --> H[Report Quality Agent]
-    H --> I[Evidence Trail and Human Review]
-    I --> J[Markdown / PDF / DOCX / Pilot Package]
+    C --> D[Official Knowledge Agent]
+    D --> E[Community Vulnerability Agent]
+    E --> F[Risk Context Agent]
+    F --> G[Planner Agent]
+    G --> H[Ollama-backed Report Generation]
+    H --> I[Report Quality Agent]
+    I --> J[Evidence Trail and Human Review]
+    J --> K[Markdown / PDF / DOCX / Pilot Package]
 ```
 
 ## Project Structure
@@ -227,12 +298,17 @@ src/app_catalog.py                  Official sources, form options and pilot exa
 src/report_template.py              Fixed English report prompt and report structure
 src/evidence_confidence.py          Shared O1 / P2 / R3 / A4 / U0 provenance rules
 src/agents/                         Australia-focused multi-agent pipeline
+src/rag/                            Local corpus, Ollama embeddings, Qdrant index and retrieval
 src/assistants/                     Model client and conversation assistant layer
 src/coverage_map.py                 SA2 / SA3 / SA4 map and community profile loading
+src/data_paths.py                   Central, environment-aware data path configuration
+src/data_artifacts.py               Manifest validation, provenance and atomic publication
 src/data_register.py                Data source register
 src/licence_register.py             Licence register loader and export helpers
 src/data_status.py                  Data status and source checks
-src/audit.py                        Audit JSON saving
+src/audit.py                        Append-only, hash-linked local audit events
+src/export_register.py              Frozen report-time data/licence register snapshots
+src/export_package.py               Audit-bound pilot package creation and verification
 src/pdf_export.py                   PDF report export
 src/docx_export.py                  DOCX report export
 data_australia/                     Australian metadata, rules and lightweight processed data
@@ -248,22 +324,29 @@ The active data layer is under `data_australia/`.
 
 - `data_australia/raw/` stores raw official downloads or API responses for traceability and is ignored by Git.
 - `data_australia/processed/` stores cleaned files used by the agents.
+- `data_australia/manifest.json` verifies the bundled core files by size, row count and SHA-256 before analysis.
+- `data_australia/rag/sources.yml` declares the optional static official RAG corpus; raw files and the built Qdrant index remain local.
+- The pipeline refuses invalid bundled-core data and verifies that the files used did not change during analysis.
 - Lightweight processed reference files may be committed for reproducible demos.
-- Large raw and geospatial files are intentionally ignored by Git.
+- Large raw and geospatial files, including the all-Australia map, are optional and intentionally ignored by Git.
+- The nationwide selector is enabled only when its profile, boundary ID join and sidecar hashes all verify; structurally valid but unverified legacy files remain unavailable to reports and approval.
+- Downloaders validate complete responses and publish related files, sidecar metadata and manifest updates as a recoverable transaction; every writer of the shared core manifest uses the same publication lock.
+- Environment-variable data overrides remain available for draft analysis but are labelled `Unverified custom data` and cannot receive in-app organisational approval.
 - Original-project legacy material is not part of the active Australian evidence layer.
 
 The committed data is intended for demonstration, traceability and planning context only. It does not provide live incident status, fire danger ratings, evacuation orders, safe routes or confirmed assembly points.
 
-To rebuild all-Australia SA2 / SA3 / SA4 selection data:
+The clean-clone core demo does not require the all-Australia map. To install or
+rebuild that optional SA2 / SA3 / SA4 selection capability:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\download_abs_sa2_all.py
+poetry run python scripts\download_abs_sa2_all.py
 ```
 
 To rebuild ASGS allocation and correspondence reference data:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\download_abs_asgs_allocations.py
+poetry run python scripts\download_abs_asgs_allocations.py
 ```
 
 ## Tests
@@ -271,30 +354,38 @@ To rebuild ASGS allocation and correspondence reference data:
 Run the fast unit, integration, Streamlit smoke and AppTest workflow suite:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -m "not e2e" -q
+poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail-under=80
 ```
 
-Expected fast-suite result:
+Run the same static, dependency and security checks as CI:
 
-```text
-28 passed
+```powershell
+poetry check --lock
+poetry run python -m pip check
+poetry run ruff check src tests scripts
+poetry run bandit -q -r src scripts -x src/legacy
+poetry run pip-audit --local --skip-editable
 ```
 
 Install the browser-test dependencies and matching Chromium build once:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-e2e.txt
-.\.venv\Scripts\python.exe -m playwright install chromium
+poetry run python -m playwright install chromium
 ```
 
 Run the real-browser workflow or the complete suite:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -m e2e -q
-.\.venv\Scripts\python.exe -m pytest -q
+poetry run pytest -m e2e -q
+poetry run pytest -q
 ```
 
-The complete expected result is `29 passed`.
+The RAG unit tests use a deterministic in-process embedder and temporary Qdrant
+index, so CI does not need Ollama or network access. The separate local retrieval
+evaluation uses the real `embeddinggemma` model and the downloaded nine-source
+official corpus. It evaluates answerable and unanswerable queries separately and
+reports Recall@K, MRR, Top-1 accuracy, false-positive rate and latency by
+jurisdiction and category.
 
 GitHub Actions runs the same suite automatically on Python 3.11 and 3.13 for
 pushes to `main`, pull requests targeting `main`, and manual workflow runs. The
@@ -307,6 +398,39 @@ versioned revision with a controlled model response. A separate Chromium job exe
 report generation through a local mock model endpoint, Markdown and ZIP downloads,
 reviewer sign-off, audit updates, package-manifest verification, Cairns-to-Brisbane
 map filtering, controlled official-source reachability and data-status rendering.
+
+## Audit And Approval Boundary
+
+New governed reports use the `government-pilot-v4` audit schema. Events are
+append-only and hash-linked at the application layer. Each positive-integer report
+version binds the exact Markdown body, deterministic Human Review Sign-off,
+quality gate, inputs, selected geography, provider boundary, canonical review
+record and the report-time data/licence register snapshot by SHA-256. Revisions
+also bind and recursively package their verified ancestor lineage.
+
+Stale, malformed, forked or snapshot-mismatched chains fail closed. Per-report
+locks, authoritative head records, single-child revision claims and interrupted
+write recovery prevent concurrent tabs or an incomplete local write from silently
+forking the chain. Markdown, PDF, DOCX, audit JSON and `pilot-export-v3` packages
+are offered only for the current verified report snapshot; every package artifact
+is hashed in its manifest. Earlier audit schemas are legacy/read-only and must be
+regenerated before governed export or review.
+
+This is tamper-evident local application logging, not a formally immutable
+government record. The prototype has no user authentication, independently
+verified reviewer identity, digital signature, trusted timestamp, WORM storage or
+external transparency log. An operator with filesystem access can delete or
+replace the entire local history. Do not describe an in-app approval as legal,
+procurement or agency approval without a separately governed identity and records
+system.
+
+## Deployment Boundary
+
+The supplied launcher is a single-user local profile. It deliberately binds only
+to loopback and does not provide authentication, TLS termination, rate limiting,
+multi-user tenancy, a database, central logging, backups or a retention service.
+A shared or internet-facing deployment requires those controls plus a privacy,
+security, incident-response and data-licensing review.
 
 ## Git And Repository Hygiene
 

@@ -1,6 +1,6 @@
+import re
 from datetime import datetime
 from io import BytesIO
-import re
 
 from docx import Document
 from docx.enum.section import WD_SECTION_START
@@ -8,7 +8,6 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
-
 
 BODY_FONT = "Microsoft YaHei"
 DRAFT_NOTICE = "DRAFT - NOT EMERGENCY ADVICE - HUMAN REVIEW REQUIRED"

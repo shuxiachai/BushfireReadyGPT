@@ -1,13 +1,9 @@
 import csv
 import json
 from datetime import datetime
-from pathlib import Path
 
-
-COMMUNITY_PROCESSED_PATH = Path("data_australia/processed/community_profiles.csv")
-COMMUNITY_SAMPLE_PATH = Path("data_australia/community_profile_sample.csv")
-ABS_RAW_PATH = Path("data_australia/raw/abs_population_people_sa2_all.json")
-ASGS_METADATA_PATH = Path("data_australia/processed/asgs_allocations/metadata.json")
+from src.data_artifacts import get_data_artifact_status
+from src.data_paths import get_data_paths
 
 
 def _format_timestamp(path):
@@ -24,15 +20,17 @@ def _read_csv_rows(path):
         return list(csv.DictReader(file))
 
 
-def get_community_data_status():
-    active_path = COMMUNITY_PROCESSED_PATH if COMMUNITY_PROCESSED_PATH.exists() else COMMUNITY_SAMPLE_PATH
+def get_community_data_status(data_paths=None):
+    paths = data_paths or get_data_paths()
+    artifact_status = get_data_artifact_status(paths)
+    active_path = paths.community_profile if paths.community_profile.exists() else paths.community_sample
     rows = _read_csv_rows(active_path)
     raw_metadata = {}
     asgs_metadata = {}
 
-    if ABS_RAW_PATH.exists():
+    if paths.abs_raw.exists():
         try:
-            raw_payload = json.loads(ABS_RAW_PATH.read_text(encoding="utf-8"))
+            raw_payload = json.loads(paths.abs_raw.read_text(encoding="utf-8"))
             raw_metadata = {
                 "downloaded_at_utc": raw_payload.get("_downloaded_at_utc", "Not recorded"),
                 "source_query_url": raw_payload.get("_source_query_url", ""),
@@ -40,17 +38,18 @@ def get_community_data_status():
         except json.JSONDecodeError:
             raw_metadata = {"downloaded_at_utc": "Raw file could not be parsed", "source_query_url": ""}
 
-    if ASGS_METADATA_PATH.exists():
+    if paths.asgs_metadata.exists():
         try:
-            asgs_metadata = json.loads(ASGS_METADATA_PATH.read_text(encoding="utf-8"))
+            asgs_metadata = json.loads(paths.asgs_metadata.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             asgs_metadata = {"generated_at_utc": "Metadata file could not be parsed", "sources": {}}
 
     asgs_sources = asgs_metadata.get("sources", {})
 
     return {
+        **artifact_status,
         "active_path": str(active_path),
-        "active_type": "ABS processed data" if active_path == COMMUNITY_PROCESSED_PATH else "Sample fallback data",
+        "active_type": ("ABS processed data" if active_path == paths.community_profile else "Sample fallback data"),
         "active_exists": active_path.exists(),
         "row_count": len(rows),
         "locations": [row.get("location", "") for row in rows if row.get("location")],
@@ -64,19 +63,18 @@ def get_community_data_status():
             for row in rows
         ],
         "updated_at": _format_timestamp(active_path),
-        "raw_path": str(ABS_RAW_PATH),
-        "raw_exists": ABS_RAW_PATH.exists(),
-        "raw_updated_at": _format_timestamp(ABS_RAW_PATH),
+        "raw_path": str(paths.abs_raw),
+        "raw_exists": paths.abs_raw.exists(),
+        "raw_updated_at": _format_timestamp(paths.abs_raw),
         "downloaded_at_utc": raw_metadata.get("downloaded_at_utc", "Not available"),
         "source_query_url": raw_metadata.get("source_query_url", ""),
-        "asgs_metadata_path": str(ASGS_METADATA_PATH),
-        "asgs_exists": ASGS_METADATA_PATH.exists(),
-        "asgs_updated_at": _format_timestamp(ASGS_METADATA_PATH),
+        "asgs_metadata_path": str(paths.asgs_metadata),
+        "asgs_exists": paths.asgs_metadata.exists(),
+        "asgs_updated_at": _format_timestamp(paths.asgs_metadata),
         "asgs_generated_at_utc": asgs_metadata.get("generated_at_utc", "Not available"),
-        "asgs_row_counts": {
-            key: value.get("row_count", 0) for key, value in asgs_sources.items()
-        },
+        "asgs_row_counts": {key: value.get("row_count", 0) for key, value in asgs_sources.items()},
         "limitations": [
+            "The all-Australia SA2/SA3/SA4 map is an optional local capability and is not required for the bundled core demo.",
             "Current processed rows are keyword-matched SA2 subsets, not complete Local Government Area profiles.",
             "The current ABS population-and-people layer does not include no-car household percentage, so transport vulnerability must be verified separately.",
             "ASGS allocation and correspondence files improve official geography traceability, but they are not live emergency data.",

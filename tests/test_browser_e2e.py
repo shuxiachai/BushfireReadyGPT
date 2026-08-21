@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import shutil
@@ -14,34 +15,61 @@ from zipfile import ZipFile
 
 import pytest
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
 ARTIFACT_DIR = PROJECT_ROOT / "output" / "playwright"
 RUNTIME_DIR = PROJECT_ROOT / "chat_history" / "e2e_runtime"
 
-MOCK_REPORT = """# Cairns Council Bushfire Preparedness Draft
+MOCK_REPORT = (
+    "# Cairns Council Bushfire Preparedness Draft\n\n"
+    + "\n\n".join(
+        f"## {heading}\n"
+        f"The {heading} section requires the responsible organisation to review local arrangements, evidence, "
+        "accessibility, communications, training, accountability and documented preparedness actions with "
+        "authorised partners before formal use. This planning content records assumptions and requires "
+        "verification against current official sources."
+        + (
+            " Day 1 assigns the preparedness coordinator to verify contacts and action owners."
+            if heading == "Action Plan"
+            else ""
+        )
+        for heading in [
+            "Executive Summary",
+            "Purpose and Scope",
+            "Selected Geography and Key Assumptions",
+            "Data Sources and Limitations",
+            "Local Risk Context",
+            "Preparedness Priorities",
+            "Evacuation Planning",
+            "Candidate Assembly Point Criteria",
+            "Roles and Responsibilities",
+            "Communication and Inclusion Needs",
+            "First Aid, Training and Exercises",
+            "Action Plan",
+            "Human Review and Approval Checklist",
+            "Safety Disclaimer",
+        ]
+    )
+    + """
 
-## Executive Summary
-This draft supports council community preparedness planning and requires human review.
+## Operational Planning Detail
 
-## Location and Assumptions
-The planning area is Cairns, Queensland. Local arrangements must be verified by the responsible organisation.
+Day 1 assigns the preparedness coordinator to confirm contacts with Queensland emergency services, the local
+council and the Bureau of Meteorology. Call 000 for life-threatening emergencies. Wardens document accessible
+routes, mobility assistance, transport contingencies, family reunification, interpreter support, backup
+communications, first-aid supplies, training attendance, exercise observations and corrective actions. Leaders
+compare seasonal hazards, building exposure, vegetation, smoke impacts, road constraints, power loss, water
+availability and community capacity. Owners record deadlines, dependencies, evidence, escalation triggers,
+alternate arrangements and consultation outcomes. Current live warnings and any evacuation order must be checked
+with official authorities; this draft never replaces operational direction or professional site assessment.
 
-## Evacuation and Candidate Assembly Points
-Confirm evacuation arrangements and candidate assembly points with council partners and official emergency services.
+## Readiness Checklist
 
-## Roles, Communication and First Aid Training
-Assign responsible officers, maintain contact lists and schedule first aid training with local partners.
-
-## This-Month Action Plan
-- [ ] Confirm official information sources.
-- [ ] Review evacuation arrangements.
-- [ ] Record the responsible reviewer.
-
-## Safety Boundary
-This report is not live emergency advice. Follow official emergency services and call 000 if life is at risk.
+- [ ] Validate contact directories and notification channels.
+- [ ] Inspect evacuation routes and accessible alternatives.
+- [ ] Schedule a documented exercise with authorised partners.
 """
+)
 
 
 class MockModelHandler(BaseHTTPRequestHandler):
@@ -145,10 +173,10 @@ def _stop_process(process):
 def _write_map_fixture():
     profile_path = RUNTIME_DIR / "sa2_profiles_all.csv"
     profile_path.write_text(
-        "state_name,sa4_name,sa3_name,sa2_name,population,older_people_count,"
+        "sa2_code,state_name,sa4_name,sa3_name,sa2_name,population,older_people_count,"
         "language_other_than_english_count,language_support_needed\n"
-        "Queensland,Cairns,Cairns - North,Cairns City,171000,25650,34200,high\n"
-        "Queensland,Brisbane - East,Brisbane East,Bayside,205000,28700,41000,high\n",
+        "306041173,Queensland,Cairns,Cairns - North,Cairns City,171000,25650,34200,high\n"
+        "305031136,Queensland,Brisbane - East,Brisbane East,Bayside,205000,28700,41000,high\n",
         encoding="utf-8",
     )
     boundary_path = RUNTIME_DIR / "sa2_boundaries_all.geojson"
@@ -156,6 +184,7 @@ def _write_map_fixture():
         {
             "type": "Feature",
             "properties": {
+                "sa2_code_2021": "306041173",
                 "state_name_2021": "Queensland",
                 "sa4_name_2021": "Cairns",
                 "sa3_name_2021": "Cairns - North",
@@ -181,6 +210,7 @@ def _write_map_fixture():
         {
             "type": "Feature",
             "properties": {
+                "sa2_code_2021": "305031136",
                 "state_name_2021": "Queensland",
                 "sa4_name_2021": "Brisbane - East",
                 "sa3_name_2021": "Brisbane East",
@@ -206,6 +236,27 @@ def _write_map_fixture():
     ]
     boundary_path.write_text(
         json.dumps({"type": "FeatureCollection", "features": features}),
+        encoding="utf-8",
+    )
+    (RUNTIME_DIR / "sa2_map_bundle.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "profile_rows": 2,
+                "boundary_features": 2,
+                "shared_sa2_codes": 2,
+                "artifacts": {
+                    "profile": {
+                        "size_bytes": profile_path.stat().st_size,
+                        "sha256": hashlib.sha256(profile_path.read_bytes()).hexdigest(),
+                    },
+                    "boundary": {
+                        "size_bytes": boundary_path.stat().st_size,
+                        "sha256": hashlib.sha256(boundary_path.read_bytes()).hexdigest(),
+                    },
+                },
+            }
+        ),
         encoding="utf-8",
     )
     return profile_path, boundary_path
@@ -304,9 +355,9 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 )
 
                 page.get_by_role("button", name="Generate report", exact=True).click()
-                expect(
-                    page.get_by_role("heading", name="Latest Report Preview", exact=True)
-                ).to_be_visible(timeout=60_000)
+                expect(page.get_by_role("heading", name="Latest Report Preview", exact=True)).to_be_visible(
+                    timeout=60_000
+                )
                 expect(
                     page.get_by_role("heading", name="Cairns Council Bushfire Preparedness Draft", exact=True).first
                 ).to_be_visible()
@@ -337,7 +388,12 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 page.get_by_role("button", name="Update sign-off record", exact=True).click()
 
                 expect(page.get_by_text("Sign-off section updated in the latest report.", exact=True)).to_be_visible()
-                expect(page.get_by_text("Latest audit JSON updated.", exact=True)).to_be_visible()
+                expect(
+                    page.get_by_text(
+                        "A new append-only audit event was created and linked to the prior event.",
+                        exact=True,
+                    )
+                ).to_be_visible()
 
                 with page.expect_download(timeout=30_000) as package_download_info:
                     page.get_by_role("button", name="Download pilot export package", exact=True).click()
@@ -345,13 +401,21 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 with ZipFile(package_download.path()) as package:
                     names = set(package.namelist())
                     audit_payload = json.loads(package.read("governance/audit_record.json"))
+                    package_manifest = json.loads(package.read("governance/package_manifest.json"))
                 assert "governance/package_manifest.json" in names
                 assert "governance/audit_record.json" in names
+                assert len([name for name in names if name.startswith("governance/audit_chain/")]) == 2
                 assert any(name.endswith(".md") for name in names)
-                assert {
-                    row["code"]
-                    for row in audit_payload["analysis"]["evidence_confidence"]
-                } == {"O1", "P2", "R3", "A4", "U0"}
+                assert audit_payload["event_type"] == "review.recorded"
+                assert package_manifest["privacy"]["classification"] == "sensitive-governance-export"
+                assert len(package_manifest["audit_chain"]) == 2
+                assert {row["code"] for row in audit_payload["analysis"]["evidence_confidence"]} == {
+                    "O1",
+                    "P2",
+                    "R3",
+                    "A4",
+                    "U0",
+                }
                 assert MockModelHandler.request_count == 1
 
                 page.get_by_role("tab", name="Data & Map", exact=True).click()
@@ -375,9 +439,7 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 ).to_be_visible(timeout=30_000)
 
                 data_map_panel = page.get_by_label("Data & Map")
-                expect(
-                    data_map_panel.get_by_text("Mock Queensland Official Source", exact=True)
-                ).to_be_visible()
+                expect(data_map_panel.get_by_text("Mock Queensland Official Source", exact=True)).to_be_visible()
                 page.get_by_role("button", name="Check official source status", exact=True).click()
                 reachable_card = page.locator(".status-card").filter(has_text="Reachable")
                 expect(reachable_card).to_contain_text("1", timeout=30_000)

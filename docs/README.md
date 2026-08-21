@@ -34,11 +34,13 @@ If you only have a few minutes, read these in order:
 | File | Purpose |
 | --- | --- |
 | `architecture.md` | Technical architecture, agent responsibilities and data flow. |
+| `rag.md` | Local official-knowledge RAG build, evaluation, integrity and trust boundary. |
 | `project_reassessment.md` | Current project status, gaps and recommended next build order. |
 | `commercial_gap_assessment.md` | Commercial and government-readiness gap assessment. |
 | `commercial_readiness_checklist.md` | Checklist of what is done and what remains before commercial positioning. |
 | `licence_register.md` | Explanation of licence assumptions tracked in `data_australia/licence_register.yml`. |
 | `releases/v0.1.0.md` | Scope, highlights, validation and limitations for the first public MVP release. |
+| `releases/v0.2.0.md` | RAG, local setup, safety hardening and validation notes for the portfolio release. |
 
 ## Removed Redundant Docs
 
@@ -69,4 +71,5 @@ For GitHub reviewers:
 1. Start from the root `README.md`.
 2. Open the sample output in `examples/`.
 3. Read `architecture.md` only if they want implementation details.
-4. Read `commercial_gap_assessment.md` to understand current limits.
+4. Read `rag.md` for the retrieval design and evaluation story.
+5. Read `commercial_gap_assessment.md` to understand current limits.

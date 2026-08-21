@@ -1,10 +1,11 @@
-from html import escape
 import os
+from html import escape
 
 import streamlit as st
 
-from src.export_package import create_pilot_export_package
+from src.audit import AuditIntegrityError, capture_current_audit_chain
 from src.evidence_confidence import build_evidence_confidence_rows
+from src.export_package import create_pilot_export_package
 from src.ui.components import render_path_line, safe_display_text
 
 
@@ -13,149 +14,207 @@ def render_agent_analysis_summary(get_active_map_selection_label):
     if not analysis:
         return
 
-    profile = analysis.get("profile", {})
-    data_result = analysis.get("data", {})
-    community_result = analysis.get("community", {})
-    risk_context = analysis.get("risk_context", {})
-    plan_result = analysis.get("plan", {})
-
     with st.expander("Evidence Trail", expanded=False):
-        overview_cols = st.columns(4)
-        community_indicators = community_result.get("indicators", {})
-        data_source_note = safe_display_text(community_result.get("data_source_note"), "")
-        overview_items = [
-            ("Matched area", safe_display_text(community_result.get("matched_location"), "Not matched")),
-            ("Population", safe_display_text(community_indicators.get("population"))),
-            ("Matched SA2 count", safe_display_text(community_indicators.get("matched_sa2_count"))),
-            ("Data source", "ABS processed" if "processed" in data_source_note else "sample/other"),
-        ]
-        for col, (label, value) in zip(overview_cols, overview_items):
-            col.markdown(
-                f"""
-                <div class="status-card">
-                    <div class="status-label">{escape(safe_display_text(label))}</div>
-                    <div class="status-value">{escape(safe_display_text(value))}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        map_selection_label = get_active_map_selection_label()
-        if map_selection_label:
-            st.caption(f"Map selection used for this report: {map_selection_label}")
-
-        st.markdown("#### Evidence Confidence and Provenance")
-        st.caption(
-            "These codes classify provenance and review needs. They are not live incident severity "
-            "or fire danger ratings."
-        )
-        confidence_rows = analysis.get("evidence_confidence") or build_evidence_confidence_rows(analysis)
-        st.dataframe(
-            [
-                {
-                    "code": row.get("code", ""),
-                    "evidence_class": row.get("evidence_class", ""),
-                    "current_use": row.get("current_use", ""),
-                    "confidence_boundary": row.get("confidence_boundary", ""),
-                    "required_review": row.get("required_review", ""),
-                }
-                for row in confidence_rows
-            ],
-            width="stretch",
-            hide_index=True,
+        _render_evidence_overview(analysis.get("community", {}), get_active_map_selection_label)
+        _render_confidence_provenance(analysis)
+        _render_profile_and_sources(analysis.get("profile", {}), analysis.get("data", {}))
+        _render_retrieved_knowledge(analysis.get("knowledge", {}))
+        _render_community_evidence(analysis.get("community", {}))
+        _render_geography_reference(analysis.get("community", {}).get("geography_reference", {}))
+        _render_planning_evidence(
+            analysis.get("data", {}),
+            analysis.get("community", {}),
+            analysis.get("knowledge", {}),
+            analysis.get("risk_context", {}),
+            analysis.get("plan", {}),
         )
 
-        st.markdown("#### User Inputs / Location Profile")
-        st.markdown(
+
+def _render_evidence_overview(community_result, get_active_map_selection_label):
+    community_indicators = community_result.get("indicators", {})
+    data_source_note = safe_display_text(community_result.get("data_source_note"), "")
+    overview_items = [
+        ("Matched area", safe_display_text(community_result.get("matched_location"), "Not matched")),
+        ("Population", safe_display_text(community_indicators.get("population"))),
+        ("Matched SA2 count", safe_display_text(community_indicators.get("matched_sa2_count"))),
+        ("Data source", "ABS processed" if "processed" in data_source_note else "sample/other"),
+    ]
+    for col, (label, value) in zip(st.columns(4), overview_items):
+        col.markdown(
             f"""
-            - **Location:** {profile.get("location", "Not identified")}
-            - **State / territory inference:** {profile.get("state", "Not identified")}
-            - **Scenario type:** {profile.get("setting_type", "Not identified")}
-            - **Audience:** {profile.get("audience", "Not provided")}
-            - **Timeframe:** {profile.get("timeframe", "Not provided")}
-            """
+            <div class="status-card">
+                <div class="status-label">{escape(safe_display_text(label))}</div>
+                <div class="status-value">{escape(safe_display_text(value))}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+    map_selection_label = get_active_map_selection_label()
+    if map_selection_label:
+        st.caption(f"Map selection used for this report: {map_selection_label}")
 
-        st.markdown("#### Official Source Selection")
-        for source in data_result.get("sources", []):
-            st.markdown(f"- **{source.get('name')}**: {source.get('purpose')}")
-        if not data_result.get("sources"):
-            st.markdown("- No specific official sources were matched.")
 
-        st.markdown("#### Community Data Evidence")
-        matched_location = community_result.get("matched_location")
-        if matched_location:
-            indicators = community_result.get("indicators", {})
-            st.markdown(f"- **Matched community:** {matched_location}")
-            st.markdown(f"- **Population:** {indicators.get('population')}")
-            st.markdown(f"- **Older people percentage:** {indicators.get('older_people_pct')}%")
-            st.markdown(f"- **No-car household percentage:** {indicators.get('no_car_households_pct')}%")
-            st.markdown(f"- **Language support need:** {indicators.get('language_support_needed')}")
-            if indicators.get("language_other_than_english_pct"):
-                st.markdown(f"- **Language other than English at home:** {indicators.get('language_other_than_english_pct')}%")
-            if indicators.get("geography_type"):
-                st.markdown(f"- **Geography mapping type:** {indicators.get('geography_type')}")
-            if indicators.get("matched_sa2_count"):
-                st.markdown(f"- **Matched SA2 count:** {indicators.get('matched_sa2_count')}")
-        else:
-            st.markdown("- No local community profile data was matched.")
-        for note in community_result.get("vulnerability_notes", []):
-            st.markdown(f"- {note}")
+def _render_confidence_provenance(analysis):
+    st.markdown("#### Evidence Confidence and Provenance")
+    st.caption(
+        "These codes classify provenance and review needs. They are not live incident severity or fire danger ratings."
+    )
+    confidence_rows = analysis.get("evidence_confidence") or build_evidence_confidence_rows(analysis)
+    st.dataframe(
+        [
+            {
+                "code": row.get("code", ""),
+                "evidence_class": row.get("evidence_class", ""),
+                "current_use": row.get("current_use", ""),
+                "confidence_boundary": row.get("confidence_boundary", ""),
+                "required_review": row.get("required_review", ""),
+            }
+            for row in confidence_rows
+        ],
+        width="stretch",
+        hide_index=True,
+    )
 
-        geography_reference = community_result.get("geography_reference", {})
-        if geography_reference:
-            st.markdown("#### ABS ASGS Geography Reference")
-            selected_area = geography_reference.get("selected_asgs_area")
-            if selected_area:
-                st.markdown(
-                    f"""
-                    - **Selected ASGS area:** {selected_area.get("selected_level")} {selected_area.get("selected_area")}
-                    - **State / territory:** {selected_area.get("state_name")}
-                    - **SA2 rows in selected area:** {selected_area.get("sa2_count")}
-                    - **SA3 reference:** {selected_area.get("sa3_names")}
-                    - **SA4 reference:** {selected_area.get("sa4_names")}
-                    - **GCCSA reference:** {selected_area.get("gccsa_names")}
-                    - **Albers area:** {selected_area.get("area_albers_sqkm")} sq km
-                    - **Source file:** {selected_area.get("source_file")}
-                    """
-                )
-            lga_candidates = geography_reference.get("lga_candidates", [])
-            if lga_candidates:
-                st.markdown("**LGA 2025 candidate reference areas**")
-                st.table(
-                    [
-                        {
-                            "lga_code_2025": item.get("lga_code_2025", ""),
-                            "lga_name_2025": item.get("lga_name_2025", ""),
-                            "state": item.get("state_name_2021", ""),
-                            "mesh_blocks": item.get("mesh_block_count", ""),
-                            "area_sqkm": item.get("area_albers_sqkm", ""),
-                        }
-                        for item in lga_candidates
-                    ]
-                )
-            if geography_reference.get("source_note"):
-                st.markdown(f"- {geography_reference['source_note']}")
-            for limitation in geography_reference.get("limitations", []):
-                st.markdown(f"- {limitation}")
 
-        st.markdown("#### Risk Factors")
-        matched_rule_ids = risk_context.get("matched_rule_ids", [])
-        st.markdown(f"- **Matched rules:** {', '.join(matched_rule_ids) if matched_rule_ids else 'No local rules matched'}")
-        for point in risk_context.get("risk_points", []):
-            st.markdown(f"- {point}")
+def _render_profile_and_sources(profile, data_result):
+    st.markdown("#### User Inputs / Location Profile")
+    st.markdown(
+        f"""
+        - **Location:** {profile.get("location", "Not identified")}
+        - **State / territory inference:** {profile.get("state", "Not identified")}
+        - **Scenario type:** {profile.get("setting_type", "Not identified")}
+        - **Audience:** {profile.get("audience", "Not provided")}
+        - **Timeframe:** {profile.get("timeframe", "Not provided")}
+        """
+    )
+    st.markdown("#### Official Source Selection")
+    sources = data_result.get("sources", [])
+    for source in sources:
+        st.markdown(f"- **{source.get('name')}**: {source.get('purpose')}")
+    if not sources:
+        st.markdown("- No specific official sources were matched.")
 
-        st.markdown("#### Planning Priorities")
-        for priority in plan_result.get("planning_priorities", []):
-            st.markdown(f"- {priority}")
 
-        st.markdown("#### Data Limitations and Assumptions")
-        for limitation in data_result.get("data_limitations", []):
-            st.markdown(f"- {limitation}")
-        if community_result.get("data_source_note"):
-            st.markdown(f"- {community_result['data_source_note']}")
-        for assumption in risk_context.get("assumptions", []):
-            st.markdown(f"- {assumption}")
+def _render_retrieved_knowledge(knowledge_result):
+    st.markdown("#### Retrieved Official Knowledge (RAG)")
+    fields = [
+        ("Status", knowledge_result.get("status_label") or "Not configured"),
+        ("Embedding model", knowledge_result.get("embedding_model") or "Not available"),
+        ("Retrieval mode", knowledge_result.get("retrieval_mode") or "Not available"),
+        ("Index manifest", knowledge_result.get("index_manifest_sha256") or "Not available"),
+    ]
+    for label, value in fields:
+        st.markdown(f"- **{label}:** {value}")
+    retrieved_chunks = knowledge_result.get("retrieved_chunks", [])
+    if not retrieved_chunks:
+        st.markdown("- No verified RAG passage was supplied to the report model.")
+        return
+    st.caption("Similarity supports retrieval ranking only. Review the current official page before use.")
+    st.dataframe([_retrieved_chunk_row(chunk) for chunk in retrieved_chunks], width="stretch", hide_index=True)
+
+
+def _retrieved_chunk_row(chunk):
+    return {
+        "source": chunk.get("title", ""),
+        "agency": chunk.get("agency", ""),
+        "page": chunk.get("page") or "web",
+        "hybrid_score": chunk.get("score", ""),
+        "dense_score": chunk.get("dense_score", ""),
+        "dense_rank": chunk.get("dense_rank", ""),
+        "bm25_score": chunk.get("lexical_score", ""),
+        "bm25_rank": chunk.get("lexical_rank", ""),
+        "rerank_reasons": ", ".join(chunk.get("rerank_reasons", [])),
+        "document_date": chunk.get("document_date", ""),
+        "chunk_sha256": chunk.get("chunk_sha256", ""),
+        "url": chunk.get("url", ""),
+        "excerpt": str(chunk.get("text") or "")[:500],
+    }
+
+
+def _render_community_evidence(community_result):
+    st.markdown("#### Community Data Evidence")
+    matched_location = community_result.get("matched_location")
+    if not matched_location:
+        st.markdown("- No local community profile data was matched.")
+    else:
+        indicators = community_result.get("indicators", {})
+        rows = [
+            ("Matched community", matched_location),
+            ("Population", indicators.get("population")),
+            ("Older people percentage", f"{indicators.get('older_people_pct')}%"),
+            ("No-car household percentage", f"{indicators.get('no_car_households_pct')}%"),
+            ("Language support need", indicators.get("language_support_needed")),
+        ]
+        optional_rows = [
+            ("Language other than English at home", "language_other_than_english_pct", "%"),
+            ("Geography mapping type", "geography_type", ""),
+            ("Matched SA2 count", "matched_sa2_count", ""),
+        ]
+        rows.extend(
+            (label, f"{indicators[key]}{suffix}") for label, key, suffix in optional_rows if indicators.get(key)
+        )
+        for label, value in rows:
+            st.markdown(f"- **{label}:** {value}")
+    for note in community_result.get("vulnerability_notes", []):
+        st.markdown(f"- {note}")
+
+
+def _render_geography_reference(geography_reference):
+    if not geography_reference:
+        return
+    st.markdown("#### ABS ASGS Geography Reference")
+    selected_area = geography_reference.get("selected_asgs_area")
+    if selected_area:
+        labels = [
+            ("Selected ASGS area", f"{selected_area.get('selected_level')} {selected_area.get('selected_area')}"),
+            ("State / territory", selected_area.get("state_name")),
+            ("SA2 rows in selected area", selected_area.get("sa2_count")),
+            ("SA3 reference", selected_area.get("sa3_names")),
+            ("SA4 reference", selected_area.get("sa4_names")),
+            ("GCCSA reference", selected_area.get("gccsa_names")),
+            ("Albers area", f"{selected_area.get('area_albers_sqkm')} sq km"),
+            ("Source file", selected_area.get("source_file")),
+        ]
+        for label, value in labels:
+            st.markdown(f"- **{label}:** {value}")
+    lga_candidates = geography_reference.get("lga_candidates", [])
+    if lga_candidates:
+        st.markdown("**LGA 2025 candidate reference areas**")
+        st.table([_lga_candidate_row(item) for item in lga_candidates])
+    if geography_reference.get("source_note"):
+        st.markdown(f"- {geography_reference['source_note']}")
+    for limitation in geography_reference.get("limitations", []):
+        st.markdown(f"- {limitation}")
+
+
+def _lga_candidate_row(item):
+    return {
+        "lga_code_2025": item.get("lga_code_2025", ""),
+        "lga_name_2025": item.get("lga_name_2025", ""),
+        "state": item.get("state_name_2021", ""),
+        "mesh_blocks": item.get("mesh_block_count", ""),
+        "area_sqkm": item.get("area_albers_sqkm", ""),
+    }
+
+
+def _render_planning_evidence(data_result, community_result, knowledge_result, risk_context, plan_result):
+    st.markdown("#### Risk Factors")
+    matched_rule_ids = risk_context.get("matched_rule_ids", [])
+    matched_rules = ", ".join(matched_rule_ids) if matched_rule_ids else "No local rules matched"
+    st.markdown(f"- **Matched rules:** {matched_rules}")
+    for point in risk_context.get("risk_points", []):
+        st.markdown(f"- {point}")
+    st.markdown("#### Planning Priorities")
+    for priority in plan_result.get("planning_priorities", []):
+        st.markdown(f"- {priority}")
+    st.markdown("#### Data Limitations and Assumptions")
+    limitations = list(data_result.get("data_limitations", []))
+    if community_result.get("data_source_note"):
+        limitations.append(community_result["data_source_note"])
+    limitations.extend(risk_context.get("assumptions", []))
+    limitations.extend(knowledge_result.get("limitations", []))
+    for limitation in limitations:
+        st.markdown(f"- {limitation}")
 
 
 def render_report_quality_summary():
@@ -173,13 +232,18 @@ def render_report_quality_summary():
             f"**Warnings:** {summary.get('warnings', 0)}  "
             f"**Needs fix:** {summary.get('failed', 0)}"
         )
+        approval_gate = quality.get("approval_gate", {})
+        if approval_gate.get("passed") is True:
+            st.success("Structural approval gate passed. Human review is still required.")
+        else:
+            st.error("Approval is blocked until every structural failure is resolved.")
         for check in quality.get("checks", []):
             status = check.get("status")
             marker = "OK" if status == "pass" else "Warning" if status == "warning" else "Fix"
             st.markdown(f"{marker}: **{check.get('name')}**: {check.get('detail')}")
 
 
-def render_human_review_checklist(review_checklist):
+def render_human_review_checklist(review_checklist, verify_report_record_snapshot):
     st.markdown("### Human Review Checklist")
     st.markdown(
         """
@@ -187,44 +251,55 @@ def render_human_review_checklist(review_checklist):
             In a government or organisational pilot, AI output should be treated as a draft.
             This checklist helps reviewers confirm data, official sources, safety boundaries
             and approval status before any formal use.
+            Report creation and review write privacy-minimised audit events to local disk by default;
+            clearing the current session does not remove those retained audit files.
         </div>
         """,
         unsafe_allow_html=True,
     )
     with st.expander("View human review checklist", expanded=False):
-        st.markdown(f"**Current report status:** {st.session_state.get('report_status', 'Draft - human review required')}")
-        st.markdown(f"**Reviewer name:** {st.session_state.get('reviewer_name') or 'Not specified'}")
-        st.markdown(f"**Reviewer role:** {st.session_state.get('reviewer_role', 'Not specified')}")
-        st.markdown(f"**Review date:** {st.session_state.get('review_date', 'Not specified')}")
-        if st.session_state.get("latest_review_record"):
+        report_record = st.session_state.get("latest_report") or {}
+        recorded_review = report_record.get("review_record") or {}
+        st.markdown(
+            f"**Current report status:** "
+            f"{recorded_review.get('approval_status') or st.session_state.get('report_status', 'Draft - human review required')}"
+        )
+        st.markdown(f"**Reviewer name:** {recorded_review.get('reviewer_name') or 'Not specified'}")
+        st.markdown(f"**Reviewer role:** {recorded_review.get('reviewer_role') or 'Not specified'}")
+        st.markdown(f"**Review date:** {recorded_review.get('review_date') or 'Not specified'}")
+        if recorded_review:
             st.markdown("**Latest sign-off record**")
-            st.json(st.session_state.latest_review_record)
-        if st.session_state.get("latest_audit_path"):
-            render_path_line("Latest audit record", st.session_state.latest_audit_path)
-            try:
-                audit_bytes = open(st.session_state.latest_audit_path, "rb").read()
-                st.download_button(
-                    "Download audit JSON",
-                    data=audit_bytes,
-                    file_name=os.path.basename(st.session_state.latest_audit_path),
-                    mime="application/json",
-                    width="stretch",
+            st.json(recorded_review)
+        audit_path = report_record.get("audit_path")
+        if audit_path:
+            render_path_line("Latest audit record", audit_path)
+            if not verify_report_record_snapshot(report_record):
+                st.warning(
+                    "The current report does not match its authoritative audit snapshot; audit download is disabled."
                 )
-            except OSError:
-                st.warning("The latest audit file could not be found on disk.")
-        for index, item in enumerate(review_checklist):
-            st.checkbox(item, key=f"review_check_{index}")
+            else:
+                try:
+                    audit_bytes = capture_current_audit_chain(audit_path)[-1]["bytes"]
+                    st.download_button(
+                        "Download audit JSON",
+                        data=audit_bytes,
+                        file_name=os.path.basename(audit_path),
+                        mime="application/json",
+                        width="stretch",
+                        on_click="ignore",
+                    )
+                except (AuditIntegrityError, OSError, TypeError, ValueError):
+                    st.warning("The latest audit is missing, legacy, malformed or not the authoritative current head.")
+        for item in review_checklist:
+            st.checkbox(item["label"], key=f"review_check_{item['id']}")
 
 
-def _sync_approval_form_to_report_state():
-    st.session_state.reviewer_name = st.session_state.get("approval_reviewer_name", "")
-    st.session_state.reviewer_role = st.session_state.get("approval_reviewer_role", "")
-    st.session_state.organisation_name = st.session_state.get("approval_organisation_name", "")
-    st.session_state.report_status = st.session_state.get(
-        "approval_status", "Draft - human review required"
-    )
-    st.session_state.review_date = st.session_state.get("approval_review_date", "")
-    st.session_state.review_notes = st.session_state.get("approval_review_notes", "")
+def _apply_review_record_to_report_state(review_record):
+    # Reviewer/organisation drafting fields are Streamlit widgets rendered earlier
+    # in the same run. The version-scoped report record is authoritative for identity.
+    st.session_state.report_status = review_record.get("approval_status", "Draft - human review required")
+    st.session_state.review_date = review_record.get("review_date", "")
+    st.session_state.review_notes = review_record.get("review_notes", "")
 
 
 def render_reviewer_approval(
@@ -234,15 +309,6 @@ def render_reviewer_approval(
     validate_review_record,
     persist_session_state,
 ):
-    if st.session_state.get("organisation_name") and not st.session_state.get("approval_organisation_name"):
-        st.session_state.approval_organisation_name = st.session_state.organisation_name
-    if st.session_state.get("reviewer_name") and not st.session_state.get("approval_reviewer_name"):
-        st.session_state.approval_reviewer_name = st.session_state.reviewer_name
-    if st.session_state.get("reviewer_role") and not st.session_state.get("approval_reviewer_role"):
-        st.session_state.approval_reviewer_role = st.session_state.reviewer_role
-    if st.session_state.get("report_status") and not st.session_state.get("approval_status"):
-        st.session_state.approval_status = st.session_state.report_status
-
     st.markdown("### Reviewer Approval / Human Sign-off")
     st.markdown(
         """
@@ -252,6 +318,10 @@ def render_reviewer_approval(
         </div>
         """,
         unsafe_allow_html=True,
+    )
+    st.warning(
+        "This prototype does not authenticate reviewer identity or create a legally binding approval. "
+        "The status is a local pilot record only."
     )
     with st.form("reviewer_approval_form"):
         col1, col2 = st.columns(2)
@@ -275,32 +345,47 @@ def render_reviewer_approval(
         submitted = st.form_submit_button(
             "Update sign-off record",
             width="stretch",
-            on_click=_sync_approval_form_to_report_state,
         )
 
     if submitted:
-        review_record = collect_review_record()
-        validation_error = validate_review_record(review_record)
+        review_record = collect_review_record(from_approval_form=True)
+        validation_error = validate_review_record(
+            review_record,
+            st.session_state.get("latest_quality") or {},
+            st.session_state.get("latest_report"),
+        )
         if validation_error:
-            latest_report = st.session_state.get("latest_report") or {}
-            previous_review = latest_report.get("review_record") or {}
-            st.session_state.report_status = previous_review.get(
-                "approval_status", "Draft - human review required"
-            )
             st.warning(validation_error)
             return
+        latest_report = st.session_state.get("latest_report") or {}
+        if latest_report:
+            audit_updated = update_latest_audit_review(review_record)
+            if not audit_updated:
+                st.error(
+                    "The review was not recorded because a new verified audit event could not be created. "
+                    "No approval state was committed."
+                )
+                return
+            report_updated = True
+        else:
+            audit_updated = False
+            report_updated = update_latest_report_signoff(review_record)
+        _apply_review_record_to_report_state(review_record)
         st.session_state.latest_review_record = review_record
-        report_updated = update_latest_report_signoff(review_record)
-        audit_updated = update_latest_audit_review(review_record)
-        persist_session_state()
+        persistence_succeeded = persist_session_state()
+        if persistence_succeeded is False:
+            st.warning(
+                "The review and audit are available in this browser session, but the optional "
+                "session file was not updated. Download the pilot package before closing the app."
+            )
         if report_updated:
             st.success("Sign-off section updated in the latest report.")
         else:
             st.info("Sign-off record saved. Generate a report to attach it to report exports.")
         if audit_updated:
-            st.success("Latest audit JSON updated.")
+            st.success("A new append-only audit event was created and linked to the prior event.")
         elif st.session_state.get("latest_audit_path"):
-            st.warning("The latest audit JSON could not be updated.")
+            st.warning("No new audit event was created.")
 
 
 def render_pilot_export_package(get_latest_assistant_text, collect_review_record, get_package_context):
@@ -311,6 +396,8 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
         <div class="source-note">
             Download one review package containing the latest report, PDF, DOCX, audit record,
             data register, reviewer sign-off and package manifest for stakeholder handover.
+            It contains the full report and may contain reviewer identity and notes; store and
+            share it only with authorised recipients.
         </div>
         """,
         unsafe_allow_html=True,
@@ -319,11 +406,14 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
         st.info("Generate a report first, then the pilot export package will become available.")
         return
     try:
+        report_record = st.session_state.get("latest_report") or {}
         package = create_pilot_export_package(
             latest_report,
-            audit_path=st.session_state.get("latest_audit_path"),
-            review_record=st.session_state.get("latest_review_record") or collect_review_record(),
+            audit_path=report_record.get("audit_path"),
+            review_record=report_record.get("review_record") or {},
             package_context=get_package_context(),
+            parent_audit_path=report_record.get("parent_audit_path"),
+            register_snapshot=report_record.get("export_register_snapshot"),
         )
         st.download_button(
             "Download pilot export package",
@@ -331,6 +421,7 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
             file_name=package["filename"],
             mime="application/zip",
             width="stretch",
+            on_click="ignore",
         )
         with st.expander("View package manifest", expanded=False):
             st.json(package["manifest"])

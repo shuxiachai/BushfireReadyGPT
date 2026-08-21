@@ -1,8 +1,20 @@
+from src.rag.service import format_retrieved_context
+
+
 class ReportAgent:
     """Formats deterministic multi-agent findings for the LLM report prompt."""
 
-    def run(self, profile, data_result, risk_context, plan_result, community_result=None):
+    def run(
+        self,
+        profile,
+        data_result,
+        risk_context,
+        plan_result,
+        community_result=None,
+        knowledge_result=None,
+    ):
         community_result = community_result or {}
+        knowledge_result = knowledge_result or {}
         community_lines = self._format_community_result(community_result)
         lines = [
             "Local multi-agent analysis summary:",
@@ -25,6 +37,16 @@ class ReportAgent:
                 f"- {source['name']}: {source['purpose']} ({source['url']})"
                 for source in data_result.get("sources", [])
             ],
+            "",
+            "Official Knowledge RAG:",
+            f"- Retrieval status: {knowledge_result.get('status_label') or 'Not configured'}",
+            f"- Index manifest SHA-256: {knowledge_result.get('index_manifest_sha256') or 'Not available'}",
+            f"- Embedding model: {knowledge_result.get('embedding_model') or 'Not available'}",
+            f"- Retrieval mode: {knowledge_result.get('retrieval_mode') or 'Not available'}",
+            f"- Dense/BM25 weights: {knowledge_result.get('dense_weight', 'N/A')} / "
+            f"{knowledge_result.get('lexical_weight', 'N/A')}",
+            f"- Retrieved passage count: {len(knowledge_result.get('retrieved_chunks', []))}",
+            format_retrieved_context(knowledge_result),
             "",
             "Planner Agent:",
             *[f"- {item}" for item in plan_result.get("planning_priorities", [])],

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "thresholds": {
+    "structural_gate_rate": 1.0,
+    "evidence_binding_rate": 1.0,
+    "rag_title_attribution_rate": 0.66,
+    "unsafe_live_claim_rate": 0.0
+  },
+  "scenarios": [
+    {
+      "id": "qld_school_cairns",
+      "location": "Cairns, Queensland",
+      "audience": "school leaders, teachers and students",
+      "scenario": "School bushfire preparedness",
+      "concerns": ["evacuation", "assembly points", "communications", "first aid"],
+      "timeframe": "7-day action plan",
+      "extra_context": "Interview benchmark scenario; all operational decisions remain subject to school and emergency-service review."
+    },
+    {
+      "id": "vic_aged_care",
+      "location": "Ballarat, Victoria",
+      "audience": "aged-care managers, staff, residents and carers",
+      "scenario": "Aged-care facility preparedness",
+      "concerns": ["assisted evacuation", "medication continuity", "communications", "backup power"],
+      "timeframe": "30-day readiness plan",
+      "extra_context": "Include mobility, communication and continuity considerations without inventing live conditions."
+    },
+    {
+      "id": "nt_remote_community",
+      "location": "Katherine, Northern Territory",
+      "audience": "community leaders, households and service providers",
+      "scenario": "Remote community bushfire preparedness",
+      "concerns": ["warning channels", "road disruption", "emergency kits", "vulnerable residents"],
+      "timeframe": "14-day readiness plan",
+      "extra_context": "Treat local routes, shelters and current warnings as unverified until confirmed by responsible authorities."
+    }
+  ]
+}

@@ -1,16 +1,17 @@
-from src.config import client, model, IS_LOCAL_LLM
-import yaml
-import time
-import streamlit as st
 from types import SimpleNamespace
 from uuid import uuid4
+
+import streamlit as st
+import yaml
+
+from src.config import IS_LOCAL_LLM, client, model
 
 TEXT_CURSOR = "..."
 
 
 def load_config(path):
     with open(path, "r", encoding="utf-8") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
+        config = yaml.safe_load(f)
     return config
 
 
@@ -111,27 +112,38 @@ def stream_static_text(text):
     st.write_stream(create_text_stream(text))
 
 
-def get_conversation_summary(messages, summary_instructions="**Please summarize the previous conversation in a few sentences.**", max_tokens=512):
+def get_conversation_summary(
+    messages, summary_instructions="**Please summarize the previous conversation in a few sentences.**", max_tokens=512
+):
     messages += [{"role": "system", "content": summary_instructions}]
     return get_llm_response(messages, max_tokens=max_tokens)
 
 
-def retry_on_generation_error(messages, response, possible_actions, exact_match=False):
+def retry_on_generation_error(messages, response, possible_actions, exact_match=False, max_attempts=3):
+    if max_attempts < 1:
+        raise ValueError("max_attempts must be at least 1")
+    attempts = 1
     if exact_match:
-        while response not in possible_actions:
+        while response not in possible_actions and attempts < max_attempts:
             response = get_llm_response(messages, temperature=1)
+            attempts += 1
     else:
-        while not any(action in response for action in possible_actions):
+        while not any(action in response for action in possible_actions) and attempts < max_attempts:
             response = get_llm_response(messages, temperature=1)
+            attempts += 1
     return response
 
 
-def get_llm_response_with_retries(messages, possible_actions, top_p=0.95, max_tokens=256, temperature=0.7, exact_match=False):
+def get_llm_response_with_retries(
+    messages, possible_actions, top_p=0.95, max_tokens=256, temperature=0.7, exact_match=False
+):
     response = get_llm_response(messages, top_p=top_p, max_tokens=max_tokens, temperature=temperature)
     return retry_on_generation_error(messages, response, possible_actions, exact_match=exact_match)
 
 
-def get_openai_response_with_retries(messages, possible_actions, top_p=0.95, max_tokens=256, temperature=0.7, exact_match=False):
+def get_openai_response_with_retries(
+    messages, possible_actions, top_p=0.95, max_tokens=256, temperature=0.7, exact_match=False
+):
     return get_llm_response_with_retries(
         messages,
         possible_actions,

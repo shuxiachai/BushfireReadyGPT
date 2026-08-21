@@ -14,8 +14,16 @@ service, data provider or upstream maintainer endorses this derivative project.
 
 The exact upstream commit used for the original local download was not recorded.
 That provenance gap is disclosed here rather than assigning an unverified commit.
-Before commercial redistribution, compare the retained legacy-derived files with
-the upstream repository and record the confirmed upstream revision.
+The acquisition method and date are also unknown. The oldest commit retained in
+this derivative repository is
+`8c3c895d2cf4c7bfc4cb9207c005408fbed5138b` ("Create BushfireReadyGPT MVP
+baseline"); it is a derivative baseline and is **not** an upstream revision.
+
+The machine-readable companion record is `upstream-provenance.json`. Its
+`upstream_revision` must remain `null` until an original archive, download record,
+or reproducible file-history comparison establishes the source revision. Do not
+substitute the upstream repository's current HEAD. Before commercial
+redistribution, complete that verification and update both records together.
 
 ## Major Modifications
 

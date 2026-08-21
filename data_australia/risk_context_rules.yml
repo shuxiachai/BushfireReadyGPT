@@ -3,6 +3,7 @@ rules:
 
   - id: queensland_general
     match:
+      states: [Queensland]
       location_keywords: [queensland, qld]
     risk_points:
       - Queensland bushfire planning should account for official warning systems, changing fire weather, and local disaster coordination.
@@ -14,6 +15,7 @@ rules:
 
   - id: new_south_wales_general
     match:
+      states: [New South Wales]
       location_keywords: [new south wales, nsw, sydney, newcastle, wollongong, blue mountains]
     risk_points:
       - NSW bushfire risk is managed by NSW Rural Fire Service (RFS). Check rfs.nsw.gov.au for current warnings, fire bans and Fires Near Me app alerts.
@@ -26,6 +28,7 @@ rules:
 
   - id: victoria_general
     match:
+      states: [Victoria]
       location_keywords: [victoria, vic, melbourne, geelong, ballarat, bendigo, dandenong]
     risk_points:
       - Victoria bushfire risk is managed by Fire Rescue Victoria (FRV) and Country Fire Authority (CFA). Check emergency.vic.gov.au for current alerts.
@@ -38,6 +41,7 @@ rules:
 
   - id: western_australia_general
     match:
+      states: [Western Australia]
       location_keywords: [western australia, wa, perth, albany, bunbury, kalgoorlie]
     risk_points:
       - WA bushfire risk is managed by DFES (Department of Fire and Emergency Services). Check emergency.wa.gov.au for current warnings.
@@ -50,6 +54,7 @@ rules:
 
   - id: south_australia_general
     match:
+      states: [South Australia]
       location_keywords: [south australia, sa, adelaide, mount gambier, port augusta]
     risk_points:
       - SA bushfire risk is managed by South Australia Country Fire Service (CFS) and Metropolitan Fire Service (MFS). Check alert.sa.gov.au for current warnings.
@@ -62,6 +67,7 @@ rules:
 
   - id: tasmania_general
     match:
+      states: [Tasmania]
       location_keywords: [tasmania, tas, hobart, launceston, devonport]
     risk_points:
       - Tasmania bushfire risk is managed by Tasmania Fire Service (TFS). Check alert.tas.gov.au for current warnings.
@@ -74,6 +80,7 @@ rules:
 
   - id: northern_territory_general
     match:
+      states: [Northern Territory]
       location_keywords: [northern territory, nt, darwin, alice springs, katherine]
     risk_points:
       - NT fire management is shared between NT Fire and Rescue Service (urban) and NT Parks and Wildlife Commission (savanna). Check pfes.nt.gov.au for alerts.
@@ -86,6 +93,7 @@ rules:
 
   - id: act_general
     match:
+      states: [Australian Capital Territory]
       location_keywords: [australian capital territory, act, canberra]
     risk_points:
       - ACT bushfire risk is managed by ACT Rural Fire Service and ACT Emergency Services Agency. Check esa.act.gov.au for current warnings.
@@ -100,6 +108,7 @@ rules:
 
   - id: cairns_local
     match:
+      states: [Queensland]
       location_keywords: [cairns]
     risk_points:
       - Cairns planning should consider tropical heat, smoke exposure, heavy rain or severe weather interactions, and road disruption.
@@ -112,6 +121,7 @@ rules:
 
   - id: sydney_local
     match:
+      states: [New South Wales]
       location_keywords: [sydney, greater sydney, penrith, parramatta, wollongong]
     risk_points:
       - Sydney and Greater Sydney communities in the Blue Mountains, Hawkesbury and Northern Beaches interface face elevated ember attack and spotting risk.
@@ -123,6 +133,7 @@ rules:
 
   - id: perth_local
     match:
+      states: [Western Australia]
       location_keywords: [perth, hills, armadale, kalamunda]
     risk_points:
       - Perth Hills communities face high bushfire risk from the Darling Scarp interface. DFES provides suburb-level risk maps for this area.
@@ -133,6 +144,7 @@ rules:
 
   - id: melbourne_local
     match:
+      states: [Victoria]
       location_keywords: [melbourne, yarra ranges, dandenong, macedon, mornington]
     risk_points:
       - Melbourne interface communities in the Yarra Ranges, Dandenong Ranges and Macedon Ranges are within designated Bushfire Management Overlay (BMO) areas.

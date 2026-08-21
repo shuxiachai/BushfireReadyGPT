@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
+from src.data_paths import get_data_paths, safe_data_path_label
 
 DATA_REGISTER = [
     {
@@ -46,7 +47,7 @@ DATA_REGISTER = [
         "name": "Australian state and territory official emergency and preparedness sources",
         "provider": "State and territory governments, fire services, local councils (see official_sources.yml for per-source attribution)",
         "url": "https://www.australia.gov.au/about-australia/australian-government/emergency-management",
-        "licence": "State government content is generally Creative Commons unless otherwise noted; verify the licence on each source page before reuse.",
+        "licence": "Terms vary by agency and page; use the page-level licence register and obtain review where reuse is restricted or unclear.",
         "local_files": ["data_australia/official_sources.yml"],
         "used_for": "Official source register for all states and territories. Report verification links for fire services, emergency portals, local councils and Bureau of Meteorology.",
         "limitations": "The app links to official sources but does not issue or verify live warnings, fire bans or evacuation orders.",
@@ -60,27 +61,49 @@ DATA_REGISTER = [
         "used_for": "Weather and warning source attribution in preparedness reports.",
         "limitations": "The current app does not ingest live BoM warnings or fire danger ratings.",
     },
+    {
+        "name": "Optional static official preparedness RAG corpus",
+        "provider": "Australian state and territory fire/emergency agencies covering QLD, NSW, VIC, WA, SA, TAS, ACT and NT (see rag/sources.yml)",
+        "url": "https://www.qld.gov.au/emergency/dealing-disasters/disaster-types/bushfires",
+        "licence": "Reuse terms are tracked per page; restricted or ambiguous entries require permission review before redistribution.",
+        "local_files": [
+            "data_australia/rag/sources.yml",
+            "data_australia/rag/raw/",
+            "data_australia/rag/index/",
+        ],
+        "used_for": "Local hybrid dense + BM25 retrieval of attributed cross-jurisdiction preparedness passages for draft reports.",
+        "limitations": "Static planning references only; similarity does not establish currency, correctness, live conditions or operational applicability.",
+    },
 ]
 
 
-def get_data_register():
+def get_data_register(data_paths=None):
+    paths = data_paths or get_data_paths()
     rows = []
     for item in DATA_REGISTER:
         rows.append(
             {
                 **item,
-                "local_file_status": "; ".join(_file_status(path) for path in item["local_files"]),
+                "local_file_status": "; ".join(_file_status(path, paths) for path in item["local_files"]),
             }
         )
     return rows
 
 
-def _file_status(path):
-    local_path = Path(path)
+def _file_status(path, data_paths):
+    configured_path = Path(path)
+    path_parts = configured_path.parts
+    if path_parts and path_parts[0] == "data_australia":
+        local_path = data_paths.data_dir.joinpath(*path_parts[1:])
+    elif configured_path.is_absolute():
+        local_path = configured_path
+    else:
+        local_path = data_paths.project_root / configured_path
+    display_path = safe_data_path_label(local_path, data_paths)
     if not local_path.exists():
-        return f"{path}: not found"
+        return f"{display_path}: not found"
     if local_path.is_dir():
         file_count = len([item for item in local_path.iterdir() if item.is_file()])
-        return f"{path}: {file_count} files"
+        return f"{display_path}: {file_count} files"
     timestamp = datetime.fromtimestamp(local_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-    return f"{path}: updated {timestamp}"
+    return f"{display_path}: updated {timestamp}"

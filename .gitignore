@@ -1,10 +1,18 @@
 # data files
 data/
 data_australia/raw/
+data_australia/rag/raw/
+data_australia/rag/index/
+data_australia/rag/.*.lock
+data_australia/rag/.*.backup
+data_australia/rag/.*.stage
 data_australia/processed/sa2_boundaries_all.geojson
 data_australia/processed/sa2_profiles_all.csv
-data_australia/processed/sa2_coverage.geojson
 data_australia/processed/sa2_boundaries_by_state/
+data_australia/processed/sa2_map_bundle.json
+data_australia/.*.transaction.*
+data_australia/**/.*.stage
+data_australia/**/.*.backup
 legacy/
 
 **/session_state.pkl
@@ -114,7 +122,7 @@ ipython_config.py
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
 #   commonly ignored for libraries.
 #   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-poetry.lock
+# This application commits poetry.lock so production and CI installs are reproducible.
 
 # pdm
 #   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.

@@ -1,29 +1,25 @@
-import os
 from html import escape
-from pathlib import Path
 
 import streamlit as st
 import yaml
 
 from src.agents.profile_agent import STATE_SHORT
+from src.data_paths import get_data_paths
 from src.data_register import get_data_register
 from src.data_status import get_community_data_status
 from src.licence_register import get_licence_register, licence_register_csv, licence_register_markdown
 from src.official_status import check_official_sources
+from src.rag.service import inspect_rag_index
 from src.ui.components import render_path_line, safe_display_text
 
 
-def _get_display_sources(profile=None):
+def _get_display_sources(profile=None, data_paths=None):
     """Load official sources from YAML filtered by the current analysis profile.
 
     Falls back to national-scope sources when no profile is available.
     """
-    path = Path(
-        os.environ.get(
-            "BUSHFIRE_OFFICIAL_SOURCES_PATH",
-            "data_australia/official_sources.yml",
-        )
-    )
+    paths = data_paths or get_data_paths()
+    path = paths.official_sources
     if not path.exists():
         return []
     with open(path, "r", encoding="utf-8") as f:
@@ -44,12 +40,14 @@ def _get_display_sources(profile=None):
     for source in raw.get("sources", []):
         scope = {s.lower() for s in source.get("scope", [])}
         if scope & tags:
-            selected.append({
-                "name": source["name"],
-                "url": source["url"],
-                "purpose": source.get("purpose", ""),
-                "when": source.get("use_when", ""),
-            })
+            selected.append(
+                {
+                    "name": source["name"],
+                    "url": source["url"],
+                    "purpose": source.get("purpose", ""),
+                    "when": source.get("use_when", ""),
+                }
+            )
     return selected
 
 
@@ -169,10 +167,10 @@ def render_data_status():
     )
     cols = st.columns(4)
     metrics = [
+        ("Bundled core", status["core_status"]),
+        ("National map", status["optional_map_status"]),
+        ("Integrity", status["integrity_status"]),
         ("Active data", status["active_type"]),
-        ("Rows", str(status["row_count"])),
-        ("Processed file updated", status["updated_at"]),
-        ("Raw ABS data", "Downloaded" if status["raw_exists"] else "Not downloaded"),
     ]
     for col, (label, value) in zip(cols, metrics):
         col.markdown(
@@ -185,7 +183,15 @@ def render_data_status():
             unsafe_allow_html=True,
         )
     with st.expander("View data files and limitations", expanded=False):
+        render_path_line("Data manifest", status["manifest_path"])
+        st.markdown(f"- **Verified bundled artifacts:** {status['verified_artifact_count']}")
+        if status["integrity_error"]:
+            st.markdown(f"- **Integrity detail:** {escape(safe_display_text(status['integrity_error']))}")
+        if status.get("optional_map_error"):
+            st.markdown(f"- **National map detail:** {escape(safe_display_text(status['optional_map_error']))}")
         render_path_line("Agent active file", status["active_path"])
+        st.markdown(f"- **Active rows:** {status['row_count']}")
+        st.markdown(f"- **Processed file updated:** {status['updated_at']}")
         render_path_line("ABS raw response", status["raw_path"])
         st.markdown(f"- **Raw file updated:** {status['raw_updated_at']}")
         st.markdown(f"- **ABS download record UTC:** {status['downloaded_at_utc']}")
@@ -195,12 +201,7 @@ def render_data_status():
         st.markdown(f"- **ASGS generation record UTC:** {status['asgs_generated_at_utc']}")
         if status.get("asgs_row_counts"):
             st.markdown("**ASGS allocation / correspondence row counts**")
-            st.table(
-                [
-                    {"dataset": key, "rows": value}
-                    for key, value in status["asgs_row_counts"].items()
-                ]
-            )
+            st.table([{"dataset": key, "rows": value} for key, value in status["asgs_row_counts"].items()])
         if status["locations"]:
             st.markdown(f"- **Current covered locations:** {', '.join(status['locations'])}")
         if status.get("mapping_summary"):
@@ -211,6 +212,47 @@ def render_data_status():
         st.markdown("**Limitations**")
         for limitation in status["limitations"]:
             st.markdown(f"- {limitation}")
+
+
+def render_rag_status():
+    status = inspect_rag_index()
+    st.markdown("### Official Knowledge RAG")
+    st.markdown(
+        """
+        <div class="source-note">
+            This optional local index retrieves static official preparedness passages. Similarity
+            is not proof of currency or operational applicability, and the index never supplies
+            live warnings, incidents, fire bans or evacuation directions.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    cols = st.columns(4)
+    metrics = [
+        ("Index", status["status"]),
+        ("Sources", str(status["source_count"])),
+        ("Chunks", str(status["chunk_count"])),
+        ("Embedding", status["embedding_model"] or "Not available"),
+    ]
+    for col, (label, value) in zip(cols, metrics):
+        col.markdown(
+            f"""
+            <div class="status-card">
+                <div class="status-label">{escape(safe_display_text(label))}</div>
+                <div class="status-value">{escape(safe_display_text(value))}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with st.expander("View RAG index provenance", expanded=False):
+        st.markdown(f"- **Index schema:** {safe_display_text(status['index_schema'])}")
+        st.markdown(f"- **Built at UTC:** {safe_display_text(status['built_at_utc'])}")
+        st.markdown(f"- **Embedding dimension:** {status['embedding_dimension']}")
+        st.markdown(f"- **Index manifest SHA-256:** {safe_display_text(status['manifest_sha256'])}")
+        st.markdown(f"- **Document snapshot SHA-256:** {safe_display_text(status['documents_sha256'])}")
+        if status.get("error"):
+            st.warning(safe_display_text(status["error"]))
+        st.code(status.get("build_command") or "Index is ready.", language="powershell")
 
 
 def render_data_register():
@@ -268,6 +310,7 @@ def render_licence_register():
             file_name="licence_register.csv",
             mime="text/csv",
             width="stretch",
+            on_click="ignore",
         )
     with action_cols[1]:
         st.download_button(
@@ -276,6 +319,7 @@ def render_licence_register():
             file_name="licence_register.md",
             mime="text/markdown",
             width="stretch",
+            on_click="ignore",
         )
     with st.expander("View licence register", expanded=False):
         st.dataframe(

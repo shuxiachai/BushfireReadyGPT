@@ -1,31 +1,48 @@
 import streamlit as st
 
 from src.docx_export import create_report_docx
-from src.export_package import create_pilot_export_package
 from src.pdf_export import create_report_pdf
 
 
 def render_sidebar(
     clear_conversation,
     get_latest_assistant_text,
-    collect_review_record,
-    get_package_context,
     save_latest_report,
+    verify_report_record_snapshot,
 ):
     st.sidebar.markdown("## BushfireReady Planner")
-    st.sidebar.markdown("Bushfire preparedness planning assistant for Australian government pilots, schools and communities.")
+    st.sidebar.markdown(
+        "Bushfire preparedness planning assistant for Australian government pilots, schools and communities."
+    )
     st.sidebar.caption("Government pilot mode: draft reports, evidence trail, data register, human review.")
     st.sidebar.markdown("### Actions")
+    st.sidebar.caption(
+        "Clear removes the current in-app session and optional session files. "
+        "Audit records, manually saved reports and downloaded exports remain on disk."
+    )
     if st.sidebar.button("Clear current conversation", width="stretch"):
         clear_conversation()
     latest_report = get_latest_assistant_text()
     if latest_report:
+        report_record = st.session_state.get("latest_report") or {}
+        if not verify_report_record_snapshot(report_record):
+            st.sidebar.warning(
+                "The restored report is unverified or not the current audit head. "
+                "Regenerate it to enable governed downloads."
+            )
+            st.sidebar.markdown("### Safety Boundary")
+            st.sidebar.caption(
+                "This app does not provide live fire conditions, fire bans, evacuation orders or life-safety decisions. "
+                "In a real emergency, follow official emergency services and call 000 if life is at risk."
+            )
+            return
         st.sidebar.download_button(
             "Download latest report",
-            data="# BushfireReadyGPT Report\n\n" + latest_report,
+            data=latest_report,
             file_name="bushfire_ready_report.md",
             mime="text/markdown",
             width="stretch",
+            on_click="ignore",
         )
         try:
             pdf_bytes = create_report_pdf(latest_report)
@@ -35,6 +52,7 @@ def render_sidebar(
                 file_name="bushfire_ready_report.pdf",
                 mime="application/pdf",
                 width="stretch",
+                on_click="ignore",
             )
         except Exception as exc:
             st.sidebar.warning(f"PDF generation failed: {exc}")
@@ -46,29 +64,18 @@ def render_sidebar(
                 file_name="bushfire_ready_report.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 width="stretch",
+                on_click="ignore",
             )
         except Exception as exc:
             st.sidebar.warning(f"DOCX generation failed: {exc}")
-        try:
-            package = create_pilot_export_package(
-                latest_report,
-                audit_path=st.session_state.get("latest_audit_path"),
-                review_record=st.session_state.get("latest_review_record") or collect_review_record(),
-                package_context=get_package_context(),
-            )
-            st.sidebar.download_button(
-                "Download pilot package",
-                data=package["content"],
-                file_name=package["filename"],
-                mime="application/zip",
-                width="stretch",
-            )
-        except Exception as exc:
-            st.sidebar.warning(f"Pilot package generation failed: {exc}")
         if st.sidebar.button("Save to chat_history", width="stretch"):
-            saved_path = save_latest_report()
-            if saved_path:
-                st.sidebar.success(f"Saved: {saved_path}")
+            try:
+                saved_path = save_latest_report()
+            except OSError as exc:
+                st.sidebar.warning(f"The report could not be saved locally: {exc}")
+            else:
+                if saved_path:
+                    st.sidebar.success(f"Saved: {saved_path}")
     st.sidebar.markdown("### Safety Boundary")
     st.sidebar.caption(
         "This app does not provide live fire conditions, fire bans, evacuation orders or life-safety decisions. "

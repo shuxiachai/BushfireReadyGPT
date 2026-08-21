@@ -27,11 +27,17 @@ class PlannerAgent:
                 priorities.append(concern_map[concern])
 
         if profile.get("setting_type") == "campus":
-            priorities.append("Keep student supervision, class lists, visitors, and parent/guardian communication explicit.")
+            priorities.append(
+                "Keep student supervision, class lists, visitors, and parent/guardian communication explicit."
+            )
         elif profile.get("setting_type") == "community":
-            priorities.append("Include vulnerable residents, transport access, multilingual communication, and neighbour check-ins.")
+            priorities.append(
+                "Include vulnerable residents, transport access, multilingual communication, and neighbour check-ins."
+            )
         elif profile.get("setting_type") == "aged_care":
-            priorities.append("Include resident mobility, medications, clinical governance, and transport provider coordination.")
+            priorities.append(
+                "Include resident mobility, medications, clinical governance, and transport provider coordination."
+            )
 
         return {
             "planning_priorities": self._dedupe(priorities),

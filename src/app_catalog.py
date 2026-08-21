@@ -1,4 +1,3 @@
-
 TIMEFRAME_OPTIONS = [
     "7-day action plan",
     "This-month preparedness plan",
@@ -279,13 +278,48 @@ PROJECT_MATURITY_ASSESSMENT = {
         "or government procurement."
     ),
     "scores": [
-        {"area": "Product concept", "score": "8/10", "status": "Strong MVP", "note": "Clear Australia bushfire preparedness positioning and report workflow."},
-        {"area": "User workflow", "score": "8/10", "status": "Strong MVP", "note": "Form, demo mode, evidence trail, reviewer sign-off and export package are in place."},
-        {"area": "Data foundation", "score": "6/10", "status": "Pilot ready", "note": "ABS SA2/ASGS data is local and traceable; live warning data is not integrated."},
-        {"area": "Multi-agent architecture", "score": "7/10", "status": "Pilot ready", "note": "Agent responsibilities are separated and visible, but testing and orchestration can be strengthened."},
-        {"area": "Governance and audit", "score": "7/10", "status": "Pilot ready", "note": "Draft notices, provenance labels, evidence tables, sign-off and audit JSON exist; role-based approval is still missing."},
-        {"area": "Commercial readiness", "score": "4/10", "status": "Not commercial yet", "note": "Needs licence review, legal boundary, deployment, privacy and user testing."},
-        {"area": "Government procurement readiness", "score": "3/10", "status": "Early", "note": "Needs security, accessibility, procurement documentation and official data agreements."},
+        {
+            "area": "Product concept",
+            "score": "8/10",
+            "status": "Strong MVP",
+            "note": "Clear Australia bushfire preparedness positioning and report workflow.",
+        },
+        {
+            "area": "User workflow",
+            "score": "8/10",
+            "status": "Strong MVP",
+            "note": "Form, demo mode, evidence trail, reviewer sign-off and export package are in place.",
+        },
+        {
+            "area": "Data foundation",
+            "score": "6/10",
+            "status": "Pilot ready",
+            "note": "ABS SA2/ASGS data is local and traceable; live warning data is not integrated.",
+        },
+        {
+            "area": "Multi-agent architecture",
+            "score": "7/10",
+            "status": "Pilot ready",
+            "note": "Agent responsibilities are separated and visible, but testing and orchestration can be strengthened.",
+        },
+        {
+            "area": "Governance and audit",
+            "score": "7/10",
+            "status": "Pilot ready",
+            "note": "Draft notices, provenance labels, evidence tables, sign-off and audit JSON exist; role-based approval is still missing.",
+        },
+        {
+            "area": "Commercial readiness",
+            "score": "4/10",
+            "status": "Not commercial yet",
+            "note": "Needs licence review, legal boundary, deployment, privacy and user testing.",
+        },
+        {
+            "area": "Government procurement readiness",
+            "score": "3/10",
+            "status": "Early",
+            "note": "Needs security, accessibility, procurement documentation and official data agreements.",
+        },
     ],
     "completed": [
         "Australia-specific bushfire preparedness positioning.",
@@ -345,9 +379,25 @@ PROJECT_MATURITY_ASSESSMENT = {
         },
     ],
     "roadmap": [
-        {"phase": "Now", "goal": "Demo-ready portfolio MVP", "work": "Polish UI, keep demo scenarios reliable, use pilot export package for presentation."},
-        {"phase": "Next 2 weeks", "goal": "Controlled pilot readiness", "work": "Validate evidence labels, tighten licence review and source-status boundaries, and run the pilot feedback workflow."},
-        {"phase": "Next 1-2 months", "goal": "Stakeholder pilot", "work": "Test with school/council/community reviewers and refine report templates from feedback."},
-        {"phase": "Commercial path", "goal": "Procurement-ready product concept", "work": "Add authentication, deployment hardening, privacy controls, legal review and data agreements."},
+        {
+            "phase": "Now",
+            "goal": "Demo-ready portfolio MVP",
+            "work": "Polish UI, keep demo scenarios reliable, use pilot export package for presentation.",
+        },
+        {
+            "phase": "Next 2 weeks",
+            "goal": "Controlled pilot readiness",
+            "work": "Validate evidence labels, tighten licence review and source-status boundaries, and run the pilot feedback workflow.",
+        },
+        {
+            "phase": "Next 1-2 months",
+            "goal": "Stakeholder pilot",
+            "work": "Test with school/council/community reviewers and refine report templates from feedback.",
+        },
+        {
+            "phase": "Commercial path",
+            "goal": "Procurement-ready product concept",
+            "work": "Add authentication, deployment hardening, privacy controls, legal review and data agreements.",
+        },
     ],
 }

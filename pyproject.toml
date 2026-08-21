@@ -1,26 +1,44 @@
-[tool.poetry]
+[project]
 name = "bushfire-ready-gpt"
-version = "0.1.0"
+version = "0.2.0"
 description = "Australian bushfire resilience assistant prototype"
-authors = ["BushfireReadyGPT contributors"]
+authors = [{ name = "BushfireReadyGPT contributors" }]
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = ">=3.11,<3.14"
-openai = ">=2.0,<3.0"
-python-dotenv = ">=1.0,<2.0"
-streamlit = ">=1.57,<2.0"
-requests = ">=2.31,<3.0"
-pyyaml = ">=6.0,<7.0"
-pydeck = ">=0.9,<1.0"
-clipboard = ">=0.0.4,<1.0"
-reportlab = ">=4.5,<5.0"
-python-docx = ">=1.2,<2.0"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "openai>=2.0,<3.0",
+    "python-dotenv>=1.0,<2.0",
+    "streamlit>=1.57,<2.0",
+    "requests>=2.31,<3.0",
+    "pyyaml>=6.0,<7.0",
+    "pydeck>=0.9,<1.0",
+    "reportlab>=4.5,<5.0",
+    "python-docx>=1.2,<2.0",
+    "defusedxml>=0.7.1,<0.8",
+    "beautifulsoup4>=4.12,<5.0",
+    "pypdf>=5.0,<7.0",
+    "qdrant-client>=1.14,<2.0",
+]
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = ">=6.29,<7.0"
 pytest = ">=8.0,<10.0"
 playwright = ">=1.61,<2.0"
+pytest-cov = ">=6.0,<8.0"
+ruff = ">=0.12,<1.0"
+bandit = ">=1.8,<2.0"
+pip-audit = ">=2.9,<3.0"
+setuptools = ">=83.0,<84.0"
+
+[tool.ruff]
+line-length = 120
+exclude = ["legacy"]
+
+[tool.ruff.lint]
+select = ["C901", "E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
 
 [tool.pytest.ini_options]
 markers = [

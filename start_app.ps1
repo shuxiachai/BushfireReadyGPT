@@ -1,11 +1,20 @@
+param(
+    [switch]$PreflightOnly,
+    [string]$PythonPath = ""
+)
+
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $projectRoot
 
-$python = Join-Path $projectRoot ".venv\Scripts\python.exe"
+$python = if ([string]::IsNullOrWhiteSpace($PythonPath)) {
+    Join-Path $projectRoot ".venv\Scripts\python.exe"
+} else {
+    $PythonPath
+}
 if (-not (Test-Path $python)) {
-    throw "Virtual environment not found: $python`nCreate it with: python -m venv .venv"
+    throw "Python environment not found: $python`nRun 'Setup BushfireReadyGPT.bat' once, then retry."
 }
 
 $envFile = Join-Path $projectRoot ".env"
@@ -66,6 +75,16 @@ function Resolve-OllamaExecutable {
     return $null
 }
 
+& $python -c "import streamlit, yaml; from src.data_artifacts import validate_data_manifest; from src.rag.corpus import load_source_catalog; from src.data_paths import get_data_paths; p=get_data_paths(); validate_data_manifest(p.manifest, data_dir=p.data_dir); load_source_catalog(p.rag_sources, rag_dir=p.rag_dir)"
+if ($LASTEXITCODE -ne 0) {
+    throw "Application dependencies or bundled data failed validation. Run 'Setup BushfireReadyGPT.bat' to repair the environment."
+}
+
+if ($PreflightOnly) {
+    Write-Host "BushfireReadyGPT preflight passed: Python dependencies, bundled data and RAG catalog are valid."
+    exit 0
+}
+
 if (Test-Path $portMarker) {
     $markedPort = (Get-Content -Encoding UTF8 $portMarker -ErrorAction SilentlyContinue | Select-Object -First 1)
     if ($markedPort -match '^\d+$') {
@@ -85,15 +104,26 @@ if (Test-Path $portMarker) {
 $provider = (Get-DotEnvValue -Name "LLM_PROVIDER" -DefaultValue "ollama").ToLowerInvariant()
 
 if ($provider -eq "ollama") {
-    $ollamaBaseUrl = Get-DotEnvValue -Name "OLLAMA_BASE_URL" -DefaultValue "http://localhost:11434/v1"
-    $ollamaModel = Get-DotEnvValue -Name "OLLAMA_MODEL" -DefaultValue "qwen2.5:7b"
+    $ollamaBaseUrl = Get-DotEnvValue -Name "OLLAMA_BASE_URL" -DefaultValue "http://127.0.0.1:11434/v1"
+    $ollamaModel = Get-DotEnvValue -Name "OLLAMA_MODEL" -DefaultValue "bushfire-ready-qwen"
+    $configuredOllamaUri = [Uri]$ollamaBaseUrl
+    if ($configuredOllamaUri.Host -eq "localhost") {
+        $normalizedOllamaUri = [UriBuilder]$configuredOllamaUri
+        $normalizedOllamaUri.Host = "127.0.0.1"
+        $ollamaBaseUrl = $normalizedOllamaUri.Uri.AbsoluteUri.TrimEnd('/')
+    }
+    $env:OLLAMA_BASE_URL = $ollamaBaseUrl
     $ollamaRoot = $ollamaBaseUrl.TrimEnd('/') -replace '/v1$', ''
     $tagsUrl = "$ollamaRoot/api/tags"
     $ollamaStatus = Get-OllamaStatus -TagsUrl $tagsUrl
 
     if (-not $ollamaStatus) {
         $ollamaUri = [Uri]$ollamaRoot
-        $isLocalEndpoint = $ollamaUri.Host -in @("localhost", "127.0.0.1", "::1")
+        $parsedAddress = $null
+        $isIpAddress = [System.Net.IPAddress]::TryParse($ollamaUri.Host, [ref]$parsedAddress)
+        $isLocalEndpoint = ($ollamaUri.Host -eq "localhost") -or (
+            $isIpAddress -and [System.Net.IPAddress]::IsLoopback($parsedAddress)
+        )
         if (-not $isLocalEndpoint) {
             throw "Configured Ollama endpoint is unavailable: $ollamaRoot"
         }
@@ -140,9 +170,7 @@ Then verify:
         }
     )
     if ($availableModels -notcontains $ollamaModel) {
-        $ollamaExecutable = Resolve-OllamaExecutable
-        $pullCommand = if ($ollamaExecutable) { "& `"$ollamaExecutable`" pull $ollamaModel" } else { "ollama pull $ollamaModel" }
-        throw "Configured Ollama model '$ollamaModel' is not installed.`nInstall it with:`n  $pullCommand"
+        throw "Configured Ollama model '$ollamaModel' is not installed.`nRun 'Setup BushfireReadyGPT.bat' to install the project-specific model."
     }
 
     Write-Host "Ollama is ready at $ollamaRoot with model $ollamaModel"
@@ -172,7 +200,10 @@ New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
 Set-Content -LiteralPath $portMarker -Value $selectedPort -Encoding UTF8
 $streamlitExitCode = 0
 try {
-    & $python -m streamlit run src/wildfireChat.py --server.port $selectedPort
+    & $python -m streamlit run src/wildfireChat.py `
+        --server.port $selectedPort `
+        --server.address 127.0.0.1 `
+        --browser.gatherUsageStats false
     $streamlitExitCode = $LASTEXITCODE
 } finally {
     if (Test-Path $portMarker) {

@@ -35,7 +35,7 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 - [x] Add versioned report records and reset prior approval/checklist state after every generation or revision.
 - [ ] Define liability boundaries for generated reports.
 - [ ] Add versioning for report templates.
-- [x] Add audit logs for inputs, outputs, model version, data version and reviewer actions.
+- [x] Add privacy-minimised, hash-linked audit events for report hashes, model/data versions and reviewer actions.
 - [x] Keep AI-generated content in draft status until approved by a responsible human.
 
 ## 5. Security And Privacy
@@ -43,7 +43,8 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 - [x] Define current storage: isolated in-memory browser sessions by default, with local reports/audits and optional single-user JSON session persistence.
 - [ ] Add authentication for multi-user deployments.
 - [ ] Add role-based permissions for draft, reviewer and admin users.
-- [ ] Avoid storing sensitive personal data unless necessary.
+- [x] Minimise default audit storage and require explicit consent before external-model data transfer.
+- [ ] Add encryption/key management and field-level retention controls for any authorised sensitive data.
 - [ ] Add retention rules for reports and audit files.
 - [ ] Add backup and recovery procedures.
 

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "upstream_repository": "https://github.com/project-araia/WildfireGPT",
+  "upstream_project_name": "WildfireGPT / MARSHA",
+  "upstream_revision": null,
+  "acquisition_date": null,
+  "acquisition_method": null,
+  "verification_status": "unverified-original-download",
+  "derivative_baseline_commit": "8c3c895d2cf4c7bfc4cb9207c005408fbed5138b",
+  "warning": "The derivative baseline commit is not an upstream revision."
+}

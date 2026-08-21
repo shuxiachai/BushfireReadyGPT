@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "manifest_scope": "Versioned, offline data required by the bundled BushfireReadyGPT core demo",
+  "generated_for_repository_date": "2026-08-21",
+  "bundled_core": {
+    "required": true,
+    "artifacts": [
+      {
+        "path": "community_profile_sample.csv",
+        "size_bytes": 789,
+        "row_count": 4,
+        "sha256": "95e9657d3e18c79af67a013d4b2c06d331be629aa33df6f70057decffa1e3278",
+        "scope": "Queensland prototype fallback profiles for four configured demo locations",
+        "source_period": "Synthetic prototype snapshot; not official statistics"
+      },
+      {
+        "path": "processed/community_profiles.csv",
+        "size_bytes": 3298,
+        "row_count": 4,
+        "sha256": "cb82b08bcf9a4cb8877876c99023c9802ae04fc94646a6bce9eeef506eb62231",
+        "scope": "Configured Queensland demo-region community profile aggregates",
+        "source_period": "2021 Census and 2022 ERP fields"
+      },
+      {
+        "path": "processed/sa2_coverage.geojson",
+        "size_bytes": 831569,
+        "sha256": "bcdcde92d30def462d94707f14c6e9e333a1e1555cfc7136672a1d85d6c78ac5",
+        "scope": "ABS ASGS 2021 SA2 boundary subset for the four configured Queensland demo locations",
+        "source_period": "ABS ASGS Edition 3, SA2 2021; downloaded 2026-05-16 UTC"
+      },
+      {
+        "path": "processed/asgs_allocations/sa2_to_sa3_sa4_state_2021.csv",
+        "size_bytes": 447572,
+        "row_count": 2473,
+        "sha256": "04d2f8ac72d4ed6b21b7b89974563d007af5297108940eee8599d643a66266f2",
+        "scope": "Australia-wide SA2 to SA3, SA4, GCCSA and state hierarchy reference",
+        "source_period": "ABS ASGS Edition 3, SA2 2021"
+      },
+      {
+        "path": "processed/asgs_allocations/lga_2025_summary.csv",
+        "size_bytes": 27140,
+        "row_count": 567,
+        "sha256": "64204636c6bc40c6281a5b42c222ba70da3ed29422a39ee309267be8b578e59f",
+        "scope": "Australia-wide Local Government Area allocation summary",
+        "source_period": "ABS ASGS Edition 3, LGA 2025"
+      },
+      {
+        "path": "processed/asgs_allocations/lga_2024_to_2025_correspondence.csv",
+        "size_bytes": 28317,
+        "row_count": 567,
+        "sha256": "c9c961085c62a1c067ab8fe997481b4726ad3d1c950b8ba6f30f228fe16fae4a",
+        "scope": "Australia-wide LGA boundary correspondence reference",
+        "source_period": "ABS ASGS Edition 3, LGA 2024 to LGA 2025 correspondence"
+      },
+      {
+        "path": "processed/asgs_allocations/metadata.json",
+        "size_bytes": 2404,
+        "sha256": "73eb17e78766a2588eb2909e3594adb386173eb379ba1276a0d45af39a43bbb1",
+        "scope": "Provenance, row counts, source URLs and limitations for bundled ASGS files",
+        "source_period": "ASGS Edition 3 (July 2021 to June 2026); generated 2026-05-19 UTC"
+      },
+      {
+        "path": "official_sources.yml",
+        "size_bytes": 5773,
+        "sha256": "8d3e3f967e9018e48a87f8e387240c2a497c9c3c59f06541d6c6e1748f7e261a",
+        "scope": "Australian national, state and territory official-information link register",
+        "source_period": "Repository snapshot; links are not live warning data"
+      },
+      {
+        "path": "risk_context_rules.yml",
+        "size_bytes": 14988,
+        "sha256": "115de60b688780d4f011a385594e1e8686e4210d0304c75aa275565109c31755",
+        "scope": "Planning-context rules for all Australian states and territories",
+        "source_period": "Repository snapshot; static planning guidance, not live risk data"
+      },
+      {
+        "path": "region_mappings.yml",
+        "size_bytes": 2255,
+        "sha256": "9c1d902b74d55b818502a3dd6fa285073c776114d8ee9dd3934139ff0712d592",
+        "scope": "Configured SA2 mappings for four Queensland demo locations",
+        "source_period": "ASGS 2021 geography names"
+      },
+      {
+        "path": "licence_register.yml",
+        "size_bytes": 14898,
+        "sha256": "33f02bbcd751a9ffa962c7cc4400c025f817c8889a55c8e946eff773506c63b4",
+        "scope": "Licence and terms-of-use review register for prototype data sources",
+        "source_period": "Repository review snapshot; see per-source review dates"
+      }
+    ]
+  },
+  "optional_capabilities": [
+    {
+      "id": "all_australia_map",
+      "required": false,
+      "scope": "Offline Australia-wide SA2, SA3 and SA4 profile selection and map rendering",
+      "source_period": "2021 Census, 2022 ERP fields and ASGS 2021 boundaries",
+      "install_command": "python scripts/download_abs_sa2_all.py",
+      "artifacts": [
+        {
+          "path": "processed/sa2_profiles_all.csv",
+          "role": "National SA2 profile table"
+        },
+        {
+          "path": "processed/sa2_boundaries_all.geojson",
+          "role": "National SA2 boundary fallback map"
+        }
+      ]
+    }
+  ]
+}

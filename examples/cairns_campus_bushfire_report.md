@@ -104,6 +104,21 @@ Training should be paired with evacuation drills and after-action reviews. Train
 
 These sources should be checked directly during preparedness review and during any real event. This project can list source entry points but does not replace official warnings or emergency instructions.
 
+## Retrieved Official Knowledge
+
+The optional local RAG subsystem can retrieve attributed passages from static
+preparedness pages. The example below shows the expected evidence shape; it is a
+static portfolio sample, not a record of a live retrieval run.
+
+| Source | Agency | Intended planning use | Currency boundary |
+| --- | --- | --- | --- |
+| [Prepare your home for bushfire season](https://www.qld.gov.au/emergency/dealing-disasters/disaster-types/bushfires/bushfire-prepare/prepare-your-home-for-bushfire-season) | Queensland Government | Pre-season property and preparedness review | Static page dated 26 February 2024; open and verify before use. |
+| [Evacuation plan](https://www.qld.gov.au/emergency/dealing-disasters/evacuation-plan) | Queensland Government | Questions to resolve in a campus evacuation plan | Static page dated 3 March 2022; it does not confirm a current route or order. |
+
+Retrieved passages are treated as untrusted quoted evidence. The app records
+their source, ranking components and content hashes, and keeps deterministic
+evidence tables outside the model-generated narrative.
+
 ## Evidence Trail Summary
 
 | Evidence area | Demonstration status |

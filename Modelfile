@@ -1,0 +1,6 @@
+FROM qwen2.5:7b
+
+# The governed prompt plus a complete planning report exceeds Ollama's 4K
+# default. Keep this project-specific rather than changing Ollama globally.
+PARAMETER num_ctx 16384
+PARAMETER temperature 0.7

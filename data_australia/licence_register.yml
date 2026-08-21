@@ -24,16 +24,100 @@ licence_register:
     review_status: High-priority licence review required before live data integration.
 
   - id: qld_government_material
-    source_name: Queensland Government websites and current warning entry points
+    source_name: Queensland Government preparedness pages and current warning entry points
     provider: Queensland Government
     source_url: https://www.qld.gov.au/legal/copyright
     licence_position: CC BY 4.0 by default unless otherwise noted.
     commercial_position: Potentially reusable with attribution where CC BY 4.0 applies; verify agency-specific pages and exclusions.
     attribution_required: "© State of Queensland, licensed under CC BY 4.0, plus source page URL where practical."
-    caching_position: Link and citation are low risk. Caching warning content requires page-specific and operational review.
+    caching_position: The two declared static preparedness pages are cached locally, parsed and embedded for optional RAG. Raw pages and the vector index are excluded from Git. Live warning content remains link-only.
     exclusions_or_risks: Government logos, coat of arms, trademarks, third-party material and pages with alternative notices are excluded.
-    current_project_use: Official source register and status check entry points.
-    review_status: Needs page-level review before commercial deployment.
+    current_project_use: Local RAG retrieval over two static preparedness pages, citations in draft reports, and official warning-source reachability checks.
+    review_status: Preparedness pages reviewed 2026-08-21; re-check page metadata and exclusions before commercial deployment.
+
+  - id: nsw_rfs_survival_plan_page
+    source_name: NSW RFS Bush Fire Survival Plan page
+    provider: NSW Rural Fire Service
+    source_url: https://www.rfs.nsw.gov.au/plan-and-prepare/bush-fire-survival-plan
+    licence_position: NSW RFS states that most website material is CC BY 4.0, but its published conditions also include narrower storage and commercialisation language.
+    commercial_position: Treat the current position as ambiguous. Obtain written or legal confirmation before shipping cached text, embeddings or derived commercial content.
+    attribution_required: "© State of New South Wales (NSW Rural Fire Service). For current information go to www.rfs.nsw.gov.au."
+    caching_position: Cached and parsed only in the local interview/research prototype. Raw HTML and the index are excluded from Git.
+    exclusions_or_risks: Logos, third-party material and page-specific conditions are excluded; the coexistence of CC BY and narrower reuse wording needs legal resolution.
+    current_project_use: Static preparedness retrieval and attributed evidence links in draft reports.
+    review_status: Page and copyright notice reviewed 2026-08-21; permission review required before commercial redistribution.
+
+  - id: vic_cfa_bushfire_plan_page
+    source_name: CFA Your Bushfire Plan page
+    provider: Country Fire Authority Victoria
+    source_url: https://www.cfa.vic.gov.au/plan-prepare/before-and-during-a-fire/your-bushfire-plan
+    licence_position: State of Victoria copyright applies; no page-specific open licence was identified for this HTML page.
+    commercial_position: Do not redistribute cached or transformed page content without written permission or confirmed licence terms.
+    attribution_required: "© State of Victoria (Country Fire Authority), page title and source URL."
+    caching_position: Cached and parsed only in the local interview/research prototype. Raw HTML and the index are excluded from Git.
+    exclusions_or_risks: The general disclaimer is not a reuse licence; branding, images and third-party materials may have separate owners.
+    current_project_use: Static preparedness retrieval and attributed evidence links in draft reports.
+    review_status: Page and disclaimer reviewed 2026-08-21; permission required before redistribution.
+
+  - id: wa_dfes_prepare_page
+    source_name: DFES Prepare for a bushfire page
+    provider: Department of Fire and Emergency Services Western Australia
+    source_url: https://dfes.wa.gov.au/hazard-information/bushfire/prepare
+    licence_position: DFES reserves copyright and requires written permission for reproduction or reuse, except where a statutory exception applies.
+    commercial_position: Do not redistribute cached text, embeddings or derived commercial content without written permission.
+    attribution_required: "Department of Fire and Emergency Services Western Australia, page title and source URL, subject to permission terms."
+    caching_position: Cached and parsed only for private study/research in the local prototype. Raw HTML and the index are excluded from Git.
+    exclusions_or_risks: Government branding, third-party content and the page text are not covered by an identified open licence.
+    current_project_use: Static preparedness retrieval and attributed evidence links in draft reports.
+    review_status: Page and copyright notice reviewed 2026-08-21; permission required before broader use.
+
+  - id: sa_cfs_survival_plan_page
+    source_name: SA CFS Bushfire Survival Plan page
+    provider: South Australian Country Fire Service
+    source_url: https://www.cfs.sa.gov.au/plan-prepare/before-a-fire-be-prepared/make-a-plan/bushfire-survival-plan/
+    licence_position: CFS website content is CC BY 4.0 except emblems, images, trademarks and identified third-party material.
+    commercial_position: Reuse is permitted with attribution where the CC BY 4.0 notice applies and exclusions are respected.
+    attribution_required: "South Australian Country Fire Service, page title, date sourced and source URL, licensed under CC BY 4.0."
+    caching_position: Static page text is cached locally, parsed and embedded for optional RAG. Raw HTML and the index are excluded from Git.
+    exclusions_or_risks: Government emblems, images, trademarks and third-party content are excluded from the open licence.
+    current_project_use: Static preparedness retrieval and attributed evidence links in draft reports.
+    review_status: Page and copyright notice reviewed 2026-08-21.
+
+  - id: tas_tfs_protection_plan_page
+    source_name: Tasmania Fire Service Community Bushfire Protection Plans page
+    provider: Tasmania Fire Service
+    source_url: https://www.fire.tas.gov.au/Show?pageId=communityProtectionPlan
+    licence_position: Tasmania Fire Service permits personal, non-commercial use and otherwise restricts storage, distribution and reproduction without authorisation.
+    commercial_position: Do not redistribute or commercialise cached text, embeddings or derived content without permission.
+    attribution_required: "Tasmania Fire Service, page title and source URL, subject to permission terms."
+    caching_position: Cached and parsed only for personal, non-commercial research in the local prototype. Raw HTML and the index are excluded from Git.
+    exclusions_or_risks: The page does not carry an identified open licence; storage and distribution rights are restricted.
+    current_project_use: Static preparedness retrieval and attributed evidence links in draft reports.
+    review_status: Page and copyright notice reviewed 2026-08-21; permission required before broader use.
+
+  - id: act_esa_bushfires_page
+    source_name: ACT ESA Bushfires page
+    provider: ACT Emergency Services Agency / Justice and Community Safety Directorate
+    source_url: https://esa.act.gov.au/be-emergency-ready/bushfires
+    licence_position: ACT Government and JACS default website terms license content under CC BY 4.0 unless stated otherwise.
+    commercial_position: Reuse is permitted with attribution where CC BY 4.0 applies and exclusions are respected.
+    attribution_required: "© Australian Capital Territory, page title and source URL, licensed under CC BY 4.0."
+    caching_position: Static page text is cached locally, parsed and embedded for optional RAG. Raw HTML and the index are excluded from Git.
+    exclusions_or_risks: ACT crests, agency logos, trademarks, third-party material and content with specific alternative terms are excluded.
+    current_project_use: Static preparedness retrieval and attributed evidence links in draft reports.
+    review_status: Page and JACS copyright policy reviewed 2026-08-21.
+
+  - id: nt_pfes_bushfire_safety_page
+    source_name: NT PFES Bushfire Safety page
+    provider: Northern Territory Police, Fire and Emergency Services
+    source_url: https://pfes.nt.gov.au/fire-and-rescue-service/fire-safety/bushfire-safety
+    licence_position: NTPFES permits reproduction for non-commercial purposes; alteration or other use requires express written consent.
+    commercial_position: Do not redistribute, adapt or commercialise cached text, embeddings or derived content without written consent.
+    attribution_required: "© Northern Territory Government / NTPFES, page title and source URL."
+    caching_position: Cached and parsed only for non-commercial research in the local prototype. Raw HTML and the index are excluded from Git.
+    exclusions_or_risks: Adaptation and commercial use are restricted; logos, crests and third-party content require separate permission.
+    current_project_use: Static preparedness retrieval and attributed evidence links in draft reports.
+    review_status: Page and NTPFES copyright notice reviewed 2026-08-21; consent required before commercial use.
 
   - id: state_territory_government_material
     source_name: Australian state and territory government emergency services websites (NSW, VIC, WA, SA, TAS, NT, ACT)
@@ -42,9 +126,9 @@ licence_register:
     licence_position: State and territory government websites typically apply Creative Commons (CC BY 4.0 or CC BY 3.0 AU) unless otherwise noted. Each agency page may carry different terms; verify before reuse.
     commercial_position: Link-only use and attribution are generally low risk under standard CC BY conditions; caching warning content or reproducing agency material requires page-level review.
     attribution_required: "© State/Territory Government [name], licensed under CC BY [version], with source page URL where practical."
-    caching_position: Current prototype links to official entry points only. Do not store or republish live warning content without review of the specific agency's terms.
+    caching_position: This aggregate entry covers live warning/status entry points only. Static RAG pages are documented separately above. Do not store or republish live warning content without page-specific review.
     exclusions_or_risks: Government crests, logos, trademarks, third-party images and pages with alternative copyright notices are excluded. ACT and NT pages may carry different terms from mainland state governments.
-    current_project_use: Official source register and status check entry points for NSW RFS, VicEmergency, Emergency WA, Alert SA, TasALERT, Tasmania Fire Service, ACT ESA and NT PFES.
+    current_project_use: Official source register and reachability checks for NSW RFS, VicEmergency, Emergency WA, Alert SA, TasALERT, Tasmania Fire Service, ACT ESA and NT PFES.
     review_status: Needs page-level legal review for each agency before commercial deployment or content reproduction.
 
   - id: cairns_regional_council

@@ -10,8 +10,7 @@ EVIDENCE_LEVELS = {
     "P2": {
         "evidence_class": "Processed official-origin data",
         "confidence_boundary": (
-            "Moderate and context-dependent; processing, aggregation and geographic matching can "
-            "introduce limitations."
+            "Moderate and context-dependent; processing, aggregation and geographic matching can introduce limitations."
         ),
         "required_review": "Check source year, transformation method, coverage and selected geography.",
     },
@@ -46,6 +45,7 @@ def build_evidence_confidence_rows(analysis):
     data_result = analysis.get("data", {})
     community = analysis.get("community", {})
     risk_context = analysis.get("risk_context", {})
+    knowledge = analysis.get("knowledge", {})
     geography_reference = community.get("geography_reference", {})
     selected_asgs = geography_reference.get("selected_asgs_area") or {}
 
@@ -53,6 +53,13 @@ def build_evidence_confidence_rows(analysis):
     official_use = f"{official_count} official entry-point reference(s) selected"
     if selected_asgs.get("source_file"):
         official_use += f"; ASGS provenance recorded from {selected_asgs['source_file']}"
+    retrieved_count = len(knowledge.get("retrieved_chunks", []))
+    if retrieved_count:
+        official_use += (
+            f"; {retrieved_count} static official RAG passage(s) retrieved from verified index "
+            f"{knowledge.get('index_manifest_sha256', '')[:12]} using "
+            f"{knowledge.get('retrieval_mode') or 'the configured retriever'}"
+        )
 
     matched_location = community.get("matched_location") or "No community profile matched"
     processed_use = f"Community context: {matched_location}"
@@ -67,8 +74,7 @@ def build_evidence_confidence_rows(analysis):
     )
 
     user_use = (
-        f"Location: {profile.get('location') or 'not provided'}; "
-        f"audience: {profile.get('audience') or 'not provided'}"
+        f"Location: {profile.get('location') or 'not provided'}; audience: {profile.get('audience') or 'not provided'}"
     )
 
     current_uses = {

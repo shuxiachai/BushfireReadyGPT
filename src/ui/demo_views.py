@@ -10,7 +10,6 @@ from src.app_catalog import (
     PROJECT_MATURITY_ASSESSMENT,
 )
 
-
 PILOT_DOCUMENTS = [
     {
         "title": "Pilot Pitch",
@@ -257,6 +256,7 @@ def render_pilot_document_library():
                     mime="text/markdown",
                     width="stretch",
                     key=f"download_{Path(doc['path']).stem}",
+                    on_click="ignore",
                 )
             with action_cols[1]:
                 st.caption(doc["path"])

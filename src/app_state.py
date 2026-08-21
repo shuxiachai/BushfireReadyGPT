@@ -1,9 +1,12 @@
 from datetime import datetime
-import os
+from pathlib import Path
 from uuid import uuid4
 
 import streamlit as st
 
+from src.data_artifacts import atomic_write_text
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 WELCOME_MESSAGE = (
     "Complete the form above to generate a formal Australian bushfire preparedness report. "
@@ -73,11 +76,9 @@ def save_latest_report():
     report = get_latest_assistant_text()
     if not report:
         return None
-    os.makedirs("chat_history", exist_ok=True)
+    output_dir = PROJECT_ROOT / "chat_history"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    path = f"chat_history/bushfire_report_{timestamp}_{uuid4().hex[:8]}.md"
-    with open(path, "w", encoding="utf-8") as file:
-        file.write("# BushfireReadyGPT Report\n\n")
-        file.write(report)
-        file.write("\n")
-    return path
+    path = output_dir / f"bushfire_report_{timestamp}_{uuid4().hex[:8]}.md"
+    atomic_write_text(path, report)
+    path.chmod(0o600)
+    return str(path)
