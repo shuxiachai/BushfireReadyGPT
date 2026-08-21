@@ -67,6 +67,8 @@ jobs:
     name: Windows startup and tests
     runs-on: windows-latest
     timeout-minutes: 20
+    env:
+      POETRY_VIRTUALENVS_IN_PROJECT: "true"
 
     steps:
       - name: Check out repository
@@ -89,7 +91,7 @@ jobs:
       - name: Validate Windows launcher preflight
         shell: pwsh
         run: |
-          .\start_app.ps1 -PreflightOnly -PythonPath (Get-Command python).Source
+          .\start_app.ps1 -PreflightOnly
 
       - name: Run Windows unit and integration tests
         shell: pwsh
