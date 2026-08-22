@@ -40,7 +40,12 @@ from src.governance import (
     is_review_checklist_complete,
 )
 from src.model_runtime import ModelServiceError
-from src.report_generation_quality import assess_generated_narrative, build_report_repair_prompt
+from src.report_generation_quality import (
+    MAX_REPORT_REPAIR_ATTEMPTS,
+    assess_generated_narrative,
+    build_report_repair_prompt,
+    normalize_generated_narrative,
+)
 from src.report_template import (
     REPORT_NARRATIVE_WORD_BUDGET,
     append_evidence_tables,
@@ -483,10 +488,15 @@ def generate_current_report(persist_session_state):
         governance_context=governance_context,
     )
     try:
-        full_response = _call_governed_model(prompt)
-        initial_quality = assess_generated_narrative(full_response, analysis)
-        if initial_quality.get("approval_gate", {}).get("passed") is not True:
-            full_response = _call_governed_model(build_report_repair_prompt(prompt, full_response, initial_quality))
+        full_response = normalize_generated_narrative(_call_governed_model(prompt))
+        generation_quality = assess_generated_narrative(full_response, analysis)
+        for _repair_attempt in range(MAX_REPORT_REPAIR_ATTEMPTS):
+            if generation_quality.get("approval_gate", {}).get("passed") is True:
+                break
+            full_response = normalize_generated_narrative(
+                _call_governed_model(build_report_repair_prompt(prompt, full_response, generation_quality))
+            )
+            generation_quality = assess_generated_narrative(full_response, analysis)
     except ModelServiceError as error:
         return None, str(error)
     request_summary = (

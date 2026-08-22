@@ -50,9 +50,9 @@ before redistribution.
 The committed evaluation set contains 68 answerable questions plus 16 hard
 negatives. It measures source-level and passage-level Recall@K, mean reciprocal
 rank, Top-1 accuracy, unanswerable accuracy, false-positive rate and latency. On
-the 2026-08-22 `v0.2.1` local baseline, Top-5 passage recall was 0.9706, MRR
+the 2026-08-22 `v0.3.0` local baseline, Top-5 passage recall was 0.9706, MRR
 0.8922, Top-1 accuracy 0.8235, unanswerable accuracy 1.0000, average latency
-104.70 ms and p95 latency 126.57 ms. These are reproducible project-benchmark
+133.48 ms and p95 latency 163.44 ms. These are reproducible project-benchmark
 results, not evidence of production accuracy. Unit tests use a deterministic test
 embedder and temporary Qdrant database, keeping CI offline and repeatable.
 

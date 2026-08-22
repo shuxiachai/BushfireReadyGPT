@@ -14,11 +14,11 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 
 - [ ] Verify all ABS datasets, fields, update dates and licences.
 - [ ] Replace approximate geography matching with official correspondence files where required.
-- [ ] Add data freshness indicators to every generated report.
+- [x] Add data freshness indicators to every generated report.
 - [x] Add source citations or source notes to generated report evidence tables.
 - [x] Distinguish official references, processed data, rule inference, AI-generated text and unverified user inputs.
 - [ ] Document all derived indicators and aggregation methods.
-- [ ] Add a data quality warning when a selected geography has limited coverage.
+- [x] Add a data quality warning when a selected geography has limited coverage.
 
 ## 3. Official Information
 
@@ -63,7 +63,7 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 - [x] Add automated tests for the agent pipeline.
 - [x] Add export tests for PDF and DOCX.
 - [x] Add Streamlit health smoke, AppTest workflow and Chromium end-to-end tests.
-- [ ] Add regression examples for each supported scenario.
+- [x] Add real-model regression cases for each supported scenario, plus safety-boundary and no-RAG behavior cases.
 - [x] Add a human review checklist to every generated report.
 
 ## 8. Commercial Packaging

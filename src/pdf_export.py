@@ -12,6 +12,7 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
+    KeepTogether,
     ListFlowable,
     ListItem,
     PageBreak,
@@ -21,6 +22,8 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
+
+from src.export_content import extract_report_metadata, plain_markdown_text
 
 FONT_NAME = "BushfireReadyPDF"
 LOGGER = logging.getLogger(__name__)
@@ -176,48 +179,43 @@ def _build_styles(font_name):
             leftIndent=8,
             textColor=colors.HexColor("#18212f"),
         ),
+        "record_heading": ParagraphStyle(
+            "BushfireRecordHeading",
+            parent=base_styles["Heading3"],
+            fontName=font_name,
+            fontSize=9.5,
+            leading=13,
+            textColor=colors.HexColor("#7f2a19"),
+            spaceBefore=6,
+            spaceAfter=4,
+        ),
+        "record_label": ParagraphStyle(
+            "BushfireRecordLabel",
+            parent=base_styles["BodyText"],
+            fontName=font_name,
+            fontSize=8.5,
+            leading=12,
+            textColor=colors.HexColor("#344054"),
+        ),
+        "record_value": ParagraphStyle(
+            "BushfireRecordValue",
+            parent=base_styles["BodyText"],
+            fontName=font_name,
+            fontSize=8.5,
+            leading=12,
+            textColor=colors.HexColor("#18212f"),
+        ),
     }
 
 
 def _plain_markdown_text(text):
-    text = re.sub(r"^#+\s*", "", text.strip())
-    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
-    text = re.sub(r"`(.+?)`", r"\1", text)
-    return text.strip()
-
-
-def _extract_report_title(markdown_text):
-    for raw_line in markdown_text.splitlines():
-        line = raw_line.strip()
-        if line.startswith("#"):
-            title = _plain_markdown_text(line)
-            if title and title.lower() != "bushfirereadygpt report":
-                return title
-    for raw_line in markdown_text.splitlines():
-        line = _plain_markdown_text(raw_line)
-        if line and len(line) <= 80:
-            return line
-    return "Australian Bushfire Preparedness Report"
+    return plain_markdown_text(text)
 
 
 def _extract_meta_from_report(markdown_text):
-    location = "To be confirmed"
-    audience = "To be confirmed"
-    for raw_line in markdown_text.splitlines():
-        line = _plain_markdown_text(raw_line)
-        location_match = re.match(r"^Location[:\s]+(.+)$", line, re.IGNORECASE)
-        audience_match = re.match(r"^Audience[:\s]+(.+)$", line, re.IGNORECASE)
-        if location_match:
-            location = location_match.group(1).strip()
-        if audience_match:
-            audience = audience_match.group(1).strip()
-
-    return {
-        "title": _extract_report_title(markdown_text),
-        "location": location,
-        "audience": audience,
-        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-    }
+    meta = extract_report_metadata(markdown_text)
+    meta["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    return meta
 
 
 def _build_cover_story(meta, styles):
@@ -272,14 +270,36 @@ def _table_cells(line):
 
 
 def _append_table(story, table_lines, styles):
-    data = []
+    raw_data = []
     for line in table_lines:
         if _is_separator_row(line):
             continue
-        data.append([Paragraph(_format_inline_markdown(cell), styles["body"]) for cell in _table_cells(line)])
-    if not data:
+        raw_data.append(_table_cells(line))
+    if not raw_data:
         return
-    table = Table(data, repeatRows=1, hAlign="LEFT")
+    column_count = max(len(row) for row in raw_data)
+    if column_count > 4:
+        _append_record_tables(story, raw_data, styles)
+        return
+
+    data = [
+        [Paragraph(_format_inline_markdown(cell), styles["body"]) for cell in row]
+        for row in raw_data
+    ]
+    column_widths = {
+        1: [16.9 * cm],
+        2: [5.0 * cm, 11.9 * cm],
+        3: [5.0 * cm, 5.2 * cm, 6.7 * cm],
+        4: [3.2 * cm, 4.5 * cm, 4.7 * cm, 4.5 * cm],
+    }
+    table = Table(
+        data,
+        colWidths=column_widths[column_count],
+        repeatRows=1,
+        hAlign="LEFT",
+        splitByRow=1,
+        splitInRow=1,
+    )
     table.setStyle(
         TableStyle(
             [
@@ -296,6 +316,43 @@ def _append_table(story, table_lines, styles):
     )
     story.append(table)
     story.append(Spacer(1, 0.16 * cm))
+
+
+def _append_record_tables(story, data, styles):
+    headers = data[0]
+    for record_index, row in enumerate(data[1:], start=1):
+        record_data = []
+        for column_index, header in enumerate(headers):
+            value = row[column_index] if column_index < len(row) else ""
+            record_data.append(
+                [
+                    Paragraph(f"<b>{_format_inline_markdown(header)}</b>", styles["record_label"]),
+                    Paragraph(_format_inline_markdown(value), styles["record_value"]),
+                ]
+            )
+        table = Table(record_data, colWidths=[4.1 * cm, 12.8 * cm], hAlign="LEFT")
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f6f8fb")),
+                    ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#d0d5dd")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
+        story.append(
+            KeepTogether(
+                [
+                    Paragraph(f"Record {record_index}", styles["record_heading"]),
+                    table,
+                    Spacer(1, 0.1 * cm),
+                ]
+            )
+        )
 
 
 def _markdown_to_story(markdown_text, styles):
@@ -335,7 +392,10 @@ def _markdown_to_story(markdown_text, styles):
             story.append(Paragraph(_format_inline_markdown(line[4:]), styles["h2"]))
         elif line.startswith("## "):
             _flush_bullets(story, bullet_items, styles)
-            story.append(Paragraph(_format_inline_markdown(line[3:]), styles["h1"]))
+            heading = line[3:]
+            if heading == "Human Review Sign-off":
+                story.append(PageBreak())
+            story.append(Paragraph(_format_inline_markdown(heading), styles["h1"]))
         elif line.startswith("# "):
             _flush_bullets(story, bullet_items, styles)
             story.append(Paragraph(_format_inline_markdown(line[2:]), styles["title"]))

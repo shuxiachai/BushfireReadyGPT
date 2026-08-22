@@ -374,20 +374,20 @@ PROJECT_MATURITY_ASSESSMENT = {
         {
             "priority": "P2",
             "area": "Automated testing",
-            "gap": "Unit, Streamlit and Chromium tests exist, but visual export regression and real-model quality benchmarking remain limited.",
-            "next_action": "Add rendered PDF/DOCX visual checks and a controlled real-Ollama scenario benchmark.",
+            "gap": "The main engineering paths have automated and visual regression evidence, but external users have not validated usefulness or comprehension.",
+            "next_action": "Keep the eight-case model suite and rendered export review as release gates; add scenarios only from measured pilot findings.",
         },
     ],
     "roadmap": [
         {
             "phase": "Now",
             "goal": "Demo-ready portfolio MVP",
-            "work": "Polish UI, keep demo scenarios reliable, use pilot export package for presentation.",
+            "work": "Use the current screenshots, video and governed sample package for presentation; keep release checks green.",
         },
         {
             "phase": "Next 2 weeks",
-            "goal": "Controlled pilot readiness",
-            "work": "Validate evidence labels, tighten licence review and source-status boundaries, and run the pilot feedback workflow.",
+            "goal": "Controlled pilot execution",
+            "work": "Recruit 3-5 reviewers, run the prepared protocol and record anonymised evidence and data-quality findings.",
         },
         {
             "phase": "Next 1-2 months",

@@ -112,9 +112,9 @@ rules:
       location_keywords: [cairns]
     risk_points:
       - Cairns planning should consider tropical heat, smoke exposure, heavy rain or severe weather interactions, and road disruption.
-      - Campus and community plans should identify candidate assembly points but must not treat them as confirmed safe until checked by campus management and official guidance.
-      - Power and communications outages can affect alerts, parent/student contact, refrigeration, lighting, and access to online warning information.
-      - Surrounding vegetation, access roads, and visitor or international student awareness should be considered in communication planning.
+      - Preparedness plans should identify candidate assembly point criteria but must not treat a location as confirmed safe until checked by the responsible organisation and official guidance.
+      - Power and communications outages can affect alerts, refrigeration, lighting, welfare checks, and access to official warning information.
+      - Surrounding vegetation, access roads, visitors, temporary residents, and seasonal population changes should be considered in communication planning.
     assumptions:
       - No live Cairns incident feed is connected.
       - Candidate assembly points require local verification before use.

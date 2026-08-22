@@ -68,8 +68,8 @@
       },
       {
         "path": "risk_context_rules.yml",
-        "size_bytes": 14988,
-        "sha256": "115de60b688780d4f011a385594e1e8686e4210d0304c75aa275565109c31755",
+        "size_bytes": 15015,
+        "sha256": "2794075cc5f1af6a1787ebbeb445d320c69bddd05a5c47b07290414d8bdfbc78",
         "scope": "Planning-context rules for all Australian states and territories",
         "source_period": "Repository snapshot; static planning guidance, not live risk data"
       },

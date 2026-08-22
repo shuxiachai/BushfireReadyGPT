@@ -118,7 +118,7 @@ def test_generation_prompt_excludes_organisation_and_reviewer_identity(monkeypat
 
     assert error is None
     assert response == "# Model draft"
-    assert len(model_client.prompts) == 2
+    assert len(model_client.prompts) == 3
     assert all("SECRET ORGANISATION IDENTITY" not in prompt for prompt in model_client.prompts)
     assert all("SECRET REVIEWER IDENTITY" not in prompt for prompt in model_client.prompts)
     assert all("SECRET REVIEWER ROLE" not in prompt for prompt in model_client.prompts)

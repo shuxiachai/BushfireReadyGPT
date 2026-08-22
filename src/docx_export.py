@@ -4,10 +4,13 @@ from io import BytesIO
 
 from docx import Document
 from docx.enum.section import WD_SECTION_START
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
+
+from src.export_content import extract_report_metadata, plain_markdown_text
 
 BODY_FONT = "Microsoft YaHei"
 DRAFT_NOTICE = "DRAFT - NOT EMERGENCY ADVICE - HUMAN REVIEW REQUIRED"
@@ -19,43 +22,13 @@ DRAFT_NOTICE_DETAIL = (
 
 
 def _plain_markdown_text(text):
-    text = re.sub(r"^#+\s*", "", text.strip())
-    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
-    text = re.sub(r"`(.+?)`", r"\1", text)
-    return text.strip()
-
-
-def _extract_report_title(markdown_text):
-    for raw_line in markdown_text.splitlines():
-        line = raw_line.strip()
-        if line.startswith("#"):
-            title = _plain_markdown_text(line)
-            if title and title.lower() != "bushfirereadygpt report":
-                return title
-    for raw_line in markdown_text.splitlines():
-        line = _plain_markdown_text(raw_line)
-        if line and len(line) <= 80:
-            return line
-    return "Australian Bushfire Preparedness Report"
+    return plain_markdown_text(text)
 
 
 def _extract_meta_from_report(markdown_text):
-    location = "To be confirmed"
-    audience = "To be confirmed"
-    for raw_line in markdown_text.splitlines():
-        line = _plain_markdown_text(raw_line)
-        location_match = re.match(r"^Location[:\s]+(.+)$", line, re.IGNORECASE)
-        audience_match = re.match(r"^Audience[:\s]+(.+)$", line, re.IGNORECASE)
-        if location_match:
-            location = location_match.group(1).strip()
-        if audience_match:
-            audience = audience_match.group(1).strip()
-    return {
-        "title": _extract_report_title(markdown_text),
-        "location": location,
-        "audience": audience,
-        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-    }
+    meta = extract_report_metadata(markdown_text)
+    meta["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    return meta
 
 
 def _set_run_font(run, font_name=BODY_FONT):
@@ -198,13 +171,61 @@ def _add_markdown_table(document, table_lines):
         return
     data = [_table_cells(line) for line in rows]
     column_count = max(len(row) for row in data)
+    if column_count > 4:
+        _add_record_tables(document, data)
+        return
     table = document.add_table(rows=len(data), cols=column_count)
     table.style = "Table Grid"
     for row_index, row_data in enumerate(data):
         for col_index in range(column_count):
             value = row_data[col_index] if col_index < len(row_data) else ""
             _set_cell_text(table.rows[row_index].cells[col_index], _plain_markdown_text(value), bold=row_index == 0)
+        if row_index == 0:
+            _set_row_flag(table.rows[row_index], "tblHeader")
+        if sum(len(value) for value in row_data) <= 900:
+            _set_row_flag(table.rows[row_index], "cantSplit")
     document.add_paragraph()
+
+
+def _set_cell_shading(cell, fill):
+    properties = cell._tc.get_or_add_tcPr()
+    shading = properties.find(qn("w:shd"))
+    if shading is None:
+        shading = OxmlElement("w:shd")
+        properties.append(shading)
+    shading.set(qn("w:fill"), fill)
+
+
+def _set_row_flag(row, flag):
+    properties = row._tr.get_or_add_trPr()
+    if properties.find(qn(f"w:{flag}")) is None:
+        properties.append(OxmlElement(f"w:{flag}"))
+
+
+def _add_record_tables(document, data):
+    headers = data[0]
+    for record_index, row_data in enumerate(data[1:], start=1):
+        label = document.add_paragraph(f"Record {record_index}")
+        label.paragraph_format.keep_with_next = True
+        _set_paragraph_font(label, size=9.5, color=(127, 42, 25), bold=True)
+
+        table = document.add_table(rows=len(headers), cols=2)
+        table.style = "Table Grid"
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.autofit = False
+        for row_index, header in enumerate(headers):
+            value = row_data[row_index] if row_index < len(row_data) else ""
+            label_cell, value_cell = table.rows[row_index].cells
+            label_cell.width = Cm(4.2)
+            value_cell.width = Cm(12.0)
+            _set_cell_shading(label_cell, "F6F8FB")
+            _set_cell_text(label_cell, _plain_markdown_text(header), bold=True)
+            _set_cell_text(value_cell, _plain_markdown_text(value))
+            _set_row_flag(table.rows[row_index], "cantSplit")
+            if row_index < len(headers) - 1:
+                for cell in table.rows[row_index].cells:
+                    cell.paragraphs[0].paragraph_format.keep_with_next = True
+        document.add_paragraph()
 
 
 def _add_markdown_body(document, markdown_text):
@@ -229,7 +250,10 @@ def _add_markdown_body(document, markdown_text):
             if heading.lower() != "bushfirereadygpt report":
                 document.add_heading(heading, level=1)
         elif line.startswith("## "):
-            document.add_heading(_plain_markdown_text(line), level=1)
+            heading = _plain_markdown_text(line)
+            if heading.lower() == "human review sign-off":
+                document.add_page_break()
+            document.add_heading(heading, level=1)
         elif line.startswith("### "):
             document.add_heading(_plain_markdown_text(line), level=2)
         elif line.startswith(("- [ ]", "- [x]", "- [X]")):

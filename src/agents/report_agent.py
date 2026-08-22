@@ -56,6 +56,9 @@ class ReportAgent:
         ]
         if community_result.get("data_source_note"):
             lines.append(f"- {community_result['data_source_note']}")
+        data_quality_lines = self._format_data_quality(community_result.get("data_quality", {}))
+        if data_quality_lines:
+            lines.extend(["", "Community Data Quality:", *data_quality_lines])
         geography_reference_lines = self._format_geography_reference(community_result.get("geography_reference", {}))
         if geography_reference_lines:
             lines.extend(["", "ABS ASGS Geography Reference:", *geography_reference_lines])
@@ -90,6 +93,21 @@ class ReportAgent:
                 lines.append(f"- Matched SA2 count: {indicators.get('matched_sa2_count')}")
 
         lines.extend(f"- {note}" for note in community_result.get("vulnerability_notes", []))
+        return lines
+
+    def _format_data_quality(self, data_quality):
+        if not data_quality:
+            return []
+        lines = [
+            f"- Source period: {data_quality.get('source_period') or 'Not recorded'}",
+            f"- Freshness: {data_quality.get('freshness') or 'Not assessed'}",
+            f"- Source age: {data_quality.get('source_age_years')} year(s)"
+            if data_quality.get("source_age_years") is not None
+            else "- Source age: Not available",
+            f"- Geographic match quality: {data_quality.get('match_quality') or 'Not assessed'}",
+            f"- Match basis: {data_quality.get('match_basis') or 'Not recorded'}",
+        ]
+        lines.extend(f"- Review warning: {warning}" for warning in data_quality.get("warnings", []))
         return lines
 
     def _format_geography_reference(self, geography_reference):

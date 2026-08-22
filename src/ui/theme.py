@@ -425,8 +425,7 @@ def apply_theme():
 
         div[data-testid="stExpander"],
         div[data-testid="stExpander"] details,
-        div[data-testid="stExpander"] summary,
-        div[data-testid="stExpander"] div {
+        div[data-testid="stExpander"] summary {
             background: #ffffff !important;
             color: var(--ink) !important;
         }
@@ -765,8 +764,7 @@ def apply_theme():
 
         div[data-testid="stExpander"],
         div[data-testid="stExpander"] details,
-        div[data-testid="stExpander"] summary,
-        div[data-testid="stExpander"] div {
+        div[data-testid="stExpander"] summary {
             background: rgba(13, 23, 33, 0.96) !important;
             color: var(--ink) !important;
         }
@@ -790,6 +788,10 @@ def apply_theme():
             border-radius: 12px !important;
             overflow: hidden;
             background: rgba(13, 23, 33, 0.96) !important;
+        }
+
+        div[data-testid="stExpander"] [data-testid="stDataFrame"] div {
+            background: transparent !important;
         }
 
         div[data-testid="stTabs"] [role="tablist"] {

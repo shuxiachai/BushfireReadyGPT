@@ -32,12 +32,12 @@ def render_agent_analysis_summary(get_active_map_selection_label):
 
 def _render_evidence_overview(community_result, get_active_map_selection_label):
     community_indicators = community_result.get("indicators", {})
-    data_source_note = safe_display_text(community_result.get("data_source_note"), "")
+    data_quality = community_result.get("data_quality", {})
     overview_items = [
         ("Matched area", safe_display_text(community_result.get("matched_location"), "Not matched")),
         ("Population", safe_display_text(community_indicators.get("population"))),
-        ("Matched SA2 count", safe_display_text(community_indicators.get("matched_sa2_count"))),
-        ("Data source", "ABS processed" if "processed" in data_source_note else "sample/other"),
+        ("Data freshness", safe_display_text(data_quality.get("freshness"), "Not assessed")),
+        ("Match quality", safe_display_text(data_quality.get("match_quality"), "Not assessed")),
     ]
     for col, (label, value) in zip(st.columns(4), overview_items):
         col.markdown(
@@ -157,6 +157,28 @@ def _render_community_evidence(community_result):
             st.markdown(f"- **{label}:** {value}")
     for note in community_result.get("vulnerability_notes", []):
         st.markdown(f"- {note}")
+    _render_community_data_quality(community_result.get("data_quality", {}))
+
+
+def _render_community_data_quality(data_quality):
+    st.markdown("#### Data Currency and Geographic Match")
+    if not data_quality:
+        st.warning("No structured data-quality assessment was recorded. Verify source age and geography manually.")
+        return
+    source_age = data_quality.get("source_age_years")
+    fields = [
+        ("Source period", data_quality.get("source_period")),
+        ("Latest source year", data_quality.get("latest_source_year")),
+        ("Source age at analysis", f"{source_age} year(s)" if source_age is not None else "Not available"),
+        ("Freshness", data_quality.get("freshness")),
+        ("Match quality", data_quality.get("match_quality")),
+        ("Match method", data_quality.get("match_method")),
+        ("Match basis", data_quality.get("match_basis")),
+    ]
+    for label, value in fields:
+        st.markdown(f"- **{label}:** {safe_display_text(value)}")
+    for warning in data_quality.get("warnings", []):
+        st.warning(safe_display_text(warning))
 
 
 def _render_geography_reference(geography_reference):
@@ -211,6 +233,7 @@ def _render_planning_evidence(data_result, community_result, knowledge_result, r
     limitations = list(data_result.get("data_limitations", []))
     if community_result.get("data_source_note"):
         limitations.append(community_result["data_source_note"])
+    limitations.extend((community_result.get("data_quality") or {}).get("warnings", []))
     limitations.extend(risk_context.get("assumptions", []))
     limitations.extend(knowledge_result.get("limitations", []))
     for limitation in limitations:

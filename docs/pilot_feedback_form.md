@@ -2,12 +2,17 @@
 
 ## Reviewer Details
 
-- Organisation:
-- Reviewer name:
-- Reviewer role:
+- Participant code (`P01`-`P05`):
+- Perspective / role category:
+- Organisation type (optional; do not record identifying details in Git):
 - Date:
 - Scenario tested:
 - Selected geography:
+- Workflow start / end time:
+- Tasks completed out of 8:
+- Facilitator help required:
+
+Do not enter names, contact details, personal information or sensitive organisational information in the repository copy of this form.
 
 ## Report Usefulness
 
@@ -36,6 +41,14 @@ Rate each item from 1 to 5.
 | The human review checklist was useful. |  |  |
 | The audit JSON would support internal review. |  |  |
 
+Evidence classes correctly explained without prompting:
+
+- [ ] O1 — official-source reference
+- [ ] P2 — processed official-origin data
+- [ ] R3 — deterministic rule inference
+- [ ] A4 — AI-generated draft synthesis, not evidence
+- [ ] U0 — user-provided or unverified context
+
 ## Missing Data Or Functionality
 
 Which data would you need before using this in a formal process?
@@ -58,6 +71,8 @@ Which data would you need before using this in a formal process?
 | Was it clear that outputs require human review? |  |  |
 | Was it clear that official sources must be checked? |  |  |
 | Were any statements too confident or operationally risky? |  |  |
+
+If an unsafe or misleading statement was observed, stop and record an issue using the severity definitions in `docs/pilot_protocol.md`.
 
 ## Export Formats
 

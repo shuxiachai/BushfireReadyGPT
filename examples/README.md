@@ -7,3 +7,4 @@ The examples are intended for demonstration and portfolio review. They are not l
 Available examples:
 
 - `cairns_campus_bushfire_report.md` - sample draft preparedness report for a Cairns campus scenario.
+- `v0.3.0/` - a current Cairns Council report in Markdown, PDF and DOCX plus the governed pilot export package.

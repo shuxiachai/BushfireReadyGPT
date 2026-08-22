@@ -23,7 +23,7 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 
 **Stage:** Government-pilot MVP
 
-**Current release:** `v0.2.1`
+**Current release:** `v0.3.0`
 
 Ready for:
 
@@ -69,14 +69,35 @@ Not ready for:
 - Made governed external-model calls stateless, tool-free and subject to an explicit per-session privacy acknowledgement.
 - Added a local hybrid RAG pipeline with nine page-level licensed sources covering all eight Australian states and territories, deterministic abstention and hard-negative evaluation.
 - Added a self-checking Windows launcher, an 8K-context Ollama model tuned for local GPU memory, and Windows CI coverage.
+- Added report-level data currency, source-age and geographic-match warnings so approximate or aging evidence is visible in the report and Evidence Trail.
+- Expanded real-model regression coverage to all six planning scenarios plus live-request refusal and no-RAG degradation cases.
+
+## Product Tour
+
+[Watch the 89-second local demo](docs/assets/bushfire-ready-gpt-demo.webm).
+
+| Create a governed draft | Inspect evidence and data quality |
+| --- | --- |
+| ![Create Report workflow](docs/assets/create-report.png) | ![Evidence review workflow](docs/assets/evidence-review.png) |
+
+| Review the generated report | Verify map and data status |
+| --- | --- |
+| ![Generated report preview](docs/assets/report-preview.png) | ![Data and map status](docs/assets/data-map.png) |
 
 ## Example Output
 
-For a quick view of the type of report this project produces, see:
+For a current, reproducible demonstration generated with the local model and
+verified RAG index, see:
 
-- [examples/cairns_campus_bushfire_report.md](examples/cairns_campus_bushfire_report.md) - sample draft report for a Cairns campus scenario.
+- [governed Markdown report](examples/v0.3.0/cairns-council-report.md)
+- [presentation-ready PDF](examples/v0.3.0/cairns-council-report.pdf)
+- [editable DOCX](examples/v0.3.0/cairns-council-report.docx)
+- [verified pilot export package](examples/v0.3.0/cairns-council-pilot-package.zip)
+- [sample package notes](examples/v0.3.0/README.md)
 
-The sample is a static demonstration output. It is not a live emergency plan and should not be used for real operational decisions.
+The earlier [Cairns campus sample](examples/cairns_campus_bushfire_report.md)
+remains as a lightweight historical example. All samples are demonstration
+drafts, not live emergency plans or operational instructions.
 
 ## Safety Boundary
 
@@ -246,10 +267,14 @@ Project and commercial context:
 - [docs/commercial_readiness_checklist.md](docs/commercial_readiness_checklist.md) - Commercial readiness checklist.
 - [docs/pilot_pitch.md](docs/pilot_pitch.md) - One-page pilot pitch.
 - [docs/pilot_feedback_form.md](docs/pilot_feedback_form.md) - Controlled pilot feedback form.
+- [docs/pilot_protocol.md](docs/pilot_protocol.md) - Executable 3-5 participant pilot protocol.
+- [docs/pilot_results.md](docs/pilot_results.md) - Honest pilot evidence register; external sessions are currently pending.
+- [docs/benchmarks/report-generation-v0.3.0.json](docs/benchmarks/report-generation-v0.3.0.json) - Eight-case real-Ollama regression result.
 
-Sample output:
+Sample output and release evidence:
 
-- [examples/cairns_campus_bushfire_report.md](examples/cairns_campus_bushfire_report.md) - static sample report for GitHub review.
+- [examples/v0.3.0/README.md](examples/v0.3.0/README.md) - current Markdown, PDF, DOCX and governed package.
+- [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md) - v0.3.0 scope, validation and limitations.
 
 ## Architecture Summary
 
@@ -295,6 +320,7 @@ src/report_workflow.py              Report generation, audit and human-review wo
 src/ui/                             Streamlit UI modules
 src/app_catalog.py                  Official sources, form options and pilot examples
 src/report_template.py              Fixed English report prompt and report structure
+src/data_quality.py                 Source currency and geographic-match assessment
 src/evidence_confidence.py          Shared O1 / P2 / R3 / A4 / U0 provenance rules
 src/agents/                         Australia-focused multi-agent pipeline
 src/rag/                            Local corpus, Ollama embeddings, Qdrant index and retrieval
@@ -310,6 +336,7 @@ src/export_register.py              Frozen report-time data/licence register sna
 src/export_package.py               Audit-bound pilot package creation and verification
 src/pdf_export.py                   PDF report export
 src/docx_export.py                  DOCX report export
+src/export_content.py               Shared report metadata extraction for exports
 data_australia/                     Australian metadata, rules and lightweight processed data
 scripts/                            Data download / rebuild scripts
 docs/                               Project, demo, governance and commercial-readiness docs
@@ -386,6 +413,13 @@ official corpus. It evaluates answerable and unanswerable queries separately and
 reports Recall@K, MRR, Top-1 accuracy, false-positive rate and latency by
 jurisdiction and category.
 
+The `v0.3.0` real-model regression contains eight cases: all six supported
+planning scenarios, a live-route safety-boundary case and a no-RAG degradation
+case. The committed sample verifier also checks the package schema and hashes,
+required report markers, PDF/DOCX readability and a dedicated DOCX human sign-off
+page. These checks are engineering regression evidence, not stakeholder or
+operational validation.
+
 GitHub Actions runs the same suite automatically on Python 3.11 and 3.13 for
 pushes to `main`, pull requests targeting `main`, and manual workflow runs. The
 workflow also checks installed dependency consistency and does not require an
@@ -446,7 +480,7 @@ Ignored local files include `.env`, `.venv/`, `.claude/`, `.agents/`, runtime ch
 
 Without expanding the feature set, the next polishing work is:
 
-- Keep README and docs aligned as the project changes.
+- Run the prepared 3-5 person controlled pilot and publish only anonymised, measured results.
 - Validate evidence labels and confidence boundaries with data, GIS and emergency-management reviewers.
-- Prepare a polished sample report package for one scenario.
 - Review licence and disclaimer language with a legal/risk advisor before any commercial positioning.
+- Add authenticated roles and externally anchored audit retention before any formal approval workflow.

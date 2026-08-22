@@ -4,6 +4,7 @@ from datetime import datetime
 
 from src.data_artifacts import get_data_artifact_status
 from src.data_paths import get_data_paths
+from src.data_quality import assess_source_period
 
 
 def _format_timestamp(path):
@@ -20,11 +21,26 @@ def _read_csv_rows(path):
         return list(csv.DictReader(file))
 
 
+def _active_source_period(paths, active_path):
+    if not paths.manifest.is_file():
+        return "Not recorded"
+    try:
+        payload = json.loads(paths.manifest.read_text(encoding="utf-8"))
+        relative_path = active_path.resolve().relative_to(paths.data_dir.resolve()).as_posix()
+    except (json.JSONDecodeError, OSError, ValueError):
+        return "Not recorded"
+    for artifact in payload.get("bundled_core", {}).get("artifacts", []):
+        if isinstance(artifact, dict) and artifact.get("path") == relative_path:
+            return artifact.get("source_period") or "Not recorded"
+    return "Not recorded"
+
+
 def get_community_data_status(data_paths=None):
     paths = data_paths or get_data_paths()
     artifact_status = get_data_artifact_status(paths)
     active_path = paths.community_profile if paths.community_profile.exists() else paths.community_sample
     rows = _read_csv_rows(active_path)
+    source_assessment = assess_source_period(_active_source_period(paths, active_path))
     raw_metadata = {}
     asgs_metadata = {}
 
@@ -51,6 +67,11 @@ def get_community_data_status(data_paths=None):
         "active_path": str(active_path),
         "active_type": ("ABS processed data" if active_path == paths.community_profile else "Sample fallback data"),
         "active_exists": active_path.exists(),
+        "source_period": source_assessment["source_period"],
+        "latest_source_year": source_assessment["latest_source_year"],
+        "source_age_years": source_assessment["source_age_years"],
+        "freshness": source_assessment["freshness"],
+        "freshness_assessed_for_year": source_assessment["assessed_for_year"],
         "row_count": len(rows),
         "locations": [row.get("location", "") for row in rows if row.get("location")],
         "mapping_summary": [

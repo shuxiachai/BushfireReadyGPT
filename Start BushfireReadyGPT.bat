@@ -16,9 +16,9 @@ if /I "%~1"=="--preflight" set "PREFLIGHT_ONLY=1"
 
 echo Checking the local environment...
 if defined PREFLIGHT_ONLY (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup.ps1" -SkipModels -SkipRag
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_app.ps1" -PreflightOnly
 ) else (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup.ps1"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_app.ps1"
 )
 set "EXIT_CODE=%ERRORLEVEL%"
 
@@ -31,17 +31,6 @@ if not "%EXIT_CODE%"=="0" (
 
 if defined PREFLIGHT_ONLY (
     echo BushfireReadyGPT launcher preflight passed.
-    exit /b 0
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_app.ps1"
-set "EXIT_CODE=%ERRORLEVEL%"
-
-if not "%EXIT_CODE%"=="0" (
-    echo.
-    echo BushfireReadyGPT stopped with exit code %EXIT_CODE%.
-    pause
-    exit /b %EXIT_CODE%
-)
-
-endlocal
+endlocal & exit /b %EXIT_CODE%

@@ -2,7 +2,7 @@
 
 ## Current Position
 
-BushfireReadyGPT `v0.2.1` is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, official source registers, human review controls and exportable report packages.
+BushfireReadyGPT `v0.3.0` is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, explicit data-quality warnings, official source registers, human review controls and exportable report packages.
 
 The strongest current use case is a controlled pilot demonstration for councils, schools, community organisations or internship assessment. It should still be presented as draft planning support, not as an operational emergency platform.
 
@@ -18,9 +18,10 @@ The strongest current use case is a controlled pilot demonstration for councils,
 | Local model runtime | Ollama is the default provider; an 8K dedicated model is called through a stateless, tool-free governed client. |
 | Official knowledge RAG | Nine page-level sources cover all states/territories with hybrid retrieval, abstention and answerable/unanswerable evaluation. |
 | Local setup | One self-checking Windows launcher reuses healthy dependencies, models and RAG assets and creates only missing or outdated components. |
-| Testing | 191 unit/integration tests plus one Chromium E2E pass with 85.26% coverage; four GitHub CI jobs cover Python 3.11, Python 3.13, Windows startup and Chromium. |
+| Testing | 209 automated tests, including Chromium E2E and committed sample verification, pass with 85.36% coverage; four GitHub CI jobs cover Python 3.11, Python 3.13, Windows startup and Chromium. |
+| Portfolio evidence | A current local-model Markdown/PDF/DOCX sample, governed package, screenshots, short demo video and controlled-pilot protocol are committed. External pilot results remain pending. |
 
-The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000` over 84 questions. The three-scenario real-Ollama report benchmark passed every structural, evidence-binding, attribution and safety gate in one attempt per scenario, averaging `26.24 seconds` on the release machine. These are regression baselines rather than production claims.
+The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000` over 84 questions. The eight-case real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation. Its committed run passed the structural, evidence-binding, attribution, topic, contamination and unsafe-claim gates, averaging `27.97 seconds` on the release machine. These are regression baselines rather than production claims or external user validation.
 
 ## Main Gaps
 
@@ -29,7 +30,7 @@ The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerab
 | P0 | Legal and licence review is incomplete | Commercial or government use requires clear reuse rights, liability boundaries and procurement-safe wording. | Keep outputs as drafts; expand the licence register; prepare a legal review brief. |
 | P0 | No authenticated approval workflow | Current reviewer fields are useful for pilots but not enough for formal approval records. | Add user roles, login, signed identities and externally anchored/WORM audit retention. |
 | P0 | No live emergency interpretation | The app must not imply real-time warnings, evacuation status or safety decisions. | Keep the official status panel as source reachability only; add stricter copy around non-decision use. |
-| P1 | Data matching is still pilot-level | Some geography and community vulnerability matches are approximations. | Validate the new P2/R3 confidence boundaries with data and GIS owners, then replace approximations where required. |
+| P1 | Data matching is still pilot-level | Source age and geographic-match quality are now visible, but some community vulnerability matches remain approximations. | Validate the new P2/R3 confidence and data-quality boundaries with data and GIS owners, then replace approximations where required. |
 | P1 | Accessibility and procurement readiness not checked | Government buyers often require accessibility, security and maintainability evidence. | Add WCAG review, deployment docs, privacy statement and security checklist. |
 | P1 | UI is visually stronger but still Streamlit-limited | Streamlit is fine for MVP, but commercial UX may need a dedicated frontend. | Keep Streamlit for demo; plan a future React/FastAPI version if commercial traction appears. |
 | P2 | No persistent database | Current local files are fine for prototypes but weak for multi-user pilots. | Add SQLite/PostgreSQL for reports, audits, users and data refresh logs. |
@@ -58,17 +59,21 @@ The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerab
 - Added HTTPS-only external endpoints, interrupted-stream handling and structural repair without provider-side conversation memory.
 - Added a single self-checking Windows launcher, startup/preflight CI, concurrent source reachability checks, formatting enforcement and a complexity ceiling.
 - Added a Python 3.13 Qdrant/SQLite compatibility shim, raised the coverage gate to 85% and verified dependencies against the public vulnerability database.
+- Added source-period, latest-year, age, freshness and geographic-match warnings to governed reports and Evidence Trail views.
+- Expanded the real-model benchmark from three cases to all six scenarios plus safety-boundary and no-RAG behavior cases.
+- Built and hash-verified a current Cairns Council Markdown/PDF/DOCX sample package, then visually reviewed every PDF and DOCX page.
+- Added current product screenshots, a short demo video and a repeatable 3-5 person controlled-pilot protocol with an honest pending-results register.
 
 ## Suggested Next Build Order
 
 1. **Controlled stakeholder validation**
-   Run the existing pilot feedback workflow with school or council reviewers and record which report sections and evidence labels they can use reliably.
+   Run the prepared protocol with 3-5 school, council or community reviewers and record anonymised measures without turning engineering tests into user-validation claims.
 
 2. **Evidence confidence validation**
-   Review O1 / P2 / R3 / A4 / U0 labels with data, GIS and emergency-management stakeholders and add dataset freshness metadata.
+   Review O1 / P2 / R3 / A4 / U0 labels and the implemented freshness/match warnings with data, GIS and emergency-management stakeholders.
 
-3. **Commercial pilot package**
-   Prepare a one-page pilot proposal, feedback form, sample report and export package for one council or school scenario.
+3. **Legal and licence review brief**
+   Turn the current source/licence register and safety language into a review pack for a qualified legal or risk advisor.
 
 4. **Approval workflow v2**
    Add named user roles and immutable approval records so a report can move from draft to reviewed to approved.

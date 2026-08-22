@@ -37,6 +37,10 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - In-memory session isolation by default and optional single-user JSON persistence without executable pickle loading.
 - Audit-bound Markdown, PDF, DOCX, audit JSON and pilot export package with frozen registers and recursive parent lineage.
 - Demo Mode, Presentation Mode and sample scenario pack.
+- Source currency, age, freshness and geographic-match quality displayed in reports and Evidence Trail views.
+- Eight-case real-model regression covering every planning scenario, safety-boundary behavior and no-RAG degradation.
+- A current hash-verified Cairns Council sample package with rendered PDF/DOCX visual review.
+- Product screenshots, a short demo video and a ready-to-run controlled-pilot protocol.
 
 ## Main Gaps
 
@@ -48,14 +52,14 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | P1 | User testing | The report format has not been validated by real school/council/community reviewers. | Run a controlled pilot with 3-5 reviewers using the pilot feedback form. |
 | P1 | Authentication and approval | Reviewer fields exist, but there are no user accounts, permissions or signed approval states. | Design roles for drafter, reviewer and admin; later add login and immutable approval records. |
 | P2 | Deployment | The app runs locally, but is not packaged for secure hosting. | Add Docker, environment profiles, health checks, logs and deployment notes. |
-| P2 | Automated testing | Unit, integration, Streamlit AppTest, Chromium, retrieval evaluation and a three-scenario real-Ollama benchmark cover the main paths, but visual export regression and the real-model sample remain limited. | Add rendered PDF/DOCX visual checks and grow the governed real-model scenario set from stakeholder feedback. |
+| P2 | Automated testing | Unit, integration, Streamlit AppTest, Chromium, retrieval evaluation, an eight-case real-Ollama benchmark and sample-package verification cover the main engineering paths. External users have not validated usefulness or comprehension. | Keep the eight-case suite as a regression baseline; add scenarios only from measured pilot findings and keep visual review in the release process. |
 
 ## Recommended Roadmap
 
 | Phase | Goal | Work |
 | --- | --- | --- |
-| Now | Demo-ready portfolio MVP | Polish UI, keep demo scenarios reliable, use pilot export package for presentation. |
-| Next 2 weeks | Controlled pilot readiness | Validate evidence labels, tighten licence review and source-status boundaries, and run the pilot feedback workflow. |
+| Now | Demo-ready portfolio MVP | Use the current screenshots, video and governed sample package for presentation; keep release checks green. |
+| Next 2 weeks | Controlled pilot execution | Recruit 3-5 reviewers, run the prepared protocol, validate evidence/data-quality labels and record anonymised results. |
 | Next 1-2 months | Stakeholder pilot | Test with school/council/community reviewers and refine report templates from feedback. |
 | Commercial path | Procurement-ready product concept | Add authentication, deployment hardening, privacy controls, legal review and data agreements. |
 

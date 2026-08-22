@@ -143,6 +143,26 @@ def _available_port():
         return listener.getsockname()[1]
 
 
+def _fill_review_field(page, label, value, *, textarea=False):
+    from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+    from playwright.sync_api import expect
+
+    selector = "textarea" if textarea else "input"
+    last_error = None
+    for _attempt in range(4):
+        try:
+            review_tab = page.get_by_role("tab", name="Review & Export", exact=True)
+            review_tab.click()
+            expect(review_tab).to_have_attribute("aria-selected", "true", timeout=15_000)
+            field = page.locator(f'{selector}[aria-label="{label}"]:visible').last
+            expect(field).to_be_editable(timeout=15_000)
+            field.fill(value, timeout=15_000)
+            return
+        except PlaywrightTimeoutError as error:
+            last_error = error
+    raise last_error
+
+
 def _wait_for_health(process, health_url, timeout_seconds=45):
     deadline = time.monotonic() + timeout_seconds
     last_error = None
@@ -379,6 +399,7 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                     encoding="utf-8"
                 )
 
+                page.wait_for_timeout(1_000)
                 page.get_by_role("tab", name="Review & Export", exact=True).click()
                 expect(
                     page.get_by_role(
@@ -387,13 +408,16 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                         exact=True,
                     ).last
                 ).to_be_visible()
-                reviewer_name = page.locator('input[aria-label="Reviewer name"]:visible')
-                reviewer_name.fill("Browser E2E Reviewer")
-                page.locator('input[aria-label="Reviewer role / title"]:visible').fill("School safety reviewer")
-                page.locator('input[aria-label="Organisation / department"]:visible').fill("Cairns Campus Pilot")
-                page.locator('textarea[aria-label="Review notes"]:visible').fill(
-                    "Reviewed through the automated browser workflow."
+                _fill_review_field(page, "Reviewer name", "Browser E2E Reviewer")
+                _fill_review_field(page, "Reviewer role / title", "School safety reviewer")
+                _fill_review_field(page, "Organisation / department", "Cairns Campus Pilot")
+                _fill_review_field(
+                    page,
+                    "Review notes",
+                    "Reviewed through the automated browser workflow.",
+                    textarea=True,
                 )
+                page.get_by_role("tab", name="Review & Export", exact=True).click()
                 page.get_by_role("button", name="Update sign-off record", exact=True).click()
 
                 expect(page.get_by_text("Sign-off section updated in the latest report.", exact=True)).to_be_visible()

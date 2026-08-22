@@ -165,12 +165,13 @@ def render_data_status():
         """,
         unsafe_allow_html=True,
     )
-    cols = st.columns(4)
+    cols = st.columns(5)
     metrics = [
         ("Bundled core", status["core_status"]),
         ("National map", status["optional_map_status"]),
         ("Integrity", status["integrity_status"]),
         ("Active data", status["active_type"]),
+        ("Freshness", status["freshness"]),
     ]
     for col, (label, value) in zip(cols, metrics):
         col.markdown(
@@ -191,6 +192,15 @@ def render_data_status():
             st.markdown(f"- **National map detail:** {escape(safe_display_text(status['optional_map_error']))}")
         render_path_line("Agent active file", status["active_path"])
         st.markdown(f"- **Active rows:** {status['row_count']}")
+        st.markdown(f"- **Declared source period:** {status['source_period']}")
+        st.markdown(f"- **Latest source year:** {status['latest_source_year'] or 'Not recorded'}")
+        source_age = status.get("source_age_years")
+        source_age_label = f"{source_age} year(s)" if source_age is not None else "Not available"
+        st.markdown(
+            f"- **Source age at {status['freshness_assessed_for_year']}:** "
+            f"{source_age_label}"
+        )
+        st.markdown(f"- **Freshness assessment:** {status['freshness']}")
         st.markdown(f"- **Processed file updated:** {status['updated_at']}")
         render_path_line("ABS raw response", status["raw_path"])
         st.markdown(f"- **Raw file updated:** {status['raw_updated_at']}")

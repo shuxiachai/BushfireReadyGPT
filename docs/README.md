@@ -8,7 +8,7 @@ If you only have a few minutes, read these in order:
 
 1. `project_overview.md` - what the project is and what it is not.
 2. `demo_walkthrough.md` - how to demonstrate the app.
-3. `../examples/cairns_campus_bushfire_report.md` - what a generated report looks like.
+3. `../examples/v0.3.0/README.md` - current Markdown, PDF, DOCX and governed package.
 4. `commercial_gap_assessment.md` - what remains before commercial or government use.
 
 ## Start Here
@@ -24,9 +24,12 @@ If you only have a few minutes, read these in order:
 
 | File | Purpose |
 | --- | --- |
-| `../examples/cairns_campus_bushfire_report.md` | Static sample output for GitHub and portfolio review. |
+| `../examples/v0.3.0/README.md` | Current local-model sample in Markdown, PDF and DOCX plus its governed package. |
+| `assets/bushfire-ready-gpt-demo.webm` | 89-second local product demonstration. |
 | `pilot_pitch.md` | One-page pilot pitch for councils, schools or community stakeholders. |
 | `pilot_feedback_form.md` | Structured feedback form for a controlled stakeholder pilot. |
+| `pilot_protocol.md` | Privacy-minimised 3-5 person controlled-pilot procedure and completion gate. |
+| `pilot_results.md` | Anonymised result register; it remains explicitly pending until real sessions run. |
 | `demo_scenarios.md` | Written reference for the built-in demo scenarios. |
 
 ## Technical And Governance Materials
@@ -42,6 +45,8 @@ If you only have a few minutes, read these in order:
 | `releases/v0.1.0.md` | Scope, highlights, validation and limitations for the first public MVP release. |
 | `releases/v0.2.0.md` | RAG, local setup, safety hardening and validation notes for the portfolio release. |
 | `releases/v0.2.1.md` | Launcher, performance, model-runtime, UI and test hardening maintenance release. |
+| `releases/v0.3.0.md` | Data-quality, scenario benchmark, sample package, visual QA and pilot-readiness release. |
+| `benchmarks/report-generation-v0.3.0.json` | Machine-readable eight-case real-Ollama regression result. |
 
 ## Removed Redundant Docs
 
@@ -64,13 +69,14 @@ For a stakeholder or pilot discussion:
 
 1. Start with `pilot_pitch.md`.
 2. Demonstrate using `demo_walkthrough.md`.
-3. Collect feedback with `pilot_feedback_form.md`.
-4. Discuss maturity using `commercial_gap_assessment.md`.
+3. Run sessions with `pilot_protocol.md` and collect feedback with `pilot_feedback_form.md`.
+4. Record anonymised evidence in `pilot_results.md`.
+5. Discuss maturity using `commercial_gap_assessment.md`.
 
 For GitHub reviewers:
 
 1. Start from the root `README.md`.
-2. Open the sample output in `examples/`.
+2. Open the current sample output in `examples/v0.3.0/`.
 3. Read `architecture.md` only if they want implementation details.
 4. Read `rag.md` for the retrieval design and evaluation story.
 5. Read `commercial_gap_assessment.md` to understand current limits.

@@ -75,14 +75,17 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - Evidence tables and audit records.
 - Evidence provenance labels that separate official references, processed data, deterministic inference, AI prose and unverified inputs.
 - Export to Markdown, PDF, DOCX and pilot package zip.
+- Visible source-period, source-age, freshness and geographic-match warnings in the report and Evidence Trail.
+- A current Cairns Council sample package, product screenshots and a short demonstration video.
 - Commercial gap and project maturity assessment.
 
-## Current Validation (`v0.2.1`)
+## Current Validation (`v0.3.0`)
 
-- `191` unit and integration tests plus `1` Chromium end-to-end workflow pass.
-- Source coverage is `85.26%`; CI enforces an `85%` minimum on Python 3.11 and 3.13 and also validates Windows startup.
+- `209` automated tests, including the Chromium end-to-end workflow, pass.
+- Source coverage is `85.36%`; CI enforces an `85%` minimum on Python 3.11 and 3.13 and also validates Windows startup.
 - The 84-question RAG baseline records Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000`.
-- Three real-Ollama report scenarios passed every structural, evidence-binding, source-attribution and safety gate in one attempt, averaging `26.24 seconds` on the release machine.
+- Eight real-Ollama cases cover all six planning scenarios, live-request refusal and no-RAG degradation. The committed run passed every structural, evidence-binding, attribution, topic, contamination and unsafe-claim gate, averaging `27.97 seconds` on the release machine.
+- The committed sample package passes hash/schema checks and rendered PDF/DOCX visual review; the DOCX sign-off begins on a dedicated page.
 - Ruff, formatting, Bandit, dependency consistency and the public vulnerability audit pass.
 
 These figures are release regression signals, not production accuracy or hardware-independent performance claims.
@@ -97,6 +100,7 @@ These figures are release regression signals, not production accuracy or hardwar
 - Its quality checks verify structure and safety wording only; they do not establish factual, legal or operational correctness.
 - Browser state is isolated in memory by default; optional JSON persistence is single-user only and is not a multi-user database.
 - It still requires legal, licence, security, privacy and user testing before commercial or government use.
+- The controlled-pilot protocol is ready, but external participant sessions have not yet run; engineering tests are not user validation.
 
 ## Best Current Positioning
 

@@ -2,6 +2,13 @@
 
 This folder already contains the main materials needed to present BushfireReadyGPT as a working MVP. Use this document as the starting point when preparing an internship presentation, portfolio review, supervisor update or early stakeholder demo.
 
+Current visual and sample assets:
+
+- `docs/assets/bushfire-ready-gpt-demo.webm` — 89-second local demonstration;
+- `docs/assets/*.png` — current Create Report, report, evidence, map and readiness views;
+- `examples/v0.3.0/` — governed Cairns Council Markdown, PDF, DOCX and pilot package;
+- `docs/benchmarks/report-generation-v0.3.0.json` — eight-case real-model regression evidence.
+
 ## Recommended Reading Order
 
 | Purpose | Document | Use it for |
@@ -13,6 +20,8 @@ This folder already contains the main materials needed to present BushfireReadyG
 | Current maturity and gaps | `docs/project_reassessment.md` | Explain what is already working and what is still missing before commercial use. |
 | Commercial readiness | `docs/commercial_gap_assessment.md` | Discuss the gap between the MVP and a procurement-ready product. |
 | Feedback collection | `docs/pilot_feedback_form.md` | Collect structured feedback from a school, council or community reviewer. |
+| Controlled pilot execution | `docs/pilot_protocol.md` | Run a consistent, privacy-minimised 3-5 person evaluation. |
+| Pilot evidence status | `docs/pilot_results.md` | Record anonymised measures and clearly distinguish pending from completed validation. |
 
 ## Suggested Presentation Structure
 

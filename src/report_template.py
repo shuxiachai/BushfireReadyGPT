@@ -99,6 +99,7 @@ def build_evidence_tables(analysis):
     selected_asgs = geography_reference.get("selected_asgs_area") or {}
     lga_candidates = geography_reference.get("lga_candidates", [])
     indicators = community.get("indicators", {})
+    data_quality = community.get("data_quality", {})
     confidence_rows = analysis.get("evidence_confidence") or build_evidence_confidence_rows(analysis)
 
     lines = [
@@ -161,6 +162,24 @@ def build_evidence_tables(analysis):
             f"| Language support need | {_md_value(indicators.get('language_support_needed'))} | [R3] Threshold-based interpretation of processed data |",
             f"| Matched SA2 count | {_md_value(indicators.get('matched_sa2_count'))} | [P2] Processed geographic aggregation |",
             f"| Transport vulnerability | {_md_value(indicators.get('no_car_households_pct'))} | [U0] To be confirmed if blank |",
+            "",
+            "### Evidence Table 2A: Data Currency and Geographic Match",
+            "",
+            "| Field | Assessment | Human review requirement |",
+            "| --- | --- | --- |",
+            f"| Source period | {_md_value(data_quality.get('source_period'))} | Confirm the source period is suitable for the decision |",
+            f"| Latest source year | {_md_value(data_quality.get('latest_source_year'))} | Compare with current official or organisational data |",
+            f"| Source age at analysis | {_md_value(_with_unit(data_quality.get('source_age_years'), 'years'))} | Treat older indicators as a planning baseline |",
+            f"| Freshness assessment | {_md_value(data_quality.get('freshness'))} | Do not infer current conditions from historical indicators |",
+            f"| Geographic match quality | {_md_value(data_quality.get('match_quality'))} | {_md_value(data_quality.get('match_basis'))} |",
+            f"| Match method | {_md_value(data_quality.get('match_method'))} | Confirm the statistical geography matches the operational area |",
+            "",
+            "**Data quality warnings**",
+            "",
+            *(
+                [f"- {_md_value(warning)}" for warning in data_quality.get("warnings", [])]
+                or ["- No structured data-quality assessment was recorded; verify source age and geographic match manually."]
+            ),
             "",
             "### Evidence Table 3: LGA 2025 Candidate Reference",
             "",
@@ -253,6 +272,7 @@ def build_evidence_tables(analysis):
     )
     limitations = []
     limitations.extend(data_result.get("data_limitations", []))
+    limitations.extend(data_quality.get("warnings", []))
     limitations.extend(geography_reference.get("limitations", []))
     limitations.extend(risk_context.get("assumptions", []))
     limitations.extend(knowledge.get("limitations", []))

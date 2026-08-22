@@ -315,12 +315,22 @@ class ReportQualityAgent:
     def _extract_sections(self, text):
         sections = {}
         current = None
+        current_level = None
+        known_sections = {heading.lower() for heading in self.REQUIRED_SECTION_HEADINGS}
         for line in text.splitlines():
-            match = re.match(r"^ {0,3}#{1,6}\s+(.+?)\s*$", line)
+            match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*$", line)
             if match:
-                heading = re.sub(r"^\d+[.)]\s*", "", match.group(1).strip()).lower()
-                current = heading
-                sections.setdefault(current, [])
+                level = len(match.group(1))
+                heading = re.sub(r"^\d+[.)]\s*", "", match.group(2).strip()).lower()
+                if heading in known_sections:
+                    current = heading
+                    current_level = level
+                    sections.setdefault(current, [])
+                elif current is not None and level > current_level:
+                    sections[current].append(match.group(2).strip())
+                else:
+                    current = None
+                    current_level = None
             elif current is not None:
                 sections[current].append(line)
         return {heading: "\n".join(lines) for heading, lines in sections.items()}

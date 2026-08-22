@@ -8,7 +8,9 @@ from zipfile import ZipFile
 
 import httpx
 import pytest
+from docx import Document
 from openai import APIConnectionError, APIStatusError
+from pypdf import PdfReader
 
 from src import session_store
 from src.agents import run_analysis_pipeline
@@ -20,12 +22,19 @@ from src.coverage_map import get_coverage_table, load_coverage_geojson
 from src.data_paths import PROJECT_ROOT, DataPaths
 from src.data_status import get_community_data_status
 from src.docx_export import create_report_docx
+from src.export_content import extract_report_metadata
 from src.export_package import create_pilot_export_package
 from src.export_register import build_export_register_snapshot
 from src.governance import DRAFT_STATUS, build_review_checklist_snapshot
 from src.licence_register import get_licence_register, licence_register_csv
 from src.model_runtime import model_service_error_message
 from src.pdf_export import create_report_pdf
+from src.report_generation_quality import (
+    assess_generated_narrative,
+    attributed_rag_source_ids,
+    build_report_repair_prompt,
+    normalize_generated_narrative,
+)
 from src.report_template import (
     append_evidence_tables,
     append_human_signoff,
@@ -193,6 +202,9 @@ def test_data_and_licence_registers_load():
 
     assert status["active_exists"] is True
     assert status["row_count"] >= 1
+    assert status["source_period"] == "2021 Census and 2022 ERP fields"
+    assert status["latest_source_year"] == 2022
+    assert status["source_age_years"] >= 0
     assert licences["licence_register"]
     assert "source_name" in licence_csv
 
@@ -272,9 +284,12 @@ def test_runtime_community_path_override_is_shared_by_map_agent_and_status(
     assert paths.community_profile == override_path.resolve()
     assert map_rows[0]["location"] == "Testville"
     assert agent_result["matched_location"] == "Testville, New South Wales"
+    assert agent_result["data_quality"]["source_period"] == "2026"
     assert pipeline_result["community"]["matched_location"] == "Testville, New South Wales"
+    assert pipeline_result["community"]["data_quality"]["latest_source_year"] == 2026
     assert status["active_path"] == str(override_path.resolve())
     assert status["locations"] == ["Testville"]
+    assert status["freshness"] == "Unknown source age"
 
 
 def test_coverage_geojson_cache_is_scoped_to_the_resolved_path(monkeypatch, tmp_path):
@@ -353,6 +368,64 @@ def test_report_exporters_create_valid_pdf_and_docx_files():
 
     assert "word/document.xml" in names
     assert "docProps/core.xml" in names
+
+
+def test_governed_export_metadata_uses_report_values_instead_of_structural_title():
+    governed_report = """# 1. Title
+## Title
+Bushfire Preparedness Planning Report for Cairns, Queensland - Draft for Human Review
+
+## Evidence Tables
+- U0 User-provided / unverified context: location: Cairns, Queensland; audience: Council resilience officers
+"""
+
+    metadata = extract_report_metadata(governed_report)
+
+    assert metadata == {
+        "title": "Bushfire Preparedness Planning Report for Cairns, Queensland - Draft for Human Review",
+        "location": "Cairns, Queensland",
+        "audience": "Council resilience officers",
+    }
+
+
+def test_wide_export_table_becomes_readable_record_layout():
+    wide_report = """# Evidence report
+
+| Source | Page | Hybrid score | Dense score | BM25 score | Document date | Passage hash | URL |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Official source | web / 1 | 1.0 | 0.55 | 8.30 | 2024-02-26 | abcdef0123456789 | https://example.gov.au/long/source/path |
+"""
+
+    docx_content = create_report_docx(wide_report)
+    pdf_content = create_report_pdf(wide_report)
+
+    document = Document(BytesIO(docx_content))
+    table_column_counts = [len(table.columns) for table in document.tables]
+    pdf_text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(pdf_content)).pages)
+
+    assert max(table_column_counts) <= 4
+    assert any(paragraph.text == "Record 1" for paragraph in document.paragraphs)
+    assert "Record 1" in pdf_text
+    assert "Official source" in pdf_text
+
+
+def test_pdf_human_signoff_starts_on_a_dedicated_page():
+    report = """# Sample report
+
+Preparedness planning content.
+
+## Human Review Sign-off
+
+| Field | Value |
+| --- | --- |
+| Review status | Draft - human review required |
+"""
+
+    pages = [page.extract_text() or "" for page in PdfReader(BytesIO(create_report_pdf(report))).pages]
+    signoff_page = next(index for index, text in enumerate(pages) if "Human Review Sign-off" in text)
+
+    assert signoff_page >= 2
+    assert "Human Review Sign-off" not in pages[signoff_page - 1]
 
 
 def test_pilot_export_package_includes_report_formats_and_manifest_boundary(tmp_path, monkeypatch):
@@ -569,6 +642,84 @@ def test_quality_agent_does_not_treat_week_one_as_an_immediate_action():
     result = ReportQualityAgent()._check_action_plan("## Action Plan\nWeek 1: consider assigning an owner.")
 
     assert result["status"] == "fail"
+
+
+def test_quality_agent_counts_nested_subsection_content_under_required_heading():
+    sections = ReportQualityAgent()._extract_sections(
+        """## 8. Evacuation Planning
+### Warning Monitoring
+Monitor official warnings and nominate a responsible officer before each review cycle.
+### Accountability
+Maintain a locally approved roll-call process and record unresolved gaps.
+## 9. Candidate Assembly Point Criteria
+Use criteria that require local approval before a candidate location is treated as suitable.
+"""
+    )
+
+    assert "official warnings" in sections["evacuation planning"]
+    assert "roll-call process" in sections["evacuation planning"]
+    assert "local approval" in sections["candidate assembly point criteria"]
+
+
+def test_repair_prompt_omits_full_previous_response_to_protect_local_context_window():
+    previous = "PRIVATE-INCOMPLETE-DRAFT " * 1000
+    prompt = build_report_repair_prompt(
+        "Original governed request",
+        previous,
+        {"approval_gate": {"blocking_failures": [{"name": "Required sections", "detail": "missing"}]}},
+    )
+
+    assert "Original governed request" in prompt
+    assert "PRIVATE-INCOMPLETE-DRAFT" not in prompt
+    assert f"previous {len(previous)}-character response" in prompt
+
+
+def test_generated_checklist_bullets_are_normalized_without_changing_other_sections():
+    narrative = """## 14. Human Review and Approval Checklist
+- Confirm geography.
+* Confirm official sources.
+1. Record approval status.
+## 15. Safety Disclaimer
+- This ordinary bullet must stay ordinary.
+"""
+
+    normalized = normalize_generated_narrative(narrative)
+
+    assert "- [ ] Confirm geography." in normalized
+    assert "- [ ] Confirm official sources." in normalized
+    assert "- [ ] Record approval status." in normalized
+    assert "- This ordinary bullet must stay ordinary." in normalized
+
+
+def test_generated_quality_blocks_missing_rag_source_attribution():
+    quality = assess_generated_narrative(
+        "## Data Sources and Limitations\nOfficial sources must be verified.",
+        {
+            "knowledge": {
+                "retrieved_chunks": [
+                    {"title": "Your Bushfire Plan", "agency": "Country Fire Authority"}
+                ]
+            }
+        },
+    )
+
+    failures = quality["approval_gate"]["blocking_failures"]
+    assert any(item["name"] == "RAG source attribution" for item in failures)
+
+
+def test_rag_source_attribution_accepts_recognised_agency_acronym():
+    attributed = attributed_rag_source_ids(
+        "The draft uses DFES preparedness guidance and still requires local verification.",
+        [
+            {
+                "source_id": "wa_prepare_bushfire",
+                "title": "Prepare for a bushfire",
+                "agency": "Department of Fire and Emergency Services Western Australia",
+            }
+        ],
+    )
+
+    assert attributed == {"wa_prepare_bushfire"}
 
 
 def test_incomplete_report_body_fails_quality_and_cannot_be_approved():
