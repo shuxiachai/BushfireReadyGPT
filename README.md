@@ -207,7 +207,7 @@ Or run from PowerShell:
 powershell -ExecutionPolicy Bypass -File .\start_app.ps1
 ```
 
-The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It records the active project port locally, avoids launching a duplicate instance, and automatically selects an available port from `8501` to `8505`. Streamlit is explicitly bound to `127.0.0.1` with usage telemetry disabled. Keep the terminal open while using the app. Press `Ctrl + C` or close this terminal to stop Streamlit and release the port.
+The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It records the active project port locally, avoids launching a duplicate instance, and automatically selects an available port from `8501` to `8505`. Once the health check passes, the launcher opens the default browser; running the launcher again reopens the existing app. Streamlit is explicitly bound to `127.0.0.1` with usage telemetry disabled. Keep the terminal open while using the app. Press `Ctrl + C` or close this terminal to stop Streamlit and release the port.
 
 ## Demo Path
 

@@ -94,6 +94,17 @@ function Test-OllamaModelAvailable {
     return @($expectedNames | Where-Object { $availableNames -contains $_ }).Count -gt 0
 }
 
+function Open-AppBrowser {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    try {
+        Start-Process -FilePath $Url | Out-Null
+        Write-Host "Opened BushfireReadyGPT in the default browser: $Url"
+    } catch {
+        Write-Warning "The browser could not be opened automatically. Open this address manually: $Url"
+    }
+}
+
 & $python -c "import bs4, defusedxml, docx, openai, pydeck, pypdf, qdrant_client, reportlab, requests, streamlit, yaml; from src.data_artifacts import validate_data_manifest; from src.rag.corpus import load_source_catalog; from src.data_paths import get_data_paths; p=get_data_paths(); validate_data_manifest(p.manifest, data_dir=p.data_dir); load_source_catalog(p.rag_sources, rag_dir=p.rag_dir)"
 if ($LASTEXITCODE -ne 0) {
     throw "Application dependencies or bundled data failed validation. Run 'Start BushfireReadyGPT.bat' to repair the environment."
@@ -110,7 +121,9 @@ if (Test-Path $portMarker) {
         try {
             $health = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:$markedPort/_stcore/health" -TimeoutSec 2
             if ($health.StatusCode -eq 200 -and $health.Content.Trim().ToLowerInvariant() -eq "ok") {
-                Write-Host "BushfireReadyGPT is already running at http://localhost:$markedPort"
+                $runningUrl = "http://localhost:$markedPort"
+                Write-Host "BushfireReadyGPT is already running at $runningUrl"
+                Open-AppBrowser -Url $runningUrl
                 exit 0
             }
         } catch {
@@ -211,14 +224,55 @@ Write-Host "Keep this terminal open while using the app. Press Ctrl+C or close t
 
 New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
 Set-Content -LiteralPath $portMarker -Value $selectedPort -Encoding UTF8
+$appUrl = "http://localhost:$selectedPort"
+$healthUrl = "http://127.0.0.1:$selectedPort/_stcore/health"
+$streamlitProcess = $null
 $streamlitExitCode = 0
 try {
-    & $python -m streamlit run src/wildfireChat.py `
-        --server.port $selectedPort `
-        --server.address 127.0.0.1 `
-        --browser.gatherUsageStats false
-    $streamlitExitCode = $LASTEXITCODE
+    $streamlitProcess = Start-Process -FilePath $python `
+        -ArgumentList @(
+            "-m", "streamlit", "run", "src/wildfireChat.py",
+            "--server.port", $selectedPort,
+            "--server.address", "127.0.0.1",
+            "--browser.gatherUsageStats", "false",
+            "--server.headless", "true"
+        ) `
+        -WorkingDirectory $projectRoot `
+        -NoNewWindow `
+        -PassThru
+
+    $serverReady = $false
+    for ($attempt = 1; $attempt -le 120; $attempt++) {
+        if ($streamlitProcess.HasExited) {
+            break
+        }
+        try {
+            $health = Invoke-WebRequest -UseBasicParsing $healthUrl -TimeoutSec 1
+            if ($health.StatusCode -eq 200 -and $health.Content.Trim().ToLowerInvariant() -eq "ok") {
+                $serverReady = $true
+                break
+            }
+        } catch {
+            # Streamlit is still starting.
+        }
+        Start-Sleep -Milliseconds 250
+    }
+
+    if (-not $serverReady) {
+        if ($streamlitProcess.HasExited) {
+            throw "Streamlit stopped during startup with exit code $($streamlitProcess.ExitCode)."
+        }
+        Stop-Process -Id $streamlitProcess.Id -Force -ErrorAction SilentlyContinue
+        throw "Streamlit did not become ready at $appUrl within 30 seconds."
+    }
+
+    Open-AppBrowser -Url $appUrl
+    $streamlitProcess.WaitForExit()
+    $streamlitExitCode = $streamlitProcess.ExitCode
 } finally {
+    if ($streamlitProcess) {
+        $streamlitProcess.Dispose()
+    }
     if (Test-Path $portMarker) {
         $currentMarker = (Get-Content -Encoding UTF8 $portMarker -ErrorAction SilentlyContinue | Select-Object -First 1)
         if ($currentMarker -eq [string]$selectedPort) {
