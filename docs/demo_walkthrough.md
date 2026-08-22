@@ -4,7 +4,15 @@ Use this walkthrough for a live demonstration. It assumes the app is already ins
 
 ## Before The Demo
 
-Start the app from VSCode:
+Double-click the single self-checking launcher:
+
+```text
+Start BushfireReadyGPT.bat
+```
+
+The launcher reuses valid dependencies, models and the RAG index, starts Ollama
+when needed, waits for Streamlit health, and opens the browser. Alternatively,
+start the same workflow from VSCode:
 
 ```text
 Ctrl + Shift + P
@@ -12,7 +20,7 @@ Tasks: Run Task
 Start BushfireReadyGPT
 ```
 
-Or start it from PowerShell:
+Or run its PowerShell implementation directly:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\start_app.ps1
@@ -32,7 +40,7 @@ Show:
 
 - App title and hero section.
 - Sidebar safety boundary.
-- Mission Workspace tabs.
+- Planning Workspace tabs.
 
 Key point:
 
@@ -148,7 +156,7 @@ Data & Map
 Show:
 
 - Coverage Analysis Tools
-- Official Status Panel
+- Official Source Reachability
 - Official Sources
 - Data Status
 - Data Register

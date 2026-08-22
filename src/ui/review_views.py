@@ -14,7 +14,7 @@ def render_agent_analysis_summary(get_active_map_selection_label):
     if not analysis:
         return
 
-    with st.expander("Evidence Trail", expanded=False):
+    with st.expander("Evidence Trail", expanded=True):
         _render_evidence_overview(analysis.get("community", {}), get_active_map_selection_label)
         _render_confidence_provenance(analysis)
         _render_profile_and_sources(analysis.get("profile", {}), analysis.get("data", {}))

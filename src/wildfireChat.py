@@ -194,7 +194,7 @@ def render_conversation_history():
 
 
 def render_workspace_tabs():
-    st.markdown("### Mission Workspace")
+    st.markdown("### Planning Workspace")
     create_tab, review_tab, data_tab, demo_tab, readiness_tab = st.tabs(
         [
             "Create Report",
@@ -277,7 +277,11 @@ render_sidebar(
 render_header()
 render_workspace_tabs()
 
-if user_prompt := st.chat_input("Request a wording or content revision; change geography in the form"):
+user_prompt = None
+if st.session_state.get("latest_report"):
+    user_prompt = st.chat_input("Request a wording or content revision; change geography in the form")
+
+if user_prompt:
     with st.chat_message("user"):
         st.markdown(user_prompt)
 

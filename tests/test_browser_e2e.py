@@ -345,9 +345,18 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 page = context.new_page()
                 page.goto(app_url, wait_until="domcontentloaded", timeout=60_000)
                 expect(
-                    page.get_by_role("heading", name="BushfireReadyGPT Command Workspace", exact=True)
+                    page.get_by_role(
+                        "heading",
+                        name="BushfireReadyGPT Preparedness Planning Workspace",
+                        exact=True,
+                    )
                 ).to_be_visible(timeout=30_000)
 
+                pilot_example = page.get_by_label("Pilot example", exact=True)
+                pilot_example.click()
+                pilot_example.press("ArrowDown")
+                pilot_example.press("Enter")
+                expect(pilot_example).to_have_value("Cairns Council pilot")
                 page.get_by_role("button", name="Load example", exact=True).click()
                 expect(page.get_by_label("Location", exact=True)).to_have_value("Cairns, Queensland")
                 expect(page.get_by_label("Audience", exact=True)).to_have_value(
@@ -371,8 +380,6 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 )
 
                 page.get_by_role("tab", name="Review & Export", exact=True).click()
-                review_panel = page.get_by_label("Review & Export")
-                review_panel.get_by_text("Evidence Trail", exact=True).click()
                 expect(
                     page.get_by_role(
                         "heading",
@@ -380,11 +387,13 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                         exact=True,
                     ).last
                 ).to_be_visible()
-                reviewer_name = page.get_by_label("Reviewer name", exact=True).last
+                reviewer_name = page.locator('input[aria-label="Reviewer name"]:visible')
                 reviewer_name.fill("Browser E2E Reviewer")
-                page.get_by_label("Reviewer role / title", exact=True).fill("School safety reviewer")
-                page.get_by_label("Organisation / department", exact=True).last.fill("Cairns Campus Pilot")
-                page.get_by_label("Review notes", exact=True).fill("Reviewed through the automated browser workflow.")
+                page.locator('input[aria-label="Reviewer role / title"]:visible').fill("School safety reviewer")
+                page.locator('input[aria-label="Organisation / department"]:visible').fill("Cairns Campus Pilot")
+                page.locator('textarea[aria-label="Review notes"]:visible').fill(
+                    "Reviewed through the automated browser workflow."
+                )
                 page.get_by_role("button", name="Update sign-off record", exact=True).click()
 
                 expect(page.get_by_text("Sign-off section updated in the latest report.", exact=True)).to_be_visible()

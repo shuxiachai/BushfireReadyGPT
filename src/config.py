@@ -104,7 +104,7 @@ def validate_model_endpoint(endpoint):
 
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "ollama").lower()
 MODEL_TIMEOUT_SECONDS = _positive_number("BUSHFIRE_MODEL_TIMEOUT_SECONDS", 120.0)
-MODEL_MAX_TOKENS = _positive_number("BUSHFIRE_MODEL_MAX_TOKENS", 4096, integer=True)
+MODEL_MAX_TOKENS = _positive_number("BUSHFIRE_MODEL_MAX_TOKENS", 2300, integer=True)
 MODEL_TEMPERATURE = _positive_number(
     "BUSHFIRE_MODEL_TEMPERATURE",
     0.2,

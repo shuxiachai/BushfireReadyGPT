@@ -1,6 +1,7 @@
 FROM qwen2.5:7b
 
-# The governed prompt plus a complete planning report exceeds Ollama's 4K
-# default. Keep this project-specific rather than changing Ollama globally.
-PARAMETER num_ctx 16384
+# The governed prompt and bounded narrative fit within 8K. Keeping the
+# 8K project-specific context reduces local GPU memory pressure and
+# makes it more likely that the embedding and report models can remain loaded.
+PARAMETER num_ctx 8192
 PARAMETER temperature 0.7

@@ -16,6 +16,7 @@ from src.rag.corpus import (
     source_artifact_records,
 )
 from src.rag.errors import RagError
+from src.rag.qdrant import load_qdrant
 
 RAG_INDEX_SCHEMA = "bushfire-rag-index-v2"
 RAG_CHUNKER_VERSION = "paragraph-word-window-v1"
@@ -142,10 +143,7 @@ def build_rag_index(settings, embedder, *, max_words=420, overlap_words=60):
         raise RagError("rag_embedding_invalid", "RAG embedding vectors have inconsistent dimensions.")
     dimension = dimensions.pop()
 
-    try:
-        from qdrant_client import QdrantClient, models
-    except ImportError as error:
-        raise RagError("rag_dependency_missing", "qdrant-client is not installed.") from error
+    QdrantClient, models = load_qdrant()
 
     with _index_lock(settings):
         _recover_index_publish(target)

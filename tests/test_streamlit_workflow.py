@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from src.assistants.assistant import THREAD_MESSAGES
 from src.audit import get_audit_chain_paths, load_and_verify_audit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -189,7 +188,6 @@ def _remove_test_files():
 @pytest.fixture
 def isolated_app_storage():
     _remove_test_files()
-    THREAD_MESSAGES.clear()
     with (
         patch("src.session_store.SESSION_STATE_PATH", str(TEST_SESSION_PATH)),
         patch("src.session_store.INTERACTION_LOG_PATH", str(TEST_INTERACTION_PATH)),
@@ -197,7 +195,6 @@ def isolated_app_storage():
         patch("src.coverage_map.is_area_selection_available", return_value=False),
     ):
         yield
-    THREAD_MESSAGES.clear()
     _remove_test_files()
 
 
@@ -281,7 +278,7 @@ def test_load_example_populates_report_form(isolated_app_storage):
 
 def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_storage):
     with patch(
-        "src.assistants.assistant_router.AssistantRouter.get_governed_response",
+        "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
         return_value=MOCK_REPORT,
     ) as model_call:
@@ -311,7 +308,7 @@ def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
         "Confirm accessible routes and two candidate assembly point options",
     )
     with patch(
-        "src.assistants.assistant_router.AssistantRouter.get_governed_response",
+        "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
         side_effect=[MOCK_REPORT, MOCK_REPORT, revised_report],
     ) as model_call:
@@ -354,7 +351,7 @@ def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
 
 def test_approval_creates_append_only_audit_event_and_updates_signoff(isolated_app_storage):
     with patch(
-        "src.assistants.assistant_router.AssistantRouter.get_governed_response",
+        "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
         return_value=QUALITY_PASSING_REPORT,
     ):
@@ -390,7 +387,7 @@ def test_approval_creates_append_only_audit_event_and_updates_signoff(isolated_a
 
 def test_blocked_approval_does_not_mutate_authoritative_review_state(isolated_app_storage):
     with patch(
-        "src.assistants.assistant_router.AssistantRouter.get_governed_response",
+        "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
         return_value=MOCK_REPORT,
     ):
@@ -427,7 +424,7 @@ def test_external_model_disclosure_is_visible_and_unconfirmed_request_is_blocked
         patch("src.ui.report_views.MODEL_ENDPOINT_DISPLAY", remote_endpoint),
         patch("src.ui.report_views.LLM_PROVIDER", "ollama"),
         patch(
-            "src.assistants.assistant_router.AssistantRouter.get_governed_response",
+            "src.model_runtime.GovernedModelClient.generate",
             autospec=True,
             return_value=MOCK_REPORT,
         ) as model_call,

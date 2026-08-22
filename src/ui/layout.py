@@ -6,7 +6,7 @@ def render_header():
         """
         <section class="app-hero">
             <div class="app-kicker">Australian Bushfire Preparedness Intelligence</div>
-            <h1 class="app-title">BushfireReadyGPT Command Workspace</h1>
+            <h1 class="app-title">BushfireReadyGPT Preparedness Planning Workspace</h1>
             <p class="app-subtitle">
                 A government-pilot style preparedness planning assistant for Australian councils,
                 schools and communities. Complete the form to generate a structured English draft

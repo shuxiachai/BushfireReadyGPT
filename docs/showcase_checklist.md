@@ -7,8 +7,8 @@ Use this checklist before presenting BushfireReadyGPT.
 - [ ] Ollama is installed.
 - [ ] The configured Ollama model is available.
 - [ ] `.env` exists and points to the local Ollama endpoint.
-- [ ] The VSCode task `Start BushfireReadyGPT` is available.
-- [ ] The app starts from `start_app.ps1`.
+- [ ] `Start BushfireReadyGPT.bat` completes its environment checks.
+- [ ] Re-running the launcher reopens the existing app instead of starting a duplicate.
 - [ ] The browser opens a local Streamlit URL.
 
 ## 2. Core Demo Flow
@@ -36,7 +36,7 @@ Use this checklist before presenting BushfireReadyGPT.
 - [ ] The `Data & Map` tab opens.
 - [ ] Geography / coverage controls are visible.
 - [ ] Official Sources are visible.
-- [ ] Official Status Panel is visible.
+- [ ] Official Source Reachability is visible.
 - [ ] Data Status / Data Sources are visible.
 - [ ] Licence Register is visible.
 - [ ] You can explain that the map is not a live fire map.
@@ -87,7 +87,7 @@ If the model does not respond:
 
 - Check that Ollama is running.
 - Check that the model in `.env` is installed.
-- Restart from VSCode task.
+- Re-run `Start BushfireReadyGPT.bat`.
 
 If export fails:
 

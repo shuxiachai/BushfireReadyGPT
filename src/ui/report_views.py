@@ -29,8 +29,9 @@ def render_model_privacy_boundary():
             "**Fields sent for generation:** location, audience, scenario, focus areas, timeframe, "
             "additional context, selected geography, deterministic analysis/evidence context, and any "
             "static official passages retrieved by the local RAG index.\n\n"
-            "**Fields sent for revision:** the revision request and current report body, excluding the "
-            "Human Review Sign-off. Organisation and reviewer identity fields are not sent."
+            "**Fields sent for revision:** the revision request and model-authored report narrative. "
+            "Organisation and reviewer identity fields are not sent. Deterministic evidence tables and the "
+            "Human Review Sign-off are also excluded."
         )
         st.warning(
             "The provider's logging, retention, training and deletion practices depend on the configured "
@@ -74,10 +75,14 @@ def render_report_form(
 
     case_col, action_col = st.columns([2, 1])
     with case_col:
-        selected_case = st.selectbox("Pilot example", list(EXAMPLE_CASES.keys()), key="selected_example_case")
+        selected_case = st.selectbox(
+            "Pilot example",
+            ["Choose an example", *EXAMPLE_CASES],
+            key="selected_example_case",
+        )
     with action_col:
         st.markdown("<div style='height: 1.78rem;'></div>", unsafe_allow_html=True)
-        if st.button("Load example", width="stretch"):
+        if st.button("Load example", width="stretch", disabled=selected_case not in EXAMPLE_CASES):
             load_example_case(selected_case)
             st.rerun()
 
@@ -107,8 +112,7 @@ def render_report_form(
                 CONCERN_OPTIONS,
                 key="form_concerns",
             )
-            st.text_input("Reviewer name", key="reviewer_name")
-            st.text_input("Reviewer role", key="reviewer_role")
+            st.caption("Reviewer identity and approval status are recorded in Review & Export after generation.")
 
         map_label = get_active_map_selection_label()
         if map_label:

@@ -1,0 +1,10 @@
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = "none"
+
+[server]
+address = "127.0.0.1"
+headless = true

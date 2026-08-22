@@ -8,10 +8,9 @@ from uuid import uuid4
 import streamlit as st
 
 from src.app_state import WELCOME_MESSAGE, normalise_loaded_messages
-from src.assistants.assistant import clear_thread_messages, replace_thread_messages
-from src.assistants.assistant_router import AssistantRouter
 from src.data_artifacts import atomic_write_json
 from src.governance import DRAFT_STATUS, HUMAN_REVIEW_CHECKLIST
+from src.model_runtime import GovernedModelClient
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +47,11 @@ def initialize_state():
             ]
 
         st.session_state.session_id = uuid4().hex
-        st.session_state.assistant = AssistantRouter("ChecklistAssistant")
-        sync_thread_messages()
+        st.session_state.model_client = GovernedModelClient()
         st.rerun()
 
-    if "assistant" not in st.session_state:
-        st.session_state.assistant = AssistantRouter("ChecklistAssistant")
+    if "model_client" not in st.session_state:
+        st.session_state.model_client = GovernedModelClient()
 
     if "latest_analysis" not in st.session_state:
         st.session_state.latest_analysis = None
@@ -72,16 +70,6 @@ def initialize_state():
 
     if "session_id" not in st.session_state:
         st.session_state.session_id = uuid4().hex
-
-
-def sync_thread_messages():
-    if "assistant" not in st.session_state or "messages" not in st.session_state:
-        return
-    thread_id = st.session_state.assistant.current_thread.id
-    # Persisted UI messages may contain reviewer identity in governed sign-off
-    # sections. A restored model thread always starts clean; report revision adds
-    # a separately sanitised current report to its prompt.
-    replace_thread_messages(thread_id, [])
 
 
 def _hydrate_restored_review_widgets(report_record):
@@ -147,11 +135,6 @@ def persist_session_state():
 
 
 def clear_conversation():
-    assistant = st.session_state.get("assistant")
-    current_thread = getattr(assistant, "current_thread", None)
-    current_thread_id = getattr(current_thread, "id", None)
-    if current_thread_id:
-        clear_thread_messages(current_thread_id)
     for path in [
         SESSION_STATE_PATH,
         INTERACTION_LOG_PATH,

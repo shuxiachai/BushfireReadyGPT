@@ -12,6 +12,8 @@ This report is a preparedness planning draft. It is not emergency advice, does n
 Safety disclaimer: live warnings, fire bans, evacuation orders and life-safety decisions must come from official emergency services and authorised public information sources.
 """
 
+REPORT_NARRATIVE_WORD_BUDGET = "900 to 1,200 words"
+
 
 def apply_governance_notice(report_text):
     text = (report_text or "").strip()
@@ -400,6 +402,7 @@ Follow this fixed report structure. Do not omit sections and do not change the s
 {section_text}
 
 Formatting and safety requirements:
+- Keep the model-authored narrative between {REPORT_NARRATIVE_WORD_BUDGET}, excluding the deterministic Evidence Tables and Human Review Sign-off appended by the application. Prefer one concise paragraph per narrative section and compact tables with only decision-useful rows.
 - Start the report with this exact notice block:
 {GOVERNANCE_NOTICE_MARKDOWN}
 - Write in formal English suitable for a government, school, council or community preparedness pilot.

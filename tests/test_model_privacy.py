@@ -7,7 +7,7 @@ from src.config import (
     validate_model_endpoint,
 )
 from src.export_register import build_export_register_snapshot
-from src.report_template import append_human_signoff
+from src.report_template import append_evidence_tables, append_human_signoff
 
 
 class SessionState(dict):
@@ -21,23 +21,20 @@ class SessionState(dict):
         self[name] = value
 
 
-class CapturingAssistant:
+class CapturingModelClient:
     def __init__(self):
         self.prompts = []
 
-    def get_assistant_response(self, prompt):
+    def generate(self, prompt):
         self.prompts.append(prompt)
         return "# Model draft"
 
 
-class GovernedOnlyAssistant:
+class GovernedOnlyModelClient:
     def __init__(self):
         self.prompts = []
 
-    def get_assistant_response(self, _prompt):
-        raise AssertionError("Governed workflows must not use the stateful legacy route.")
-
-    def get_governed_response(self, prompt):
+    def generate(self, prompt):
         self.prompts.append(prompt)
         return "# Isolated model draft"
 
@@ -80,20 +77,20 @@ def test_external_model_endpoint_requires_https_and_clean_authority():
             raise AssertionError(f"Unsafe endpoint was accepted: {endpoint}")
 
 
-def test_governed_workflow_prefers_the_isolated_tool_free_route(monkeypatch):
-    assistant = GovernedOnlyAssistant()
-    state = SessionState({"assistant": assistant})
+def test_governed_workflow_uses_the_stateless_tool_free_client(monkeypatch):
+    model_client = GovernedOnlyModelClient()
+    state = SessionState({"model_client": model_client})
     monkeypatch.setattr(report_workflow, "st", SimpleNamespace(session_state=state))
 
     assert report_workflow._call_governed_model("private current report prompt") == ("# Isolated model draft")
-    assert assistant.prompts == ["private current report prompt"]
+    assert model_client.prompts == ["private current report prompt"]
 
 
 def test_generation_prompt_excludes_organisation_and_reviewer_identity(monkeypatch):
-    assistant = CapturingAssistant()
+    model_client = CapturingModelClient()
     state = SessionState(
         {
-            "assistant": assistant,
+            "model_client": model_client,
             "pilot_mode": "Council Community Preparedness",
             "organisation_name": "SECRET ORGANISATION IDENTITY",
             "reviewer_name": "SECRET REVIEWER IDENTITY",
@@ -121,14 +118,15 @@ def test_generation_prompt_excludes_organisation_and_reviewer_identity(monkeypat
 
     assert error is None
     assert response == "# Model draft"
-    assert len(assistant.prompts) == 2
-    assert all("SECRET ORGANISATION IDENTITY" not in prompt for prompt in assistant.prompts)
-    assert all("SECRET REVIEWER IDENTITY" not in prompt for prompt in assistant.prompts)
-    assert all("SECRET REVIEWER ROLE" not in prompt for prompt in assistant.prompts)
+    assert len(model_client.prompts) == 2
+    assert all("SECRET ORGANISATION IDENTITY" not in prompt for prompt in model_client.prompts)
+    assert all("SECRET REVIEWER IDENTITY" not in prompt for prompt in model_client.prompts)
+    assert all("SECRET REVIEWER ROLE" not in prompt for prompt in model_client.prompts)
+    assert "900 to 1,200 words" in model_client.prompts[0]
 
 
 def test_revision_prompt_excludes_human_review_signoff(monkeypatch, tmp_path):
-    assistant = CapturingAssistant()
+    model_client = CapturingModelClient()
     draft_status = "Draft - human review required"
     review_record = {
         "approval_status": draft_status,
@@ -136,11 +134,14 @@ def test_revision_prompt_excludes_human_review_signoff(monkeypatch, tmp_path):
         "organisation_name": "SECRET ORGANISATION IDENTITY",
     }
     current_report = append_human_signoff(
-        """# Governed report
+        append_evidence_tables(
+            """# Governed report
 
 ## Executive Summary
 Preparedness content.
 """,
+            {},
+        ),
         review_record,
     )
     register_snapshot = build_export_register_snapshot()
@@ -172,7 +173,7 @@ Preparedness content.
             "export_register_snapshot": register_snapshot,
         }
     )
-    state = SessionState({"assistant": assistant, "latest_report": report_record})
+    state = SessionState({"model_client": model_client, "latest_report": report_record})
     monkeypatch.setattr(report_workflow, "st", SimpleNamespace(session_state=state))
     monkeypatch.setattr(report_workflow, "MODEL_ENDPOINT_IS_LOCAL", True)
     monkeypatch.setattr(
@@ -185,17 +186,19 @@ Preparedness content.
 
     assert error is None
     assert response == "# Model draft"
-    assert "## Human Review Sign-off" not in assistant.prompts[0]
-    assert "SECRET REVIEWER IDENTITY" not in assistant.prompts[0]
-    assert "SECRET ORGANISATION IDENTITY" not in assistant.prompts[0]
-    assert "## Executive Summary" in assistant.prompts[0]
+    assert "## Human Review Sign-off" not in model_client.prompts[0]
+    assert "SECRET REVIEWER IDENTITY" not in model_client.prompts[0]
+    assert "SECRET ORGANISATION IDENTITY" not in model_client.prompts[0]
+    assert "## Executive Summary" in model_client.prompts[0]
+    assert "## Evidence Tables" not in model_client.prompts[0]
+    assert "900 to 1,200 words" in model_client.prompts[0]
 
 
 def test_external_model_requests_require_operator_permission_and_session_acknowledgement(monkeypatch):
-    assistant = CapturingAssistant()
+    model_client = CapturingModelClient()
     state = SessionState(
         {
-            "assistant": assistant,
+            "model_client": model_client,
             "latest_report": {"text": "# Existing report"},
             "latest_analysis": {},
             "external_model_acknowledged": True,
@@ -215,13 +218,13 @@ def test_external_model_requests_require_operator_permission_and_session_acknowl
 
     assert response is None
     assert "BUSHFIRE_ALLOW_EXTERNAL_MODEL=true" in error
-    assert assistant.prompts == []
+    assert model_client.prompts == []
 
     response, error = report_workflow.revise_current_report("Clarify wording.", lambda: None)
 
     assert response is None
     assert "BUSHFIRE_ALLOW_EXTERNAL_MODEL=true" in error
-    assert assistant.prompts == []
+    assert model_client.prompts == []
 
     monkeypatch.setattr(report_workflow, "EXTERNAL_MODEL_ALLOWED", True)
     state["external_model_acknowledged"] = False
@@ -230,4 +233,4 @@ def test_external_model_requests_require_operator_permission_and_session_acknowl
 
     assert response is None
     assert "browser session" in error
-    assert assistant.prompts == []
+    assert model_client.prompts == []

@@ -339,6 +339,33 @@ def test_retrieved_prompt_context_treats_passage_as_untrusted():
     assert context.count("</retrieved-official-evidence>") == 1
 
 
+def test_retrieved_prompt_context_bounds_each_passage_and_total_context():
+    chunks = [
+        {
+            "source_id": f"official-{index}",
+            "chunk_id": f"chunk-{index}",
+            "page": index,
+            "score": 0.9,
+            "chunk_sha256": str(index) * 64,
+            "title": f"Official test {index}",
+            "agency": "Test agency",
+            "url": f"https://example.gov.au/test-{index}",
+            "text": f"START-{index} " + ("planning evidence " * 500) + f" END-{index}",
+        }
+        for index in range(3)
+    ]
+
+    context = format_retrieved_context(
+        {"retrieved_chunks": chunks},
+        max_characters=3000,
+        max_chunk_characters=800,
+    )
+
+    assert "START-0" in context
+    assert "END-0" not in context
+    assert len(context) <= 3000
+
+
 def test_agent_report_evidence_and_minimal_audit_bind_retrieval_without_raw_text():
     knowledge = {
         "status": "ready",

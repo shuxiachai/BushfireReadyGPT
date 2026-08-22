@@ -19,8 +19,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 from src.agents import run_analysis_pipeline  # noqa: E402
 from src.agents.report_quality_agent import ReportQualityAgent  # noqa: E402
-from src.assistants.assistant import ModelServiceError  # noqa: E402
-from src.assistants.assistant_router import AssistantRouter  # noqa: E402
+from src.model_runtime import GovernedModelClient, ModelServiceError  # noqa: E402
 from src.report_generation_quality import (  # noqa: E402
     assess_generated_narrative,
     build_report_repair_prompt,
@@ -68,16 +67,13 @@ def _run_scenario(scenario):
         analysis=analysis,
         governance_context=_governance_context(),
     )
-    assistant = AssistantRouter("ChecklistAssistant")
+    model_client = GovernedModelClient()
     generation_attempts = 1
-    try:
-        narrative = assistant.get_governed_response(prompt)
-        initial_quality = assess_generated_narrative(narrative, analysis)
-        if initial_quality.get("approval_gate", {}).get("passed") is not True:
-            generation_attempts += 1
-            narrative = assistant.get_governed_response(build_report_repair_prompt(prompt, narrative, initial_quality))
-    finally:
-        assistant.clear_model_history()
+    narrative = model_client.generate(prompt)
+    initial_quality = assess_generated_narrative(narrative, analysis)
+    if initial_quality.get("approval_gate", {}).get("passed") is not True:
+        generation_attempts += 1
+        narrative = model_client.generate(build_report_repair_prompt(prompt, narrative, initial_quality))
     report = apply_governance_notice(narrative)
     report = append_evidence_tables(report, analysis)
     report = append_human_signoff(report, {"report_status": "Draft - human review required"})

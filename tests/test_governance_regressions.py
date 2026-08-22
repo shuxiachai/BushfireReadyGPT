@@ -8,14 +8,14 @@ from zipfile import ZipFile
 
 import pytest
 
-from src import audit, report_workflow, session_store
+from src import audit, report_workflow
 from src.agents import run_analysis_pipeline
 from src.agents.profile_agent import ProfileAgent
 from src.agents.risk_context_agent import RiskContextAgent
-from src.assistants.assistant import THREAD_MESSAGES, ModelServiceError
 from src.export_package import create_pilot_export_package
 from src.export_register import REGISTER_SNAPSHOT_FILES, export_register_snapshot_hashes
 from src.governance import build_review_checklist_snapshot
+from src.model_runtime import ModelServiceError
 from src.report_template import append_human_signoff
 
 _RAW_SAVE_REPORT_AUDIT = audit.save_report_audit
@@ -158,29 +158,6 @@ def test_explicit_queensland_state_prevents_perth_local_risk_match():
     assert "western_australia_general" not in result["matched_rule_ids"]
 
 
-def test_restored_ui_messages_never_seed_provider_history(monkeypatch):
-    thread_id = "restored-private-session"
-    state = SessionState(
-        {
-            "assistant": SimpleNamespace(current_thread=SimpleNamespace(id=thread_id)),
-            "messages": [
-                {
-                    "role": "assistant",
-                    "content": "Reviewer: PRIVATE NAME\nAudience: PRIVATE AUDIENCE",
-                }
-            ],
-        }
-    )
-    monkeypatch.setattr(session_store, "st", SimpleNamespace(session_state=state))
-    THREAD_MESSAGES[thread_id] = [{"role": "user", "content": "stale provider history"}]
-
-    try:
-        session_store.sync_thread_messages()
-        assert THREAD_MESSAGES[thread_id] == []
-    finally:
-        THREAD_MESSAGES.pop(thread_id, None)
-
-
 def test_package_context_is_bound_to_latest_report_snapshot(monkeypatch):
     state = SessionState(
         {
@@ -228,15 +205,15 @@ def test_package_context_is_bound_to_latest_report_snapshot(monkeypatch):
 
 
 def test_model_failure_does_not_replace_prior_analysis_or_report(monkeypatch):
-    class FailingAssistant:
-        def get_governed_response(self, _prompt):
+    class FailingModelClient:
+        def generate(self, _prompt):
             raise ModelServiceError("simulated model outage")
 
     prior_analysis = {"profile": {"location": "Prior location"}}
     prior_report = {"id": "prior-report", "version": 1, "text": "# Prior report"}
     state = SessionState(
         {
-            "assistant": FailingAssistant(),
+            "model_client": FailingModelClient(),
             "latest_analysis": prior_analysis,
             "latest_report": prior_report,
             "messages": [{"role": "assistant", "content": "existing"}],

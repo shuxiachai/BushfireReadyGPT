@@ -90,7 +90,7 @@ def render_official_sources():
 
 
 def render_official_status_panel():
-    st.markdown("### Live Official Status Panel")
+    st.markdown("### Official Source Reachability")
     st.markdown(
         """
         <div class="source-note">

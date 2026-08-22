@@ -24,7 +24,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - Form-first report generation instead of generic chatbot flow.
 - Local Ollama model service, no OpenAI API requirement.
 - Local hybrid RAG with page-level provenance, all-jurisdiction coverage, hard-negative evaluation and deterministic abstention.
-- One-click Windows setup, startup preflight and a dedicated 16K-context report model.
+- Self-checking Windows launcher, startup preflight and a dedicated 8K-context report model.
 - Local multi-agent analysis pipeline with visible Evidence Trail.
 - A bundled small demo map plus optional all-Australia SA2/SA3/SA4 map selection.
 - ABS ASGS allocation and LGA 2025 reference data.
@@ -63,6 +63,6 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 
 The project is no longer just a modified chatbot. It is now a coherent Australian bushfire preparedness planning MVP with data evidence, multi-agent analysis, report exports and review governance.
 
-The project now includes a **Live Official Status Panel** that checks official source entry-point availability and timestamped status without making emergency decisions.
+The project now includes **Official Source Reachability**, which checks official source entry-point availability and timestamped status without making emergency decisions.
 
 The project also includes a **Licence Register**. The next high-value commercial step is to turn that register from a pilot assumption document into a reviewed legal/commercial decision record.

@@ -5,7 +5,6 @@ from types import SimpleNamespace
 import pytest
 
 from src import audit, session_store
-from src.assistants.assistant import THREAD_MESSAGES
 from src.report_template import append_human_signoff
 
 
@@ -160,7 +159,7 @@ def test_tampered_audit_cannot_receive_a_new_event(tmp_path, monkeypatch):
         )
 
 
-def test_clear_conversation_removes_current_thread_but_preserves_local_artifacts(tmp_path, monkeypatch):
+def test_clear_conversation_removes_session_but_preserves_governed_artifacts(tmp_path, monkeypatch):
     session_path = tmp_path / "session.json"
     interaction_path = tmp_path / "interaction.jsonl"
     audit_path = tmp_path / "audit.json"
@@ -168,10 +167,8 @@ def test_clear_conversation_removes_current_thread_but_preserves_local_artifacts
     for path in (session_path, interaction_path, audit_path, saved_report_path):
         path.write_text("retained test content", encoding="utf-8")
 
-    thread_id = "current-private-thread"
-    THREAD_MESSAGES[thread_id] = [{"role": "user", "content": "private"}]
     state = {
-        "assistant": SimpleNamespace(current_thread=SimpleNamespace(id=thread_id)),
+        "model_client": SimpleNamespace(),
         "messages": [{"role": "user", "content": "private"}],
     }
     rerun_calls = []
@@ -185,7 +182,6 @@ def test_clear_conversation_removes_current_thread_but_preserves_local_artifacts
 
     session_store.clear_conversation()
 
-    assert thread_id not in THREAD_MESSAGES
     assert state == {}
     assert not session_path.exists()
     assert not interaction_path.exists()

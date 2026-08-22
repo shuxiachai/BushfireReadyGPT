@@ -21,7 +21,7 @@ This version has been rebuilt around an Australian preparedness use case:
 - O1 / P2 / R3 / A4 / U0 evidence confidence and provenance labels.
 - Human review, sign-off and audit records.
 - Markdown, PDF, DOCX and pilot package exports.
-- VSCode startup task and local PowerShell startup script.
+- Single self-checking Windows launcher with VSCode and direct PowerShell alternatives.
 
 ## Current User Workflow
 

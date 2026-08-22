@@ -15,7 +15,6 @@ from src.agents import run_analysis_pipeline
 from src.agents.community_vulnerability_agent import CommunityVulnerabilityAgent
 from src.agents.profile_agent import ProfileAgent
 from src.agents.report_quality_agent import ReportQualityAgent
-from src.assistants.assistant import model_service_error_message
 from src.audit import save_report_audit
 from src.coverage_map import get_coverage_table, load_coverage_geojson
 from src.data_paths import PROJECT_ROOT, DataPaths
@@ -25,6 +24,7 @@ from src.export_package import create_pilot_export_package
 from src.export_register import build_export_register_snapshot
 from src.governance import DRAFT_STATUS, build_review_checklist_snapshot
 from src.licence_register import get_licence_register, licence_register_csv
+from src.model_runtime import model_service_error_message
 from src.pdf_export import create_report_pdf
 from src.report_template import (
     append_evidence_tables,

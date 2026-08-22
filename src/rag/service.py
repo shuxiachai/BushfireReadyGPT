@@ -11,6 +11,7 @@ from src.rag.index import (
     load_index_documents,
 )
 from src.rag.lexical import hybrid_rank, tokenize
+from src.rag.qdrant import load_qdrant
 from src.rag.settings import RagSettings
 
 _LIVE_QUERY_TERMS = {
@@ -255,10 +256,7 @@ class RagService:
         }
 
     def _query_index(self, vector, *, jurisdiction, top_k, expected_chunk_count):
-        try:
-            from qdrant_client import QdrantClient, models
-        except ImportError as error:
-            raise RagError("rag_dependency_missing", "qdrant-client is not installed.") from error
+        QdrantClient, models = load_qdrant()
         client = QdrantClient(path=str(self.settings.index_dir / "qdrant"))
         try:
             actual_count = client.count(
@@ -330,7 +328,7 @@ class RagService:
         return results
 
 
-def format_retrieved_context(knowledge_result, *, max_characters=14000):
+def format_retrieved_context(knowledge_result, *, max_characters=8000, max_chunk_characters=2200):
     result = knowledge_result if isinstance(knowledge_result, dict) else {}
     chunks = result.get("retrieved_chunks") if isinstance(result.get("retrieved_chunks"), list) else []
     if not chunks:
@@ -356,7 +354,7 @@ def format_retrieved_context(knowledge_result, *, max_characters=14000):
         text = str(chunk.get("text") or "")
         text = text.replace("<retrieved-official-evidence", "[retrieved-official-evidence")
         text = text.replace("</retrieved-official-evidence>", "[/retrieved-official-evidence]")
-        block = f"{header}<retrieved-official-evidence>\n{text[:4000]}\n</retrieved-official-evidence>"
+        block = f"{header}<retrieved-official-evidence>\n{text[:max_chunk_characters]}\n</retrieved-official-evidence>"
         if used + len(block) > max_characters:
             break
         lines.append(block)

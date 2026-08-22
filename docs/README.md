@@ -41,6 +41,7 @@ If you only have a few minutes, read these in order:
 | `licence_register.md` | Explanation of licence assumptions tracked in `data_australia/licence_register.yml`. |
 | `releases/v0.1.0.md` | Scope, highlights, validation and limitations for the first public MVP release. |
 | `releases/v0.2.0.md` | RAG, local setup, safety hardening and validation notes for the portfolio release. |
+| `releases/v0.2.1.md` | Launcher, performance, model-runtime, UI and test hardening maintenance release. |
 
 ## Removed Redundant Docs
 

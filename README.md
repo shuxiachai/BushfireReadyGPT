@@ -23,7 +23,7 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 
 **Stage:** Government-pilot MVP
 
-**Current release:** `v0.2.0`
+**Current release:** `v0.2.1`
 
 Ready for:
 
@@ -68,7 +68,7 @@ Not ready for:
 - Added v4 append-only audit events that bind the exact report, deterministic sign-off, quality result, inputs, model boundary, frozen registers and recursive revision lineage.
 - Made governed external-model calls stateless, tool-free and subject to an explicit per-session privacy acknowledgement.
 - Added a local hybrid RAG pipeline with nine page-level licensed sources covering all eight Australian states and territories, deterministic abstention and hard-negative evaluation.
-- Added one-click Windows setup, startup preflight checks, a dedicated 16K-context Ollama model and Windows CI coverage.
+- Added a self-checking Windows launcher, an 8K-context Ollama model tuned for local GPU memory, and Windows CI coverage.
 
 ## Example Output
 
@@ -97,7 +97,7 @@ Double-click Start BushfireReadyGPT.bat
 Every launch checks the local environment before opening the app. Existing Python
 dependencies, Ollama models and a valid RAG index are reused; only missing or
 outdated components are installed or rebuilt. The launcher also creates the
-dedicated 16K-context report model and starts Ollama when needed.
+dedicated 8K-context report model and starts Ollama when needed.
 
 ### Manual setup
 
@@ -193,7 +193,7 @@ Windows double-click startup:
 Double-click Start BushfireReadyGPT.bat
 ```
 
-Recommended VSCode startup:
+Alternative VSCode startup:
 
 ```text
 Ctrl + Shift + P
@@ -298,7 +298,7 @@ src/report_template.py              Fixed English report prompt and report struc
 src/evidence_confidence.py          Shared O1 / P2 / R3 / A4 / U0 provenance rules
 src/agents/                         Australia-focused multi-agent pipeline
 src/rag/                            Local corpus, Ollama embeddings, Qdrant index and retrieval
-src/assistants/                     Model client and conversation assistant layer
+src/model_runtime.py                Stateless, tool-free governed model client
 src/coverage_map.py                 SA2 / SA3 / SA4 map and community profile loading
 src/data_paths.py                   Central, environment-aware data path configuration
 src/data_artifacts.py               Manifest validation, provenance and atomic publication
@@ -314,7 +314,7 @@ data_australia/                     Australian metadata, rules and lightweight p
 scripts/                            Data download / rebuild scripts
 docs/                               Project, demo, governance and commercial-readiness docs
 tests/                              Deterministic regression tests
-start_app.ps1                       VSCode / PowerShell startup entry
+start_app.ps1                       PowerShell implementation used by the launcher and VSCode task
 ```
 
 ## Data Notes
@@ -353,7 +353,7 @@ poetry run python scripts\download_abs_asgs_allocations.py
 Run the fast unit, integration, Streamlit smoke and AppTest workflow suite:
 
 ```powershell
-poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail-under=80
+poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail-under=85
 ```
 
 Run the same static, dependency and security checks as CI:
