@@ -87,18 +87,17 @@ It is a preparedness planning and draft reporting tool. In an emergency, follow 
 ## Quick Start
 
 On Windows, install [Python 3.11-3.13](https://www.python.org/downloads/windows/)
-and [Ollama](https://ollama.com/download/windows), then use the two launchers in
+and [Ollama](https://ollama.com/download/windows), then use the single launcher in
 the project folder:
 
 ```text
-1. Double-click Setup BushfireReadyGPT.bat once.
-2. Double-click Start BushfireReadyGPT.bat whenever you want to run the app.
+Double-click Start BushfireReadyGPT.bat
 ```
 
-Setup creates the local environment, installs the locked dependencies, starts
-Ollama, downloads both models, creates the dedicated 16K-context report model,
-builds the RAG index and runs a startup preflight. The Start launcher also offers
-to run setup automatically when `.venv` is absent.
+Every launch checks the local environment before opening the app. Existing Python
+dependencies, Ollama models and a valid RAG index are reused; only missing or
+outdated components are installed or rebuilt. The launcher also creates the
+dedicated 16K-context report model and starts Ollama when needed.
 
 ### Manual setup
 

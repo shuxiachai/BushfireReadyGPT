@@ -91,7 +91,8 @@ jobs:
       - name: Validate Windows launcher preflight
         shell: pwsh
         run: |
-          .\start_app.ps1 -PreflightOnly
+          & ".\Start BushfireReadyGPT.bat" --preflight
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run Windows unit and integration tests
         shell: pwsh

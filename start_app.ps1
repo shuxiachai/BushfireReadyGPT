@@ -14,7 +14,7 @@ $python = if ([string]::IsNullOrWhiteSpace($PythonPath)) {
     $PythonPath
 }
 if (-not (Test-Path $python)) {
-    throw "Python environment not found: $python`nRun 'Setup BushfireReadyGPT.bat' once, then retry."
+    throw "Python environment not found: $python`nRun 'Start BushfireReadyGPT.bat' to create it."
 }
 
 $envFile = Join-Path $projectRoot ".env"
@@ -75,9 +75,28 @@ function Resolve-OllamaExecutable {
     return $null
 }
 
-& $python -c "import streamlit, yaml; from src.data_artifacts import validate_data_manifest; from src.rag.corpus import load_source_catalog; from src.data_paths import get_data_paths; p=get_data_paths(); validate_data_manifest(p.manifest, data_dir=p.data_dir); load_source_catalog(p.rag_sources, rag_dir=p.rag_dir)"
+function Test-OllamaModelAvailable {
+    param(
+        [Parameter(Mandatory = $true)]$Status,
+        [Parameter(Mandatory = $true)][string]$Model
+    )
+
+    $expectedNames = @($Model)
+    if (-not $Model.Contains(":")) {
+        $expectedNames += "${Model}:latest"
+    }
+    $availableNames = @(
+        $Status.models | ForEach-Object {
+            if ($_.name) { $_.name }
+            elseif ($_.model) { $_.model }
+        }
+    )
+    return @($expectedNames | Where-Object { $availableNames -contains $_ }).Count -gt 0
+}
+
+& $python -c "import bs4, defusedxml, docx, openai, pydeck, pypdf, qdrant_client, reportlab, requests, streamlit, yaml; from src.data_artifacts import validate_data_manifest; from src.rag.corpus import load_source_catalog; from src.data_paths import get_data_paths; p=get_data_paths(); validate_data_manifest(p.manifest, data_dir=p.data_dir); load_source_catalog(p.rag_sources, rag_dir=p.rag_dir)"
 if ($LASTEXITCODE -ne 0) {
-    throw "Application dependencies or bundled data failed validation. Run 'Setup BushfireReadyGPT.bat' to repair the environment."
+    throw "Application dependencies or bundled data failed validation. Run 'Start BushfireReadyGPT.bat' to repair the environment."
 }
 
 if ($PreflightOnly) {
@@ -163,14 +182,8 @@ Then verify:
         }
     }
 
-    $availableModels = @(
-        $ollamaStatus.models | ForEach-Object {
-            if ($_.name) { $_.name }
-            elseif ($_.model) { $_.model }
-        }
-    )
-    if ($availableModels -notcontains $ollamaModel) {
-        throw "Configured Ollama model '$ollamaModel' is not installed.`nRun 'Setup BushfireReadyGPT.bat' to install the project-specific model."
+    if (-not (Test-OllamaModelAvailable -Status $ollamaStatus -Model $ollamaModel)) {
+        throw "Configured Ollama model '$ollamaModel' is not installed.`nRun 'Start BushfireReadyGPT.bat' to install it."
     }
 
     Write-Host "Ollama is ready at $ollamaRoot with model $ollamaModel"
