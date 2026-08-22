@@ -178,7 +178,9 @@ def build_evidence_tables(analysis):
             "",
             *(
                 [f"- {_md_value(warning)}" for warning in data_quality.get("warnings", [])]
-                or ["- No structured data-quality assessment was recorded; verify source age and geographic match manually."]
+                or [
+                    "- No structured data-quality assessment was recorded; verify source age and geographic match manually."
+                ]
             ),
             "",
             "### Evidence Table 3: LGA 2025 Candidate Reference",

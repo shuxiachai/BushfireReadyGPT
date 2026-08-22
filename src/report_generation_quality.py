@@ -61,11 +61,7 @@ def _agency_acronyms(agency):
         variants.add(re.sub(re.escape(jurisdiction), "", value, flags=re.IGNORECASE).strip(" ,-/"))
     acronyms = set()
     for variant in variants:
-        words = [
-            word
-            for word in re.findall(r"[A-Za-z]+", variant)
-            if word.lower() not in {"and", "of", "the"}
-        ]
+        words = [word for word in re.findall(r"[A-Za-z]+", variant) if word.lower() not in {"and", "of", "the"}]
         acronym = "".join(word[0].upper() for word in words)
         if len(acronym) >= 3:
             acronyms.add(acronym)

@@ -694,13 +694,7 @@ def test_generated_checklist_bullets_are_normalized_without_changing_other_secti
 def test_generated_quality_blocks_missing_rag_source_attribution():
     quality = assess_generated_narrative(
         "## Data Sources and Limitations\nOfficial sources must be verified.",
-        {
-            "knowledge": {
-                "retrieved_chunks": [
-                    {"title": "Your Bushfire Plan", "agency": "Country Fire Authority"}
-                ]
-            }
-        },
+        {"knowledge": {"retrieved_chunks": [{"title": "Your Bushfire Plan", "agency": "Country Fire Authority"}]}},
     )
 
     failures = quality["approval_gate"]["blocking_failures"]

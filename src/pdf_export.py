@@ -282,10 +282,7 @@ def _append_table(story, table_lines, styles):
         _append_record_tables(story, raw_data, styles)
         return
 
-    data = [
-        [Paragraph(_format_inline_markdown(cell), styles["body"]) for cell in row]
-        for row in raw_data
-    ]
+    data = [[Paragraph(_format_inline_markdown(cell), styles["body"]) for cell in row] for row in raw_data]
     column_widths = {
         1: [16.9 * cm],
         2: [5.0 * cm, 11.9 * cm],

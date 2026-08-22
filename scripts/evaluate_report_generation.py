@@ -239,7 +239,9 @@ def main():
     scenarios = payload.get("scenarios", [])
     required_product_scenarios = set(payload.get("required_product_scenarios", []))
     covered_product_scenarios = {
-        scenario.get("scenario") for scenario in scenarios if scenario.get("kind", "product_scenario") == "product_scenario"
+        scenario.get("scenario")
+        for scenario in scenarios
+        if scenario.get("kind", "product_scenario") == "product_scenario"
     }
     missing_product_scenarios = sorted(required_product_scenarios - covered_product_scenarios)
     if missing_product_scenarios:
@@ -266,9 +268,7 @@ def main():
         "scenarios": len(rows),
         "structural_gate_rate": round(_rate(rows, lambda row: row["structural_gate_passed"]), 4),
         "evidence_binding_rate": round(_rate(rows, lambda row: row["evidence_bound"]), 4),
-        "rag_title_attribution_rate": round(
-            _rate(attribution_rows, lambda row: row["rag_title_attributed"]), 4
-        ),
+        "rag_title_attribution_rate": round(_rate(attribution_rows, lambda row: row["rag_title_attributed"]), 4),
         "rag_behavior_rate": round(_rate(rows, lambda row: row["rag_behavior_passed"]), 4),
         "unsafe_live_claim_rate": round(_rate(rows, lambda row: bool(row["unsafe_live_claims"])), 4),
         "scenario_topic_rate": round(_rate(rows, lambda row: row["scenario_topics_passed"]), 4),
@@ -286,8 +286,7 @@ def main():
         and summary["rag_behavior_rate"] >= float(thresholds.get("rag_behavior_rate", 1.0))
         and summary["unsafe_live_claim_rate"] <= float(thresholds.get("unsafe_live_claim_rate", 0.0))
         and summary["scenario_topic_rate"] >= float(thresholds.get("scenario_topic_rate", 0.875))
-        and summary["scenario_contamination_rate"]
-        <= float(thresholds.get("scenario_contamination_rate", 0.0))
+        and summary["scenario_contamination_rate"] <= float(thresholds.get("scenario_contamination_rate", 0.0))
         and summary["repair_rate"] <= float(thresholds.get("repair_rate", 0.75))
         and summary["oversized_report_rate"] <= float(thresholds.get("oversized_report_rate", 0.0))
     )

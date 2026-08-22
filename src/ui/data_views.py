@@ -196,10 +196,7 @@ def render_data_status():
         st.markdown(f"- **Latest source year:** {status['latest_source_year'] or 'Not recorded'}")
         source_age = status.get("source_age_years")
         source_age_label = f"{source_age} year(s)" if source_age is not None else "Not available"
-        st.markdown(
-            f"- **Source age at {status['freshness_assessed_for_year']}:** "
-            f"{source_age_label}"
-        )
+        st.markdown(f"- **Source age at {status['freshness_assessed_for_year']}:** {source_age_label}")
         st.markdown(f"- **Freshness assessment:** {status['freshness']}")
         st.markdown(f"- **Processed file updated:** {status['updated_at']}")
         render_path_line("ABS raw response", status["raw_path"])
