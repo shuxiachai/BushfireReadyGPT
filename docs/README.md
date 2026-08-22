@@ -7,15 +7,17 @@ This folder contains project explanation, demo, governance and commercial-readin
 If you only have a few minutes, read these in order:
 
 1. `project_overview.md` - what the project is and what it is not.
-2. `demo_walkthrough.md` - how to demonstrate the app.
-3. `../examples/v0.3.0/README.md` - current Markdown, PDF, DOCX and governed package.
-4. `commercial_gap_assessment.md` - what remains before commercial or government use.
+2. `resume_project_description.md` - resume-ready Chinese and English project descriptions.
+3. `demo_walkthrough.md` - how to demonstrate the app.
+4. `../examples/v0.3.0/README.md` - current Markdown, PDF, DOCX and governed package.
+5. `commercial_gap_assessment.md` - what remains before commercial or government use.
 
 ## Start Here
 
 | File | Purpose |
 | --- | --- |
 | `showcase_package.md` | Main entry point for presentation and portfolio materials. Read this first before preparing a demo. |
+| `resume_project_description.md` | Synchronized Chinese/English resume bullets, interview pitch, metrics and claim boundaries. |
 | `project_overview.md` | Plain project explanation for someone seeing the project for the first time. |
 | `demo_walkthrough.md` | Step-by-step live demonstration flow. Use this when presenting the app. |
 | `showcase_checklist.md` | Pre-presentation checklist for setup, demo flow, exports and safety boundary. |
@@ -60,10 +62,11 @@ The older `demo_guide.md` and `demo_script.md` files were removed because their 
 
 For an internship or coursework presentation:
 
-1. Read `project_overview.md`.
-2. Use `demo_walkthrough.md` during the live demo.
-3. Check `showcase_checklist.md` before presenting.
-4. Use `project_reassessment.md` to explain what is still missing before commercial use.
+1. Adapt `resume_project_description.md` to the target role.
+2. Read `project_overview.md`.
+3. Use `demo_walkthrough.md` during the live demo.
+4. Check `showcase_checklist.md` before presenting.
+5. Use `project_reassessment.md` to explain what is still missing before commercial use.
 
 For a stakeholder or pilot discussion:
 

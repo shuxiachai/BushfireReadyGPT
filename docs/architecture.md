@@ -88,8 +88,8 @@ flowchart TD
 
 The eight named agents are specialised, deterministic pipeline components; none
 is an independent language-model call. One governed model call writes the report
-narrative; a second call is made only when the structural gate requests one
-repair. This keeps orchestration reproducible, reduces latency and makes the
+narrative; the structural gate may request up to two stateless replacement
+attempts. This keeps orchestration reproducible, reduces latency and makes the
 evidence trail inspectable while still demonstrating clear agent boundaries.
 
 The evidence confidence classifier is a deterministic shared component rather than an LLM agent. It records provenance in the analysis and audit JSON, supplies the prompt boundary, renders in the Evidence Trail and is appended to every exported report. Follow-up edits create a new governed report version; canonical evidence tables are rebuilt from stored analysis rather than trusted from model output, and the previous approval checklist is reset.

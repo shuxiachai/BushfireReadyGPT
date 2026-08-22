@@ -253,6 +253,7 @@ See [docs/demo_walkthrough.md](docs/demo_walkthrough.md) for a full presentation
 Start with:
 
 - [docs/README.md](docs/README.md) - Documentation index and recommended reading order.
+- [docs/resume_project_description.md](docs/resume_project_description.md) - Resume-ready Chinese/English bullets and interview talking points.
 - [docs/showcase_package.md](docs/showcase_package.md) - Showcase package for presentations and portfolio review.
 - [docs/project_overview.md](docs/project_overview.md) - Plain project explanation and positioning.
 - [docs/demo_walkthrough.md](docs/demo_walkthrough.md) - Step-by-step live demo walkthrough.

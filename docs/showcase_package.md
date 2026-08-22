@@ -13,6 +13,7 @@ Current visual and sample assets:
 
 | Purpose | Document | Use it for |
 | --- | --- | --- |
+| Resume and interview wording | `docs/resume_project_description.md` | Copy role-appropriate Chinese/English bullets and keep benchmark claims accurate. |
 | First-time project explanation | `docs/project_overview.md` | Explain what the project is, what changed from the original open-source project, and what it can do now. |
 | Live demo preparation | `docs/demo_walkthrough.md` | Follow a clear step-by-step demo flow during a presentation. |
 | Commercial / pilot positioning | `docs/pilot_pitch.md` | Explain the problem, solution, target users, pilot scope and governance boundary. |
