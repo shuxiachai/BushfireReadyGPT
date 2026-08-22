@@ -1251,6 +1251,10 @@ def test_verified_revision_snapshot_rejects_missing_parent_path(tmp_path, monkey
         "audit_path": child_path,
     }
     assert report_workflow.verify_report_record_snapshot(report_record) is True
+    report_record["grounding_evaluation"] = {"status": "tampered"}
+    assert report_workflow.verify_report_record_snapshot(report_record) is False
+    report_record.pop("grounding_evaluation")
+    assert report_workflow.verify_report_record_snapshot(report_record) is True
     report_record["parent_audit_path"] = str(tmp_path / "DOES-NOT-EXIST.json")
     assert report_workflow.verify_report_record_snapshot(report_record) is False
 

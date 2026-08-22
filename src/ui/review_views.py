@@ -265,6 +265,47 @@ def render_report_quality_summary():
             marker = "OK" if status == "pass" else "Warning" if status == "warning" else "Fix"
             st.markdown(f"{marker}: **{check.get('name')}**: {check.get('detail')}")
 
+    grounding = (st.session_state.get("latest_report") or {}).get("grounding_evaluation")
+    if not isinstance(grounding, dict):
+        return
+    metrics = grounding.get("metrics", {})
+    with st.expander("Evidence Alignment Review (heuristic)", expanded=False):
+        st.caption(
+            "This deterministic check compares attributable narrative claims with the frozen analysis and "
+            "retrieved passages. It does not prove factual truth or source currency."
+        )
+        if grounding.get("status") == "pass":
+            st.success("Configured evidence-alignment thresholds passed. Human source verification is still required.")
+        elif grounding.get("status") == "not_applicable":
+            st.info("No externally attributable narrative claim was selected by the deterministic extractor.")
+        else:
+            st.warning("One or more claims need human evidence review; report generation was not blocked.")
+        st.markdown(
+            f"**Claims checked:** {metrics.get('claims_evaluated', 0)}  "
+            f"**Support rate:** {_format_metric_rate(metrics.get('support_rate'))}  "
+            f"**Citation coverage:** {_format_metric_rate(metrics.get('citation_coverage_rate'))}  "
+            f"**Numeric consistency:** {_format_metric_rate(metrics.get('numeric_consistency_rate'))}  "
+            f"**Jurisdiction conflicts:** {metrics.get('jurisdiction_conflicts', 0)}"
+        )
+        flagged = [claim for claim in grounding.get("claims", []) if claim.get("supported") is not True]
+        if flagged:
+            st.markdown("**Claims requiring review**")
+            for claim in flagged[:10]:
+                reasons = []
+                if claim.get("numeric_consistent") is False:
+                    reasons.append("number not found in frozen evidence")
+                if claim.get("jurisdiction_conflicts"):
+                    reasons.append("jurisdiction conflict")
+                if not claim.get("cited_source_ids"):
+                    reasons.append("no recognised source attribution")
+                if not reasons:
+                    reasons.append("insufficient lexical evidence alignment")
+                st.markdown(f"- `{claim.get('claim_id')}` — {claim.get('claim')} ({'; '.join(reasons)})")
+
+
+def _format_metric_rate(value):
+    return "N/A" if value is None else f"{float(value) * 100:.1f}%"
+
 
 def render_human_review_checklist(review_checklist, verify_report_record_snapshot):
     st.markdown("### Human Review Checklist")

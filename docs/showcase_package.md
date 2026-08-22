@@ -7,7 +7,7 @@ Current visual and sample assets:
 - `docs/assets/bushfire-ready-gpt-demo.webm` — 89-second local demonstration;
 - `docs/assets/*.png` — current Create Report, report, evidence, map and readiness views;
 - `examples/v0.3.0/` — governed Cairns Council Markdown, PDF, DOCX and pilot package;
-- `docs/benchmarks/report-generation-v0.3.0.json` — eight-case real-model regression evidence.
+- `docs/benchmarks/report-generation-v0.4.0.json` — current eight-case real-model regression with diagnostic evidence-alignment metrics.
 
 ## Recommended Reading Order
 

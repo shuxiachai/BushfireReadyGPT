@@ -300,7 +300,7 @@ PROJECT_MATURITY_ASSESSMENT = {
             "area": "Multi-agent architecture",
             "score": "7/10",
             "status": "Pilot ready",
-            "note": "Agent responsibilities are separated and visible, but testing and orchestration can be strengthened.",
+            "note": "Deterministic agent stages are separated, tested and traced; they are not autonomous tool-calling agents.",
         },
         {
             "area": "Governance and audit",
@@ -333,6 +333,9 @@ PROJECT_MATURITY_ASSESSMENT = {
         "Reviewer Approval / Human Sign-off workflow.",
         "Markdown, PDF, DOCX, audit JSON and pilot export package.",
         "Demo Mode, Presentation Mode and sample scenario pack.",
+        "Local hybrid RAG with abstention, hard-negative evaluation and report evidence-alignment review.",
+        "Anonymous pilot measurement schema and Bad Case-to-regression workflow.",
+        "Privacy-minimised local runtime Trace with per-stage diagnostics.",
     ],
     "gaps": [
         {
@@ -368,8 +371,8 @@ PROJECT_MATURITY_ASSESSMENT = {
         {
             "priority": "P2",
             "area": "Deployment",
-            "gap": "The app runs locally, but is not packaged for secure hosting.",
-            "next_action": "Add Docker, environment profiles, health checks, logs and deployment notes.",
+            "gap": "The app has local content-free Trace, but is not packaged for secure hosting or central monitoring.",
+            "next_action": "Add Docker, environment profiles, health checks, authenticated tracing, retention controls and deployment notes.",
         },
         {
             "priority": "P2",

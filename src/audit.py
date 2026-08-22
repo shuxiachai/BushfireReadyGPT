@@ -145,6 +145,11 @@ def _save_report_audit(payload, *, allow_parent):
         "inputs": _minimal_inputs(normalized_payload.get("inputs")),
         "analysis": _minimal_analysis(normalized_payload.get("analysis")),
         "quality": quality,
+        "grounding_evaluation_hash": sha256_json(
+            normalized_payload.get("grounding_evaluation")
+            if isinstance(normalized_payload.get("grounding_evaluation"), dict)
+            else {}
+        ),
         "model_provider": normalized_payload.get("model_provider"),
         "model_name": normalized_payload.get("model_name"),
         "model_endpoint_boundary": normalized_payload.get("model_endpoint_boundary"),
@@ -353,6 +358,7 @@ def append_audit_event(previous_path, event_type, payload):
             "inputs": previous.get("inputs", {}),
             "analysis": previous.get("analysis", {}),
             "quality": quality,
+            "grounding_evaluation_hash": previous.get("grounding_evaluation_hash"),
             "model_provider": previous.get("model_provider"),
             "model_name": previous.get("model_name"),
             "model_endpoint_boundary": previous.get("model_endpoint_boundary"),
@@ -666,6 +672,9 @@ def validate_audit_record(record):
     missing = [name for name, value in required_hashes.items() if not _is_sha256(value)]
     if missing:
         raise AuditIntegrityError("Audit event is missing required v4 snapshot bindings: " + ", ".join(missing))
+    grounding_hash = record.get("grounding_evaluation_hash")
+    if grounding_hash is not None and not _is_sha256(grounding_hash):
+        raise AuditIntegrityError("Audit event has an invalid grounding-evaluation binding.")
     register_hashes = record.get("export_register_hashes")
     if (
         not isinstance(register_hashes, dict)

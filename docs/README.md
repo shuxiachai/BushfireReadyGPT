@@ -30,6 +30,7 @@ If you only have a few minutes, read these in order:
 | `pilot_feedback_form.md` | Structured feedback form for a controlled stakeholder pilot. |
 | `pilot_protocol.md` | Privacy-minimised 3-5 person controlled-pilot procedure and completion gate. |
 | `pilot_results.md` | Anonymised result register; it remains explicitly pending until real sessions run. |
+| `pilot_evaluation_template.json` | Strict repository-safe schema template for anonymous measures and Bad Case references. |
 | `demo_scenarios.md` | Written reference for the built-in demo scenarios. |
 
 ## Technical And Governance Materials
@@ -38,6 +39,7 @@ If you only have a few minutes, read these in order:
 | --- | --- |
 | `architecture.md` | Technical architecture, agent responsibilities and data flow. |
 | `rag.md` | Local official-knowledge RAG build, evaluation, integrity and trust boundary. |
+| `evaluation_and_observability.md` | Report evidence-alignment evaluation, pilot metrics and privacy-minimised runtime Trace. |
 | `project_reassessment.md` | Current project status, gaps and recommended next build order. |
 | `commercial_gap_assessment.md` | Commercial and government-readiness gap assessment. |
 | `commercial_readiness_checklist.md` | Checklist of what is done and what remains before commercial positioning. |
@@ -46,7 +48,9 @@ If you only have a few minutes, read these in order:
 | `releases/v0.2.0.md` | RAG, local setup, safety hardening and validation notes for the portfolio release. |
 | `releases/v0.2.1.md` | Launcher, performance, model-runtime, UI and test hardening maintenance release. |
 | `releases/v0.3.0.md` | Data-quality, scenario benchmark, sample package, visual QA and pilot-readiness release. |
+| `releases/v0.4.0.md` | Evidence-alignment, anonymous pilot measurement and privacy-minimised runtime Trace release. |
 | `benchmarks/report-generation-v0.3.0.json` | Machine-readable eight-case real-Ollama regression result. |
+| `benchmarks/report-generation-v0.4.0.json` | Eight-case real-Ollama run with diagnostic grounding metrics. |
 
 ## Removed Redundant Docs
 

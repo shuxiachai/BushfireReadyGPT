@@ -23,7 +23,7 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 
 **Stage:** Government-pilot MVP
 
-**Current release:** `v0.3.0`
+**Current release:** `v0.4.0`
 
 Ready for:
 
@@ -51,6 +51,8 @@ Not ready for:
 - Provides official source, data and licence registers.
 - Adds draft notices, evidence tables, safety disclaimers and human review sign-off.
 - Treats follow-up edits as governed report revisions with a new report ID, version, quality result and audit record.
+- Reviews attributable narrative claims against frozen evidence for citation, number and jurisdiction mismatches without presenting the heuristic as factual proof.
+- Records privacy-minimised local runtime Traces for per-agent/model latency, repair use and safe failure diagnosis.
 - Exports Markdown, PDF, DOCX and pilot export packages.
 - Runs locally with Ollama, so no OpenAI API key is required.
 
@@ -71,6 +73,8 @@ Not ready for:
 - Added a self-checking Windows launcher, an 8K-context Ollama model tuned for local GPU memory, and Windows CI coverage.
 - Added report-level data currency, source-age and geographic-match warnings so approximate or aging evidence is visible in the report and Evidence Trail.
 - Expanded real-model regression coverage to all six planning scenarios plus live-request refusal and no-RAG degradation cases.
+- Added report-level evidence-alignment metrics, a strict anonymous pilot-measurement schema and a Bad Case-to-regression workflow.
+- Added content-free per-stage runtime tracing and a Readiness diagnostic view, separate from governed audit records.
 
 ## Product Tour
 
@@ -262,6 +266,7 @@ Project and commercial context:
 
 - [docs/architecture.md](docs/architecture.md) - Architecture, agent responsibilities and data flow.
 - [docs/rag.md](docs/rag.md) - Local RAG design, build, evaluation and trust boundary.
+- [docs/evaluation_and_observability.md](docs/evaluation_and_observability.md) - Evidence-alignment evaluation, anonymous pilot metrics and privacy-minimised runtime Trace.
 - [docs/project_reassessment.md](docs/project_reassessment.md) - Current maturity, gaps and next build order.
 - [docs/commercial_gap_assessment.md](docs/commercial_gap_assessment.md) - Commercial and government-readiness gap assessment.
 - [docs/commercial_readiness_checklist.md](docs/commercial_readiness_checklist.md) - Commercial readiness checklist.
@@ -270,11 +275,13 @@ Project and commercial context:
 - [docs/pilot_protocol.md](docs/pilot_protocol.md) - Executable 3-5 participant pilot protocol.
 - [docs/pilot_results.md](docs/pilot_results.md) - Honest pilot evidence register; external sessions are currently pending.
 - [docs/benchmarks/report-generation-v0.3.0.json](docs/benchmarks/report-generation-v0.3.0.json) - Eight-case real-Ollama regression result.
+- [docs/benchmarks/report-generation-v0.4.0.json](docs/benchmarks/report-generation-v0.4.0.json) - Current eight-case run with diagnostic evidence-alignment metrics.
 
 Sample output and release evidence:
 
 - [examples/v0.3.0/README.md](examples/v0.3.0/README.md) - current Markdown, PDF, DOCX and governed package.
 - [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md) - v0.3.0 scope, validation and limitations.
+- [docs/releases/v0.4.0.md](docs/releases/v0.4.0.md) - Evidence alignment, anonymous pilot measurement and privacy-minimised runtime Trace release.
 
 ## Architecture Summary
 
@@ -292,7 +299,9 @@ Streamlit UI
       -> Evidence confidence classification
       -> Report Quality Agent
   -> Local Ollama generation
+  -> Deterministic evidence-alignment review
   -> Evidence tables, sign-off and audit JSON
+  -> Privacy-minimised local runtime Trace
   -> Markdown / PDF / DOCX / pilot package export
 ```
 
@@ -306,7 +315,8 @@ flowchart LR
     F --> G[Planner Agent]
     G --> H[Ollama-backed Report Generation]
     H --> I[Report Quality Agent]
-    I --> J[Evidence Trail and Human Review]
+    I --> G2[Evidence Alignment Review]
+    G2 --> J[Evidence Trail and Human Review]
     J --> K[Markdown / PDF / DOCX / Pilot Package]
 ```
 
@@ -320,6 +330,9 @@ src/report_workflow.py              Report generation, audit and human-review wo
 src/ui/                             Streamlit UI modules
 src/app_catalog.py                  Official sources, form options and pilot examples
 src/report_template.py              Fixed English report prompt and report structure
+src/report_grounding.py             Claim/evidence, citation, number and jurisdiction review
+src/pilot_evaluation.py             Anonymous pilot schema, aggregation and Bad Case validation
+src/runtime_trace.py                Content-free local operation and stage traces
 src/data_quality.py                 Source currency and geographic-match assessment
 src/evidence_confidence.py          Shared O1 / P2 / R3 / A4 / U0 provenance rules
 src/agents/                         Australia-focused multi-agent pipeline
@@ -406,6 +419,17 @@ poetry run pytest -m e2e -q
 poetry run pytest -q
 ```
 
+Run the real-model report benchmark with structural, RAG and evidence-alignment
+metrics, or validate an anonymous pilot measurement file:
+
+```powershell
+poetry run python scripts\evaluate_report_generation.py --output output\report-evaluation.json
+poetry run python scripts\evaluate_pilot_results.py --input docs\pilot_evaluation_template.json
+```
+
+The committed pilot template contains zero sessions by design and returns
+`awaiting_participants`. It must not be presented as user validation.
+
 The RAG unit tests use a deterministic in-process embedder and temporary Qdrant
 index, so CI does not need Ollama or network access. The separate local retrieval
 evaluation uses the real `embeddinggemma` model and the downloaded nine-source
@@ -413,9 +437,12 @@ official corpus. It evaluates answerable and unanswerable queries separately and
 reports Recall@K, MRR, Top-1 accuracy, false-positive rate and latency by
 jurisdiction and category.
 
-The `v0.3.0` real-model regression contains eight cases: all six supported
+The `v0.4.0` real-model regression contains eight cases: all six supported
 planning scenarios, a live-route safety-boundary case and a no-RAG degradation
-case. The committed sample verifier also checks the package schema and hashes,
+case. It also reports diagnostic claim support, citation coverage/precision,
+numeric consistency and jurisdiction conflicts; those new heuristics remain
+human-review signals rather than enforced factual-accuracy gates. The committed
+sample verifier also checks the package schema and hashes,
 required report markers, PDF/DOCX readability and a dedicated DOCX human sign-off
 page. These checks are engineering regression evidence, not stakeholder or
 operational validation.
@@ -456,6 +483,13 @@ external transparency log. An operator with filesystem access can delete or
 replace the entire local history. Do not describe an in-app approval as legal,
 procurement or agency approval without a separately governed identity and records
 system.
+
+Runtime Trace is a separate local diagnostic channel under
+`chat_history/traces/`. It records allowlisted stage names, status, duration,
+counts/rates and safe error codes; it excludes prompts, report and retrieval text,
+locations, audiences, reviewer identity and free-text input. The Readiness tab
+shows local aggregates. This is not a central log service, distributed tracing
+backend or retention-controlled production monitor.
 
 ## Deployment Boundary
 

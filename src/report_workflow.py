@@ -46,6 +46,7 @@ from src.report_generation_quality import (
     build_report_repair_prompt,
     normalize_generated_narrative,
 )
+from src.report_grounding import evaluate_report_grounding, grounding_trace_metrics
 from src.report_template import (
     REPORT_NARRATIVE_WORD_BUDGET,
     append_evidence_tables,
@@ -54,6 +55,7 @@ from src.report_template import (
     build_report_prompt,
     extract_narrative_body,
 )
+from src.runtime_trace import RuntimeTrace, get_active_trace, trace_stage
 
 
 def collect_report_inputs():
@@ -355,6 +357,11 @@ def _report_matches_audit_snapshot(report_record, audit_record):
         or audit_record.get("inputs_hash") != sha256_json(inputs)
         or audit_record.get("area_selection_hash") != sha256_json(area_selection)
         or audit_record.get("analysis", {}).get("analysis_hash") != sha256_json(analysis)
+        or (
+            audit_record.get("grounding_evaluation_hash") is not None
+            and audit_record.get("grounding_evaluation_hash")
+            != sha256_json(report_record.get("grounding_evaluation") or {})
+        )
         or audit_record.get("review_record_hash") != review_record_hash(review)
         or audit_record.get("package_context_hash") != package_context_hash(_package_context_for_record(report_record))
         or audit_record.get("export_register_hashes") != register_hashes
@@ -459,50 +466,87 @@ def generate_current_report(persist_session_state):
     report_inputs["report_status"] = DRAFT_STATUS
     area_selection = dict(st.session_state.get("selected_map_area") or {}) or None
 
+    trace = RuntimeTrace(
+        "report.generate",
+        report_source="generated",
+        model_boundary="local_loopback" if MODEL_ENDPOINT_IS_LOCAL else "external",
+        map_selection_present=bool(area_selection),
+    )
+    with trace:
+        response, error, error_code = _generate_current_report_traced(
+            report_inputs,
+            area_selection,
+            persist_session_state,
+            trace,
+        )
+        trace.set_outcome("failed" if error else "success", error_code)
+        return response, error
+
+
+def _generate_current_report_traced(report_inputs, area_selection, persist_session_state, trace):
+
     try:
-        analysis = run_analysis_pipeline(
+        with trace_stage("analysis_pipeline"):
+            analysis = run_analysis_pipeline(
+                report_inputs.get("location") or "",
+                report_inputs.get("audience") or "",
+                report_inputs.get("scenario") or "",
+                report_inputs.get("concerns") or [],
+                report_inputs.get("timeframe") or "",
+                report_inputs.get("extra_context") or "",
+                area_selection=area_selection,
+            )
+    except DataArtifactError as error:
+        return (
+            None,
+            "Report generation stopped before contacting the model because required local data "
+            f"could not be verified ({error.code}). Open Data & Map > Data Status, restore the "
+            "configured artifact, and retry.",
+            error.code,
+        )
+    with trace_stage("prompt_build") as span:
+        governance_context = build_governance_context()
+        prompt = build_report_prompt(
             report_inputs.get("location") or "",
             report_inputs.get("audience") or "",
             report_inputs.get("scenario") or "",
             report_inputs.get("concerns") or [],
             report_inputs.get("timeframe") or "",
             report_inputs.get("extra_context") or "",
+            analysis=analysis,
             area_selection=area_selection,
+            governance_context=governance_context,
         )
-    except DataArtifactError as error:
-        return None, (
-            "Report generation stopped before contacting the model because required local data "
-            f"could not be verified ({error.code}). Open Data & Map > Data Status, restore the "
-            "configured artifact, and retry."
-        )
-    governance_context = build_governance_context()
-    prompt = build_report_prompt(
-        report_inputs.get("location") or "",
-        report_inputs.get("audience") or "",
-        report_inputs.get("scenario") or "",
-        report_inputs.get("concerns") or [],
-        report_inputs.get("timeframe") or "",
-        report_inputs.get("extra_context") or "",
-        analysis=analysis,
-        area_selection=area_selection,
-        governance_context=governance_context,
-    )
+        span.add_metrics(prompt_characters=len(prompt))
     try:
-        full_response = normalize_generated_narrative(_call_governed_model(prompt))
+        with trace_stage("model_generation", attempt=1, prompt_characters=len(prompt)) as span:
+            full_response = normalize_generated_narrative(_call_governed_model(prompt))
+            span.add_metrics(response_characters=len(full_response))
         generation_quality = assess_generated_narrative(full_response, analysis)
-        for _repair_attempt in range(MAX_REPORT_REPAIR_ATTEMPTS):
+        generation_attempts = 1
+        for repair_attempt in range(MAX_REPORT_REPAIR_ATTEMPTS):
             if generation_quality.get("approval_gate", {}).get("passed") is True:
                 break
-            full_response = normalize_generated_narrative(
-                _call_governed_model(build_report_repair_prompt(prompt, full_response, generation_quality))
-            )
+            repair_prompt = build_report_repair_prompt(prompt, full_response, generation_quality)
+            generation_attempts += 1
+            with trace_stage(
+                "model_repair",
+                attempt=repair_attempt + 1,
+                prompt_characters=len(repair_prompt),
+            ) as span:
+                full_response = normalize_generated_narrative(_call_governed_model(repair_prompt))
+                span.add_metrics(response_characters=len(full_response))
             generation_quality = assess_generated_narrative(full_response, analysis)
     except ModelServiceError as error:
-        return None, str(error)
+        return None, str(error), "model_service_error"
+    trace.add_metrics(
+        generation_attempts=generation_attempts,
+        repair_required=generation_attempts > 1,
+    )
     request_summary = (
         f"Generate a preparedness report for {report_inputs.get('location')} for {report_inputs.get('audience')}."
     )
-    return _finalize_report_version(
+    response, error = _finalize_report_version(
         full_response,
         analysis,
         persist_session_state,
@@ -511,6 +555,7 @@ def generate_current_report(persist_session_state):
         report_inputs=report_inputs,
         area_selection=area_selection,
     )
+    return response, error, "report_finalization_error" if error else None
 
 
 def revise_current_report(edit_request, persist_session_state):
@@ -562,7 +607,15 @@ def revise_current_report(edit_request, persist_session_state):
 
     model_safe_current_text = extract_narrative_body(current_text)
 
-    prompt = f"""Revise the complete BushfireReadyGPT report below according to the user's request.
+    trace = RuntimeTrace(
+        "report.revise",
+        report_source="revised",
+        model_boundary="local_loopback" if MODEL_ENDPOINT_IS_LOCAL else "external",
+        map_selection_present=bool(area_selection),
+    )
+    with trace:
+        with trace_stage("prompt_build") as span:
+            prompt = f"""Revise the complete BushfireReadyGPT report below according to the user's request.
 
 User revision request:
 {request_text}
@@ -578,22 +631,29 @@ the edit request. Those inputs must be changed in the form and regenerated throu
 Keep the model-authored narrative between {REPORT_NARRATIVE_WORD_BUDGET}. The application will restore the
 deterministic Evidence Tables and Human Review Sign-off after the revised narrative passes its quality gate.
 """
-    try:
-        revised_response = _call_governed_model(prompt)
-    except ModelServiceError as error:
-        return None, str(error)
+            span.add_metrics(prompt_characters=len(prompt))
+        try:
+            with trace_stage("model_generation", attempt=1, prompt_characters=len(prompt)) as span:
+                revised_response = _call_governed_model(prompt)
+                span.add_metrics(response_characters=len(revised_response))
+        except ModelServiceError as error:
+            trace.set_outcome("failed", "model_service_error")
+            return None, str(error)
 
-    return _finalize_report_version(
-        revised_response,
-        analysis,
-        persist_session_state,
-        source="revised",
-        request_text=request_text,
-        report_inputs=report_inputs,
-        area_selection=area_selection,
-        parent_audit_path=audit_path,
-        register_snapshot=register_snapshot,
-    )
+        trace.add_metrics(generation_attempts=1, repair_required=False)
+        response, error = _finalize_report_version(
+            revised_response,
+            analysis,
+            persist_session_state,
+            source="revised",
+            request_text=request_text,
+            report_inputs=report_inputs,
+            area_selection=area_selection,
+            parent_audit_path=audit_path,
+            register_snapshot=register_snapshot,
+        )
+        trace.set_outcome("failed" if error else "success", "report_finalization_error" if error else None)
+        return response, error
 
 
 def _finalize_report_version(
@@ -612,13 +672,30 @@ def _finalize_report_version(
     report_id = uuid4().hex
     report_version = int(previous.get("version", 0)) + 1 if is_revision else 1
     parent_report_id = previous.get("id") if is_revision else None
+    active_trace = get_active_trace()
+    if active_trace is not None:
+        active_trace.add_metrics(report_version=report_version)
 
     review_record = collect_review_record(for_new_version=True)
 
-    full_response = apply_governance_notice(raw_response)
-    full_response = append_evidence_tables(full_response, analysis)
-    full_response = append_human_signoff(full_response, review_record)
-    quality = ReportQualityAgent().run(full_response)
+    with trace_stage("governance_finalize") as span:
+        full_response = apply_governance_notice(raw_response)
+        full_response = append_evidence_tables(full_response, analysis)
+        full_response = append_human_signoff(full_response, review_record)
+        quality = ReportQualityAgent().run(full_response)
+        span.add_metrics(
+            report_characters=len(full_response),
+            structural_gate_passed=quality.get("approval_gate", {}).get("passed") is True,
+        )
+    with trace_stage("grounding_evaluation") as span:
+        grounding_evaluation = evaluate_report_grounding(full_response, analysis)
+        span.add_metrics(**grounding_trace_metrics(grounding_evaluation))
+    if active_trace is not None:
+        active_trace.add_metrics(
+            report_characters=len(full_response),
+            structural_gate_passed=quality.get("approval_gate", {}).get("passed") is True,
+            **grounding_trace_metrics(grounding_evaluation),
+        )
     if report_inputs is None:
         audit_inputs = dict(collect_report_inputs())
     elif isinstance(report_inputs, dict):
@@ -650,26 +727,31 @@ def _finalize_report_version(
         }
     )
     try:
-        audit_payload = {
-            "report_id": report_id,
-            "report_version": report_version,
-            "parent_report_id": parent_report_id,
-            "report_source": source,
-            "revision_request": request_text if is_revision else None,
-            "inputs": audit_inputs,
-            "area_selection": area_selection,
-            "analysis": analysis,
-            "quality": quality,
-            **model_audit_metadata,
-            "report_status": DRAFT_STATUS,
-            "human_review": review_record,
-            "package_context": package_context,
-            "export_register_snapshot": frozen_register_snapshot,
-            "report_text": full_response,
-        }
-        audit_path = (
-            save_revision_audit(parent_audit_path, audit_payload) if is_revision else save_report_audit(audit_payload)
-        )
+        with trace_stage("audit_write") as span:
+            audit_payload = {
+                "report_id": report_id,
+                "report_version": report_version,
+                "parent_report_id": parent_report_id,
+                "report_source": source,
+                "revision_request": request_text if is_revision else None,
+                "inputs": audit_inputs,
+                "area_selection": area_selection,
+                "analysis": analysis,
+                "quality": quality,
+                "grounding_evaluation": grounding_evaluation,
+                **model_audit_metadata,
+                "report_status": DRAFT_STATUS,
+                "human_review": review_record,
+                "package_context": package_context,
+                "export_register_snapshot": frozen_register_snapshot,
+                "report_text": full_response,
+            }
+            audit_path = (
+                save_revision_audit(parent_audit_path, audit_payload)
+                if is_revision
+                else save_report_audit(audit_payload)
+            )
+            span.add_metrics(audit_written=True)
     except (AuditIntegrityError, OSError, TypeError, ValueError) as error:
         return None, (
             "The governed report was not created because its local audit event could not be written. "
@@ -693,6 +775,8 @@ def _finalize_report_version(
         "export_register_snapshot": frozen_register_snapshot,
         "text": full_response,
         "quality": quality,
+        "grounding_evaluation": grounding_evaluation,
+        "runtime_trace_id": active_trace.trace_id if active_trace is not None and active_trace.enabled else None,
         "audit_path": audit_path,
         "audit_paths": [audit_path],
         "review_record": review_record,
@@ -714,5 +798,7 @@ def _finalize_report_version(
             "report_version": report_version,
         }
     )
-    persist_session_state()
+    with trace_stage("session_persist") as span:
+        persisted = persist_session_state()
+        span.add_metrics(session_persisted=persisted is not False)
     return full_response, None

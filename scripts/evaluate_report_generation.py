@@ -31,6 +31,7 @@ from src.report_generation_quality import (  # noqa: E402
     build_report_repair_prompt,
     normalize_generated_narrative,
 )
+from src.report_grounding import GROUNDING_METHOD, evaluate_report_grounding  # noqa: E402
 from src.report_template import (  # noqa: E402
     append_evidence_tables,
     append_human_signoff,
@@ -166,6 +167,8 @@ def _run_scenario(scenario):
         pattern for pattern in _UNSAFE_LIVE_PATTERNS if re.search(pattern, narrative, flags=re.IGNORECASE)
     ]
     alignment = _assess_scenario_alignment(narrative, scenario)
+    grounding = evaluate_report_grounding(narrative, analysis)
+    grounding_metrics = grounding.get("metrics", {})
     report_character_limit = int(scenario.get("max_report_characters", 32000))
     return {
         "id": scenario["id"],
@@ -187,6 +190,13 @@ def _run_scenario(scenario):
         "report_characters": len(report),
         "report_character_limit": report_character_limit,
         "report_size_passed": len(report) <= report_character_limit,
+        "grounding_status": grounding.get("status"),
+        "grounding_claims_evaluated": grounding_metrics.get("claims_evaluated", 0),
+        "grounding_support_rate": grounding_metrics.get("support_rate"),
+        "citation_coverage_rate": grounding_metrics.get("citation_coverage_rate"),
+        "citation_precision_rate": grounding_metrics.get("citation_precision_rate"),
+        "numeric_consistency_rate": grounding_metrics.get("numeric_consistency_rate"),
+        "jurisdiction_conflicts": grounding_metrics.get("jurisdiction_conflicts", 0),
     }
 
 
@@ -194,6 +204,11 @@ def _rate(rows, predicate):
     if not rows:
         return 1.0
     return sum(1 for row in rows if predicate(row)) / len(rows)
+
+
+def _average_available(rows, key):
+    values = [float(row[key]) for row in rows if row.get(key) is not None]
+    return round(sum(values) / len(values), 4) if values else None
 
 
 def _failed_row(scenario, error):
@@ -219,6 +234,13 @@ def _failed_row(scenario, error):
         "report_characters": 0,
         "report_character_limit": int(scenario.get("max_report_characters", 32000)),
         "report_size_passed": False,
+        "grounding_status": "error",
+        "grounding_claims_evaluated": 0,
+        "grounding_support_rate": None,
+        "citation_coverage_rate": None,
+        "citation_precision_rate": None,
+        "numeric_consistency_rate": None,
+        "jurisdiction_conflicts": 0,
     }
 
 
@@ -276,6 +298,12 @@ def main():
         "repair_rate": round(_rate(rows, lambda row: row["repair_required"]), 4),
         "oversized_report_rate": round(_rate(rows, lambda row: not row["report_size_passed"]), 4),
         "average_latency_seconds": round(sum(row["latency_seconds"] for row in rows) / len(rows), 2),
+        "grounding_review_rate": round(_rate(rows, lambda row: row["grounding_status"] == "review_required"), 4),
+        "average_grounding_support_rate": _average_available(rows, "grounding_support_rate"),
+        "average_citation_coverage_rate": _average_available(rows, "citation_coverage_rate"),
+        "average_citation_precision_rate": _average_available(rows, "citation_precision_rate"),
+        "average_numeric_consistency_rate": _average_available(rows, "numeric_consistency_rate"),
+        "jurisdiction_conflicts": sum(row["jurisdiction_conflicts"] for row in rows),
     }
     thresholds = payload.get("thresholds", {})
     passed = (
@@ -303,6 +331,9 @@ def main():
             "model_temperature": MODEL_TEMPERATURE,
             "model_seed": MODEL_SEED,
             "scenario_file": scenario_file,
+            "grounding_evaluation_method": GROUNDING_METHOD,
+            "grounding_policy": "diagnostic_only_human_review_required",
+            "grounding_release_gate_enforced": False,
         },
         "passed": passed,
         "thresholds": thresholds,

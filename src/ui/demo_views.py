@@ -27,6 +27,21 @@ PILOT_DOCUMENTS = [
         "description": "Structured reviewer feedback for a controlled pilot.",
     },
     {
+        "title": "Pilot Protocol",
+        "path": "docs/pilot_protocol.md",
+        "description": "Privacy-minimised session procedure, measures and Bad Case regression workflow.",
+    },
+    {
+        "title": "Pilot Results",
+        "path": "docs/pilot_results.md",
+        "description": "Honest anonymised results register; it remains pending until real sessions run.",
+    },
+    {
+        "title": "Evaluation & Trace",
+        "path": "docs/evaluation_and_observability.md",
+        "description": "Grounding evaluation, anonymous pilot metrics and content-free runtime Trace boundaries.",
+    },
+    {
         "title": "Commercial Readiness Checklist",
         "path": "docs/commercial_readiness_checklist.md",
         "description": "Commercial, legal, data, deployment and governance readiness checklist.",

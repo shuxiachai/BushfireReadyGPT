@@ -48,6 +48,7 @@ from src.ui.demo_views import (
     render_presentation_mode,
     render_usage_guide,
 )
+from src.ui.diagnostic_views import render_runtime_diagnostics
 from src.ui.layout import render_header
 from src.ui.map_views import render_coverage_analysis_tools
 from src.ui.report_views import render_latest_report_preview, render_report_form
@@ -253,6 +254,7 @@ def render_workspace_tabs():
 
     with readiness_tab:
         render_maturity_assessment()
+        render_runtime_diagnostics()
 
 
 apply_theme()

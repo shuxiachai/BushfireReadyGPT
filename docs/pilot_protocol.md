@@ -61,6 +61,10 @@ Record these measures for every participant:
 | Evidence understanding | Correct explanation of five evidence classes | At least 4/5 classes |
 | Safety-boundary understanding | Correctly rejects live warning/decision use | 100% of participants |
 | Export success | Pilot package downloaded and opened | 100% of participants |
+| Facilitator dependence | Count of interventions after a participant becomes blocked | Record every intervention; investigate repeated blocks |
+| Citation support | Citations supported / citations checked against the current official page | Record the measured rate; no invented target before calibration |
+| Citation trust | Feedback-form rating after source checking | Median at least 4/5 |
+| Editing effort | None / light / partial rewrite / major rewrite | Majority should require no more than light edits |
 | Critical safety issue | Facilitator severity assessment | Zero unresolved critical issues |
 
 ## Issue Severity
@@ -85,6 +89,31 @@ For each session, record:
 - participant consent for any quotation, using anonymised wording only.
 
 Store raw notes outside Git. Add only anonymised aggregates and non-identifying quotations to `docs/pilot_results.md`.
+
+Enter repository-safe measurements in a copy of `docs/pilot_evaluation_template.json`.
+The machine-readable contract accepts only anonymous participant codes, bounded
+numbers, booleans and controlled categories. It rejects additional fields such as
+names, emails, phone numbers and free-text notes. Calculate the aggregate summary
+with:
+
+```powershell
+poetry run python scripts\evaluate_pilot_results.py --input path\to\anonymous-pilot.json --output output\pilot-summary.json
+```
+
+Raw notes, consent records, quotations and identifying organisational context must
+remain in an access-controlled location outside Git. Do not commit the generated
+summary until it has been manually checked against those source records.
+
+## Bad Case Regression Workflow
+
+1. Assign every material finding a `BC-001`-style ID and severity.
+2. Record only its anonymous category, short non-identifying title, participant code(s), owner role and disposition.
+3. Add a deterministic regression test for every fixed Critical or High finding where automation is feasible.
+4. Store the `tests/...py::test_name` reference in the Bad Case record.
+5. Re-run the affected test plus the full non-E2E suite before marking the finding Fixed.
+
+The repository-safe Bad Case register is an index, not the complete research
+record. Detailed notes stay outside Git.
 
 ## Completion Gate
 

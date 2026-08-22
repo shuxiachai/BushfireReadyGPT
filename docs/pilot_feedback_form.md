@@ -10,7 +10,7 @@
 - Selected geography:
 - Workflow start / end time:
 - Tasks completed out of 8:
-- Facilitator help required:
+- Facilitator interventions after a block (count):
 
 Do not enter names, contact details, personal information or sensitive organisational information in the repository copy of this form.
 
@@ -48,6 +48,29 @@ Evidence classes correctly explained without prompting:
 - [ ] R3 — deterministic rule inference
 - [ ] A4 — AI-generated draft synthesis, not evidence
 - [ ] U0 — user-provided or unverified context
+
+### Citation Verification Task
+
+Ask the reviewer to select up to three report citations, open the current official
+page and judge whether the cited source supports the nearby claim. Do not ask them
+to validate live conditions.
+
+- Citations checked (0-3):
+- Citations supported by the cited page (0-3):
+- Citation trust after checking (1-5):
+- Bad Case ID for any unsupported or misleading citation:
+
+## Editing Effort
+
+After reviewing the report, select the closest outcome:
+
+- [ ] None — usable as a draft without content edits
+- [ ] Light — wording or small local corrections
+- [ ] Partial rewrite — one or more sections need substantive replacement
+- [ ] Major rewrite — most of the report is not a useful starting point
+
+Record content details only in the controlled raw notes. The repository-safe JSON
+stores the category, not the edited report or free-text explanation.
 
 ## Missing Data Or Functionality
 

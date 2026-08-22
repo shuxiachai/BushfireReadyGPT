@@ -65,12 +65,15 @@ This checklist describes what should be completed before BushfireReadyGPT is pos
 - [x] Add Streamlit health smoke, AppTest workflow and Chromium end-to-end tests.
 - [x] Add real-model regression cases for each supported scenario, plus safety-boundary and no-RAG behavior cases.
 - [x] Add a human review checklist to every generated report.
+- [x] Add deterministic report-level evidence-alignment metrics and human-review flags.
+- [x] Add privacy-minimised local per-stage runtime diagnostics.
 
 ## 8. Commercial Packaging
 
 - [x] Prepare a one-page product pitch.
 - [x] Prepare a five-minute demo script.
 - [x] Prepare a pilot feedback form.
+- [x] Prepare a strict anonymous pilot-measurement schema and Bad Case regression register.
 - [ ] Prepare a pricing and support hypothesis.
 - [ ] Prepare a deployment and data handling explanation.
 - [x] Prepare a short roadmap for live official data integration.

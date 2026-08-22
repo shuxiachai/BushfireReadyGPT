@@ -6,17 +6,19 @@
 
 Protocol: `docs/pilot_protocol.md`
 
+Machine-readable empty template: `docs/pilot_evaluation_template.json`
+
 ## Session Register
 
 Use participant codes only. Do not commit names, contact details or sensitive organisational information.
 
-| Participant | Perspective | Scenario | Date | Tasks completed / 8 | Workflow minutes | Export opened | Status |
-| --- | --- | --- | --- | ---: | ---: | --- | --- |
-| P01 | Pending | Pending | Pending |  |  |  | Not run |
-| P02 | Pending | Pending | Pending |  |  |  | Not run |
-| P03 | Pending | Pending | Pending |  |  |  | Not run |
-| P04 | Optional | Pending | Pending |  |  |  | Not run |
-| P05 | Optional | Pending | Pending |  |  |  | Not run |
+| Participant | Perspective | Scenario | Date | Tasks / 8 | Minutes | Help count | Edit extent | Citations supported / checked | Export opened | Status |
+| --- | --- | --- | --- | ---: | ---: | ---: | --- | ---: | --- | --- |
+| P01 | Pending | Pending | Pending |  |  |  |  |  |  | Not run |
+| P02 | Pending | Pending | Pending |  |  |  |  |  |  | Not run |
+| P03 | Pending | Pending | Pending |  |  |  |  |  |  | Not run |
+| P04 | Optional | Pending | Pending |  |  |  |  |  |  | Not run |
+| P05 | Optional | Pending | Pending |  |  |  |  |  |  | Not run |
 
 ## Quantitative Summary
 
@@ -31,6 +33,10 @@ Populate only after real sessions.
 | Median evidence classes correctly explained | Not measured | >= 4/5 | Pending |
 | Safety boundary correctly understood | Not measured | 100% | Pending |
 | Export package opened successfully | Not measured | 100% | Pending |
+| Facilitator interventions | Not measured | Observe and investigate repeated blocks | Pending |
+| Citation support rate | Not measured | Calibrate after real sessions | Pending |
+| Median citation trust | Not measured | >= 4/5 | Pending |
+| Reports needing no more than light edits | Not measured | Majority | Pending |
 | Unresolved critical findings | 0 observed because no sessions have run | 0 | Pending |
 
 ## Findings
@@ -49,9 +55,13 @@ Pending real participant feedback.
 
 ## Issue and Decision Log
 
-| ID | Participant(s) | Finding | Severity | Decision / owner | Status |
-| --- | --- | --- | --- | --- | --- |
-| — | — | No external sessions completed | — | Recruit 3-5 reviewers | Open |
+| ID | Participant(s) | Category / short title | Severity | Owner role / disposition | Regression test | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| — | — | No external sessions completed | — | Recruit 3-5 reviewers | — | Open |
+
+Only mark a Critical or High Bad Case Fixed after its correction is verified. Add
+a deterministic regression-test path where automation is feasible; explain any
+manual-only verification in the controlled record outside Git.
 
 ## Anonymised Quotations
 

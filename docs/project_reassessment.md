@@ -2,7 +2,7 @@
 
 ## Current Position
 
-BushfireReadyGPT `v0.3.0` is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, explicit data-quality warnings, official source registers, human review controls and exportable report packages.
+BushfireReadyGPT `v0.4.0` is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, report evidence-alignment diagnostics, explicit data-quality warnings, official source registers, human review controls and exportable report packages.
 
 The strongest current use case is a controlled pilot demonstration for councils, schools, community organisations or internship assessment. It should still be presented as draft planning support, not as an operational emergency platform.
 
@@ -17,11 +17,13 @@ The strongest current use case is a controlled pilot demonstration for councils,
 | Exports | Markdown, PDF, DOCX and pilot zip package are implemented. |
 | Local model runtime | Ollama is the default provider; an 8K dedicated model is called through a stateless, tool-free governed client. |
 | Official knowledge RAG | Nine page-level sources cover all states/territories with hybrid retrieval, abstention and answerable/unanswerable evaluation. |
+| Report evidence evaluation | Attributable claims receive deterministic support, citation, numeric and jurisdiction checks; flags remain subject to human source review. |
+| Runtime diagnosis | Privacy-minimised local Trace captures per-agent/model stages, latency, repair use and safe failure codes without report or identity content. |
 | Local setup | One self-checking Windows launcher reuses healthy dependencies, models and RAG assets and creates only missing or outdated components. |
-| Testing | 209 automated tests, including Chromium E2E and committed sample verification, pass with 85.36% coverage; four GitHub CI jobs cover Python 3.11, Python 3.13, Windows startup and Chromium. |
+| Testing | 229 automated tests, including Chromium E2E and committed sample verification, pass with 85.63% coverage; four GitHub CI jobs cover Python 3.11, Python 3.13, Windows startup and Chromium. |
 | Portfolio evidence | A current local-model Markdown/PDF/DOCX sample, governed package, screenshots, short demo video and controlled-pilot protocol are committed. External pilot results remain pending. |
 
-The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000` over 84 questions. The eight-case real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation. Its committed run passed the structural, evidence-binding, attribution, topic, contamination and unsafe-claim gates, averaging `27.97 seconds` on the release machine. These are regression baselines rather than production claims or external user validation.
+The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000` over 84 questions. The eight-case `v0.4.0` real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation. Its committed run passed the structural, evidence-binding, attribution, topic, contamination and unsafe-claim gates, averaging `27.74 seconds` on the release machine. The new diagnostic grounding review measured average lexical evidence support `0.9540`, sentence-level citation coverage `0.2311`, cited-source precision `1.0000`, numeric consistency `0.9583` and zero jurisdiction conflicts; all eight reports still require human evidence review. These are regression baselines rather than factual-accuracy, production or external user-validation claims.
 
 ## Main Gaps
 
@@ -34,6 +36,7 @@ The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerab
 | P1 | Accessibility and procurement readiness not checked | Government buyers often require accessibility, security and maintainability evidence. | Add WCAG review, deployment docs, privacy statement and security checklist. |
 | P1 | UI is visually stronger but still Streamlit-limited | Streamlit is fine for MVP, but commercial UX may need a dedicated frontend. | Keep Streamlit for demo; plan a future React/FastAPI version if commercial traction appears. |
 | P2 | No persistent database | Current local files are fine for prototypes but weak for multi-user pilots. | Add SQLite/PostgreSQL for reports, audits, users and data refresh logs. |
+| P2 | No central production observability | Local content-free Trace supports single-user diagnosis but has no remote exporter, cross-instance correlation, alerting or retention service. | Define privacy/retention controls before adding authenticated central metrics and tracing for a deployed service. |
 
 ## Optimisations Completed In This Review
 
@@ -63,6 +66,9 @@ The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerab
 - Expanded the real-model benchmark from three cases to all six scenarios plus safety-boundary and no-RAG behavior cases.
 - Built and hash-verified a current Cairns Council Markdown/PDF/DOCX sample package, then visually reviewed every PDF and DOCX page.
 - Added current product screenshots, a short demo video and a repeatable 3-5 person controlled-pilot protocol with an honest pending-results register.
+- Added a strict anonymous pilot-measurement schema, calculated aggregates and Bad Case-to-regression linkage while keeping the committed template at zero participants.
+- Added deterministic report evidence-alignment review for claim support, source attribution, numeric consistency and jurisdiction conflicts.
+- Added privacy-minimised per-stage runtime Trace and local Readiness diagnostics, separate from the governance audit chain.
 
 ## Suggested Next Build Order
 

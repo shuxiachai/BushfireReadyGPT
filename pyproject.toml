@@ -1,6 +1,6 @@
 [project]
 name = "bushfire-ready-gpt"
-version = "0.3.0"
+version = "0.4.0"
 description = "Australian bushfire resilience assistant prototype"
 authors = [{ name = "BushfireReadyGPT contributors" }]
 readme = "README.md"

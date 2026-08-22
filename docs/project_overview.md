@@ -79,12 +79,16 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - A current Cairns Council sample package, product screenshots and a short demonstration video.
 - Commercial gap and project maturity assessment.
 
-## Current Validation (`v0.3.0`)
+## Current Validation (`v0.4.0`)
 
-- `209` automated tests, including the Chromium end-to-end workflow, pass.
-- Source coverage is `85.36%`; CI enforces an `85%` minimum on Python 3.11 and 3.13 and also validates Windows startup.
+- `229` automated tests, including the Chromium end-to-end workflow, pass.
+- Source coverage is `85.63%`; CI enforces an `85%` minimum on Python 3.11 and 3.13 and also validates Windows startup.
+- Report generation and revision now produce a deterministic evidence-alignment review for attributable claims, citations, numbers and jurisdiction conflicts.
+- The committed eight-case `v0.4.0` Ollama run passed the existing structural/RAG/safety gates; its new grounding metrics remain diagnostic and flagged all reports for human review because sentence-level citation coverage is not yet sufficient.
+- Anonymous pilot aggregation and Bad Case regression tooling are ready, but the committed template still contains zero external participants.
+- Privacy-minimised runtime Trace records per-stage latency, repair use and safe error codes without prompt, report, retrieval or identity content.
 - The 84-question RAG baseline records Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000`.
-- Eight real-Ollama cases cover all six planning scenarios, live-request refusal and no-RAG degradation. The committed run passed every structural, evidence-binding, attribution, topic, contamination and unsafe-claim gate, averaging `27.97 seconds` on the release machine.
+- Eight real-Ollama cases cover all six planning scenarios, live-request refusal and no-RAG degradation. The committed run passed every configured release gate, averaged `27.74 seconds` on the release machine and recorded diagnostic evidence support `0.9540` versus sentence-level citation coverage `0.2311`.
 - The committed sample package passes hash/schema checks and rendered PDF/DOCX visual review; the DOCX sign-off begins on a dedicated page.
 - Ruff, formatting, Bandit, dependency consistency and the public vulnerability audit pass.
 
@@ -97,7 +101,7 @@ These figures are release regression signals, not production accuracy or hardwar
 - It does not confirm safe routes or safe assembly points.
 - It does not replace official emergency services.
 - It does not yet include authentication, role-based approvals or production deployment hardening.
-- Its quality checks verify structure and safety wording only; they do not establish factual, legal or operational correctness.
+- Its structural quality checks and lexical evidence-alignment review do not establish factual, legal or operational correctness.
 - Browser state is isolated in memory by default; optional JSON persistence is single-user only and is not a multi-user database.
 - It still requires legal, licence, security, privacy and user testing before commercial or government use.
 - The controlled-pilot protocol is ready, but external participant sessions have not yet run; engineering tests are not user validation.

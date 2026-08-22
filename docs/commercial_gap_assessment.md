@@ -41,6 +41,9 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - Eight-case real-model regression covering every planning scenario, safety-boundary behavior and no-RAG degradation.
 - A current hash-verified Cairns Council sample package with rendered PDF/DOCX visual review.
 - Product screenshots, a short demo video and a ready-to-run controlled-pilot protocol.
+- Anonymous pilot metrics, edit/citation measures and a repository-safe Bad Case regression register are ready; real sessions remain pending.
+- Deterministic report evidence-alignment checks cover claim support, source attribution, numbers and jurisdiction conflicts without claiming semantic truth.
+- Local privacy-minimised runtime Trace exposes per-stage latency, repair use and safe failure codes without storing report or identity content.
 
 ## Main Gaps
 
@@ -51,7 +54,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | P1 | Data licensing | A licence register exists, but its assumptions still need commercial/legal review. | Convert licence assumptions into reviewed decisions for allowed use, attribution, caching and redistribution. |
 | P1 | User testing | The report format has not been validated by real school/council/community reviewers. | Run a controlled pilot with 3-5 reviewers using the pilot feedback form. |
 | P1 | Authentication and approval | Reviewer fields exist, but there are no user accounts, permissions or signed approval states. | Design roles for drafter, reviewer and admin; later add login and immutable approval records. |
-| P2 | Deployment | The app runs locally, but is not packaged for secure hosting. | Add Docker, environment profiles, health checks, logs and deployment notes. |
+| P2 | Deployment | The app runs locally and now has content-free local Trace, but is not packaged for secure hosting or central monitoring. | Add Docker, environment profiles, health checks, authenticated metrics/tracing, retention controls and deployment notes. |
 | P2 | Automated testing | Unit, integration, Streamlit AppTest, Chromium, retrieval evaluation, an eight-case real-Ollama benchmark and sample-package verification cover the main engineering paths. External users have not validated usefulness or comprehension. | Keep the eight-case suite as a regression baseline; add scenarios only from measured pilot findings and keep visual review in the release process. |
 
 ## Recommended Roadmap
