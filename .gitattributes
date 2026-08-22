@@ -4,3 +4,4 @@ data_australia/*.yml text eol=lf
 data_australia/processed/**/*.csv text eol=lf
 data_australia/processed/**/*.json text eol=lf
 data_australia/processed/sa2_coverage.geojson text eol=lf
+examples/v*/*.md text eol=lf
