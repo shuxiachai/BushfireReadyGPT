@@ -276,9 +276,7 @@ def _assess_claim(sentence, evidence, cited_source_ids, analysis):
     all_evidence_numbers = set().union(*(item["numbers"] for item in evidence)) if evidence else set()
     numeric_consistent = not claim_numbers or claim_numbers.issubset(all_evidence_numbers)
     cited_matches = [
-        row
-        for row in ranked
-        if row[3]["source_id"] in cited_source_ids and row[1] >= 2 and row[0] >= 0.25 and row[2]
+        row for row in ranked if row[3]["source_id"] in cited_source_ids and row[1] >= 2 and row[0] >= 0.25 and row[2]
     ]
     conflicts = _jurisdiction_conflicts(sentence, analysis, evidence)
     claim_hash = hashlib.sha256(sentence.encode("utf-8")).hexdigest()[:16]

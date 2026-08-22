@@ -154,11 +154,17 @@ def validate_pilot_payload(payload):
     for session in sessions:
         unknown_issues = sorted(set(session["issue_ids"]) - known_issues)
         if unknown_issues:
-            _fail("unknown_bad_case", f"{session['participant_code']} references unknown Bad Case IDs: {', '.join(unknown_issues)}.")
+            _fail(
+                "unknown_bad_case",
+                f"{session['participant_code']} references unknown Bad Case IDs: {', '.join(unknown_issues)}.",
+            )
     for bad_case in bad_cases:
         unknown_participants = sorted(set(bad_case["participant_codes"]) - known_participants)
         if unknown_participants:
-            _fail("unknown_participant", f"{bad_case['id']} references unknown participant codes: {', '.join(unknown_participants)}.")
+            _fail(
+                "unknown_participant",
+                f"{bad_case['id']} references unknown participant codes: {', '.join(unknown_participants)}.",
+            )
 
     return {
         "schema_version": PILOT_EVALUATION_SCHEMA_VERSION,
@@ -232,9 +238,7 @@ def _validate_bad_case(item, index):
         "title": _safe_short_text(item["title"], f"{label} title", maximum=120),
         "severity": _choice(item["severity"], ISSUE_SEVERITIES, f"{label} severity"),
         "status": _choice(item["status"], ISSUE_STATUSES, f"{label} status"),
-        "finding_category": _choice(
-            item["finding_category"], FINDING_CATEGORIES, f"{label} finding_category"
-        ),
+        "finding_category": _choice(item["finding_category"], FINDING_CATEGORIES, f"{label} finding_category"),
         "participant_codes": list(participants),
         "regression_test": regression_test,
         "owner_role": _choice(item["owner_role"], OWNER_ROLES, f"{label} owner_role"),
@@ -255,9 +259,7 @@ def summarise_pilot_payload(payload):
             "bad_cases": {
                 "total": len(bad_cases),
                 "open_critical_or_high": sum(
-                    1
-                    for item in bad_cases
-                    if item["status"] == "Open" and item["severity"] in {"Critical", "High"}
+                    1 for item in bad_cases if item["status"] == "Open" and item["severity"] in {"Critical", "High"}
                 ),
             },
             "target_results": {},
@@ -276,9 +278,7 @@ def summarise_pilot_payload(payload):
         "median_evidence_classes_correct": round(
             float(median(item["evidence_classes_correct"] for item in sessions)), 2
         ),
-        "safety_boundary_understanding_rate": _rate(
-            sessions, lambda item: item["safety_boundary_understood"]
-        ),
+        "safety_boundary_understanding_rate": _rate(sessions, lambda item: item["safety_boundary_understood"]),
         "export_success_rate": _rate(sessions, lambda item: item["export_opened"]),
         "facilitator_help_total": sum(item["facilitator_help_count"] for item in sessions),
         "citation_support_rate": round(citations_supported / citations_checked, 4) if citations_checked else None,
