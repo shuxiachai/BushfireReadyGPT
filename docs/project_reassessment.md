@@ -2,7 +2,7 @@
 
 ## Current Position
 
-BushfireReadyGPT is now a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, ABS/ASGS evidence context, official source registers, human review controls and exportable report packages.
+BushfireReadyGPT `v0.2.1` is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, official source registers, human review controls and exportable report packages.
 
 The strongest current use case is a controlled pilot demonstration for councils, schools, community organisations or internship assessment. It should still be presented as draft planning support, not as an operational emergency platform.
 
@@ -11,14 +11,16 @@ The strongest current use case is a controlled pilot demonstration for councils,
 | Area | Current state |
 | --- | --- |
 | Product workflow | Clear form-to-report flow with review/export tabs. |
-| Multi-agent layer | Profile, data, community vulnerability, risk context, planner, report and quality agents are separated. |
+| Multi-agent layer | Seven pre-generation agents, including Official Knowledge RAG, and one post-generation quality agent are separated. |
 | Australian data context | Local ABS/ASGS processed data and official source registers are available. |
 | Governance boundary | v4 audits bind exact report/review/data snapshots, deterministic sign-off and recursively verifiable version lineage. |
 | Exports | Markdown, PDF, DOCX and pilot zip package are implemented. |
-| Local model runtime | Ollama is the default provider, so no OpenAI API key is required. |
+| Local model runtime | Ollama is the default provider; an 8K dedicated model is called through a stateless, tool-free governed client. |
 | Official knowledge RAG | Nine page-level sources cover all states/territories with hybrid retrieval, abstention and answerable/unanswerable evaluation. |
-| Local setup | One-click Windows setup creates the environment, models, RAG index and verifies startup prerequisites. |
-| Testing | Unit, integration, Streamlit AppTest and Chromium E2E suites cover the core pipeline, persistence, governance, exports, validation, data integrity and browser workflow. |
+| Local setup | One self-checking Windows launcher reuses healthy dependencies, models and RAG assets and creates only missing or outdated components. |
+| Testing | 191 unit/integration tests plus one Chromium E2E pass with 85.26% coverage; four GitHub CI jobs cover Python 3.11, Python 3.13, Windows startup and Chromium. |
+
+The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000` over 84 questions. The three-scenario real-Ollama report benchmark passed every structural, evidence-binding, attribution and safety gate in one attempt per scenario, averaging `26.24 seconds` on the release machine. These are regression baselines rather than production claims.
 
 ## Main Gaps
 
@@ -37,8 +39,8 @@ The strongest current use case is a controlled pilot demonstration for councils,
 - Fixed the Report Quality Agent checklist detection by removing a corrupted legacy checkbox string.
 - Added a Human Review Status quality check.
 - Added report validation so reviewed or approved reports require organisation, reviewer name and reviewer role.
-- Added reviewer name to the report form.
-- Renamed the generic LLM response helper internally while preserving the old alias for compatibility.
+- Moved reviewer identity out of report creation and into the accountable Review & Export step.
+- Replaced the legacy Assistant Router, provider thread and compatibility helpers with a small stateless `GovernedModelClient`.
 - Added tests for approval validation and quality checklist detection.
 - Added O1 / P2 / R3 / A4 / U0 provenance labels to analysis, reports, audits, UI review and quality checks.
 - Routed follow-up edits through a governed revision workflow with report IDs, version lineage, new audit records and deterministic evidence regeneration.
@@ -52,8 +54,10 @@ The strongest current use case is a controlled pilot demonstration for councils,
 - Made governed model calls stateless and tool-free, with explicit acknowledgement before any external endpoint receives report inputs.
 - Added a locked Poetry environment, coverage threshold, static analysis, dependency audit and pinned CI actions.
 - Added page-level licensed local RAG, all-jurisdiction coverage, hard negatives and a real-model report benchmark.
-- Added bounded model memory, HTTPS-only external endpoints, interrupted-stream handling and structural repair.
-- Added Windows setup/preflight CI, concurrent source reachability checks, formatting enforcement and a complexity ceiling.
+- Tuned the dedicated local model to an 8K context, 2,300 output tokens and a 900-1,200-word narrative budget; reduced RAG and revision prompt payloads.
+- Added HTTPS-only external endpoints, interrupted-stream handling and structural repair without provider-side conversation memory.
+- Added a single self-checking Windows launcher, startup/preflight CI, concurrent source reachability checks, formatting enforcement and a complexity ceiling.
+- Added a Python 3.13 Qdrant/SQLite compatibility shim, raised the coverage gate to 85% and verified dependencies against the public vulnerability database.
 
 ## Suggested Next Build Order
 

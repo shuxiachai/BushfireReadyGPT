@@ -50,10 +50,10 @@ before redistribution.
 The committed evaluation set contains 68 answerable questions plus 16 hard
 negatives. It measures source-level and passage-level Recall@K, mean reciprocal
 rank, Top-1 accuracy, unanswerable accuracy, false-positive rate and latency. On
-the 2026-08-21 local baseline, Top-5 passage recall was 0.9706, MRR 0.8922,
-Top-1 accuracy 0.8235, unanswerable accuracy 1.0000, average latency about 104 ms
-and p95 latency about 126 ms. These are reproducible project-benchmark results,
-not evidence of production accuracy. Unit tests use a deterministic test
+the 2026-08-22 `v0.2.1` local baseline, Top-5 passage recall was 0.9706, MRR
+0.8922, Top-1 accuracy 0.8235, unanswerable accuracy 1.0000, average latency
+104.70 ms and p95 latency 126.57 ms. These are reproducible project-benchmark
+results, not evidence of production accuracy. Unit tests use a deterministic test
 embedder and temporary Qdrant database, keeping CI offline and repeatable.
 
 Retrieval uses weighted reciprocal-rank fusion (0.65 dense / 0.35 BM25 by
@@ -71,7 +71,9 @@ rerank reasons so the result can be explained in an interview or review.
 - A staged index is published atomically under a lock with interrupted-build recovery.
 - The manifest binds catalog bytes, source bytes, canonical document snapshot, chunk corpus, embedding model and vector dimension.
 - Retrieval revalidates source bytes, the complete document snapshot, manifest, collection count, point ID and returned text hash before embedding the query.
+- The Python 3.13 embedded-Qdrant path derives SQLite thread safety without leaking the temporary probe connection used by the upstream client.
 - Passages are delimited as untrusted quoted evidence; the model is told never to follow passage instructions.
+- Prompt payloads cap total retrieved context at 8,000 characters and each passage at 2,200 characters.
 - The audit stores query/source/chunk hashes and scores, but not retrieved passage text by default.
 - Live-warning and life-safety queries are deterministically withheld from the static corpus, while free-text retrieval must pass lexical or combined semantic/lexical answerability thresholds.
 

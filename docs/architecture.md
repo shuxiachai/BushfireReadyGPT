@@ -86,8 +86,8 @@ flowchart TD
 | Report Agent | Formats deterministic findings for the LLM prompt | Multi-agent prompt context |
 | Report Quality Agent | Checks generated report completeness and safety boundaries | Pass/warning/fail checklist |
 
-The named agents are specialised, deterministic pipeline components, not seven
-independent language-model calls. One governed model call writes the report
+The eight named agents are specialised, deterministic pipeline components; none
+is an independent language-model call. One governed model call writes the report
 narrative; a second call is made only when the structural gate requests one
 repair. This keeps orchestration reproducible, reduces latency and makes the
 evidence trail inspectable while still demonstrating clear agent boundaries.

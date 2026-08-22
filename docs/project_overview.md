@@ -28,8 +28,8 @@ This version has been rebuilt around an Australian preparedness use case:
 1. The user opens the Streamlit app.
 2. The user loads a pilot example or fills in the report form.
 3. The user selects the location, audience, scenario, timeframe and focus areas.
-4. The multi-agent pipeline prepares local context and planning evidence.
-5. The local Ollama model generates a formal English draft report.
+4. The multi-agent pipeline prepares local context, retrieves optional official-knowledge RAG passages and builds planning evidence.
+5. The stateless, tool-free local Ollama client generates a formal English draft report.
 6. The app appends governance notices, provenance-labelled evidence tables and human review sign-off.
 7. A follow-up edit creates a new report ID/version, rebuilds deterministic evidence, reruns structural checks and writes a separate audit record.
 8. The reviewer checks the evidence trail, data sources, map context and structural checks, then records sign-off; every new version starts as a draft with an empty checklist.
@@ -42,6 +42,7 @@ This version has been rebuilt around an Australian preparedness use case:
 | Profile Agent | Normalises user inputs and infers scenario context. |
 | Australian Data Agent | Selects relevant official sources and records data limitations. |
 | Community Vulnerability Agent | Reads local processed community profile data and builds vulnerability notes. |
+| Official Knowledge Agent | Queries the verified local hybrid RAG index and returns attributed official passages. |
 | Risk Context Agent | Matches Australia / Queensland / Cairns risk rules. |
 | Planner Agent | Converts risk context into preparedness priorities. |
 | Report Agent | Formats deterministic evidence for the report prompt. |
@@ -68,12 +69,23 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - A structured form-to-report workflow.
 - Multi-agent analysis with visible intermediate evidence.
 - Local model generation through Ollama.
+- Conventional local RAG using EmbeddingGemma, Qdrant, BM25 and reciprocal-rank fusion.
 - Human review and approval boundary.
 - Versioned, governed report revisions with approval reset and per-version audit files.
 - Evidence tables and audit records.
 - Evidence provenance labels that separate official references, processed data, deterministic inference, AI prose and unverified inputs.
 - Export to Markdown, PDF, DOCX and pilot package zip.
 - Commercial gap and project maturity assessment.
+
+## Current Validation (`v0.2.1`)
+
+- `191` unit and integration tests plus `1` Chromium end-to-end workflow pass.
+- Source coverage is `85.26%`; CI enforces an `85%` minimum on Python 3.11 and 3.13 and also validates Windows startup.
+- The 84-question RAG baseline records Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000`.
+- Three real-Ollama report scenarios passed every structural, evidence-binding, source-attribution and safety gate in one attempt, averaging `26.24 seconds` on the release machine.
+- Ruff, formatting, Bandit, dependency consistency and the public vulnerability audit pass.
+
+These figures are release regression signals, not production accuracy or hardware-independent performance claims.
 
 ## Current Limitations
 
