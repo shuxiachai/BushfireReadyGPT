@@ -28,6 +28,14 @@ powershell -ExecutionPolicy Bypass -File .\start_app.ps1
 
 Confirm that the page opens and the sidebar shows the safety boundary.
 
+Before presenting committed release evidence, run the offline verifier:
+
+```powershell
+poetry run python scripts/verify_release.py
+```
+
+The `v0.5.0` evidence set is tied to source commit `e02f076`, exact evaluation-dataset hashes, one RAG manifest, resolved model identities and the current governed-report policy. This is an offline consistency check, not external user validation.
+
 ## Recommended Demo: Cairns Council Pilot
 
 ### 1. Introduce The Product
@@ -122,9 +130,11 @@ Mention the agents:
 
 - Profile Agent
 - Australian Data Agent
+- Official Knowledge Agent
 - Community Vulnerability Agent
 - Risk Context Agent
 - Planner Agent
+- Report Agent
 - Report Quality Agent
 
 ### 6. Show Report Quality And Review
@@ -140,6 +150,8 @@ Reviewer Approval / Human Sign-off
 Say:
 
 > The project keeps AI output in draft status until a responsible human reviewer checks the evidence, limitations and source boundaries.
+
+Show that the current quality result is bound to `governed-report-v2`. Explain that a policy-only reassessment of an unchanged historical report is not a human review and cannot authorise pilot-package export until a new review event is recorded.
 
 Key point:
 
@@ -191,7 +203,19 @@ Say:
 
 > The export package is useful for stakeholder handover because it includes the report, review metadata, data register and audit materials.
 
-### 9. Close The Demo
+The current package uses `pilot-export-v4`. The committed Cairns Council sample passed on its first generation attempt and verifies as a 16-page PDF plus a 203-paragraph DOCX; it uses Ollama `bushfire-ready-qwen` through a local-loopback endpoint and the same RAG manifest as the release benchmarks.
+
+### 9. Show Release Evidence
+
+Open the committed `v0.5.0` benchmark summaries and say:
+
+> The production RAG profile uses Top-8 and records recall 1.0000, MRR 0.9216, Top-1 0.8529 and abstention 1.0000. The separate free-text Top-5 profile records recall 0.9706, MRR 0.8922, Top-1 0.8235 and abstention 1.0000.
+
+> All eight report cases passed the governed and RAG gates with zero safety violations. Repair rate was 0.625 and average latency was 46.77 seconds on the release machine. Grounding support was 0.9280, citation coverage 0.2687, citation precision 0.8571, numeric consistency 0.9167 and jurisdiction conflicts zero; all reports still require human evidence review.
+
+Point out that both JSON artifacts keep every evaluation row, bind exact dataset/Git/index/model provenance, and record a stable end-of-run snapshot. The release run aborts rather than writing an artifact if those identities drift.
+
+### 10. Close The Demo
 
 Say:
 
@@ -207,7 +231,8 @@ If you only have two minutes:
 4. Show Evidence Trail.
 5. Show Review & Export.
 6. Download the pilot package.
-7. State the current limitation: draft planning support only, not live emergency advice.
+7. Show the offline release-verifier result.
+8. State the current limitation: draft planning support only, not live emergency advice.
 
 ## Backup Talking Points
 

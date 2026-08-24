@@ -2,7 +2,7 @@
 
 ## Current Position
 
-BushfireReadyGPT `v0.4.0` plus the unreleased 2026-08-24 hardening is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, report evidence-alignment diagnostics, explicit data-quality warnings, official source registers, human review controls and exportable report packages.
+BushfireReadyGPT `v0.5.0` is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, report evidence-alignment diagnostics, explicit data-quality warnings, official source registers, human review controls and exportable report packages.
 
 The strongest current use case is a controlled pilot demonstration for councils, schools, community organisations or internship assessment. It should still be presented as draft planning support, not as an operational emergency platform.
 
@@ -13,17 +13,19 @@ The strongest current use case is a controlled pilot demonstration for councils,
 | Product workflow | Clear form-to-report flow with review/export tabs. |
 | Multi-agent layer | Seven pre-generation agents, including Official Knowledge RAG, and one post-generation quality agent are separated. |
 | Australian data context | Local ABS/ASGS processed data and official source registers are available. |
-| Governance boundary | One canonical gate is recomputed across generation, revision, organisational approval and governed pilot-package export; new v4 events bind `governed-report-v2`, the full-analysis hash, exact report/review/data snapshots, deterministic sign-off and recursively verifiable version lineage. |
-| Exports | Markdown, PDF, DOCX and pilot zip package are implemented. |
+| Governance boundary | One canonical gate is recomputed across generation, revision, organisational approval and governed `pilot-export-v4` export; v4 events bind `governed-report-v2` fingerprint `7c20b6fa049dc1028cc367955eb28b5434318b2d4050995cc9cf58b53a5da9d1`, the full-analysis hash, exact report/review/data snapshots, deterministic sign-off and recursively verifiable version lineage. A policy-only reassessment preserves report/sign-off/status/package context and cannot substitute for the later human review required for export. |
+| Exports | Markdown, PDF, DOCX and `pilot-export-v4` zip package are implemented. |
 | Local model runtime | Ollama is the default provider; an 8K dedicated model is called through a stateless, tool-free governed client. |
 | Official knowledge RAG | Nine page-level sources cover all states/territories with hybrid retrieval, abstention and answerable/unanswerable evaluation. |
 | Report evidence evaluation | Attributable claims receive deterministic support, citation, numeric and jurisdiction checks; flags remain subject to human source review. |
 | Runtime diagnosis | Privacy-minimised local Trace captures per-agent/model stages, latency, repair use and safe failure codes without report or identity content. |
 | Local setup | One self-checking Windows launcher reuses healthy dependencies, models and RAG assets and creates only missing or outdated components. |
-| Testing | 353 automated tests pass (352 non-E2E plus one Chromium E2E); CI enforces at least 85% `src` coverage for the non-E2E suite, while four GitHub jobs cover Python 3.11, Python 3.13, Windows startup and Chromium. |
-| Portfolio evidence | A current local-model Markdown/PDF/DOCX sample, governed package, screenshots, short demo video and controlled-pilot protocol are committed. External pilot results remain pending. |
+| Testing | The local release verification passes 429 automated tests (428 non-E2E plus one Chromium E2E), with measured non-E2E `src` coverage of 86.08%. |
+| Portfolio evidence | The current Cairns Council sample uses Ollama `bushfire-ready-qwen` through a local-loopback boundary and the release RAG manifest; its `pilot-export-v4` package contains a 16-page PDF and 203-paragraph DOCX generated successfully on the first attempt. Screenshots, a short demo video and a controlled-pilot protocol are also committed; external pilot results remain pending. |
 
-The production-aligned retrieval profile covers 68 answerable questions plus five reachable safety negatives at Top-8, with passage recall `1.0000`, MRR `0.9216`, Top-1 accuracy `0.8529` and safety-negative abstention `1.0000`. The separate 84-question free-text diagnostic records Recall@5 `0.9706`, MRR `0.8922`, Top-1 accuracy `0.8235` and unanswerable accuracy `1.0000`. The eight-case `v0.4.0` real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation. Its committed run passed the then-configured structural, evidence-binding, attribution, topic, contamination and unsafe-claim gates, averaging `27.74 seconds` on the release machine. The diagnostic grounding review measured average lexical evidence support `0.9540`, sentence-level citation coverage `0.2311`, cited-source precision `1.0000`, numeric consistency `0.9583` and zero jurisdiction conflicts; all eight reports still require human evidence review. These are regression baselines rather than factual-accuracy, production or external user-validation claims.
+The current production-aligned retrieval profile records Top-8 passage recall `1.0000`, MRR `0.9216`, Top-1 accuracy `0.8529` and safety-negative abstention `1.0000`. The separate free-text Top-5 diagnostic records recall `0.9706`, MRR `0.8922`, Top-1 accuracy `0.8235` and unanswerable accuracy `1.0000`. The `v0.5.0` eight-case real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation: all `8/8` cases passed the governed and RAG gates, safety violations were zero, repair rate was `0.625` and average latency was `46.77 seconds` on the release machine. Diagnostic grounding measured average support `0.9280`, citation coverage `0.2687`, citation precision `0.8571`, numeric consistency `0.9167` and zero jurisdiction conflicts; all eight reports still require human evidence review. These are regression baselines rather than factual-accuracy, production or external user-validation claims.
+
+The committed RAG and report artifacts include every evaluation row and bind exact dataset hashes, clean source commit `e02f07687ee2e2329fc59afb5fe1c8ea4f532646`, the shared RAG index and exact model/embedding identities. Active release runs abort on end-of-run provenance drift, and the offline release verifier rejects inactive gates, stale datasets or policy, mismatched commit/index provenance, or a sample produced through a different provider, model, endpoint boundary or RAG manifest.
 
 ## Main Gaps
 
@@ -69,6 +71,9 @@ The production-aligned retrieval profile covers 68 answerable questions plus fiv
 - Added a strict anonymous pilot-measurement schema, calculated aggregates and Bad Case-to-regression linkage while keeping the committed template at zero participants.
 - Added deterministic report evidence-alignment review for claim support, source attribution, numeric consistency and jurisdiction conflicts.
 - Added privacy-minimised per-stage runtime Trace and local Readiness diagnostics, separate from the governance audit chain.
+- Added full-row RAG/report release artifacts with exact dataset, Git, index, model/embedding and quality-policy provenance plus start/end drift detection.
+- Added policy-only quality reassessment for unchanged historical reports; it never claims human review and cannot be the export head without a later review event.
+- Added an offline release verifier that ties `v0.5.0` metadata, both passing release gates and the governed sample package to one reproducible evidence set.
 
 ## Suggested Next Build Order
 

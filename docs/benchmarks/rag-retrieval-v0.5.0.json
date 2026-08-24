@@ -1,0 +1,4300 @@
+{
+  "artifact_schema": "bushfire-rag-evaluation-v3",
+  "evaluation_schema_version": 3,
+  "run": {
+    "started_at_utc": "2026-08-24T07:25:20+00:00",
+    "questions_file": "data_australia/rag/evaluation.json",
+    "questions_sha256": "e3cf9c5f9df092d6f681daae94ead036d57d0462ba4caea43f5e3d71bcf215e4",
+    "questions_hash_basis": "exact_file_bytes",
+    "questions_schema_version": 3,
+    "git": {
+      "commit": "e02f07687ee2e2329fc59afb5fe1c8ea4f532646",
+      "working_tree_dirty": false,
+      "collection_status": "collected"
+    },
+    "rag_index": {
+      "status": "verified",
+      "schema": "bushfire-rag-index-v2",
+      "manifest_sha256": "aa8e42d3d7837ee3927b21108cedf5f6553332f92ba89e9f70caa2852febedd2",
+      "catalog_sha256": "49e48740d72b06a672962226496108c26221231a235428e1c6c66795e260c5f1",
+      "corpus_sha256": "02cba70434724c2829851bd382d57b3ff5c8c8dbd2d0043defdcfa1426083fd8",
+      "documents_sha256": "1b21fe597f79c86797a5045b5f5098af482cae2d133161ede476fe85d4288bcc",
+      "embedding_dimension": 768,
+      "source_count": 9,
+      "chunk_count": 28,
+      "built_at_utc": "2026-08-22T00:00:43+00:00"
+    },
+    "embedding_model": {
+      "name": "embeddinggemma",
+      "digest": "85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1",
+      "digest_status": "resolved",
+      "provider": "ollama",
+      "dimension": 768
+    },
+    "completed_at_utc": "2026-08-24T07:25:42+00:00",
+    "provenance_stability": {
+      "checked": true,
+      "stable": true,
+      "drift_fields": []
+    }
+  },
+  "passed": true,
+  "release_gate": {
+    "profile": "structured_planning",
+    "active": true,
+    "passed": true,
+    "uses_production_settings": true
+  },
+  "profiles": {
+    "structured_planning": {
+      "passed": true,
+      "profile": "structured_planning",
+      "thresholds": {
+        "passage_recall_at_k": 0.9,
+        "mean_reciprocal_rank": 0.75,
+        "unanswerable_accuracy": 0.8
+      },
+      "retrieval_configuration": {
+        "query_scope": "structured_planning",
+        "top_k": 8,
+        "candidate_k": 32,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.45,
+          "semantic_coverage_threshold": 0.2
+        },
+        "effective_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.35,
+          "semantic_score_threshold": 0.35,
+          "semantic_coverage_threshold": 0.1
+        }
+      },
+      "summary": {
+        "questions": 73,
+        "answerable_questions": 68,
+        "unanswerable_questions": 5,
+        "source_recall_at_k": 1.0,
+        "passage_recall_at_k": 1.0,
+        "mean_reciprocal_rank": 0.9216,
+        "top_1_accuracy": 0.8529,
+        "unanswerable_accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "average_latency_ms": 130.36,
+        "p95_latency_ms": 157.49,
+        "top_k": 8,
+        "query_scope": "structured_planning",
+        "retrieval_mode": "dense_bm25_rrf_v1"
+      },
+      "by_jurisdiction": {
+        "Australian Capital Territory": {
+          "questions": 6,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.9167
+        },
+        "New South Wales": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "Northern Territory": {
+          "questions": 6,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "Queensland": {
+          "questions": 16,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.9688
+        },
+        "South Australia": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "Tasmania": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.8125
+        },
+        "Victoria": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.7917
+        },
+        "Western Australia": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.8542
+        }
+      },
+      "by_category": {
+        "accessibility": {
+          "questions": 3,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "animals": {
+          "questions": 3,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "communications": {
+          "questions": 10,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "community": {
+          "questions": 2,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "evacuation": {
+          "questions": 11,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.7576
+        },
+        "kits": {
+          "questions": 4,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.8333
+        },
+        "mitigation": {
+          "questions": 1,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "planning": {
+          "questions": 11,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.9545
+        },
+        "property": {
+          "questions": 13,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.9615
+        },
+        "response_planning": {
+          "questions": 2,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "risk": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.875
+        }
+      },
+      "rows": [
+        {
+          "id": "qld_roof_gutters",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_roof_sarking",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_wall_cladding",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_underfloor_storage",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_deck_debris",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_lpg_valves",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_draught_seals",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_wire_mesh",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_local_routes",
+          "jurisdiction": "Queensland",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_support_agencies",
+          "jurisdiction": "Queensland",
+          "category": "accessibility",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "qld_pets_unavailable",
+          "jurisdiction": "Queensland",
+          "category": "animals",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan",
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_safe_place",
+          "jurisdiction": "Queensland",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_destination_records",
+          "jurisdiction": "Queensland",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_predeparture_checklist",
+          "jurisdiction": "Queensland",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan",
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_evacuation_kit",
+          "jurisdiction": "Queensland",
+          "category": "kits",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_kit_storage",
+          "jurisdiction": "Queensland",
+          "category": "kits",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "tas_local_safety_options",
+          "jurisdiction": "Tasmania",
+          "category": "community",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_response_priorities",
+          "jurisdiction": "Tasmania",
+          "category": "response_planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_local_knowledge",
+          "jurisdiction": "Tasmania",
+          "category": "response_planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_mitigation_fuel",
+          "jurisdiction": "Tasmania",
+          "category": "mitigation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_safer_last_resort",
+          "jurisdiction": "Tasmania",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_not_centres",
+          "jurisdiction": "Tasmania",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_no_amenities",
+          "jurisdiction": "Tasmania",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_evacuation_amenities",
+          "jurisdiction": "Tasmania",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "nsw_four_steps",
+          "jurisdiction": "New South Wales",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_household_discussion",
+          "jurisdiction": "New South Wales",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_grass_clear",
+          "jurisdiction": "New South Wales",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_alert_app",
+          "jurisdiction": "New South Wales",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_keep_informed",
+          "jurisdiction": "New South Wales",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_online_plan",
+          "jurisdiction": "New South Wales",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_home_survival",
+          "jurisdiction": "New South Wales",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_step_two",
+          "jurisdiction": "New South Wales",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "vic_risk_landscape",
+          "jurisdiction": "Victoria",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_written_practised",
+          "jurisdiction": "Victoria",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_leave_signs",
+          "jurisdiction": "Victoria",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_catastrophic_homes",
+          "jurisdiction": "Victoria",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_trigger_route",
+          "jurisdiction": "Victoria",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 3,
+          "reciprocal_rank": 0.3333333333333333,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_pets_movements",
+          "jurisdiction": "Victoria",
+          "category": "animals",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_care_support",
+          "jurisdiction": "Victoria",
+          "category": "accessibility",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_share_plan",
+          "jurisdiction": "Victoria",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "wa_plan_update",
+          "jurisdiction": "Western Australia",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_watch_zone",
+          "jurisdiction": "Western Australia",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_four_ratings",
+          "jurisdiction": "Western Australia",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_catastrophic_leave",
+          "jurisdiction": "Western Australia",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_warning_levels",
+          "jurisdiction": "Western Australia",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_kit_accessible",
+          "jurisdiction": "Western Australia",
+          "category": "kits",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 3,
+          "reciprocal_rank": 0.3333333333333333,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_apz",
+          "jurisdiction": "Western Australia",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_pet_identity",
+          "jurisdiction": "Western Australia",
+          "category": "animals",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "sa_seven_keys",
+          "jurisdiction": "South Australia",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_behaviour_factors",
+          "jurisdiction": "South Australia",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_three_kits",
+          "jurisdiction": "South Australia",
+          "category": "kits",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_emotional_readiness",
+          "jurisdiction": "South Australia",
+          "category": "accessibility",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_plan_practice",
+          "jurisdiction": "South Australia",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_leaving_late",
+          "jurisdiction": "South Australia",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_changed_household",
+          "jurisdiction": "South Australia",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_rating_variants",
+          "jurisdiction": "South Australia",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "act_bushfire_season",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_ladder_fuels",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_slope_rate",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_farm_firewise_map",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_city_rural_interface",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "community",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_bpa_dwellings",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "nt_prepare_advance",
+          "jurisdiction": "Northern Territory",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_three_alerts",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_advice_alert",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_watch_and_act",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_emergency_warning",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_alert_channels",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "negative_cyclone_live",
+          "jurisdiction": "Northern Territory",
+          "category": "live_operations",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_live_roads",
+          "jurisdiction": "Australia",
+          "category": "live_operations",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_defend_today",
+          "jurisdiction": "Australia",
+          "category": "live_operations",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_active_order",
+          "jurisdiction": "Australia",
+          "category": "live_operations",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_survival_guarantee",
+          "jurisdiction": "Australia",
+          "category": "life_safety",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        }
+      ]
+    },
+    "free_text": {
+      "passed": true,
+      "profile": "free_text",
+      "thresholds": {
+        "passage_recall_at_k": 0.9,
+        "mean_reciprocal_rank": 0.75,
+        "unanswerable_accuracy": 0.8
+      },
+      "retrieval_configuration": {
+        "query_scope": "free_text",
+        "top_k": 5,
+        "candidate_k": 20,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.45,
+          "semantic_coverage_threshold": 0.2
+        },
+        "effective_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.45,
+          "semantic_coverage_threshold": 0.2
+        }
+      },
+      "summary": {
+        "questions": 84,
+        "answerable_questions": 68,
+        "unanswerable_questions": 16,
+        "source_recall_at_k": 0.9706,
+        "passage_recall_at_k": 0.9706,
+        "mean_reciprocal_rank": 0.8922,
+        "top_1_accuracy": 0.8235,
+        "unanswerable_accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "average_latency_ms": 131.59,
+        "p95_latency_ms": 159.0,
+        "top_k": 5,
+        "query_scope": "free_text",
+        "retrieval_mode": "dense_bm25_rrf_v1"
+      },
+      "by_jurisdiction": {
+        "Australian Capital Territory": {
+          "questions": 6,
+          "passage_recall_at_k": 0.8333,
+          "mean_reciprocal_rank": 0.75
+        },
+        "New South Wales": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "Northern Territory": {
+          "questions": 6,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "Queensland": {
+          "questions": 16,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.9688
+        },
+        "South Australia": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "Tasmania": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.8125
+        },
+        "Victoria": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.7917
+        },
+        "Western Australia": {
+          "questions": 8,
+          "passage_recall_at_k": 0.875,
+          "mean_reciprocal_rank": 0.7292
+        }
+      },
+      "by_category": {
+        "accessibility": {
+          "questions": 3,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "animals": {
+          "questions": 3,
+          "passage_recall_at_k": 0.6667,
+          "mean_reciprocal_rank": 0.6667
+        },
+        "communications": {
+          "questions": 10,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "community": {
+          "questions": 2,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "evacuation": {
+          "questions": 11,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.7576
+        },
+        "kits": {
+          "questions": 4,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.8333
+        },
+        "mitigation": {
+          "questions": 1,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "planning": {
+          "questions": 11,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.9545
+        },
+        "property": {
+          "questions": 13,
+          "passage_recall_at_k": 0.9231,
+          "mean_reciprocal_rank": 0.8846
+        },
+        "response_planning": {
+          "questions": 2,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 1.0
+        },
+        "risk": {
+          "questions": 8,
+          "passage_recall_at_k": 1.0,
+          "mean_reciprocal_rank": 0.875
+        }
+      },
+      "rows": [
+        {
+          "id": "qld_roof_gutters",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_roof_sarking",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_wall_cladding",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_underfloor_storage",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_deck_debris",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home",
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_lpg_valves",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_draught_seals",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_wire_mesh",
+          "jurisdiction": "Queensland",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_prepare_home"
+          ]
+        },
+        {
+          "id": "qld_local_routes",
+          "jurisdiction": "Queensland",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "qld_support_agencies",
+          "jurisdiction": "Queensland",
+          "category": "accessibility",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "qld_pets_unavailable",
+          "jurisdiction": "Queensland",
+          "category": "animals",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "qld_safe_place",
+          "jurisdiction": "Queensland",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "qld_destination_records",
+          "jurisdiction": "Queensland",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "qld_predeparture_checklist",
+          "jurisdiction": "Queensland",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "qld_evacuation_kit",
+          "jurisdiction": "Queensland",
+          "category": "kits",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "qld_kit_storage",
+          "jurisdiction": "Queensland",
+          "category": "kits",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "qld_evacuation_plan"
+          ]
+        },
+        {
+          "id": "tas_local_safety_options",
+          "jurisdiction": "Tasmania",
+          "category": "community",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_response_priorities",
+          "jurisdiction": "Tasmania",
+          "category": "response_planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_local_knowledge",
+          "jurisdiction": "Tasmania",
+          "category": "response_planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_mitigation_fuel",
+          "jurisdiction": "Tasmania",
+          "category": "mitigation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_safer_last_resort",
+          "jurisdiction": "Tasmania",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_not_centres",
+          "jurisdiction": "Tasmania",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_no_amenities",
+          "jurisdiction": "Tasmania",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan",
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "tas_evacuation_amenities",
+          "jurisdiction": "Tasmania",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "tas_community_protection_plan"
+          ]
+        },
+        {
+          "id": "nsw_four_steps",
+          "jurisdiction": "New South Wales",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_household_discussion",
+          "jurisdiction": "New South Wales",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_grass_clear",
+          "jurisdiction": "New South Wales",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_alert_app",
+          "jurisdiction": "New South Wales",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_keep_informed",
+          "jurisdiction": "New South Wales",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_online_plan",
+          "jurisdiction": "New South Wales",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_home_survival",
+          "jurisdiction": "New South Wales",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "nsw_step_two",
+          "jurisdiction": "New South Wales",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nsw_bush_fire_survival_plan"
+          ]
+        },
+        {
+          "id": "vic_risk_landscape",
+          "jurisdiction": "Victoria",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_written_practised",
+          "jurisdiction": "Victoria",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_leave_signs",
+          "jurisdiction": "Victoria",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_catastrophic_homes",
+          "jurisdiction": "Victoria",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_trigger_route",
+          "jurisdiction": "Victoria",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 3,
+          "reciprocal_rank": 0.3333333333333333,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_pets_movements",
+          "jurisdiction": "Victoria",
+          "category": "animals",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_care_support",
+          "jurisdiction": "Victoria",
+          "category": "accessibility",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "vic_share_plan",
+          "jurisdiction": "Victoria",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan",
+            "vic_your_bushfire_plan"
+          ]
+        },
+        {
+          "id": "wa_plan_update",
+          "jurisdiction": "Western Australia",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_watch_zone",
+          "jurisdiction": "Western Australia",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_four_ratings",
+          "jurisdiction": "Western Australia",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_catastrophic_leave",
+          "jurisdiction": "Western Australia",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_warning_levels",
+          "jurisdiction": "Western Australia",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_kit_accessible",
+          "jurisdiction": "Western Australia",
+          "category": "kits",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 3,
+          "reciprocal_rank": 0.3333333333333333,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire",
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_apz",
+          "jurisdiction": "Western Australia",
+          "category": "property",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "wa_prepare_bushfire"
+          ]
+        },
+        {
+          "id": "wa_pet_identity",
+          "jurisdiction": "Western Australia",
+          "category": "animals",
+          "answerable": true,
+          "status": "no_match",
+          "source_hit": false,
+          "source_rank": null,
+          "passage_hit": false,
+          "passage_rank": null,
+          "reciprocal_rank": 0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "sa_seven_keys",
+          "jurisdiction": "South Australia",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_behaviour_factors",
+          "jurisdiction": "South Australia",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_three_kits",
+          "jurisdiction": "South Australia",
+          "category": "kits",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_emotional_readiness",
+          "jurisdiction": "South Australia",
+          "category": "accessibility",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_plan_practice",
+          "jurisdiction": "South Australia",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan",
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_leaving_late",
+          "jurisdiction": "South Australia",
+          "category": "evacuation",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_changed_household",
+          "jurisdiction": "South Australia",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "sa_rating_variants",
+          "jurisdiction": "South Australia",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "sa_bushfire_survival_plan"
+          ]
+        },
+        {
+          "id": "act_bushfire_season",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_ladder_fuels",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "property",
+          "answerable": true,
+          "status": "no_match",
+          "source_hit": false,
+          "source_rank": null,
+          "passage_hit": false,
+          "passage_rank": null,
+          "reciprocal_rank": 0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "act_slope_rate",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_farm_firewise_map",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 2,
+          "reciprocal_rank": 0.5,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_city_rural_interface",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "community",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "act_bpa_dwellings",
+          "jurisdiction": "Australian Capital Territory",
+          "category": "risk",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "act_bushfire_readiness",
+            "act_bushfire_readiness",
+            "act_bushfire_readiness"
+          ]
+        },
+        {
+          "id": "nt_prepare_advance",
+          "jurisdiction": "Northern Territory",
+          "category": "planning",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_three_alerts",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_advice_alert",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_watch_and_act",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_emergency_warning",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "nt_alert_channels",
+          "jurisdiction": "Northern Territory",
+          "category": "communications",
+          "answerable": true,
+          "status": "ready",
+          "source_hit": true,
+          "source_rank": 1,
+          "passage_hit": true,
+          "passage_rank": 1,
+          "reciprocal_rank": 1.0,
+          "correctly_abstained": null,
+          "retrieved_source_ids": [
+            "nt_bushfire_safety"
+          ]
+        },
+        {
+          "id": "negative_flood_insurance",
+          "jurisdiction": "Australia",
+          "category": "out_of_domain",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_solar_tax",
+          "jurisdiction": "Australia",
+          "category": "out_of_domain",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_asthma_diagnosis",
+          "jurisdiction": "Australia",
+          "category": "medical",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_crypto_investment",
+          "jurisdiction": "Australia",
+          "category": "financial",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_earthquake",
+          "jurisdiction": "Australia",
+          "category": "out_of_domain",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_building_permit",
+          "jurisdiction": "Australia",
+          "category": "legal",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_cyclone_live",
+          "jurisdiction": "Northern Territory",
+          "category": "live_operations",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_live_roads",
+          "jurisdiction": "Australia",
+          "category": "live_operations",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_defend_today",
+          "jurisdiction": "Australia",
+          "category": "live_operations",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_active_order",
+          "jurisdiction": "Australia",
+          "category": "live_operations",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_survival_guarantee",
+          "jurisdiction": "Australia",
+          "category": "life_safety",
+          "answerable": false,
+          "status": "out_of_scope",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_antibiotics",
+          "jurisdiction": "Australia",
+          "category": "medical",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_tractor_repair",
+          "jurisdiction": "Australia",
+          "category": "out_of_domain",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_pet_import",
+          "jurisdiction": "Australia",
+          "category": "out_of_domain",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_football",
+          "jurisdiction": "Australia",
+          "category": "out_of_domain",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        },
+        {
+          "id": "negative_legal_contract",
+          "jurisdiction": "Australia",
+          "category": "legal",
+          "answerable": false,
+          "status": "no_match",
+          "source_hit": null,
+          "source_rank": null,
+          "passage_hit": null,
+          "passage_rank": null,
+          "reciprocal_rank": null,
+          "correctly_abstained": true,
+          "retrieved_source_ids": []
+        }
+      ]
+    }
+  },
+  "thresholds": {
+    "passage_recall_at_k": 0.9,
+    "mean_reciprocal_rank": 0.75,
+    "unanswerable_accuracy": 0.8
+  },
+  "summary": {
+    "questions": 73,
+    "answerable_questions": 68,
+    "unanswerable_questions": 5,
+    "source_recall_at_k": 1.0,
+    "passage_recall_at_k": 1.0,
+    "mean_reciprocal_rank": 0.9216,
+    "top_1_accuracy": 0.8529,
+    "unanswerable_accuracy": 1.0,
+    "false_positive_rate": 0.0,
+    "average_latency_ms": 130.36,
+    "p95_latency_ms": 157.49,
+    "top_k": 8,
+    "query_scope": "structured_planning",
+    "retrieval_mode": "dense_bm25_rrf_v1"
+  },
+  "by_jurisdiction": {
+    "Australian Capital Territory": {
+      "questions": 6,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.9167
+    },
+    "New South Wales": {
+      "questions": 8,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "Northern Territory": {
+      "questions": 6,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "Queensland": {
+      "questions": 16,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.9688
+    },
+    "South Australia": {
+      "questions": 8,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "Tasmania": {
+      "questions": 8,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.8125
+    },
+    "Victoria": {
+      "questions": 8,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.7917
+    },
+    "Western Australia": {
+      "questions": 8,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.8542
+    }
+  },
+  "by_category": {
+    "accessibility": {
+      "questions": 3,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "animals": {
+      "questions": 3,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "communications": {
+      "questions": 10,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "community": {
+      "questions": 2,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "evacuation": {
+      "questions": 11,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.7576
+    },
+    "kits": {
+      "questions": 4,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.8333
+    },
+    "mitigation": {
+      "questions": 1,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "planning": {
+      "questions": 11,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.9545
+    },
+    "property": {
+      "questions": 13,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.9615
+    },
+    "response_planning": {
+      "questions": 2,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "risk": {
+      "questions": 8,
+      "passage_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.875
+    }
+  },
+  "rows": [
+    {
+      "id": "qld_roof_gutters",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_prepare_home",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_roof_sarking",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 2,
+      "reciprocal_rank": 0.5,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_prepare_home",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_wall_cladding",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_prepare_home",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_underfloor_storage",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_prepare_home",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_deck_debris",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_prepare_home",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_lpg_valves",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_draught_seals",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_prepare_home",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_wire_mesh",
+      "jurisdiction": "Queensland",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_local_routes",
+      "jurisdiction": "Queensland",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_evacuation_plan",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_support_agencies",
+      "jurisdiction": "Queensland",
+      "category": "accessibility",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_evacuation_plan"
+      ]
+    },
+    {
+      "id": "qld_pets_unavailable",
+      "jurisdiction": "Queensland",
+      "category": "animals",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_evacuation_plan",
+        "qld_prepare_home",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_safe_place",
+      "jurisdiction": "Queensland",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_evacuation_plan",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_destination_records",
+      "jurisdiction": "Queensland",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_evacuation_plan",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_predeparture_checklist",
+      "jurisdiction": "Queensland",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_evacuation_plan",
+        "qld_prepare_home",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_evacuation_kit",
+      "jurisdiction": "Queensland",
+      "category": "kits",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_evacuation_plan",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "qld_kit_storage",
+      "jurisdiction": "Queensland",
+      "category": "kits",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "qld_evacuation_plan",
+        "qld_prepare_home",
+        "qld_prepare_home"
+      ]
+    },
+    {
+      "id": "tas_local_safety_options",
+      "jurisdiction": "Tasmania",
+      "category": "community",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "tas_community_protection_plan",
+        "tas_community_protection_plan"
+      ]
+    },
+    {
+      "id": "tas_response_priorities",
+      "jurisdiction": "Tasmania",
+      "category": "response_planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "tas_community_protection_plan",
+        "tas_community_protection_plan"
+      ]
+    },
+    {
+      "id": "tas_local_knowledge",
+      "jurisdiction": "Tasmania",
+      "category": "response_planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "tas_community_protection_plan",
+        "tas_community_protection_plan"
+      ]
+    },
+    {
+      "id": "tas_mitigation_fuel",
+      "jurisdiction": "Tasmania",
+      "category": "mitigation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "tas_community_protection_plan",
+        "tas_community_protection_plan"
+      ]
+    },
+    {
+      "id": "tas_safer_last_resort",
+      "jurisdiction": "Tasmania",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 2,
+      "reciprocal_rank": 0.5,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "tas_community_protection_plan",
+        "tas_community_protection_plan"
+      ]
+    },
+    {
+      "id": "tas_not_centres",
+      "jurisdiction": "Tasmania",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 2,
+      "reciprocal_rank": 0.5,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "tas_community_protection_plan",
+        "tas_community_protection_plan"
+      ]
+    },
+    {
+      "id": "tas_no_amenities",
+      "jurisdiction": "Tasmania",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 2,
+      "reciprocal_rank": 0.5,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "tas_community_protection_plan",
+        "tas_community_protection_plan"
+      ]
+    },
+    {
+      "id": "tas_evacuation_amenities",
+      "jurisdiction": "Tasmania",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "tas_community_protection_plan",
+        "tas_community_protection_plan"
+      ]
+    },
+    {
+      "id": "nsw_four_steps",
+      "jurisdiction": "New South Wales",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nsw_bush_fire_survival_plan"
+      ]
+    },
+    {
+      "id": "nsw_household_discussion",
+      "jurisdiction": "New South Wales",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nsw_bush_fire_survival_plan"
+      ]
+    },
+    {
+      "id": "nsw_grass_clear",
+      "jurisdiction": "New South Wales",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nsw_bush_fire_survival_plan"
+      ]
+    },
+    {
+      "id": "nsw_alert_app",
+      "jurisdiction": "New South Wales",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nsw_bush_fire_survival_plan"
+      ]
+    },
+    {
+      "id": "nsw_keep_informed",
+      "jurisdiction": "New South Wales",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nsw_bush_fire_survival_plan"
+      ]
+    },
+    {
+      "id": "nsw_online_plan",
+      "jurisdiction": "New South Wales",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nsw_bush_fire_survival_plan"
+      ]
+    },
+    {
+      "id": "nsw_home_survival",
+      "jurisdiction": "New South Wales",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nsw_bush_fire_survival_plan"
+      ]
+    },
+    {
+      "id": "nsw_step_two",
+      "jurisdiction": "New South Wales",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nsw_bush_fire_survival_plan"
+      ]
+    },
+    {
+      "id": "vic_risk_landscape",
+      "jurisdiction": "Victoria",
+      "category": "risk",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 2,
+      "reciprocal_rank": 0.5,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan"
+      ]
+    },
+    {
+      "id": "vic_written_practised",
+      "jurisdiction": "Victoria",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan"
+      ]
+    },
+    {
+      "id": "vic_leave_signs",
+      "jurisdiction": "Victoria",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 2,
+      "reciprocal_rank": 0.5,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan"
+      ]
+    },
+    {
+      "id": "vic_catastrophic_homes",
+      "jurisdiction": "Victoria",
+      "category": "risk",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan"
+      ]
+    },
+    {
+      "id": "vic_trigger_route",
+      "jurisdiction": "Victoria",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 3,
+      "reciprocal_rank": 0.3333333333333333,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan"
+      ]
+    },
+    {
+      "id": "vic_pets_movements",
+      "jurisdiction": "Victoria",
+      "category": "animals",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan"
+      ]
+    },
+    {
+      "id": "vic_care_support",
+      "jurisdiction": "Victoria",
+      "category": "accessibility",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan"
+      ]
+    },
+    {
+      "id": "vic_share_plan",
+      "jurisdiction": "Victoria",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan",
+        "vic_your_bushfire_plan"
+      ]
+    },
+    {
+      "id": "wa_plan_update",
+      "jurisdiction": "Western Australia",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire"
+      ]
+    },
+    {
+      "id": "wa_watch_zone",
+      "jurisdiction": "Western Australia",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire"
+      ]
+    },
+    {
+      "id": "wa_four_ratings",
+      "jurisdiction": "Western Australia",
+      "category": "risk",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 2,
+      "reciprocal_rank": 0.5,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire"
+      ]
+    },
+    {
+      "id": "wa_catastrophic_leave",
+      "jurisdiction": "Western Australia",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire"
+      ]
+    },
+    {
+      "id": "wa_warning_levels",
+      "jurisdiction": "Western Australia",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire"
+      ]
+    },
+    {
+      "id": "wa_kit_accessible",
+      "jurisdiction": "Western Australia",
+      "category": "kits",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 3,
+      "reciprocal_rank": 0.3333333333333333,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire",
+        "wa_prepare_bushfire"
+      ]
+    },
+    {
+      "id": "wa_apz",
+      "jurisdiction": "Western Australia",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "wa_prepare_bushfire"
+      ]
+    },
+    {
+      "id": "wa_pet_identity",
+      "jurisdiction": "Western Australia",
+      "category": "animals",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "wa_prepare_bushfire"
+      ]
+    },
+    {
+      "id": "sa_seven_keys",
+      "jurisdiction": "South Australia",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "sa_bushfire_survival_plan",
+        "sa_bushfire_survival_plan"
+      ]
+    },
+    {
+      "id": "sa_behaviour_factors",
+      "jurisdiction": "South Australia",
+      "category": "risk",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "sa_bushfire_survival_plan",
+        "sa_bushfire_survival_plan"
+      ]
+    },
+    {
+      "id": "sa_three_kits",
+      "jurisdiction": "South Australia",
+      "category": "kits",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "sa_bushfire_survival_plan"
+      ]
+    },
+    {
+      "id": "sa_emotional_readiness",
+      "jurisdiction": "South Australia",
+      "category": "accessibility",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "sa_bushfire_survival_plan",
+        "sa_bushfire_survival_plan"
+      ]
+    },
+    {
+      "id": "sa_plan_practice",
+      "jurisdiction": "South Australia",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "sa_bushfire_survival_plan",
+        "sa_bushfire_survival_plan"
+      ]
+    },
+    {
+      "id": "sa_leaving_late",
+      "jurisdiction": "South Australia",
+      "category": "evacuation",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "sa_bushfire_survival_plan",
+        "sa_bushfire_survival_plan"
+      ]
+    },
+    {
+      "id": "sa_changed_household",
+      "jurisdiction": "South Australia",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "sa_bushfire_survival_plan",
+        "sa_bushfire_survival_plan"
+      ]
+    },
+    {
+      "id": "sa_rating_variants",
+      "jurisdiction": "South Australia",
+      "category": "risk",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "sa_bushfire_survival_plan",
+        "sa_bushfire_survival_plan"
+      ]
+    },
+    {
+      "id": "act_bushfire_season",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "risk",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "act_bushfire_readiness",
+        "act_bushfire_readiness",
+        "act_bushfire_readiness"
+      ]
+    },
+    {
+      "id": "act_ladder_fuels",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "property",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "act_bushfire_readiness",
+        "act_bushfire_readiness",
+        "act_bushfire_readiness"
+      ]
+    },
+    {
+      "id": "act_slope_rate",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "risk",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "act_bushfire_readiness",
+        "act_bushfire_readiness",
+        "act_bushfire_readiness"
+      ]
+    },
+    {
+      "id": "act_farm_firewise_map",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 2,
+      "reciprocal_rank": 0.5,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "act_bushfire_readiness",
+        "act_bushfire_readiness",
+        "act_bushfire_readiness"
+      ]
+    },
+    {
+      "id": "act_city_rural_interface",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "community",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "act_bushfire_readiness",
+        "act_bushfire_readiness",
+        "act_bushfire_readiness"
+      ]
+    },
+    {
+      "id": "act_bpa_dwellings",
+      "jurisdiction": "Australian Capital Territory",
+      "category": "risk",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "act_bushfire_readiness",
+        "act_bushfire_readiness",
+        "act_bushfire_readiness"
+      ]
+    },
+    {
+      "id": "nt_prepare_advance",
+      "jurisdiction": "Northern Territory",
+      "category": "planning",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nt_bushfire_safety"
+      ]
+    },
+    {
+      "id": "nt_three_alerts",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nt_bushfire_safety"
+      ]
+    },
+    {
+      "id": "nt_advice_alert",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nt_bushfire_safety"
+      ]
+    },
+    {
+      "id": "nt_watch_and_act",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nt_bushfire_safety"
+      ]
+    },
+    {
+      "id": "nt_emergency_warning",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nt_bushfire_safety"
+      ]
+    },
+    {
+      "id": "nt_alert_channels",
+      "jurisdiction": "Northern Territory",
+      "category": "communications",
+      "answerable": true,
+      "status": "ready",
+      "source_hit": true,
+      "source_rank": 1,
+      "passage_hit": true,
+      "passage_rank": 1,
+      "reciprocal_rank": 1.0,
+      "correctly_abstained": null,
+      "retrieved_source_ids": [
+        "nt_bushfire_safety"
+      ]
+    },
+    {
+      "id": "negative_cyclone_live",
+      "jurisdiction": "Northern Territory",
+      "category": "live_operations",
+      "answerable": false,
+      "status": "out_of_scope",
+      "source_hit": null,
+      "source_rank": null,
+      "passage_hit": null,
+      "passage_rank": null,
+      "reciprocal_rank": null,
+      "correctly_abstained": true,
+      "retrieved_source_ids": []
+    },
+    {
+      "id": "negative_live_roads",
+      "jurisdiction": "Australia",
+      "category": "live_operations",
+      "answerable": false,
+      "status": "out_of_scope",
+      "source_hit": null,
+      "source_rank": null,
+      "passage_hit": null,
+      "passage_rank": null,
+      "reciprocal_rank": null,
+      "correctly_abstained": true,
+      "retrieved_source_ids": []
+    },
+    {
+      "id": "negative_defend_today",
+      "jurisdiction": "Australia",
+      "category": "live_operations",
+      "answerable": false,
+      "status": "out_of_scope",
+      "source_hit": null,
+      "source_rank": null,
+      "passage_hit": null,
+      "passage_rank": null,
+      "reciprocal_rank": null,
+      "correctly_abstained": true,
+      "retrieved_source_ids": []
+    },
+    {
+      "id": "negative_active_order",
+      "jurisdiction": "Australia",
+      "category": "live_operations",
+      "answerable": false,
+      "status": "out_of_scope",
+      "source_hit": null,
+      "source_rank": null,
+      "passage_hit": null,
+      "passage_rank": null,
+      "reciprocal_rank": null,
+      "correctly_abstained": true,
+      "retrieved_source_ids": []
+    },
+    {
+      "id": "negative_survival_guarantee",
+      "jurisdiction": "Australia",
+      "category": "life_safety",
+      "answerable": false,
+      "status": "out_of_scope",
+      "source_hit": null,
+      "source_rank": null,
+      "passage_hit": null,
+      "passage_rank": null,
+      "reciprocal_rank": null,
+      "correctly_abstained": true,
+      "retrieved_source_ids": []
+    }
+  ]
+}

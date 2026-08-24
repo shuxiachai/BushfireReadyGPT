@@ -23,7 +23,13 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 
 **Stage:** Government-pilot MVP
 
-**Current release:** `v0.4.0`
+**Current release:** `v0.5.0`
+
+The current release evidence was produced from source commit
+[`e02f076`](https://github.com/shuxiachai/BushfireReadyGPT/commit/e02f07687ee2e2329fc59afb5fe1c8ea4f532646).
+It contains `429` passing tests (`428` non-E2E plus one Chromium E2E), with
+`86.08%` measured `src` coverage. Governed exports use `pilot-export-v4` and
+the `governed-report-v2` quality policy (`7c20b6fa...a5da9d1`).
 
 Ready for:
 
@@ -92,18 +98,19 @@ Not ready for:
 
 ## Example Output
 
-For a current, reproducible demonstration generated with the local model and
-verified RAG index, see:
+For the current governed demonstration generated with local Ollama and the
+release-bound RAG index, see:
 
-- [governed Markdown report](examples/v0.3.0/cairns-council-report.md)
-- [presentation-ready PDF](examples/v0.3.0/cairns-council-report.pdf)
-- [editable DOCX](examples/v0.3.0/cairns-council-report.docx)
-- [verified pilot export package](examples/v0.3.0/cairns-council-pilot-package.zip)
-- [sample package notes](examples/v0.3.0/README.md)
+- [governed Markdown report](examples/v0.5.0/cairns-council-report.md)
+- [presentation-ready PDF](examples/v0.5.0/cairns-council-report.pdf)
+- [editable DOCX](examples/v0.5.0/cairns-council-report.docx)
+- [verified pilot export package](examples/v0.5.0/cairns-council-pilot-package.zip)
+- [sample package notes](examples/v0.5.0/README.md)
 
-The earlier [Cairns campus sample](examples/cairns_campus_bushfire_report.md)
-remains as a lightweight historical example. All samples are demonstration
-drafts, not live emergency plans or operational instructions.
+The `v0.3.0` Cairns Council package and the earlier
+[Cairns campus sample](examples/cairns_campus_bushfire_report.md) remain
+historical examples. All samples are demonstration drafts, not live emergency
+plans or operational instructions.
 
 ## Safety Boundary
 
@@ -163,7 +170,7 @@ retriever. Build the RAG index from its declared official static sources:
 
 ```powershell
 poetry run python scripts\build_rag_index.py --download
-poetry run python scripts\evaluate_rag.py --warmup --summary-only
+poetry run python scripts\evaluate_rag.py --warmup --output output\rag-evaluation.json
 ```
 
 The RAG corpus covers nine official pages across all eight states and territories. Retrieval combines
@@ -177,13 +184,18 @@ diagnostic. The production profile covers all 68 answerable cases plus the five
 live-operation/life-safety negatives that must always abstain. Arbitrary
 out-of-domain negatives remain in the free-text profile because the trusted
 planning scope is only called with a form-built, in-domain query at runtime.
-The previously documented free-text baseline achieved 0.9706
-passage Recall@5, 0.8922 MRR, 0.8235 Top-1 accuracy and 1.0000 unanswerable
-accuracy. Each result records both configured and actually effective retrieval
-thresholds. A [2026-08-24 production-profile run](docs/benchmarks/rag-retrieval-2026-08-24.json) covered 68 answerable questions
-and five reachable safety negatives at Top-8, achieving 1.0000 passage recall,
-0.9216 MRR, 0.8529 Top-1 accuracy and 1.0000 safety-negative abstention. These
-are local regression measurements, not production-accuracy claims.
+The current [v0.5.0 retrieval artifact](docs/benchmarks/rag-retrieval-v0.5.0.json)
+binds the exact question set, Git commit, verified index manifest and local
+embedding-model digest. Its production `structured_planning` Top-8 gate covers
+73 questions (68 answerable plus five reachable safety negatives): 1.0000
+passage recall, 0.9216 MRR, 0.8529 Top-1 accuracy, 1.0000 abstention, 130.36 ms
+average latency and 157.49 ms p95. The separate `free_text` Top-5 diagnostic
+covers all 84 questions (68 answerable plus 16 negatives): 0.9706 recall,
+0.8922 MRR, 0.8235 Top-1 accuracy, 1.0000 abstention, 131.59 ms average and
+159.00 ms p95. The earlier
+[2026-08-24 production-profile artifact](docs/benchmarks/rag-retrieval-2026-08-24.json)
+is retained as historical evidence. These are local regression measurements,
+not production-accuracy claims.
 
 Raw RAG downloads, the verified document snapshot and Qdrant files stay local and are ignored by Git. The app
 still works if the optional index is absent, stale or disabled with
@@ -288,15 +300,19 @@ Project and commercial context:
 - [docs/pilot_feedback_form.md](docs/pilot_feedback_form.md) - Controlled pilot feedback form.
 - [docs/pilot_protocol.md](docs/pilot_protocol.md) - Executable 3-5 participant pilot protocol.
 - [docs/pilot_results.md](docs/pilot_results.md) - Honest pilot evidence register; external sessions are currently pending.
-- [docs/benchmarks/report-generation-v0.3.0.json](docs/benchmarks/report-generation-v0.3.0.json) - Eight-case real-Ollama regression result.
-- [docs/benchmarks/report-generation-v0.4.0.json](docs/benchmarks/report-generation-v0.4.0.json) - Current eight-case run with diagnostic evidence-alignment metrics.
-- [docs/benchmarks/rag-retrieval-2026-08-24.json](docs/benchmarks/rag-retrieval-2026-08-24.json) - Production-aligned Top-8 release gate and separate free-text Top-5 retrieval diagnostic.
+- [docs/benchmarks/report-generation-v0.5.0.json](docs/benchmarks/report-generation-v0.5.0.json) - Current eight-scenario governed real-Ollama release gate and grounding diagnostics.
+- [docs/benchmarks/rag-retrieval-v0.5.0.json](docs/benchmarks/rag-retrieval-v0.5.0.json) - Current production-aligned Top-8 release gate and free-text Top-5 diagnostic.
+- [docs/benchmarks/report-generation-v0.3.0.json](docs/benchmarks/report-generation-v0.3.0.json) - Historical eight-case real-Ollama regression result.
+- [docs/benchmarks/report-generation-v0.4.0.json](docs/benchmarks/report-generation-v0.4.0.json) - Historical evidence-alignment regression result.
+- [docs/benchmarks/rag-retrieval-2026-08-24.json](docs/benchmarks/rag-retrieval-2026-08-24.json) - Historical production-profile retrieval checkpoint.
 
 Sample output and release evidence:
 
-- [examples/v0.3.0/README.md](examples/v0.3.0/README.md) - current Markdown, PDF, DOCX and governed package.
+- [examples/v0.5.0/README.md](examples/v0.5.0/README.md) - current Markdown, PDF, DOCX and governed `pilot-export-v4` package.
+- [examples/v0.3.0/README.md](examples/v0.3.0/README.md) - historical governed sample retained for comparison.
 - [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md) - v0.3.0 scope, validation and limitations.
 - [docs/releases/v0.4.0.md](docs/releases/v0.4.0.md) - Evidence alignment, anonymous pilot measurement and privacy-minimised runtime Trace release.
+- [docs/releases/v0.5.0.md](docs/releases/v0.5.0.md) - Reproducible release evidence, governed quality-policy binding and offline verification.
 
 ## Architecture Summary
 
@@ -412,9 +428,9 @@ poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail
 ```
 
 The maintained coverage contract is the CI gate: the non-E2E suite must cover
-at least `85%` of `src` on supported Python versions. Exact percentages are
-run-specific diagnostics and may vary slightly by platform or instrumentation;
-release notes retain the measured value for their corresponding release run.
+at least `85%` of `src` on supported Python versions. The v0.5.0 release run
+passed `428` non-E2E tests at `86.08%` coverage plus one Chromium E2E test, for
+`429` passing tests in total. Exact percentages remain run-specific diagnostics.
 
 Run the same static, dependency and security checks as CI:
 
@@ -445,6 +461,7 @@ metrics, or validate an anonymous pilot measurement file:
 ```powershell
 poetry run python scripts\evaluate_report_generation.py --output output\report-evaluation.json
 poetry run python scripts\evaluate_pilot_results.py --input docs\pilot_evaluation_template.json
+poetry run python scripts\verify_release.py
 ```
 
 The committed pilot template contains zero sessions by design and returns
@@ -457,15 +474,23 @@ official corpus. It evaluates answerable and unanswerable queries separately and
 reports Recall@K, MRR, Top-1 accuracy, false-positive rate and latency by
 jurisdiction and category.
 
-The `v0.4.0` real-model regression contains eight cases: all six supported
-planning scenarios, a live-route safety-boundary case and a no-RAG degradation
-case. It also reports diagnostic claim support, citation coverage/precision,
-numeric consistency and jurisdiction conflicts; those new heuristics remain
-human-review signals rather than enforced factual-accuracy gates. The committed
-sample verifier also checks the package schema and hashes,
-required report markers, PDF/DOCX readability and a dedicated DOCX human sign-off
-page. These checks are engineering regression evidence, not stakeholder or
-operational validation.
+The current
+[v0.5.0 real-model artifact](docs/benchmarks/report-generation-v0.5.0.json)
+contains eight cases: all six supported planning scenarios, a live-route safety
+boundary and a no-RAG degradation case. Governed, structural, evidence binding,
+RAG attribution, RAG behaviour and topic rates are all 1.0000; safety-violation
+and unsafe-live-claim rates are both 0.0000. Repair rate is 0.6250 and average
+latency is 46.77 seconds. Diagnostic grounding reports 0.9280 claim support,
+0.2687 citation coverage, 0.8571 citation precision, 0.9167 numeric consistency
+and zero jurisdiction conflicts. Every case remains `review_required`; these
+heuristics are human-review signals, not factual-accuracy proof. The v0.3.0 and
+v0.4.0 report artifacts remain historical checkpoints.
+
+The current sample verifier checks ZIP CRC, duplicate and case-colliding names,
+unsafe paths, complete file/hash coverage, audit and ancestor lineage, internal
+prompt leakage, sensitive audit payloads, required report markers, PDF/DOCX
+readability and a dedicated DOCX human-sign-off page. These checks are engineering
+regression evidence, not stakeholder or operational validation.
 
 GitHub Actions runs the same suite automatically on Python 3.11 and 3.13 for
 pushes to `main`, pull requests targeting `main`, and manual workflow runs. The
@@ -494,7 +519,7 @@ locks, authoritative head records, single-child revision claims and interrupted
 write recovery prevent concurrent tabs or an incomplete local write from silently
 forking the chain. Convenience Markdown, PDF and DOCX downloads require the
 current verified report snapshot but remain available for remediation when the
-report is quality-blocked. A `pilot-export-v3` governance package additionally
+report is quality-blocked. A `pilot-export-v4` governance package additionally
 requires a passing fresh gate and a full analysis snapshot whose hash matches the
 audit; every package artifact is hashed in its manifest. Earlier audit schemas or
 v4 events without the current quality-policy binding remain readable but must be

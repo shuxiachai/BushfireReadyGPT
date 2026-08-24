@@ -30,6 +30,7 @@ Use this checklist before presenting BushfireReadyGPT.
 - [ ] The Human Review Checklist is visible.
 - [ ] Reviewer Approval / Human Sign-off can be explained.
 - [ ] The audit path or audit record is available after generation.
+- [ ] You can identify the `governed-report-v2` policy binding and explain that policy-only reassessment is not human review or export approval.
 
 ## 4. Data And Map
 
@@ -47,6 +48,7 @@ Use this checklist before presenting BushfireReadyGPT.
 - [ ] PDF download is available.
 - [ ] DOCX download is available.
 - [ ] Pilot export package download is available.
+- [ ] The package reports `pilot-export-v4` and verifies its hashes, policy and governed gate.
 - [ ] You can explain what each export is for.
 
 ## 6. Talking Points
@@ -65,10 +67,17 @@ Before presenting, be ready to say:
 
 > BushfireReadyGPT does not provide live fire conditions, fire bans, evacuation orders, confirmed safe routes or life-safety decisions. It is a preparedness planning and draft reporting tool. In a real emergency, users must follow official emergency services and call 000 if life is at risk.
 
-## 8. Current Project Proof Points
+## 8. Current `v0.5.0` Project Proof Points
 
-- [ ] Git baseline commit exists.
-- [ ] Tests pass.
+- [ ] The release artifacts identify clean source commit `e02f076`.
+- [ ] The local verification passes 428 non-E2E tests plus one Chromium E2E (429 total), with 86.08% non-E2E `src` coverage.
+- [ ] Structured Top-8 RAG records recall 1.0000, MRR 0.9216, Top-1 0.8529 and abstention 1.0000.
+- [ ] Free-text Top-5 RAG records recall 0.9706, MRR 0.8922, Top-1 0.8235 and abstention 1.0000.
+- [ ] All eight report cases pass the governed and RAG gates with zero safety violations; repair rate is 0.625 and average release-machine latency is 46.77 seconds.
+- [ ] Grounding metrics are support 0.9280, citation coverage 0.2687, citation precision 0.8571, numeric consistency 0.9167 and zero jurisdiction conflicts; all eight reports remain human-review-required.
+- [ ] Both evaluation JSON files include every row and exact dataset, Git, index, model/embedding and quality-policy provenance, with a stable end-of-run drift check.
+- [ ] `poetry run python scripts/verify_release.py` verifies the release evidence offline.
+- [ ] The Cairns sample records one generation attempt, a 16-page PDF, 203 DOCX paragraphs, `pilot-export-v4`, Ollama `bushfire-ready-qwen`, a local-loopback boundary and the release RAG manifest.
 - [ ] README explains setup and structure.
 - [ ] Project overview document exists.
 - [ ] Demo walkthrough exists.

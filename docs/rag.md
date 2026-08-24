@@ -33,7 +33,7 @@ From the project root:
 ```powershell
 ollama pull embeddinggemma
 poetry run python scripts\build_rag_index.py --download
-poetry run python scripts\evaluate_rag.py --warmup --summary-only
+poetry run python scripts\evaluate_rag.py --warmup --output output\rag-retrieval-next.json
 ```
 
 The default command evaluates two explicit profiles. `structured_planning`
@@ -43,6 +43,10 @@ process exit code and release gate. `free_text` keeps the stricter answerability
 thresholds and runs at Top-5 as a diagnostic. The JSON records each profile's
 query scope, Top-K, candidate limit, configured thresholds and effective
 thresholds. This makes any structured-planning threshold relaxation visible.
+An active release artifact also includes every per-question result row for every
+profile. The offline validator rejects missing or duplicate IDs and recomputes
+question counts, source and passage recall, MRR, Top-1, abstention and
+false-positive rate directly from those rows instead of trusting the summary.
 The production profile runs all 68 answerable questions and the five
 live-operation/life-safety negatives that the retrieval boundary must always
 withhold. The remaining 11 arbitrary out-of-domain negatives are scoped to
@@ -57,9 +61,12 @@ poetry run python scripts\evaluate_rag.py --mode free_text --top-k 5 --warmup --
 ```
 
 `--mode structured_planning` without `--top-k` uses the production Top-K and is
-a release gate. Supplying `--top-k` in that mode is allowed for investigation;
-the JSON marks the release gate inactive whenever that value differs from the
-runtime production setting.
+eligible for the release gate only when full per-question rows are retained.
+Supplying `--top-k` in that mode is allowed for investigation; the JSON marks
+the release gate inactive whenever that value differs from the runtime
+production setting. `--summary-only` also always marks the gate inactive, even
+when the production Top-K is used, so a compact diagnostic cannot be mistaken
+for auditable release evidence.
 
 Use `--refresh` to re-download every declared source. The build creates local
 files under `data_australia/rag/raw/` and `data_australia/rag/index/`; both are
@@ -81,13 +88,26 @@ the 2026-08-22 `v0.3.0` free-text baseline, Top-5 passage recall was 0.9706, MRR
 results, not evidence of production accuracy. Unit tests use a deterministic test
 embedder and temporary Qdrant database, keeping CI offline and repeatable.
 
-On 2026-08-24, the production-aligned `structured_planning` profile ran at
-Top-8 over 68 answerable questions plus the five reachable live/life-safety
-negatives. It recorded passage recall 1.0000, MRR 0.9216, Top-1 accuracy 0.8529
-and safety-negative abstention 1.0000, and passed the configured release gate.
-The same invocation separately reproduced the free-text Top-5 diagnostic above;
-the machine-readable result is committed as
-[`rag-retrieval-2026-08-24.json`](benchmarks/rag-retrieval-2026-08-24.json).
+The current `v0.5.0` run was collected from clean commit
+`e02f07687ee2e2329fc59afb5fe1c8ea4f532646`. The production-aligned
+`structured_planning` profile ran at Top-8 over 73 questions: 68 answerable
+questions plus five reachable live/life-safety negatives. It recorded passage
+recall `1.0000`, MRR `0.9216`, Top-1 accuracy `0.8529`, abstention `1.0000`,
+average latency `130.36 ms` and p95 latency `157.49 ms`. The same complete run
+evaluated the 84-question free-text Top-5 profile and recorded passage recall
+`0.9706`, MRR `0.8922`, Top-1 `0.8235`, abstention `1.0000`, average latency
+`131.59 ms` and p95 latency `159.00 ms`.
+
+The machine-readable result is committed as
+[`rag-retrieval-v0.5.0.json`](benchmarks/rag-retrieval-v0.5.0.json), schema
+`bushfire-rag-evaluation-v3`. It binds embedding model digest
+`85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1`
+and verified RAG manifest
+`aa8e42d3d7837ee3927b21108cedf5f6553332f92ba89e9f70caa2852febedd2`.
+Its start/end provenance check was stable. The older
+[`rag-retrieval-2026-08-24.json`](benchmarks/rag-retrieval-2026-08-24.json) is
+retained as historical summary evidence; it does not satisfy the current
+full-row release contract.
 
 Retrieval uses weighted reciprocal-rank fusion (0.65 dense / 0.35 BM25 by
 default), then small exact-jurisdiction and title-overlap boosts. A deterministic
@@ -109,6 +129,8 @@ rerank reasons so the result can be explained in an interview or review.
 - Prompt payloads cap total retrieved context at 8,000 characters and each passage at 2,200 characters.
 - The audit stores query/source/chunk hashes and scores, but not retrieved passage text by default.
 - Live-warning and life-safety queries are deterministically withheld from the static corpus, while free-text retrieval must pass lexical or combined semantic/lexical answerability thresholds.
+- Release evaluation snapshots question bytes, Git state, RAG index identity and embedding-model identity before and after the run; drift aborts an active release before an artifact is written.
+- Active release artifacts retain full profile rows and are re-aggregated offline; summary-only output remains diagnostic and release-inactive.
 
 These controls make accidental corruption and common prompt-injection paths
 visible. They do not make a local operator-proof or cryptographically signed

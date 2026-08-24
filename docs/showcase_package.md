@@ -6,8 +6,29 @@ Current visual and sample assets:
 
 - `docs/assets/bushfire-ready-gpt-demo.webm` — 89-second local demonstration;
 - `docs/assets/*.png` — current Create Report, report, evidence, map and readiness views;
-- `examples/v0.3.0/` — governed Cairns Council Markdown, PDF, DOCX and pilot package;
-- `docs/benchmarks/report-generation-v0.4.0.json` — current eight-case real-model regression with diagnostic evidence-alignment metrics.
+- `examples/v0.5.0/` — current governed Cairns Council Markdown, PDF, DOCX and `pilot-export-v4` package;
+- `docs/benchmarks/rag-retrieval-v0.5.0.json` — current structured Top-8 release gate and free-text Top-5 diagnostic;
+- `docs/benchmarks/report-generation-v0.5.0.json` — current eight-scenario real-model release gate with diagnostic grounding metrics.
+
+The v0.3.0 sample and v0.3.0/v0.4.0 report artifacts remain historical evidence,
+not the current release baseline.
+
+## v0.5.0 Evidence Snapshot
+
+| Evidence | Current measured result |
+| --- | --- |
+| Benchmark source and policy | Commit `e02f076`; `governed-report-v2` fingerprint `7c20b6fa...a5da9d1`; `pilot-export-v4` |
+| Automated validation | 429 passing tests: 428 non-E2E plus one Chromium E2E; 86.08% coverage |
+| Structured RAG Top-8 | 73 questions (68 answerable + 5 safety negatives); recall 1.0000; MRR 0.9216; Top-1 0.8529; abstention 1.0000; average/p95 130.36/157.49 ms |
+| Free-text RAG Top-5 | 84 questions (68 answerable + 16 negatives); recall 0.9706; MRR 0.8922; Top-1 0.8235; abstention 1.0000; average/p95 131.59/159.00 ms |
+| Governed reports | Eight scenarios; governed, structural, evidence, RAG attribution, RAG behaviour and topic rates 1.0000; safety and unsafe-live rates 0.0000; repair 0.6250; average 46.77 s |
+| Grounding diagnostics | Support 0.9280; citation coverage 0.2687; precision 0.8571; numeric consistency 0.9167; zero jurisdiction conflicts; all cases require human review |
+
+The current sample passed on its first generation attempt and contains a 16-page PDF
+and a 203-paragraph DOCX. Its audit binds the provider (`ollama`), model name
+(`bushfire-ready-qwen`), `local_loopback` boundary and release RAG manifest. The
+sample does not bind a model digest; only the real-model benchmark artifact records
+its own model identity and digest.
 
 ## Recommended Reading Order
 

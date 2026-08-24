@@ -8,7 +8,7 @@ If you only have a few minutes, read these in order:
 
 1. `project_overview.md` - what the project is and what it is not.
 2. `demo_walkthrough.md` - how to demonstrate the app.
-3. `../examples/v0.3.0/README.md` - current Markdown, PDF, DOCX and governed package.
+3. `../examples/v0.5.0/README.md` - current Markdown, PDF, DOCX and governed package.
 4. `commercial_gap_assessment.md` - what remains before commercial or government use.
 
 ## Start Here
@@ -24,7 +24,8 @@ If you only have a few minutes, read these in order:
 
 | File | Purpose |
 | --- | --- |
-| `../examples/v0.3.0/README.md` | Current local-model sample in Markdown, PDF and DOCX plus its governed package. |
+| `../examples/v0.5.0/README.md` | Current v0.5.0 local-Ollama sample in Markdown, PDF and DOCX plus its `pilot-export-v4` package. |
+| `../examples/v0.3.0/README.md` | Historical governed sample retained for comparison. |
 | `assets/bushfire-ready-gpt-demo.webm` | 89-second local product demonstration. |
 | `pilot_pitch.md` | One-page pilot pitch for councils, schools or community stakeholders. |
 | `pilot_feedback_form.md` | Structured feedback form for a controlled stakeholder pilot. |
@@ -49,8 +50,20 @@ If you only have a few minutes, read these in order:
 | `releases/v0.2.1.md` | Launcher, performance, model-runtime, UI and test hardening maintenance release. |
 | `releases/v0.3.0.md` | Data-quality, scenario benchmark, sample package, visual QA and pilot-readiness release. |
 | `releases/v0.4.0.md` | Evidence-alignment, anonymous pilot measurement and privacy-minimised runtime Trace release. |
-| `benchmarks/report-generation-v0.3.0.json` | Machine-readable eight-case real-Ollama regression result. |
-| `benchmarks/report-generation-v0.4.0.json` | Eight-case real-Ollama run with diagnostic grounding metrics. |
+| `releases/v0.5.0.md` | Reproducible release evidence, governed quality-policy binding and offline verification release. |
+| `benchmarks/rag-retrieval-v0.5.0.json` | Current Top-8 release gate and Top-5 diagnostic with dataset, model, index and Git provenance. |
+| `benchmarks/report-generation-v0.5.0.json` | Current eight-scenario governed real-Ollama gate with diagnostic grounding metrics. |
+| `benchmarks/report-generation-v0.3.0.json` | Historical eight-case real-Ollama regression result. |
+| `benchmarks/report-generation-v0.4.0.json` | Historical grounding-diagnostic regression result. |
+
+## Current Release Evidence
+
+v0.5.0 is bound to source commit `e02f076`. The release verification set records
+429 passing tests (428 non-E2E plus one Chromium E2E) and 86.08% coverage. The
+RAG release gate evaluates 73 structured Top-8 questions; the free-text Top-5
+diagnostic evaluates all 84 questions. The report gate evaluates eight scenarios.
+See the two v0.5.0 benchmark JSON files and `../examples/v0.5.0/README.md` for the
+exact measured rates, provenance and limitations.
 
 ## Removed Redundant Docs
 
@@ -80,7 +93,7 @@ For a stakeholder or pilot discussion:
 For GitHub reviewers:
 
 1. Start from the root `README.md`.
-2. Open the current sample output in `examples/v0.3.0/`.
+2. Open the current sample output in `examples/v0.5.0/`.
 3. Read `architecture.md` only if they want implementation details.
 4. Read `rag.md` for the retrieval design and evaluation story.
 5. Read `commercial_gap_assessment.md` to understand current limits.

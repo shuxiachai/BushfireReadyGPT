@@ -6,5 +6,12 @@ The examples are intended for demonstration and portfolio review. They are not l
 
 Available examples:
 
-- `cairns_campus_bushfire_report.md` - sample draft preparedness report for a Cairns campus scenario.
-- `v0.3.0/` - a current Cairns Council report in Markdown, PDF and DOCX plus the governed pilot export package.
+- `v0.5.0/` - the current Cairns Council Markdown, PDF and DOCX reports plus the verified `pilot-export-v4` package.
+- `v0.3.0/` - the historical governed Cairns Council package retained for release comparison.
+- `cairns_campus_bushfire_report.md` - an earlier lightweight historical campus draft.
+
+The v0.5.0 verifier checks package CRC, duplicate/case-colliding and unsafe paths,
+complete hashes, audit lineage, prompt-marker leakage and sensitive audit payloads.
+Its sample metadata binds Ollama as the provider, `bushfire-ready-qwen` as the
+model name, the local-loopback boundary and the same RAG manifest as the release
+benchmarks. It does not claim or store a sample-generation model digest.
