@@ -175,9 +175,7 @@ def _build_styles(font_name):
             fontSize=9.5,
             leading=14,
             leftIndent=14,
-            bulletIndent=0,
-            bulletFontName="Helvetica",
-            bulletFontSize=10,
+            firstLineIndent=-8,
             textColor=colors.HexColor("#18212f"),
         ),
         "record_heading": ParagraphStyle(
@@ -243,7 +241,7 @@ def _flush_bullets(story, bullet_items, styles):
     if not bullet_items:
         return
     for item in bullet_items:
-        story.append(Paragraph(_format_inline_markdown(item), styles["bullet"], bulletText="•"))
+        story.append(Paragraph(f"- {_format_inline_markdown(item)}", styles["bullet"]))
     story.append(Spacer(1, 0.08 * cm))
     bullet_items.clear()
 

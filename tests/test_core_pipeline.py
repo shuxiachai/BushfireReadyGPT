@@ -420,6 +420,8 @@ def test_wide_export_table_becomes_readable_record_layout():
     wide_report = (
         """# Evidence report
 
+- Verify official sources before use.
+
 | Source | Page | Hybrid score | Dense score | BM25 score | Document date | Passage hash | URL |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Official source | web / 1 | 1.0 | 0.55 | 8.30 | 2024-02-26 | abcdef0123456789 | https://example.gov.au/long/source/path |
@@ -446,6 +448,9 @@ def test_wide_export_table_becomes_readable_record_layout():
     assert pdf_text.count("Record 1") == 2
     assert "Official source" in pdf_text
     assert "Planning priorities" in pdf_text
+    assert "- Verify official sources before use." in pdf_text
+    assert "\x00" not in pdf_text
+    assert "\x7f" not in pdf_text
     assert all("BushfireReadyGPT" in page for page in pdf_pages)
     assert all("Planning support only." in page for page in pdf_pages)
     for page in pdf_reader.pages:
