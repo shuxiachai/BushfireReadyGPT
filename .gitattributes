@@ -4,4 +4,7 @@ data_australia/*.yml text eol=lf
 data_australia/processed/**/*.csv text eol=lf
 data_australia/processed/**/*.json text eol=lf
 data_australia/processed/sa2_coverage.geojson text eol=lf
+# Release artifacts bind these evaluation datasets by exact, cross-platform checkout bytes.
+data_australia/rag/evaluation.json text eol=lf
+data_australia/rag/report_evaluation.json text eol=lf
 examples/v*/*.md text eol=lf
