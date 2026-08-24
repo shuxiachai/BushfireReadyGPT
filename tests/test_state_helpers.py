@@ -130,7 +130,8 @@ def test_session_loader_and_review_date_fail_closed(tmp_path, monkeypatch):
     assert session_store._load_persisted_state() is None
     assert session_store.persist_session_state() is True
     assert session_store._parse_review_date("2026-08-22T10:00:00Z") == date(2026, 8, 22)
-    assert session_store._parse_review_date("invalid") == date.today()
+    assert session_store._parse_review_date("invalid") is None
+    assert session_store._parse_review_date("2099-01-01") is None
 
     invalid = tmp_path / "invalid.json"
     invalid.write_text("not-json", encoding="utf-8")

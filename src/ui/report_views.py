@@ -10,7 +10,9 @@ from src.config import (
     MODEL_ENDPOINT_IS_LOCAL,
 )
 from src.docx_export import create_report_docx
+from src.input_validation import REPORT_FIELD_LIMITS
 from src.pdf_export import create_report_pdf
+from src.ui.artifact_cache import get_report_artifact
 
 
 def render_model_privacy_boundary():
@@ -90,9 +92,13 @@ def render_report_form(
         st.selectbox("Government Pilot Mode", pilot_mode_options, key="pilot_mode")
         col1, col2 = st.columns(2)
         with col1:
-            st.text_input("Organisation / department", key="organisation_name")
-            st.text_input("Location", key="form_location")
-            st.text_input("Audience", key="form_audience")
+            st.text_input(
+                "Organisation / department",
+                key="organisation_name",
+                max_chars=REPORT_FIELD_LIMITS["organisation_name"][1],
+            )
+            st.text_input("Location", key="form_location", max_chars=REPORT_FIELD_LIMITS["location"][1])
+            st.text_input("Audience", key="form_audience", max_chars=REPORT_FIELD_LIMITS["audience"][1])
             st.selectbox(
                 "Timeframe",
                 TIMEFRAME_OPTIONS,
@@ -125,6 +131,7 @@ def render_report_form(
             placeholder="Example: no confirmed evacuation plan; assembly points still need approval; use as a government pilot draft.",
             height=90,
             key="form_extra_context",
+            max_chars=REPORT_FIELD_LIMITS["extra_context"][1],
         )
         submitted = st.form_submit_button("Generate report", width="stretch")
 
@@ -174,7 +181,7 @@ def render_latest_report_preview(
         )
     with action_cols[1]:
         try:
-            pdf_bytes = create_report_pdf(latest_report)
+            pdf_bytes = get_report_artifact(latest_report, "pdf", create_report_pdf)
             st.download_button(
                 "Download PDF",
                 data=pdf_bytes,
@@ -187,7 +194,7 @@ def render_latest_report_preview(
             st.warning(f"PDF generation failed: {exc}")
     with action_cols[2]:
         try:
-            docx_bytes = create_report_docx(latest_report)
+            docx_bytes = get_report_artifact(latest_report, "docx", create_report_docx)
             st.download_button(
                 "Download DOCX",
                 data=docx_bytes,

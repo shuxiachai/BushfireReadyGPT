@@ -162,11 +162,14 @@ def test_single_scenario_uses_canonical_gate_and_returns_private_artifacts_separ
             return "model narrative"
 
     monkeypatch.setattr(evaluate_report_generation, "GovernedModelClient", Model)
-    monkeypatch.setattr(evaluate_report_generation, "normalize_generated_narrative", lambda value: value)
     monkeypatch.setattr(
         evaluate_report_generation,
-        "assess_generated_narrative",
-        lambda *_args: {"approval_gate": {"passed": True}},
+        "generate_narrative_with_repairs",
+        lambda prompt, analysis, generate: (
+            generate(prompt, 1, False),
+            {"approval_gate": {"passed": True}},
+            1,
+        ),
     )
     monkeypatch.setattr(evaluate_report_generation, "apply_governance_notice", lambda value: value + "\nnotice")
     monkeypatch.setattr(

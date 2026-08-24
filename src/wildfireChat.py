@@ -16,6 +16,7 @@ from src.app_state import (
 )
 from src.coverage_map import is_area_selection_available
 from src.governance import HUMAN_REVIEW_CHECKLIST
+from src.input_validation import REVISION_REQUEST_MAX_CHARS
 from src.report_workflow import (
     collect_review_record,
     get_package_context,
@@ -221,7 +222,7 @@ def render_workspace_tabs():
         )
 
     with review_tab:
-        render_agent_analysis_summary(get_active_map_selection_label)
+        render_agent_analysis_summary()
         render_report_quality_summary()
         render_human_review_checklist(
             HUMAN_REVIEW_CHECKLIST,
@@ -281,7 +282,10 @@ render_workspace_tabs()
 
 user_prompt = None
 if st.session_state.get("latest_report"):
-    user_prompt = st.chat_input("Request a wording or content revision; change geography in the form")
+    user_prompt = st.chat_input(
+        "Request a wording or content revision; change geography in the form",
+        max_chars=REVISION_REQUEST_MAX_CHARS,
+    )
 
 if user_prompt:
     with st.chat_message("user"):

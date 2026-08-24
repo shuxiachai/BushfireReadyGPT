@@ -26,6 +26,7 @@ from scripts.evaluation_artifacts import (  # noqa: E402
     ollama_model_identity,
     project_relative,
     rag_index_provenance,
+    require_stable_release_provenance,
     sha256_file,
     validate_report_evaluation_artifact,
 )
@@ -47,11 +48,9 @@ from src.report_generation_quality import (  # noqa: E402
     MAX_REPORT_REPAIR_ATTEMPTS,
     QUALITY_POLICY_FINGERPRINT,
     QUALITY_POLICY_VERSION,
-    assess_generated_narrative,
     attributed_rag_source_ids,
-    build_report_repair_prompt,
     evaluate_governed_report,
-    normalize_generated_narrative,
+    generate_narrative_with_repairs,
     quality_policy_metadata,
 )
 from src.report_grounding import GROUNDING_METHOD, evaluate_report_grounding  # noqa: E402
@@ -173,17 +172,11 @@ def run_scenario_with_artifacts(scenario):
         governance_context=_governance_context(),
     )
     model_client = GovernedModelClient()
-    generation_attempts = 1
-    narrative = normalize_generated_narrative(model_client.generate(prompt))
-    generation_quality = assess_generated_narrative(narrative, analysis)
-    for _repair_attempt in range(MAX_REPORT_REPAIR_ATTEMPTS):
-        if generation_quality.get("approval_gate", {}).get("passed") is True:
-            break
-        generation_attempts += 1
-        narrative = normalize_generated_narrative(
-            model_client.generate(build_report_repair_prompt(prompt, narrative, generation_quality))
-        )
-        generation_quality = assess_generated_narrative(narrative, analysis)
+    narrative, generation_quality, generation_attempts = generate_narrative_with_repairs(
+        prompt,
+        analysis,
+        lambda attempt_prompt, _attempt_number, _is_repair: model_client.generate(attempt_prompt),
+    )
     report = apply_governance_notice(narrative)
     report = append_evidence_tables(report, analysis)
     report = append_human_signoff(report, {"report_status": "Draft - human review required"})
@@ -315,8 +308,10 @@ def _quality_policy_provenance():
     }
 
 
-def _report_run_metadata(payload, scenario_path, *, started_at_utc):
-    if LLM_PROVIDER == "ollama":
+def _report_run_metadata(payload, scenario_path, *, started_at_utc, model_identity=None):
+    if isinstance(model_identity, dict):
+        model_identity = dict(model_identity)
+    elif LLM_PROVIDER == "ollama":
         model_identity = ollama_model_identity(MODEL_ENDPOINT, model)
     else:
         model_identity = {
@@ -354,6 +349,10 @@ def _report_run_metadata(payload, scenario_path, *, started_at_utc):
         "model": model_identity,
         "quality_policy": _quality_policy_provenance(),
         "rag_index": rag_index,
+        "model_identity_observation": (
+            "ollama_tag_checked_at_scenario_call_boundaries; "
+            "an in-flight tag swap entirely inside one generation HTTP call is not observable"
+        ),
         "grounding_evaluation_method": GROUNDING_METHOD,
         "grounding_policy": "diagnostic_only_human_review_required",
         "grounding_release_gate_enforced": False,
@@ -373,6 +372,37 @@ def _finalize_provenance(run, completion_metadata, *, release_gate_active):
         "drift_fields": drift_fields,
     }
     run["completed_at_utc"] = completed_at_utc
+
+
+class _ReportReleaseBoundaryGuard:
+    def __init__(self, payload, scenario_path, baseline, *, started_at_utc):
+        self.payload = payload
+        self.scenario_path = scenario_path
+        self.baseline = baseline
+        self.started_at_utc = started_at_utc
+
+    def check(self, label, row=None):
+        current = _report_run_metadata(
+            self.payload,
+            self.scenario_path,
+            started_at_utc=self.started_at_utc,
+            model_identity=None,
+        )
+        require_stable_release_provenance(
+            self.baseline,
+            current,
+            _RELEASE_STABILITY_FIELDS,
+            label=label,
+            artifact_name="Report",
+        )
+        if not isinstance(row, dict):
+            return
+        expected_manifest = self.baseline.get("rag_index", {}).get("manifest_sha256")
+        observed_manifest = row.get("rag_index_manifest_sha256")
+        if expected_manifest and observed_manifest and observed_manifest != expected_manifest:
+            raise SystemExit(f"Report release provenance changed at {label}: rag_index")
+        if expected_manifest and int(row.get("retrieved_chunks") or 0) > 0 and not observed_manifest:
+            raise SystemExit(f"Report release provenance changed at {label}: rag_index")
 
 
 def main():
@@ -417,13 +447,31 @@ def main():
     complete_selection = selected_scenario_ids == declared_scenario_ids
     started_at_utc = datetime.now(timezone.utc).isoformat(timespec="seconds")
     run_metadata = _report_run_metadata(payload, args.scenarios, started_at_utc=started_at_utc)
+    provenance_guard = (
+        _ReportReleaseBoundaryGuard(
+            payload,
+            args.scenarios,
+            run_metadata,
+            started_at_utc=started_at_utc,
+        )
+        if complete_selection
+        else None
+    )
 
     rows = []
     for scenario in scenarios:
+        if provenance_guard:
+            provenance_guard.check(f"before scenario {scenario['id']}")
         try:
-            rows.append(_run_scenario(scenario))
+            row = _run_scenario(scenario)
         except (ModelServiceError, OSError, ValueError) as error:
-            rows.append(_failed_row(scenario, error))
+            row = _failed_row(scenario, error)
+        rows.append(row)
+        if provenance_guard:
+            provenance_guard.check(
+                f"after scenario {scenario['id']}",
+                row,
+            )
     attribution_rows = [row for row in rows if row["retrieved_chunks"] > 0]
     summary = {
         "scenarios": len(rows),

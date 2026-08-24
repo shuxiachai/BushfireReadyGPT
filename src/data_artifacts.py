@@ -37,6 +37,135 @@ class DataArtifactError(ValueError):
         self.relative_path = relative_path
 
 
+def _raise_yaml_schema_error(source, label, field_path, expected_description):
+    raise DataArtifactError(
+        "artifact_schema_invalid",
+        f"Required {label} file field {field_path} must be {expected_description}: {source}",
+        relative_path=str(source),
+    )
+
+
+def _yaml_record_list(payload, field, *, source, label):
+    records = payload.get(field, [])
+    if not isinstance(records, list):
+        _raise_yaml_schema_error(source, label, field, "a list")
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            _raise_yaml_schema_error(source, label, f"{field}[{index}]", "a mapping")
+    return records
+
+
+def _validate_optional_string(mapping, field, *, field_path, source, label):
+    if field in mapping and not isinstance(mapping[field], str):
+        _raise_yaml_schema_error(source, label, f"{field_path}.{field}", "a string")
+
+
+def _validate_required_string(mapping, field, *, field_path, source, label):
+    if not isinstance(mapping.get(field), str) or not mapping[field].strip():
+        _raise_yaml_schema_error(source, label, f"{field_path}.{field}", "a non-empty string")
+
+
+def _validate_unique_string_field(records, field, *, collection, source, label, required):
+    seen = set()
+    for index, record in enumerate(records):
+        if field not in record and not required:
+            continue
+        value = record.get(field)
+        normalised = value.strip() if isinstance(value, str) else ""
+        if not normalised or normalised in seen:
+            _raise_yaml_schema_error(
+                source,
+                label,
+                f"{collection}[{index}].{field}",
+                "a unique non-empty string",
+            )
+        seen.add(normalised)
+
+
+def _validate_string_list(mapping, field, *, field_path, source, label):
+    values = mapping.get(field, [])
+    if not isinstance(values, list):
+        _raise_yaml_schema_error(source, label, f"{field_path}.{field}", "a list")
+    for index, value in enumerate(values):
+        if not isinstance(value, str):
+            _raise_yaml_schema_error(source, label, f"{field_path}.{field}[{index}]", "a string")
+
+
+def _validate_region_mapping(payload, *, source, label):
+    regions = _yaml_record_list(payload, "regions", source=source, label=label)
+    for index, region in enumerate(regions):
+        field_path = f"regions[{index}]"
+        _validate_optional_string(region, "location", field_path=field_path, source=source, label=label)
+        _validate_optional_string(region, "state", field_path=field_path, source=source, label=label)
+
+
+def _validate_official_source_register(payload, *, source, label):
+    sources = _yaml_record_list(payload, "sources", source=source, label=label)
+    for index, official_source in enumerate(sources):
+        field_path = f"sources[{index}]"
+        for field in ("name", "purpose", "url"):
+            _validate_required_string(
+                official_source,
+                field,
+                field_path=field_path,
+                source=source,
+                label=label,
+            )
+        for field in ("id", "use_when"):
+            _validate_optional_string(
+                official_source,
+                field,
+                field_path=field_path,
+                source=source,
+                label=label,
+            )
+        _validate_string_list(official_source, "scope", field_path=field_path, source=source, label=label)
+    _validate_unique_string_field(
+        sources,
+        "id",
+        collection="sources",
+        source=source,
+        label=label,
+        required=False,
+    )
+
+
+def _validate_risk_context_rules(payload, *, source, label):
+    rules = _yaml_record_list(payload, "rules", source=source, label=label)
+    for index, rule in enumerate(rules):
+        field_path = f"rules[{index}]"
+        _validate_required_string(rule, "id", field_path=field_path, source=source, label=label)
+
+        match = rule.get("match", {})
+        if not isinstance(match, dict):
+            _raise_yaml_schema_error(source, label, f"{field_path}.match", "a mapping")
+        for field in ("states", "location_keywords", "scenario_keywords"):
+            _validate_string_list(
+                match,
+                field,
+                field_path=f"{field_path}.match",
+                source=source,
+                label=label,
+            )
+        for field in ("risk_points", "assumptions"):
+            _validate_string_list(rule, field, field_path=field_path, source=source, label=label)
+    _validate_unique_string_field(
+        rules,
+        "id",
+        collection="rules",
+        source=source,
+        label=label,
+        required=True,
+    )
+
+
+_YAML_SCHEMA_VALIDATORS = {
+    "region mapping": _validate_region_mapping,
+    "official-source register": _validate_official_source_register,
+    "risk-context rules": _validate_risk_context_rules,
+}
+
+
 def load_yaml_mapping(path, *, label="YAML data"):
     """Load a required YAML mapping and raise an actionable domain error."""
 
@@ -56,19 +185,24 @@ def load_yaml_mapping(path, *, label="YAML data"):
             relative_path=str(source),
         ) from error
     try:
-        payload = yaml.safe_load(text) or {}
+        payload = yaml.safe_load(text)
     except yaml.YAMLError as error:
         raise DataArtifactError(
             "artifact_invalid",
             f"Required {label} file contains invalid YAML: {source}",
             relative_path=str(source),
         ) from error
+    if payload is None:
+        payload = {}
     if not isinstance(payload, dict):
         raise DataArtifactError(
             "artifact_invalid",
             f"Required {label} file must contain a YAML mapping: {source}",
             relative_path=str(source),
         )
+    validator = _YAML_SCHEMA_VALIDATORS.get(label)
+    if validator is not None:
+        validator(payload, source=source, label=label)
     return payload
 
 

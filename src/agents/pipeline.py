@@ -15,6 +15,33 @@ from src.evidence_confidence import build_evidence_confidence_rows
 from src.runtime_trace import trace_stage
 
 
+def _resolve_effective_profile(profile, area_selection):
+    """Bind downstream analysis to an explicit map selection without rewriting form input."""
+
+    effective_profile = dict(profile)
+    if not area_selection:
+        return effective_profile
+
+    inferred_state = str(profile.get("state") or "").strip()
+    selected_state = str(area_selection.get("state") or "").strip()
+    if (
+        selected_state
+        and inferred_state.casefold() not in {"", "australia"}
+        and inferred_state.casefold() != selected_state.casefold()
+    ):
+        raise DataArtifactError(
+            "geography_mismatch",
+            f"The form location resolves to {inferred_state}, but the selected map area is in {selected_state}.",
+        )
+
+    if selected_state:
+        effective_profile["state"] = selected_state
+    selected_area = str(area_selection.get("area_name") or "").strip()
+    if selected_area:
+        effective_profile["locality"] = selected_area
+    return effective_profile
+
+
 def run_analysis_pipeline(
     location,
     audience,
@@ -48,7 +75,7 @@ def run_analysis_pipeline(
                 + (artifact_status["integrity_error"] or "unknown validation error"),
             )
     with trace_stage("profile_agent"):
-        profile = ProfileAgent(data_paths=paths).run(
+        form_profile = ProfileAgent(data_paths=paths).run(
             location,
             audience,
             scenario,
@@ -56,6 +83,7 @@ def run_analysis_pipeline(
             timeframe,
             extra_context,
         )
+        profile = _resolve_effective_profile(form_profile, area_selection)
     with trace_stage("australian_data_agent"):
         data_result = AustralianDataAgent(data_paths=paths).run(profile)
     with trace_stage("community_vulnerability_agent"):
@@ -86,6 +114,7 @@ def run_analysis_pipeline(
             plan_result,
             community_result,
             knowledge_result,
+            area_selection=area_selection,
         )
     with trace_stage("data_integrity"):
         post_analysis_provenance = build_data_provenance(

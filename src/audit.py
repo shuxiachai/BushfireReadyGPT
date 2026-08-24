@@ -23,7 +23,9 @@ from src.governance import (
     REVIEWED_STATUSES,
     build_review_checklist_snapshot,
     is_review_checklist_complete,
+    validate_review_date,
 )
+from src.input_validation import validate_review_input_budget
 from src.report_generation_quality import (
     CURRENT_POLICY,
     QUALITY_POLICY_FINGERPRINT,
@@ -437,35 +439,54 @@ def load_and_verify_audit(path, verify_chain=True, _seen=None):
     """Load an audit event and verify its hash and, by default, its local chain."""
 
     audit_path = Path(path).resolve()
-    try:
-        record = json.loads(audit_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as error:
-        raise AuditIntegrityError(f"Audit event could not be read: {audit_path}") from error
-    validate_audit_record(record)
+    record = _load_and_validate_audit_record(audit_path)
     if not verify_chain or not record.get("previous_audit_file"):
         return record
 
+    chain = [(audit_path, record)]
     seen = set(_seen or ())
-    if audit_path in seen:
-        raise AuditIntegrityError("Audit event chain contains a cycle.")
-    seen.add(audit_path)
-    previous_name = str(record["previous_audit_file"])
-    if Path(previous_name).name != previous_name:
-        raise AuditIntegrityError("Audit chain contains an invalid previous filename.")
-    previous_path = (audit_path.parent / previous_name).resolve()
-    if previous_path.parent != audit_path.parent:
-        raise AuditIntegrityError("Audit chain escapes its configured directory.")
-    previous = load_and_verify_audit(previous_path, verify_chain=True, _seen=seen)
-    if previous.get("audit_id") != record.get("previous_audit_id"):
-        raise AuditIntegrityError("Audit chain previous ID does not match.")
-    if previous.get("record_hash") != record.get("previous_record_hash"):
-        raise AuditIntegrityError("Audit chain previous hash does not match.")
-    if record.get("event_type") == "quality.reassessed":
-        metadata = record.get("quality_reassessment") or {}
-        if metadata.get("previous_policy_version") != previous.get("quality_policy_version") or metadata.get(
-            "previous_policy_fingerprint"
-        ) != previous.get("quality_policy_fingerprint"):
-            raise AuditIntegrityError("Audit quality reassessment does not match its predecessor policy.")
+    current_path = audit_path
+    current = record
+    while current.get("previous_audit_file"):
+        if current_path in seen:
+            raise AuditIntegrityError("Audit event chain contains a cycle.")
+        seen.add(current_path)
+        previous_name = str(current["previous_audit_file"])
+        if Path(previous_name).name != previous_name:
+            raise AuditIntegrityError("Audit chain contains an invalid previous filename.")
+        previous_path = (current_path.parent / previous_name).resolve()
+        if previous_path.parent != current_path.parent:
+            raise AuditIntegrityError("Audit chain escapes its configured directory.")
+        previous = _load_and_validate_audit_record(previous_path)
+        chain.append((previous_path, previous))
+        current_path = previous_path
+        current = previous
+
+    # Recursive verification historically validated the oldest transition first
+    # while unwinding. Preserve that order so cycles/path errors are detected
+    # during traversal before predecessor bindings are checked.
+    for index in range(len(chain) - 2, -1, -1):
+        current = chain[index][1]
+        previous = chain[index + 1][1]
+        if previous.get("audit_id") != current.get("previous_audit_id"):
+            raise AuditIntegrityError("Audit chain previous ID does not match.")
+        if previous.get("record_hash") != current.get("previous_record_hash"):
+            raise AuditIntegrityError("Audit chain previous hash does not match.")
+        if current.get("event_type") == "quality.reassessed":
+            metadata = current.get("quality_reassessment") or {}
+            if metadata.get("previous_policy_version") != previous.get("quality_policy_version") or metadata.get(
+                "previous_policy_fingerprint"
+            ) != previous.get("quality_policy_fingerprint"):
+                raise AuditIntegrityError("Audit quality reassessment does not match its predecessor policy.")
+    return record
+
+
+def _load_and_validate_audit_record(audit_path):
+    try:
+        record = json.loads(Path(audit_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise AuditIntegrityError(f"Audit event could not be read: {audit_path}") from error
+    validate_audit_record(record)
     return record
 
 
@@ -844,6 +865,15 @@ def _validated_report_quality(report_text, payload):
 
 def _validate_review_transition(review_record, quality, previous):
     status = review_record["approval_status"]
+    budget_error = validate_review_input_budget(review_record)
+    if budget_error:
+        raise AuditIntegrityError(budget_error)
+    review_date_error = validate_review_date(
+        review_record.get("review_date"),
+        required=status in REVIEWED_STATUSES,
+    )
+    if review_date_error:
+        raise AuditIntegrityError(review_date_error)
     if status in REVIEWED_STATUSES:
         missing = [
             label

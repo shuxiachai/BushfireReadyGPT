@@ -80,9 +80,20 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - A current Cairns Council sample package, product screenshots and a short demonstration video.
 - Commercial gap and project maturity assessment.
 
-## Current Validation (`v0.5.0`)
+## Current Branch Validation (2026-08-24)
 
-- The local release verification passes `429` automated tests: `428` non-E2E unit/integration/Streamlit tests and one Chromium end-to-end workflow. The measured non-E2E `src` coverage is `86.08%`.
+- The maintained branch passes `541` automated tests: `540` non-E2E unit/integration/Streamlit tests and one Chromium end-to-end workflow. The measured non-E2E `src` coverage is `86.54%`.
+- Explicit map geography is now the effective profile for every downstream agent; conflicting known states fail closed before evidence selection.
+- RAG build/inspection/retrieval uses fixed process-then-file locking, token-owned cross-process locks, immutable source snapshots and backup-first publication recovery; release evaluation checks provenance before and after every question or scenario call to detect A-to-B-to-A drift visible across call boundaries, while explicitly not claiming visibility into a model-tag swap wholly inside one HTTP call.
+- Session hydration validates a bounded versioned schema, report/review inputs have backend limits, audit ancestry is verified iteratively, and model generation/revision share one repair implementation.
+- Local model streaming has a hard wall-clock deadline; unverified U0 values stay in an escaped JSON block rather than deterministic analysis text, and configured YAML source/rule identifiers must be non-empty and unique.
+- Evidence Trail views and derived downloads are bound to the frozen report snapshot; PDF/DOCX table parsing is shared and renderer-fingerprinted preview artifacts are cached only inside the current browser session.
+
+These current-branch figures are engineering verification, not a new release artifact or a production-accuracy claim.
+
+## Published Release Validation (`v0.5.0`)
+
+- The local release verification passed `429` automated tests: `428` non-E2E unit/integration/Streamlit tests and one Chromium end-to-end workflow. The measured non-E2E `src` coverage was `86.08%`.
 - Report generation and revision produce a deterministic evidence-alignment review for attributable claims, citations, numbers and jurisdiction conflicts.
 - The current quality contract is `governed-report-v2`, fingerprint `7c20b6fa049dc1028cc367955eb28b5434318b2d4050995cc9cf58b53a5da9d1`. The same canonical gate is recomputed for generation, revision, approval and governed export.
 - Anonymous pilot aggregation and Bad Case regression tooling are ready, but the committed template still contains zero external participants.

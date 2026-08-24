@@ -1,3 +1,5 @@
+import threading
+import time
 from types import SimpleNamespace
 
 import httpx
@@ -119,3 +121,182 @@ def test_empty_governed_prompt_is_rejected_before_provider_call():
 
 def test_clean_model_output_handles_empty_text():
     assert clean_model_output(None) == ""
+
+
+def test_empty_and_malformed_stream_chunks_are_ignored():
+    chunks = [
+        SimpleNamespace(choices=[]),
+        SimpleNamespace(choices=[SimpleNamespace(delta=None)]),
+        _stream_chunk("usable report"),
+    ]
+    runtime = GovernedModelClient(
+        completion_client=_completion_client(lambda **_kwargs: iter(chunks)),
+        model_name="local-test-model",
+        provider="ollama",
+        is_local=True,
+    )
+
+    assert runtime.generate("Generate the report") == "usable report"
+
+
+def test_provider_response_without_usable_text_fails_closed():
+    runtime = GovernedModelClient(
+        completion_client=_completion_client(lambda **_kwargs: iter([SimpleNamespace(choices=[])])),
+        model_name="local-test-model",
+        provider="ollama",
+        is_local=True,
+    )
+
+    with pytest.raises(ModelServiceError, match="no usable report text"):
+        runtime.generate("Generate the report")
+
+
+def test_stream_has_total_deadline_and_is_closed():
+    class ClosableStream:
+        def __init__(self):
+            self.closed = False
+            self.closed_event = threading.Event()
+
+        def __iter__(self):
+            yield _stream_chunk("first")
+            yield _stream_chunk("late")
+
+        def close(self):
+            self.closed = True
+            self.closed_event.set()
+
+    stream = ClosableStream()
+    times = iter([0.0, 0.5, 1.1])
+    runtime = GovernedModelClient(
+        completion_client=_completion_client(lambda **_kwargs: stream),
+        model_name="local-test-model",
+        provider="ollama",
+        is_local=True,
+        timeout_seconds=1,
+        clock=lambda: next(times),
+    )
+
+    with pytest.raises(ModelServiceError, match="total deadline"):
+        runtime.generate("Generate the report")
+    assert stream.closed_event.wait(0.1)
+    assert stream.closed is True
+
+    class DelayedEofStream(ClosableStream):
+        def __iter__(self):
+            yield _stream_chunk("apparently complete")
+            time.sleep(0.03)
+
+    delayed_stream = DelayedEofStream()
+    delayed_runtime = GovernedModelClient(
+        completion_client=_completion_client(lambda **_kwargs: delayed_stream),
+        model_name="local-test-model",
+        provider="ollama",
+        is_local=True,
+        timeout_seconds=0.01,
+    )
+    with pytest.raises(ModelServiceError, match="total deadline"):
+        delayed_runtime.generate("Generate the report")
+    assert delayed_stream.closed_event.wait(0.1)
+    assert delayed_stream.closed is True
+
+
+def test_stream_arriving_after_total_deadline_is_closed_before_iteration():
+    class LateStream:
+        def __init__(self):
+            self.iterated = threading.Event()
+            self.closed = threading.Event()
+
+        def __iter__(self):
+            self.iterated.set()
+            yield _stream_chunk("must not be consumed")
+
+        def close(self):
+            self.closed.set()
+
+    stream = LateStream()
+    create_started = threading.Event()
+    release_create = threading.Event()
+
+    def create(**_kwargs):
+        create_started.set()
+        release_create.wait(0.5)
+        return stream
+
+    runtime = GovernedModelClient(
+        completion_client=_completion_client(create),
+        model_name="local-test-model",
+        provider="ollama",
+        is_local=True,
+        timeout_seconds=0.01,
+    )
+
+    with pytest.raises(ModelServiceError, match="total deadline"):
+        runtime.generate("Generate the report")
+
+    release_create.set()
+    assert stream.closed.wait(0.5)
+    assert create_started.is_set()
+    assert not stream.iterated.is_set()
+
+
+def test_stream_total_deadline_includes_close_cleanup():
+    class SlowCloseStream:
+        def __init__(self):
+            self.close_started = threading.Event()
+            self.close_finished = threading.Event()
+            self.release_close = threading.Event()
+
+        def __iter__(self):
+            yield _stream_chunk("apparently complete")
+
+        def close(self):
+            self.close_started.set()
+            self.release_close.wait(0.5)
+            self.close_finished.set()
+
+    stream = SlowCloseStream()
+    runtime = GovernedModelClient(
+        completion_client=_completion_client(lambda **_kwargs: stream),
+        model_name="local-test-model",
+        provider="ollama",
+        is_local=True,
+        timeout_seconds=0.01,
+    )
+
+    with pytest.raises(ModelServiceError, match="total deadline"):
+        runtime.generate("Generate the report")
+
+    assert stream.close_started.wait(0.1)
+    assert not stream.close_finished.is_set()
+    stream.release_close.set()
+    assert stream.close_finished.wait(0.1)
+
+
+def test_stream_cleanup_error_does_not_discard_valid_output(caplog):
+    class BrokenCloseStream:
+        def __iter__(self):
+            yield _stream_chunk("usable report")
+
+        def close(self):
+            raise RuntimeError("cleanup failed")
+
+    runtime = GovernedModelClient(
+        completion_client=_completion_client(lambda **_kwargs: BrokenCloseStream()),
+        model_name="local-test-model",
+        provider="ollama",
+        is_local=True,
+    )
+
+    with caplog.at_level("DEBUG", logger="src.model_runtime"):
+        assert runtime.generate("Generate the report") == "usable report"
+    assert "Model stream cleanup failed (RuntimeError)" in caplog.text
+
+
+def test_model_total_deadline_must_be_positive():
+    with pytest.raises(ValueError, match="greater than zero"):
+        GovernedModelClient(
+            completion_client=_completion_client(_fail_if_rendered),
+            model_name="test-model",
+            is_local=True,
+            timeout_seconds=0,
+        )

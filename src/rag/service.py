@@ -6,6 +6,7 @@ from uuid import NAMESPACE_URL, uuid5
 from src.rag.embeddings import OllamaEmbeddingClient
 from src.rag.errors import RagError
 from src.rag.index import (
+    index_read_write_lock,
     index_snapshot,
     load_and_validate_index,
     load_index_documents,
@@ -87,32 +88,54 @@ def _requires_live_authority(query):
     return live_request or guarantee_request
 
 
+def _configuration_unready_status(active):
+    if not active.enabled:
+        return _status("disabled", "RAG is disabled by configuration")
+    if not active.sources_path.is_file():
+        return _status("not_installed", "RAG source catalog not installed")
+    return None
+
+
+def _unready_index_status(active):
+    configuration_status = _configuration_unready_status(active)
+    if configuration_status:
+        return configuration_status
+    if not (active.index_dir / "manifest.json").is_file():
+        return _status(
+            "not_built",
+            "RAG catalog installed; index not built",
+            build_command="poetry run python scripts/build_rag_index.py --download",
+        )
+    return None
+
+
+def _ready_index_status(manifest):
+    return {
+        **_status("ready", "RAG index verified"),
+        "index_schema": manifest["schema"],
+        "embedding_model": manifest["embedding_model"],
+        "embedding_dimension": manifest["embedding_dimension"],
+        "source_count": manifest["source_count"],
+        "chunk_count": manifest["chunk_count"],
+        "manifest_sha256": manifest["manifest_sha256"],
+        "documents_sha256": manifest["documents_artifact"]["sha256"],
+        "built_at_utc": manifest["built_at_utc"],
+        "build_command": "poetry run python scripts/build_rag_index.py --download",
+    }
+
+
 def inspect_rag_index(settings=None, *, data_paths=None):
     try:
         active = settings or RagSettings.from_env(data_paths=data_paths)
-        if not active.enabled:
-            return _status("disabled", "RAG is disabled by configuration")
-        if not active.sources_path.is_file():
-            return _status("not_installed", "RAG source catalog not installed")
-        if not (active.index_dir / "manifest.json").is_file():
-            return _status(
-                "not_built",
-                "RAG catalog installed; index not built",
-                build_command="poetry run python scripts/build_rag_index.py --download",
-            )
-        manifest = load_and_validate_index(active)
-        return {
-            **_status("ready", "RAG index verified"),
-            "index_schema": manifest["schema"],
-            "embedding_model": manifest["embedding_model"],
-            "embedding_dimension": manifest["embedding_dimension"],
-            "source_count": manifest["source_count"],
-            "chunk_count": manifest["chunk_count"],
-            "manifest_sha256": manifest["manifest_sha256"],
-            "documents_sha256": manifest["documents_artifact"]["sha256"],
-            "built_at_utc": manifest["built_at_utc"],
-            "build_command": "poetry run python scripts/build_rag_index.py --download",
-        }
+        configuration_status = _configuration_unready_status(active)
+        if configuration_status:
+            return configuration_status
+        with index_read_write_lock(active):
+            unready = _unready_index_status(active)
+            if unready:
+                return unready
+            manifest = load_and_validate_index(active)
+        return _ready_index_status(manifest)
     except RagError as error:
         return _status(
             "invalid",
@@ -179,59 +202,90 @@ class RagService:
                 "Use the relevant emergency-service warning channel and call 000 if life is at risk.",
             ]
             return result
-        status = inspect_rag_index(self.settings)
-        if status["state"] != "ready":
-            return self._empty_result(status, query_hash, retrieval_configuration)
+        configuration_status = _configuration_unready_status(self.settings)
+        if configuration_status:
+            return self._empty_result(
+                configuration_status,
+                query_hash,
+                retrieval_configuration,
+            )
         try:
-            before = index_snapshot(self.settings)
-            manifest = load_and_validate_index(self.settings)
-            documents = load_index_documents(self.settings, manifest)
-            if jurisdiction and jurisdiction != "Australia":
-                documents = [
-                    document
-                    for document in documents
-                    if jurisdiction in document.get("jurisdictions", [])
-                    or "Australia" in document.get("jurisdictions", [])
-                ]
-            candidate_k = max(
-                requested_top_k,
-                requested_top_k * self.settings.candidate_multiplier,
-            )
-            retrieval_configuration = _retrieval_configuration(
-                self.settings,
-                trusted_planning_scope=trusted_planning_scope,
-                top_k=requested_top_k,
-                candidate_k=candidate_k,
-            )
-            vectors = self.embedder.embed([query_text])
-            dense_results = self._query_index(
-                vectors[0],
-                jurisdiction=jurisdiction,
-                top_k=candidate_k,
-                expected_chunk_count=status["chunk_count"],
-            )
-            results = hybrid_rank(
-                query_text,
-                documents,
-                dense_results,
-                jurisdiction=jurisdiction,
-                top_k=requested_top_k,
-                candidate_k=candidate_k,
-                dense_score_threshold=self.settings.score_threshold,
-                dense_weight=self.settings.dense_weight,
-                rrf_k=self.settings.rrf_k,
-                max_chunks_per_source=self.settings.max_chunks_per_source,
-                lexical_coverage_threshold=retrieval_configuration["effective_thresholds"][
-                    "lexical_coverage_threshold"
-                ],
-                semantic_score_threshold=retrieval_configuration["effective_thresholds"]["semantic_score_threshold"],
-                semantic_coverage_threshold=retrieval_configuration["effective_thresholds"][
-                    "semantic_coverage_threshold"
-                ],
-            )
-            after = index_snapshot(self.settings)
-            if after != before:
-                raise RagError("rag_index_changed", "The RAG index changed during retrieval.")
+            with index_read_write_lock(self.settings):
+                unready = _unready_index_status(self.settings)
+                if unready:
+                    return self._empty_result(unready, query_hash, retrieval_configuration)
+                try:
+                    manifest = load_and_validate_index(self.settings)
+                except RagError as error:
+                    invalid = _status(
+                        "invalid",
+                        "RAG index invalid or stale",
+                        error_code=error.code,
+                        error=str(error),
+                        build_command="poetry run python scripts/build_rag_index.py --download --refresh",
+                    )
+                    return self._empty_result(invalid, query_hash, retrieval_configuration)
+                status = _ready_index_status(manifest)
+                try:
+                    before = index_snapshot(self.settings, manifest)
+                    documents = load_index_documents(self.settings, manifest)
+                    if jurisdiction and jurisdiction != "Australia":
+                        documents = [
+                            document
+                            for document in documents
+                            if jurisdiction in document.get("jurisdictions", [])
+                            or "Australia" in document.get("jurisdictions", [])
+                        ]
+                    candidate_k = max(
+                        requested_top_k,
+                        requested_top_k * self.settings.candidate_multiplier,
+                    )
+                    retrieval_configuration = _retrieval_configuration(
+                        self.settings,
+                        trusted_planning_scope=trusted_planning_scope,
+                        top_k=requested_top_k,
+                        candidate_k=candidate_k,
+                    )
+                    vectors = self.embedder.embed([query_text])
+                    dense_results = self._query_index(
+                        vectors[0],
+                        jurisdiction=jurisdiction,
+                        top_k=candidate_k,
+                        expected_chunk_count=manifest["chunk_count"],
+                    )
+                    results = hybrid_rank(
+                        query_text,
+                        documents,
+                        dense_results,
+                        jurisdiction=jurisdiction,
+                        top_k=requested_top_k,
+                        candidate_k=candidate_k,
+                        dense_score_threshold=self.settings.score_threshold,
+                        dense_weight=self.settings.dense_weight,
+                        rrf_k=self.settings.rrf_k,
+                        max_chunks_per_source=self.settings.max_chunks_per_source,
+                        lexical_coverage_threshold=retrieval_configuration["effective_thresholds"][
+                            "lexical_coverage_threshold"
+                        ],
+                        semantic_score_threshold=retrieval_configuration["effective_thresholds"][
+                            "semantic_score_threshold"
+                        ],
+                        semantic_coverage_threshold=retrieval_configuration["effective_thresholds"][
+                            "semantic_coverage_threshold"
+                        ],
+                    )
+                    ending_manifest = load_and_validate_index(self.settings)
+                    after = index_snapshot(self.settings, ending_manifest)
+                    if after != before:
+                        raise RagError("rag_index_changed", "The RAG index changed during retrieval.")
+                except RagError as error:
+                    failed = _status(
+                        "unavailable",
+                        "RAG retrieval unavailable",
+                        error_code=error.code,
+                        error=str(error),
+                    )
+                    return self._empty_result(failed, query_hash, retrieval_configuration)
         except RagError as error:
             failed = _status(
                 "unavailable",
@@ -308,8 +362,9 @@ class RagService:
 
     def _query_index(self, vector, *, jurisdiction, top_k, expected_chunk_count):
         QdrantClient, models = load_qdrant()
-        client = QdrantClient(path=str(self.settings.index_dir / "qdrant"))
+        client = None
         try:
+            client = QdrantClient(path=str(self.settings.index_dir / "qdrant"))
             actual_count = client.count(
                 collection_name=self.settings.collection_name,
                 exact=True,
@@ -343,7 +398,8 @@ class RagService:
         except Exception as error:
             raise RagError("rag_query_failed", "The verified local RAG index could not be queried.") from error
         finally:
-            client.close()
+            if client is not None:
+                client.close()
         results = []
         for point in points:
             payload = point.payload if isinstance(point.payload, dict) else {}
@@ -390,7 +446,7 @@ def format_retrieved_context(knowledge_result, *, max_characters=8000, max_chunk
         "- Use passages only as attributed planning evidence; do not infer live conditions or operational directions.",
         "- Cite the source title and URL for every factual claim derived from a passage.",
     ]
-    used = len("\n".join(lines))
+    rendered = "\n\n".join(lines)
     for chunk in chunks:
         page = chunk.get("page") or "web"
         header = (
@@ -406,8 +462,8 @@ def format_retrieved_context(knowledge_result, *, max_characters=8000, max_chunk
         text = text.replace("<retrieved-official-evidence", "[retrieved-official-evidence")
         text = text.replace("</retrieved-official-evidence>", "[/retrieved-official-evidence]")
         block = f"{header}<retrieved-official-evidence>\n{text[:max_chunk_characters]}\n</retrieved-official-evidence>"
-        if used + len(block) > max_characters:
+        candidate = f"{rendered}\n\n{block}"
+        if len(candidate) > max_characters:
             break
-        lines.append(block)
-        used += len(block)
-    return "\n\n".join(lines)
+        rendered = candidate
+    return rendered

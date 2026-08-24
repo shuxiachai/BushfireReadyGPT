@@ -31,6 +31,11 @@ It contains `429` passing tests (`428` non-E2E plus one Chromium E2E), with
 `86.08%` measured `src` coverage. Governed exports use `pilot-export-v4` and
 the `governed-report-v2` quality policy (`7c20b6fa...a5da9d1`).
 
+**Current main-branch verification (2026-08-24):** the post-release logic-
+hardening build passes `541` tests (`540` non-E2E plus one Chromium E2E), with
+`86.54%` measured `src` coverage. These figures describe the maintained branch;
+they do not rewrite the immutable `v0.5.0` release artifacts above.
+
 Ready for:
 
 - Internship demonstration
@@ -83,6 +88,12 @@ Not ready for:
 - Expanded real-model regression coverage to all six planning scenarios plus live-request refusal and no-RAG degradation cases.
 - Added report-level evidence-alignment metrics, a strict anonymous pilot-measurement schema and a Bad Case-to-regression workflow.
 - Added content-free per-stage runtime tracing and a Readiness diagnostic view, separate from governed audit records.
+- Unified form and map geography into one effective profile, and fail closed on explicit cross-state conflicts before evidence selection.
+- Hardened RAG builds and retrieval against concurrent source/index changes with process-local plus PID/token-owned cross-process locks, immutable build snapshots, backup-first recovery and before/after identity checks.
+- Added bounded input/session schemas, iterative audit-chain verification, strict review-date validation and one shared generation/repair workflow.
+- Enforced a hard wall-clock deadline for local model streams, separated U0 form values from deterministic prompt data, and reject blank or duplicate configured source/rule identifiers.
+- Bound release evaluations before and after each question/scenario call so drift visible at those boundaries, including A-to-B-to-A changes across calls, cannot be hidden by matching run-end snapshots; a model-tag swap wholly inside one HTTP call remains outside this observation boundary.
+- Reused one Markdown table parser and a privacy-safe, renderer-fingerprinted session-local export cache across PDF/DOCX preview paths.
 
 ## Product Tour
 
@@ -428,9 +439,11 @@ poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail
 ```
 
 The maintained coverage contract is the CI gate: the non-E2E suite must cover
-at least `85%` of `src` on supported Python versions. The v0.5.0 release run
-passed `428` non-E2E tests at `86.08%` coverage plus one Chromium E2E test, for
-`429` passing tests in total. Exact percentages remain run-specific diagnostics.
+at least `85%` of `src` on supported Python versions. The current main-branch
+verification passes `540` non-E2E tests at `86.54%` coverage plus one Chromium
+E2E test, for `541` passing tests in total. The immutable `v0.5.0` release run
+remains `428` non-E2E tests at `86.08%` plus one Chromium E2E test (`429` total).
+Exact percentages remain run-specific diagnostics.
 
 Run the same static, dependency and security checks as CI:
 

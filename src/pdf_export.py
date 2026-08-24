@@ -21,6 +21,11 @@ from reportlab.platypus import (
 )
 
 from src.export_content import extract_report_metadata, plain_markdown_text
+from src.markdown_tables import (
+    is_markdown_table_row,
+    is_markdown_table_separator,
+    parse_markdown_table_row,
+)
 
 FONT_NAME = "BushfireReadyPDF"
 LOGGER = logging.getLogger(__name__)
@@ -246,25 +251,14 @@ def _flush_bullets(story, bullet_items, styles):
     bullet_items.clear()
 
 
-def _is_table_line(line):
-    return line.startswith("|") and line.endswith("|")
-
-
-def _is_separator_row(line):
-    cells = [cell.strip() for cell in line.strip("|").split("|")]
-    return bool(cells) and all(set(cell) <= {"-", ":", " "} and "-" in cell for cell in cells)
-
-
-def _table_cells(line):
-    return [cell.strip() for cell in line.strip("|").split("|")]
-
-
 def _append_table(story, table_lines, styles):
     raw_data = []
     for line in table_lines:
-        if _is_separator_row(line):
+        if is_markdown_table_separator(line):
             continue
-        raw_data.append(_table_cells(line))
+        cells = parse_markdown_table_row(line)
+        if cells is not None:
+            raw_data.append(cells)
     if not raw_data:
         return
     column_count = max(len(row) for row in raw_data)
@@ -367,10 +361,10 @@ def _markdown_to_story(markdown_text, styles):
             index += 1
             continue
 
-        if _is_table_line(line):
+        if is_markdown_table_row(line):
             _flush_bullets(story, bullet_items, styles)
             table_lines = []
-            while index < len(lines) and _is_table_line(lines[index].strip()):
+            while index < len(lines) and is_markdown_table_row(lines[index].strip()):
                 table_lines.append(lines[index].strip())
                 index += 1
             _append_table(story, table_lines, styles)

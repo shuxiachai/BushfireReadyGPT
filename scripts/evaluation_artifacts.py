@@ -52,6 +52,14 @@ def project_relative(path: Path, project_root: Path) -> str:
         return resolved.name
 
 
+def require_stable_release_provenance(baseline, current, fields, *, label, artifact_name):
+    """Fail immediately when a release item crosses a provenance generation boundary."""
+
+    drift_fields = [field for field in fields if baseline.get(field) != current.get(field)]
+    if drift_fields:
+        raise SystemExit(f"{artifact_name} release provenance changed at {label}: " + ", ".join(drift_fields))
+
+
 def _git(project_root: Path, *arguments: str) -> str | None:
     try:
         # The executable and every argument are fixed by internal callers.

@@ -1,4 +1,5 @@
 import os
+from datetime import date
 from html import escape
 
 import streamlit as st
@@ -6,16 +7,62 @@ import streamlit as st
 from src.audit import AuditIntegrityError, capture_current_audit_chain
 from src.evidence_confidence import build_evidence_confidence_rows
 from src.export_package import create_pilot_export_package
+from src.input_validation import REVIEW_FIELD_LIMITS
 from src.ui.components import render_path_line, safe_display_text
 
 
-def render_agent_analysis_summary(get_active_map_selection_label):
-    analysis = st.session_state.get("latest_analysis")
+def resolve_evidence_snapshot(latest_report, latest_analysis, current_area_selection):
+    """Resolve one report-bound evidence snapshot without reading Streamlit state."""
+
+    report = latest_report if isinstance(latest_report, dict) else {}
+    report_bound = bool(report)
+    frozen_analysis = report.get("analysis")
+    analysis = frozen_analysis if report_bound else latest_analysis
+    if not isinstance(analysis, dict):
+        analysis = None
+
+    current_selection = _area_selection_snapshot(current_area_selection)
+    frozen_selection = _area_selection_snapshot(report.get("area_selection")) if report_bound else current_selection
+    return {
+        "analysis": analysis,
+        "frozen_area_selection": frozen_selection,
+        "current_area_selection": current_selection,
+        "selection_changed": report_bound and frozen_selection != current_selection,
+        "report_bound": report_bound,
+    }
+
+
+def build_evidence_selection_messages(snapshot):
+    """Return report-bound map captions and any pending-regeneration notice."""
+
+    frozen_label = _format_area_selection_label(snapshot.get("frozen_area_selection"))
+    if snapshot.get("report_bound"):
+        caption = f"Map selection used for this report: {frozen_label}"
+    else:
+        caption = f"Current map selection for this analysis: {frozen_label}"
+
+    notice = None
+    if snapshot.get("selection_changed"):
+        current_label = _format_area_selection_label(snapshot.get("current_area_selection"))
+        notice = (
+            f"Current map selection: {current_label}. It differs from this report's frozen selection "
+            "and will only be used for the next regenerated report."
+        )
+    return caption, notice
+
+
+def render_agent_analysis_summary():
+    snapshot = resolve_evidence_snapshot(
+        st.session_state.get("latest_report"),
+        st.session_state.get("latest_analysis"),
+        st.session_state.get("selected_map_area"),
+    )
+    analysis = snapshot["analysis"]
     if not analysis:
         return
 
     with st.expander("Evidence Trail", expanded=True):
-        _render_evidence_overview(analysis.get("community", {}), get_active_map_selection_label)
+        _render_evidence_overview(analysis.get("community", {}), snapshot)
         _render_confidence_provenance(analysis)
         _render_profile_and_sources(analysis.get("profile", {}), analysis.get("data", {}))
         _render_retrieved_knowledge(analysis.get("knowledge", {}))
@@ -30,7 +77,19 @@ def render_agent_analysis_summary(get_active_map_selection_label):
         )
 
 
-def _render_evidence_overview(community_result, get_active_map_selection_label):
+def _area_selection_snapshot(selection):
+    return dict(selection) if isinstance(selection, dict) and selection else None
+
+
+def _format_area_selection_label(selection):
+    if not selection:
+        return "No explicit map selection"
+    values = [selection.get("state"), selection.get("level"), selection.get("area_name")]
+    label = " / ".join(str(value) for value in values if value not in (None, ""))
+    return label or "No explicit map selection"
+
+
+def _render_evidence_overview(community_result, snapshot):
     community_indicators = community_result.get("indicators", {})
     data_quality = community_result.get("data_quality", {})
     overview_items = [
@@ -49,9 +108,10 @@ def _render_evidence_overview(community_result, get_active_map_selection_label):
             """,
             unsafe_allow_html=True,
         )
-    map_selection_label = get_active_map_selection_label()
-    if map_selection_label:
-        st.caption(f"Map selection used for this report: {map_selection_label}")
+    selection_caption, selection_notice = build_evidence_selection_messages(snapshot)
+    st.caption(selection_caption)
+    if selection_notice:
+        st.info(selection_notice)
 
 
 def _render_confidence_provenance(analysis):
@@ -390,9 +450,21 @@ def render_reviewer_approval(
     with st.form("reviewer_approval_form"):
         col1, col2 = st.columns(2)
         with col1:
-            st.text_input("Reviewer name", key="approval_reviewer_name")
-            st.text_input("Reviewer role / title", key="approval_reviewer_role")
-            st.text_input("Organisation / department", key="approval_organisation_name")
+            st.text_input(
+                "Reviewer name",
+                key="approval_reviewer_name",
+                max_chars=REVIEW_FIELD_LIMITS["reviewer_name"][1],
+            )
+            st.text_input(
+                "Reviewer role / title",
+                key="approval_reviewer_role",
+                max_chars=REVIEW_FIELD_LIMITS["reviewer_role"][1],
+            )
+            st.text_input(
+                "Organisation / department",
+                key="approval_organisation_name",
+                max_chars=REVIEW_FIELD_LIMITS["organisation_name"][1],
+            )
         with col2:
             st.selectbox(
                 "Approval status",
@@ -404,8 +476,13 @@ def render_reviewer_approval(
                 ],
                 key="approval_status",
             )
-            st.date_input("Review date", key="approval_review_date")
-        st.text_area("Review notes", key="approval_review_notes", height=90)
+            st.date_input("Review date", key="approval_review_date", max_value=date.today())
+        st.text_area(
+            "Review notes",
+            key="approval_review_notes",
+            height=90,
+            max_chars=REVIEW_FIELD_LIMITS["review_notes"][1],
+        )
         submitted = st.form_submit_button(
             "Update sign-off record",
             width="stretch",

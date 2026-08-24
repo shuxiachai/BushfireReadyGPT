@@ -22,6 +22,7 @@ from scripts.evaluation_artifacts import (  # noqa: E402
     ollama_model_identity,
     project_relative,
     rag_index_provenance,
+    require_stable_release_provenance,
     sha256_file,
     validate_rag_evaluation_artifact,
 )
@@ -38,14 +39,18 @@ _RELEASE_STABILITY_FIELDS = (
 )
 
 
-def build_run_metadata(payload, questions_path, service):
+def build_run_metadata(payload, questions_path, service, embedding_identity=None):
     """Collect exact question, index, embedding and Git provenance for one run."""
 
     index = rag_index_provenance(service.settings)
     settings = service.settings
-    embedding = ollama_model_identity(
-        getattr(settings, "embedding_base_url", ""),
-        getattr(settings, "embedding_model", ""),
+    embedding = (
+        dict(embedding_identity)
+        if isinstance(embedding_identity, dict)
+        else ollama_model_identity(
+            getattr(settings, "embedding_base_url", ""),
+            getattr(settings, "embedding_model", ""),
+        )
     )
     embedding.update(
         {
@@ -62,6 +67,10 @@ def build_run_metadata(payload, questions_path, service):
         "git": git_provenance(PROJECT_ROOT),
         "rag_index": index,
         "embedding_model": embedding,
+        "model_identity_observation": (
+            "ollama_tag_checked_at_retrieval_call_boundaries; "
+            "an in-flight tag swap entirely inside one embedding HTTP call is not observable"
+        ),
     }
 
 
@@ -78,6 +87,43 @@ def _finalize_provenance(run, completion_metadata, *, release_gate_active):
         "drift_fields": drift_fields,
     }
     run["completed_at_utc"] = completed_at_utc
+
+
+class _RagReleaseBoundaryGuard:
+    def __init__(self, payload, questions_path, service, baseline):
+        self.payload = payload
+        self.questions_path = questions_path
+        self.service = service
+        self.baseline = baseline
+
+    def check(self, label, result=None):
+        current = build_run_metadata(
+            self.payload,
+            self.questions_path,
+            self.service,
+            None,
+        )
+        require_stable_release_provenance(
+            self.baseline,
+            current,
+            _RELEASE_STABILITY_FIELDS,
+            label=label,
+            artifact_name="RAG",
+        )
+        if not isinstance(result, dict):
+            return
+        expected_manifest = self.baseline.get("rag_index", {}).get("manifest_sha256")
+        observed_manifest = result.get("index_manifest_sha256")
+        status = result.get("status")
+        if status in {"ready", "no_match"} and (not expected_manifest or observed_manifest != expected_manifest):
+            raise SystemExit(f"RAG release provenance changed at {label}: rag_index")
+        if (
+            status == "out_of_scope"
+            and expected_manifest
+            and observed_manifest
+            and observed_manifest != expected_manifest
+        ):
+            raise SystemExit(f"RAG release provenance changed at {label}: rag_index")
 
 
 def _in_memory_run_metadata(payload, service):
@@ -188,22 +234,29 @@ def _evaluate_profile(
     thresholds,
     warmup=False,
     summary_only=False,
+    provenance_check=None,
 ):
     trusted_planning_scope = profile == PRODUCTION_PROFILE
     if warmup:
         first = questions[0]
-        service.retrieve(
+        if provenance_check:
+            provenance_check(f"before {profile} warmup")
+        warmup_result = service.retrieve(
             first["query"],
             jurisdiction=first.get("jurisdiction"),
             top_k=top_k,
             trusted_planning_scope=trusted_planning_scope,
         )
+        if provenance_check:
+            provenance_check(f"after {profile} warmup", warmup_result)
 
     rows = []
     reciprocal_ranks = []
     latencies = []
     retrieval_configurations = {}
     for question in questions:
+        if provenance_check:
+            provenance_check(f"before {profile} question {question['id']}")
         started = time.perf_counter()
         result = service.retrieve(
             question["query"],
@@ -212,6 +265,8 @@ def _evaluate_profile(
             trusted_planning_scope=trusted_planning_scope,
         )
         latencies.append((time.perf_counter() - started) * 1000)
+        if provenance_check:
+            provenance_check(f"after {profile} question {question['id']}", result)
         result_configuration = result.get("retrieval_configuration")
         if not isinstance(result_configuration, dict):
             raise SystemExit("RAG result did not disclose its effective retrieval configuration.")
@@ -306,6 +361,8 @@ def _evaluate_profile(
     }
     if not summary_only:
         output["rows"] = rows
+    if provenance_check:
+        provenance_check(f"after {profile} profile")
     return output
 
 
@@ -325,6 +382,7 @@ def run_evaluation(
     warmup=False,
     summary_only=False,
     run_metadata=None,
+    provenance_check=None,
 ):
     questions = _validate_questions(payload)
     production_top_k = structured_top_k or service.settings.top_k
@@ -339,6 +397,7 @@ def run_evaluation(
             thresholds=_pass_thresholds(payload, profile),
             warmup=warmup,
             summary_only=summary_only,
+            provenance_check=provenance_check,
         )
 
     primary_profile = PRODUCTION_PROFILE if PRODUCTION_PROFILE in profiles else FREE_TEXT_PROFILE
@@ -419,6 +478,17 @@ def main():
     free_text_top_k = args.top_k or DEFAULT_FREE_TEXT_TOP_K
     structured_top_k = args.top_k if mode == PRODUCTION_PROFILE and args.top_k is not None else None
     run_metadata = build_run_metadata(payload, args.questions, service)
+    production_top_k = structured_top_k or service.settings.top_k
+    release_boundary_checks_active = (
+        PRODUCTION_PROFILE in _selected_profiles(mode)
+        and production_top_k == service.settings.top_k
+        and not args.summary_only
+    )
+    provenance_guard = (
+        _RagReleaseBoundaryGuard(payload, args.questions, service, run_metadata)
+        if release_boundary_checks_active
+        else None
+    )
     output = run_evaluation(
         payload,
         service,
@@ -428,6 +498,7 @@ def main():
         warmup=args.warmup,
         summary_only=args.summary_only,
         run_metadata=run_metadata,
+        provenance_check=provenance_guard.check if provenance_guard else None,
     )
     completion_metadata = build_run_metadata(payload, args.questions, service)
     _finalize_provenance(

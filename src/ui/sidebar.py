@@ -3,6 +3,7 @@ import streamlit as st
 from src.docx_export import create_report_docx
 from src.pdf_export import create_report_pdf
 from src.report_generation_quality import evaluate_governed_report
+from src.ui.artifact_cache import get_report_artifact
 
 
 def render_sidebar(
@@ -55,7 +56,7 @@ def render_sidebar(
             on_click="ignore",
         )
         try:
-            pdf_bytes = create_report_pdf(latest_report)
+            pdf_bytes = get_report_artifact(latest_report, "pdf", create_report_pdf)
             st.sidebar.download_button(
                 "Download PDF report",
                 data=pdf_bytes,
@@ -67,7 +68,7 @@ def render_sidebar(
         except Exception as exc:
             st.sidebar.warning(f"PDF generation failed: {exc}")
         try:
-            docx_bytes = create_report_docx(latest_report)
+            docx_bytes = get_report_artifact(latest_report, "docx", create_report_docx)
             st.sidebar.download_button(
                 "Download DOCX report",
                 data=docx_bytes,

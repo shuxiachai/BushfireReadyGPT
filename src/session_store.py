@@ -25,11 +25,16 @@ PERSISTED_STATE_KEYS = [
     "latest_review_record",
     "latest_report",
 ]
+SESSION_STATE_SCHEMA_VERSION = 1
+MAX_PERSISTED_STATE_BYTES = 5 * 1024 * 1024
+MAX_PERSISTED_STATE_NESTING = 100
+_BLOCKED_RESTORE_PATHS = set()
 
 
 def initialize_state():
     if "messages" not in st.session_state:
-        data = _load_persisted_state()
+        skip_restore = st.session_state.pop("_skip_persisted_restore_once", False)
+        data = None if skip_restore else _load_persisted_state()
         if data:
             st.session_state.messages = normalise_loaded_messages(data.get("messages", []))
             st.session_state.latest_analysis = data.get("latest_analysis")
@@ -109,9 +114,10 @@ def _hydrate_restored_review_widgets(report_record):
 
 def _parse_review_date(value):
     try:
-        return date.fromisoformat(str(value)[:10])
+        parsed = date.fromisoformat(str(value)[:10])
     except (TypeError, ValueError):
-        return date.today()
+        return None
+    return parsed if parsed <= date.today() else None
 
 
 def persist_session_state():
@@ -120,21 +126,37 @@ def persist_session_state():
 
     try:
         target = Path(SESSION_STATE_PATH)
-        payload = {key: st.session_state.get(key) for key in PERSISTED_STATE_KEYS}
+        payload = {
+            "schema_version": SESSION_STATE_SCHEMA_VERSION,
+            **{key: st.session_state.get(key) for key in PERSISTED_STATE_KEYS},
+        }
+        if not _is_valid_persisted_state(payload):
+            raise ValueError("Optional session state does not match the persisted-state schema.")
+        encoded_payload = (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        if len(encoded_payload) > MAX_PERSISTED_STATE_BYTES:
+            raise ValueError("Optional session state exceeds the configured size limit.")
         atomic_write_json(target, payload)
         target.chmod(0o600)
-    except (OSError, TypeError, ValueError) as error:
+    except (OSError, RecursionError, TypeError, ValueError) as error:
         logger.warning("Optional session persistence failed: %s", error)
-        st.session_state["persistence_warning"] = (
-            "The report and audit were kept in this browser session, but optional session-file "
-            "persistence failed. Check BUSHFIRE_SESSION_STATE_PATH permissions and free disk space."
-        )
+        if isinstance(error, ValueError) and "size limit" in str(error):
+            st.session_state["persistence_warning"] = (
+                "The report and audit were kept in this browser session, but the optional session state "
+                "exceeded the configured size limit. The previous session file was left unchanged."
+            )
+        else:
+            st.session_state["persistence_warning"] = (
+                "The report and audit were kept in this browser session, but optional session-file "
+                "persistence failed. Check BUSHFIRE_SESSION_STATE_PATH permissions and free disk space."
+            )
         return False
+    _BLOCKED_RESTORE_PATHS.discard(str(target.resolve()))
     st.session_state["persistence_warning"] = None
     return True
 
 
 def clear_conversation():
+    failed_paths = []
     for path in [
         SESSION_STATE_PATH,
         INTERACTION_LOG_PATH,
@@ -142,10 +164,18 @@ def clear_conversation():
         try:
             if path and os.path.exists(path):
                 os.remove(path)
-        except OSError:
-            pass
+        except OSError as error:
+            failed_paths.append((path, error))
+            if path == SESSION_STATE_PATH:
+                _BLOCKED_RESTORE_PATHS.add(str(Path(path).resolve()))
     for key in list(st.session_state.keys()):
         del st.session_state[key]
+    if failed_paths:
+        st.session_state["_skip_persisted_restore_once"] = True
+        st.session_state["persistence_warning"] = (
+            "The in-app conversation was cleared, but one or more optional session files could not be deleted. "
+            "They will not be restored in this running application. Check file permissions before closing the app."
+        )
     st.rerun()
 
 
@@ -153,8 +183,220 @@ def _load_persisted_state():
     if not SESSION_STATE_PATH:
         return None
     try:
-        with open(SESSION_STATE_PATH, "r", encoding="utf-8") as file:
-            data = json.load(file)
-        return data if isinstance(data, dict) else None
-    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        target = Path(SESSION_STATE_PATH)
+        if str(target.resolve()) in _BLOCKED_RESTORE_PATHS:
+            return None
+        if target.stat().st_size > MAX_PERSISTED_STATE_BYTES:
+            logger.warning("Optional session state exceeds the configured size limit.")
+            return None
+        with target.open("rb") as file:
+            raw_payload = file.read(MAX_PERSISTED_STATE_BYTES + 1)
+        if len(raw_payload) > MAX_PERSISTED_STATE_BYTES:
+            logger.warning("Optional session state exceeds the configured size limit.")
+            return None
+        text_payload = raw_payload.decode("utf-8")
+        if not _json_nesting_within_limit(text_payload):
+            logger.warning("Optional session state exceeds the configured nesting limit.")
+            return None
+        data = json.loads(text_payload)
+        return data if _is_valid_persisted_state(data) else None
+    except (OSError, RecursionError, json.JSONDecodeError, UnicodeDecodeError):
         return None
+
+
+def _json_nesting_within_limit(text, limit=MAX_PERSISTED_STATE_NESTING):
+    """Bound JSON container depth in one pass while ignoring brackets inside strings."""
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character in "[{":
+            depth += 1
+            if depth > limit:
+                return False
+        elif character in "]}":
+            depth -= 1
+    return True
+
+
+def _is_valid_persisted_state(data):
+    """Validate untrusted optional session JSON before hydrating Streamlit state."""
+
+    if not isinstance(data, dict):
+        return False
+    schema_version = data.get("schema_version")
+    if schema_version is not None and (
+        isinstance(schema_version, bool)
+        or not isinstance(schema_version, int)
+        or schema_version != SESSION_STATE_SCHEMA_VERSION
+    ):
+        return False
+
+    messages = data.get("messages", [])
+    if not isinstance(messages, list):
+        return False
+    for message in messages:
+        if not isinstance(message, dict) or message.get("role") not in {"user", "assistant"}:
+            return False
+        content = message.get("content")
+        if not isinstance(content, str) and not (
+            isinstance(content, list) and all(isinstance(item, str) for item in content)
+        ):
+            return False
+
+    for key in ("latest_analysis", "latest_quality", "latest_review_record", "latest_report"):
+        if data.get(key) is not None and not isinstance(data.get(key), dict):
+            return False
+    if data.get("latest_audit_path") is not None and not isinstance(data.get("latest_audit_path"), str):
+        return False
+    return (
+        _is_valid_analysis_shape(data.get("latest_analysis"))
+        and _is_valid_quality_shape(data.get("latest_quality"))
+        and _is_valid_review_shape(data.get("latest_review_record"))
+        and _is_valid_report_shape(data.get("latest_report"))
+    )
+
+
+def _mapping_fields_are_mappings(value, fields, *, nullable_fields=()):
+    if value is None:
+        return True
+    if not isinstance(value, dict):
+        return False
+    nullable = set(nullable_fields)
+    return all(
+        field not in value or isinstance(value[field], dict) or (field in nullable and value[field] is None)
+        for field in fields
+    )
+
+
+def _list_field_has_shape(mapping, field, item_type):
+    if field not in mapping:
+        return True
+    value = mapping[field]
+    return isinstance(value, list) and all(isinstance(item, item_type) for item in value)
+
+
+def _is_valid_analysis_shape(analysis):
+    if analysis is None:
+        return True
+    if not _mapping_fields_are_mappings(
+        analysis,
+        (
+            "profile",
+            "data",
+            "community",
+            "knowledge",
+            "risk_context",
+            "plan",
+            "report",
+            "data_integrity",
+            "area_selection",
+        ),
+        nullable_fields=("area_selection",),
+    ):
+        return False
+    community = analysis.get("community") or {}
+    if not _mapping_fields_are_mappings(
+        community,
+        ("indicators", "data_quality", "geography_reference"),
+    ) or not _list_field_has_shape(community, "vulnerability_notes", str):
+        return False
+    data_quality = community.get("data_quality") or {}
+    if not _list_field_has_shape(data_quality, "warnings", str):
+        return False
+    geography_reference = community.get("geography_reference") or {}
+    if not _mapping_fields_are_mappings(
+        geography_reference,
+        ("selected_asgs_area",),
+        nullable_fields=("selected_asgs_area",),
+    ):
+        return False
+    if not _list_field_has_shape(geography_reference, "lga_candidates", dict) or not _list_field_has_shape(
+        geography_reference, "limitations", str
+    ):
+        return False
+    data_result = analysis.get("data") or {}
+    if not _list_field_has_shape(data_result, "sources", dict) or not _list_field_has_shape(
+        data_result, "data_limitations", str
+    ):
+        return False
+    knowledge = analysis.get("knowledge") or {}
+    if not _list_field_has_shape(knowledge, "retrieved_chunks", dict) or not _list_field_has_shape(
+        knowledge, "limitations", str
+    ):
+        return False
+    if not all(_list_field_has_shape(chunk, "rerank_reasons", str) for chunk in knowledge.get("retrieved_chunks", [])):
+        return False
+    risk_context = analysis.get("risk_context") or {}
+    if not all(
+        _list_field_has_shape(risk_context, field, str) for field in ("risk_points", "assumptions", "matched_rule_ids")
+    ):
+        return False
+    plan = analysis.get("plan") or {}
+    if not all(_list_field_has_shape(plan, field, str) for field in ("planning_priorities", "one_week_focus")):
+        return False
+    rows = analysis.get("evidence_confidence")
+    return rows is None or (isinstance(rows, list) and all(isinstance(row, dict) for row in rows))
+
+
+def _is_valid_quality_shape(quality):
+    if quality is None:
+        return True
+    if not _mapping_fields_are_mappings(quality, ("summary", "approval_gate")):
+        return False
+    return _list_field_has_shape(quality, "checks", dict)
+
+
+def _is_valid_review_shape(review):
+    if review is None:
+        return True
+    if not _list_field_has_shape(review, "review_checklist", dict):
+        return False
+    return all(
+        field not in review or isinstance(review[field], str)
+        for field in (
+            "approval_status",
+            "reviewer_name",
+            "reviewer_role",
+            "review_date",
+            "organisation_name",
+            "review_notes",
+        )
+    )
+
+
+def _is_valid_report_shape(report):
+    if report is None:
+        return True
+    if "text" in report and not isinstance(report["text"], str):
+        return False
+    if "audit_path" in report and report["audit_path"] is not None and not isinstance(report["audit_path"], str):
+        return False
+    if (
+        "parent_audit_path" in report
+        and report["parent_audit_path"] is not None
+        and not isinstance(report["parent_audit_path"], str)
+    ):
+        return False
+    if not _mapping_fields_are_mappings(
+        report,
+        ("analysis", "quality", "review_record", "inputs", "area_selection", "export_register_snapshot"),
+        nullable_fields=("area_selection",),
+    ):
+        return False
+    return (
+        _is_valid_analysis_shape(report.get("analysis"))
+        and _is_valid_quality_shape(report.get("quality"))
+        and _is_valid_review_shape(report.get("review_record"))
+    )

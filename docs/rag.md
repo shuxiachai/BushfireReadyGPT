@@ -121,15 +121,16 @@ rerank reasons so the result can be explained in an interview or review.
 - Downloads are size-limited, retried only for transient failures and validated before atomic writes.
 - HTML sources can declare one or more focused ID selectors; every selector must still exist and known WAF pages are rejected.
 - Each chunk has deterministic content and identity SHA-256 values.
-- A staged index is published atomically under a lock with interrupted-build recovery.
+- Build and retrieval access to the same resolved embedded-Qdrant path is serialised inside one process; the cross-process lock has a unique owner token, reclaims an old lock only after its process is confirmed absent, and removes the lock only when the token still matches. Staged publication retains this lock, and a leftover backup is restored before any partial replacement is trusted.
+- A build copies the catalog and every declared source into a private immutable snapshot, verifies the captured hashes before and after embedding, and leaves the previous index untouched if live inputs drift.
 - The manifest binds catalog bytes, source bytes, canonical document snapshot, chunk corpus, embedding model and vector dimension.
-- Retrieval revalidates source bytes, the complete document snapshot, manifest, collection count, point ID and returned text hash before embedding the query.
+- Retrieval validates the index generation at entry and exit and revalidates source bytes, the complete document snapshot, manifest, collection count, point ID and returned text hash before returning passages.
 - The Python 3.13 embedded-Qdrant path derives SQLite thread safety without leaking the temporary probe connection used by the upstream client.
 - Passages are delimited as untrusted quoted evidence; the model is told never to follow passage instructions.
 - Prompt payloads cap total retrieved context at 8,000 characters and each passage at 2,200 characters.
 - The audit stores query/source/chunk hashes and scores, but not retrieved passage text by default.
 - Live-warning and life-safety queries are deterministically withheld from the static corpus, while free-text retrieval must pass lexical or combined semantic/lexical answerability thresholds.
-- Release evaluation snapshots question bytes, Git state, RAG index identity and embedding-model identity before and after the run; drift aborts an active release before an artifact is written.
+- Release evaluation checks question bytes, Git state, RAG index and embedding-model identity before and after every warm-up and question call, and binds the manifest identity actually used by retrieval. Drift visible at those boundaries aborts an active release before an artifact is written, including A-to-B-to-A file/index/model changes across calls that a final snapshot could otherwise hide. A model-tag swap wholly inside one embedding HTTP call is not observable and is disclosed as such in new run metadata.
 - Active release artifacts retain full profile rows and are re-aggregated offline; summary-only output remains diagnostic and release-inactive.
 
 These controls make accidental corruption and common prompt-injection paths

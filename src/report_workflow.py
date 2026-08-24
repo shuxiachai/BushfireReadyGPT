@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from uuid import uuid4
 
 import streamlit as st
@@ -34,17 +34,21 @@ from src.export_register import (
 from src.governance import (
     APPROVED_STATUS,
     DRAFT_STATUS,
+    REPORT_STATUSES,
     REVIEWED_STATUSES,
     build_review_checklist_snapshot,
     is_review_checklist_complete,
+    validate_review_date,
+)
+from src.input_validation import (
+    validate_report_input_budget,
+    validate_review_input_budget,
+    validate_revision_request_budget,
 )
 from src.model_runtime import ModelServiceError
 from src.report_generation_quality import (
-    MAX_REPORT_REPAIR_ATTEMPTS,
-    assess_generated_narrative,
-    build_report_repair_prompt,
     evaluate_governed_report,
-    normalize_generated_narrative,
+    generate_narrative_with_repairs,
 )
 from src.report_grounding import evaluate_report_grounding, grounding_trace_metrics
 from src.report_template import (
@@ -77,6 +81,9 @@ def collect_report_inputs():
 
 
 def validate_report_inputs(inputs):
+    budget_error = validate_report_input_budget(inputs)
+    if budget_error:
+        return budget_error
     location = (inputs.get("location") or "").strip()
     audience = (inputs.get("audience") or "").strip()
     concerns = inputs.get("concerns") or []
@@ -173,7 +180,7 @@ def collect_review_record(for_new_version=False, from_approval_form=False):
             "approval_status": st.session_state.get(status_key, DRAFT_STATUS),
             "reviewer_name": st.session_state.get(f"{prefix}reviewer_name", ""),
             "reviewer_role": st.session_state.get(f"{prefix}reviewer_role", ""),
-            "review_date": str(st.session_state.get(f"{prefix}review_date", "")),
+            "review_date": _review_date_text(st.session_state.get(f"{prefix}review_date", "")),
             "organisation_name": st.session_state.get(f"{prefix}organisation_name", ""),
             "review_notes": st.session_state.get(f"{prefix}review_notes", ""),
         }
@@ -187,7 +194,18 @@ def collect_review_record(for_new_version=False, from_approval_form=False):
 
 
 def validate_review_record(review_record, quality=None, report_record=None):
+    budget_error = validate_review_input_budget(review_record)
+    if budget_error:
+        return budget_error
     status = review_record.get("approval_status") or DRAFT_STATUS
+    if status not in REPORT_STATUSES:
+        return "Approval status is not supported."
+    review_date_error = validate_review_date(
+        review_record.get("review_date"),
+        required=status in REVIEWED_STATUSES,
+    )
+    if review_date_error:
+        return review_date_error
     if status in REVIEWED_STATUSES:
         if not isinstance(report_record, dict) or not str(report_record.get("text") or "").strip():
             return "Generate a report before recording a reviewed or approved status."
@@ -230,6 +248,14 @@ def validate_review_record(review_record, quality=None, report_record=None):
             suffix = f" ({len(failures)} blocking failure(s))." if failures else "."
             return "Resolve all failed Governed Report Check items before recording organisational approval" + suffix
     return None
+
+
+def _review_date_text(value):
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value or "").strip()
 
 
 def update_latest_audit_review(review_record):
@@ -527,25 +553,23 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
             governance_context=governance_context,
         )
         span.add_metrics(prompt_characters=len(prompt))
+
+    def generate_attempt(attempt_prompt, attempt_number, is_repair):
+        with trace_stage(
+            "model_repair" if is_repair else "model_generation",
+            attempt=attempt_number,
+            prompt_characters=len(attempt_prompt),
+        ) as span:
+            response = _call_governed_model(attempt_prompt)
+            span.add_metrics(response_characters=len(response))
+            return response
+
     try:
-        with trace_stage("model_generation", attempt=1, prompt_characters=len(prompt)) as span:
-            full_response = normalize_generated_narrative(_call_governed_model(prompt))
-            span.add_metrics(response_characters=len(full_response))
-        generation_quality = assess_generated_narrative(full_response, analysis)
-        generation_attempts = 1
-        for repair_attempt in range(MAX_REPORT_REPAIR_ATTEMPTS):
-            if generation_quality.get("approval_gate", {}).get("passed") is True:
-                break
-            repair_prompt = build_report_repair_prompt(prompt, full_response, generation_quality)
-            generation_attempts += 1
-            with trace_stage(
-                "model_repair",
-                attempt=repair_attempt + 1,
-                prompt_characters=len(repair_prompt),
-            ) as span:
-                full_response = normalize_generated_narrative(_call_governed_model(repair_prompt))
-                span.add_metrics(response_characters=len(full_response))
-            generation_quality = assess_generated_narrative(full_response, analysis)
+        full_response, _generation_quality, generation_attempts = generate_narrative_with_repairs(
+            prompt,
+            analysis,
+            generate_attempt,
+        )
     except ModelServiceError as error:
         return None, str(error), "model_service_error"
     trace.add_metrics(
@@ -570,6 +594,9 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
 def revise_current_report(edit_request, persist_session_state):
     latest_report = st.session_state.get("latest_report") or {}
     current_text = latest_report.get("text", "")
+    request_budget_error = validate_revision_request_budget(edit_request)
+    if request_budget_error:
+        return None, request_budget_error
     request_text = str(edit_request or "").strip()
     if not current_text:
         return None, "Generate a report before requesting a governed revision."
@@ -641,25 +668,23 @@ Keep the model-authored narrative between {REPORT_NARRATIVE_WORD_BUDGET}. The ap
 deterministic Evidence Tables and Human Review Sign-off after the revised narrative passes its quality gate.
 """
             span.add_metrics(prompt_characters=len(prompt))
+
+        def generate_attempt(attempt_prompt, attempt_number, is_repair):
+            with trace_stage(
+                "model_repair" if is_repair else "model_generation",
+                attempt=attempt_number,
+                prompt_characters=len(attempt_prompt),
+            ) as span:
+                response = _call_governed_model(attempt_prompt)
+                span.add_metrics(response_characters=len(response))
+                return response
+
         try:
-            with trace_stage("model_generation", attempt=1, prompt_characters=len(prompt)) as span:
-                revised_response = normalize_generated_narrative(_call_governed_model(prompt))
-                span.add_metrics(response_characters=len(revised_response))
-            revision_quality = assess_generated_narrative(revised_response, analysis)
-            generation_attempts = 1
-            for repair_attempt in range(MAX_REPORT_REPAIR_ATTEMPTS):
-                if revision_quality.get("approval_gate", {}).get("passed") is True:
-                    break
-                repair_prompt = build_report_repair_prompt(prompt, revised_response, revision_quality)
-                generation_attempts += 1
-                with trace_stage(
-                    "model_repair",
-                    attempt=repair_attempt + 1,
-                    prompt_characters=len(repair_prompt),
-                ) as span:
-                    revised_response = normalize_generated_narrative(_call_governed_model(repair_prompt))
-                    span.add_metrics(response_characters=len(revised_response))
-                revision_quality = assess_generated_narrative(revised_response, analysis)
+            revised_response, _revision_quality, generation_attempts = generate_narrative_with_repairs(
+                prompt,
+                analysis,
+                generate_attempt,
+            )
         except ModelServiceError as error:
             trace.set_outcome("failed", "model_service_error")
             return None, str(error)

@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 
+from src.agents.profile_agent import STATE_SHORT
 from src.data_artifacts import load_yaml_mapping
 from src.data_paths import get_data_paths
 
@@ -14,7 +15,7 @@ class RiskContextAgent:
 
     def run(self, profile):
         rules = self._load_rules()
-        location = profile["location"].lower()
+        location = str(profile.get("locality") or profile.get("location") or "").lower()
         scenario = profile["scenario"].lower()
         resolved_state = profile.get("state", "").lower()
         matched_rules = []
@@ -28,7 +29,8 @@ class RiskContextAgent:
             location_match = any(self._matches_keyword(location, keyword) for keyword in location_keywords)
             scenario_match = any(self._matches_keyword(scenario, keyword) for keyword in scenario_keywords)
             if states and resolved_state not in {"", "australia"}:
-                location_scope_match = state_match
+                state_wide_rule = self._contains_state_keyword(resolved_state, location_keywords)
+                location_scope_match = state_match and (state_wide_rule or not location_keywords or location_match)
             else:
                 location_scope_match = location_match
 
@@ -65,6 +67,13 @@ class RiskContextAgent:
             )
             is not None
         )
+
+    def _contains_state_keyword(self, resolved_state, location_keywords):
+        state_aliases = {resolved_state}
+        short_state = STATE_SHORT.get(resolved_state)
+        if short_state:
+            state_aliases.add(short_state)
+        return any(keyword in state_aliases for keyword in location_keywords)
 
     def _dedupe(self, items):
         seen = set()

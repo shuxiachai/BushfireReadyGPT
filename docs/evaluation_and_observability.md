@@ -39,6 +39,18 @@ Release evaluation uses two layers of tamper detection:
 2. offline artifact validation recomputes outcomes instead of trusting an
    aggregate `passed` field.
 
+The maintained branch adds an inner boundary check for future artifacts: RAG
+runs re-check dataset, Git, index and embedding-model identity before and after
+every warm-up and question call, while report runs re-check dataset, Git, index,
+generation-model and policy identity before and after every scenario call. Each
+row is also checked against the RAG manifest actually used. This catches drift
+visible at those call boundaries, including an A-to-B-to-A change across
+adjacent calls before the final snapshot returns to A. It cannot prove that a
+model tag did not change and return entirely inside one embedding or generation
+HTTP call; that in-flight window is recorded explicitly in new run metadata.
+The committed `v0.5.0` artifacts remain the immutable historical evidence
+produced by the start/end contract above.
+
 For RAG, every active profile must contain complete, uniquely identified
 per-question rows. The validator re-aggregates question counts,
 answerable/unanswerable counts, source and passage Recall@K, MRR, Top-1,
@@ -223,9 +235,11 @@ human feedback and operational logs within their appropriate privacy boundaries.
 
 ## Local Engineering Validation
 
-The `v0.5.0` release candidate was checked locally with `429` automated tests and
-`86.08%` source coverage against the enforced `85%` minimum. Ruff, Bandit,
-Poetry lock consistency, installed-package consistency and `pip-audit` all
-passed; `pip-audit` reported no known vulnerabilities. These are local results.
-They must not be described as a successful GitHub Actions run until the pushed
-commit's workflow has completed successfully.
+The maintained branch was checked locally on 2026-08-24 with `541` automated
+tests (`540` non-E2E plus one Chromium E2E) and `86.54%` non-E2E `src` coverage
+against the enforced `85%` minimum. Ruff, formatting, Bandit, Poetry lock
+consistency, installed-package consistency and `pip-audit` passed; `pip-audit`
+reported no known vulnerabilities. The immutable `v0.5.0` release baseline
+remains `429` tests and `86.08%` coverage. These are local results. They must not
+be described as a successful GitHub Actions run until the pushed commit's
+workflow has completed successfully.

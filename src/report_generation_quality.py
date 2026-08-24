@@ -178,6 +178,38 @@ def assess_generated_narrative(narrative, analysis):
     return evaluate_governed_report(report, analysis)
 
 
+def generate_narrative_with_repairs(
+    original_prompt,
+    analysis,
+    generate_attempt,
+    *,
+    max_repair_attempts=MAX_REPORT_REPAIR_ATTEMPTS,
+):
+    """Generate and deterministically repair one governed narrative.
+
+    ``generate_attempt`` receives ``(prompt, attempt_number, is_repair)``. Keeping
+    provider calls behind this callback lets the application attach tracing while
+    evaluations use the exact same repair policy without duplicating the loop.
+    """
+
+    if not callable(generate_attempt):
+        raise TypeError("generate_attempt must be callable.")
+    if isinstance(max_repair_attempts, bool) or not isinstance(max_repair_attempts, int) or max_repair_attempts < 0:
+        raise ValueError("max_repair_attempts must be a non-negative integer.")
+
+    attempt_count = 1
+    narrative = normalize_generated_narrative(generate_attempt(original_prompt, attempt_count, False))
+    quality = assess_generated_narrative(narrative, analysis)
+    for _ in range(max_repair_attempts):
+        if quality.get("approval_gate", {}).get("passed") is True:
+            break
+        repair_prompt = build_report_repair_prompt(original_prompt, narrative, quality)
+        attempt_count += 1
+        narrative = normalize_generated_narrative(generate_attempt(repair_prompt, attempt_count, True))
+        quality = assess_generated_narrative(narrative, analysis)
+    return narrative, quality, attempt_count
+
+
 def evaluate_governed_report(report_text, analysis):
     """Run the canonical deterministic gate used by every governed lifecycle stage.
 

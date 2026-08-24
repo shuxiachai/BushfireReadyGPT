@@ -11,6 +11,11 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
 from src.export_content import extract_report_metadata, plain_markdown_text
+from src.markdown_tables import (
+    is_markdown_table_row,
+    is_markdown_table_separator,
+    parse_markdown_table_row,
+)
 
 BODY_FONT = "Microsoft YaHei"
 DRAFT_NOTICE = "DRAFT - NOT EMERGENCY ADVICE - HUMAN REVIEW REQUIRED"
@@ -152,24 +157,15 @@ def _add_metadata_table(document, meta):
     document.add_paragraph()
 
 
-def _is_table_line(line):
-    return line.startswith("|") and line.endswith("|")
-
-
-def _is_separator_row(line):
-    cells = [cell.strip() for cell in line.strip("|").split("|")]
-    return bool(cells) and all(set(cell) <= {"-", ":", " "} and "-" in cell for cell in cells)
-
-
-def _table_cells(line):
-    return [cell.strip() for cell in line.strip("|").split("|")]
-
-
 def _add_markdown_table(document, table_lines):
-    rows = [line for line in table_lines if not _is_separator_row(line)]
-    if not rows:
+    data = [
+        cells
+        for line in table_lines
+        if not is_markdown_table_separator(line)
+        if (cells := parse_markdown_table_row(line)) is not None
+    ]
+    if not data:
         return
-    data = [_table_cells(line) for line in rows]
     column_count = max(len(row) for row in data)
     if column_count > 4:
         _add_record_tables(document, data)
@@ -238,9 +234,9 @@ def _add_markdown_body(document, markdown_text):
             index += 1
             continue
 
-        if _is_table_line(line):
+        if is_markdown_table_row(line):
             table_lines = []
-            while index < len(lines) and _is_table_line(lines[index].strip()):
+            while index < len(lines) and is_markdown_table_row(lines[index].strip()):
                 table_lines.append(lines[index].strip())
                 index += 1
             _add_markdown_table(document, table_lines)

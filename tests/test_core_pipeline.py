@@ -837,6 +837,7 @@ def test_incomplete_report_body_fails_quality_and_cannot_be_approved():
         "reviewer_name": "Test Reviewer",
         "reviewer_role": "Safety reviewer",
         "organisation_name": "Test Organisation",
+        "review_date": "2025-01-01",
         "review_checklist": build_review_checklist_snapshot(lambda _item_id: True),
         "review_checklist_complete": True,
     }
@@ -929,6 +930,7 @@ def test_approval_gate_accepts_a_completed_review_when_exact_report_passes():
         "reviewer_name": "Test Reviewer",
         "reviewer_role": "Safety reviewer",
         "organisation_name": "Test Organisation",
+        "review_date": "2025-01-01",
         "review_checklist": build_review_checklist_snapshot(lambda _item_id: True),
         "review_checklist_complete": True,
     }
@@ -1009,6 +1011,7 @@ def test_approval_fails_closed_for_missing_or_legacy_quality_results():
         "reviewer_name": "Test Reviewer",
         "reviewer_role": "Safety reviewer",
         "organisation_name": "Test Organisation",
+        "review_date": "2025-01-01",
         "review_checklist": build_review_checklist_snapshot(lambda _item_id: True),
         "review_checklist_complete": True,
     }
@@ -1028,6 +1031,7 @@ def test_approval_is_blocked_for_unverified_custom_data():
         "reviewer_name": "Test Reviewer",
         "reviewer_role": "Safety reviewer",
         "organisation_name": "Test Organisation",
+        "review_date": "2025-01-01",
         "review_checklist": build_review_checklist_snapshot(lambda _item_id: True),
     }
     report_record = {
@@ -1057,6 +1061,7 @@ def test_approval_is_blocked_for_unverified_selected_map_bundle():
         "reviewer_name": "Test Reviewer",
         "reviewer_role": "Safety reviewer",
         "organisation_name": "Test Organisation",
+        "review_date": "2025-01-01",
         "review_checklist": build_review_checklist_snapshot(lambda _item_id: True),
     }
     report_record = {
@@ -1361,6 +1366,7 @@ def test_approved_review_requires_identity_fields_and_completed_checklist():
         "organisation_name": "Cairns Council",
         "reviewer_name": "Test Reviewer",
         "reviewer_role": "Preparedness officer",
+        "review_date": "2025-01-01",
         "review_checklist": build_review_checklist_snapshot(),
         "review_checklist_complete": False,
     }

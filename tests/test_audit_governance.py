@@ -93,6 +93,7 @@ def test_review_event_appends_a_verified_chain_without_rewriting_creation_event(
         "reviewer_name": "Reviewer",
         "reviewer_role": "Preparedness lead",
         "organisation_name": "Test organisation",
+        "review_date": "2025-01-01",
     }
     updated_report = append_human_signoff(
         "Sensitive complete report body",

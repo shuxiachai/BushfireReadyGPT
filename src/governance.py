@@ -4,6 +4,9 @@ The checklist IDs are stable storage keys. Display labels may evolve without
 changing the meaning of an existing review record.
 """
 
+import re
+from datetime import date
+
 DRAFT_STATUS = "Draft - human review required"
 NEEDS_REVISION_STATUS = "Needs revision"
 REVIEWED_DRAFT_STATUS = "Reviewed draft"
@@ -38,6 +41,25 @@ HUMAN_REVIEW_CHECKLIST = (
         "label": "The report is treated as a draft until approved by the responsible organisation.",
     },
 )
+
+
+def validate_review_date(value, *, required=False, today=None):
+    """Reject malformed or future review dates without inventing a replacement."""
+
+    raw_value = str(value or "")
+    if not raw_value.strip():
+        return "Review date is required for reviewed or approved status." if required else None
+    if raw_value != raw_value.strip():
+        return "Review date must be a valid ISO date in YYYY-MM-DD format."
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_value) is None:
+        return "Review date must be a valid ISO date in YYYY-MM-DD format."
+    try:
+        parsed = date.fromisoformat(raw_value)
+    except ValueError:
+        return "Review date must be a valid ISO date in YYYY-MM-DD format."
+    if parsed > (today or date.today()):
+        return "Review date cannot be in the future."
+    return None
 
 
 def build_review_checklist_snapshot(is_checked=None):
