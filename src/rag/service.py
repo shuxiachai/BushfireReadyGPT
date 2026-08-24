@@ -44,6 +44,42 @@ _OPERATIONAL_QUERY_TERMS = {
 }
 
 
+def _retrieval_configuration(settings, *, trusted_planning_scope, top_k, candidate_k=0):
+    configured = {
+        "dense_score_threshold": settings.score_threshold,
+        "lexical_coverage_threshold": settings.lexical_coverage_threshold,
+        "semantic_score_threshold": settings.semantic_score_threshold,
+        "semantic_coverage_threshold": settings.semantic_coverage_threshold,
+    }
+    effective = {
+        "dense_score_threshold": settings.score_threshold,
+        "lexical_coverage_threshold": (
+            min(0.35, settings.lexical_coverage_threshold)
+            if trusted_planning_scope
+            else settings.lexical_coverage_threshold
+        ),
+        "semantic_score_threshold": (
+            settings.score_threshold if trusted_planning_scope else settings.semantic_score_threshold
+        ),
+        "semantic_coverage_threshold": (
+            min(0.1, settings.semantic_coverage_threshold)
+            if trusted_planning_scope
+            else settings.semantic_coverage_threshold
+        ),
+    }
+    return {
+        "query_scope": "structured_planning" if trusted_planning_scope else "free_text",
+        "top_k": top_k,
+        "candidate_k": candidate_k,
+        "candidate_multiplier": settings.candidate_multiplier,
+        "dense_weight": settings.dense_weight,
+        "lexical_weight": round(1 - settings.dense_weight, 6),
+        "max_chunks_per_source": settings.max_chunks_per_source,
+        "configured_thresholds": configured,
+        "effective_thresholds": effective,
+    }
+
+
 def _requires_live_authority(query):
     tokens = set(tokenize(query))
     live_request = bool(tokens & _LIVE_QUERY_TERMS and tokens & _OPERATIONAL_QUERY_TERMS)
@@ -120,6 +156,15 @@ class RagService:
         query_text = " ".join(str(query or "").split()).strip()
         query_hash = hashlib.sha256(query_text.encode("utf-8")).hexdigest()
         requested_top_k = top_k or self.settings.top_k
+        retrieval_configuration = _retrieval_configuration(
+            self.settings,
+            trusted_planning_scope=trusted_planning_scope,
+            top_k=requested_top_k,
+            candidate_k=max(
+                requested_top_k,
+                requested_top_k * self.settings.candidate_multiplier,
+            ),
+        )
         if _requires_live_authority(query_text):
             result = self._empty_result(
                 _status(
@@ -127,6 +172,7 @@ class RagService:
                     "Live conditions and life-safety decisions require an official authority",
                 ),
                 query_hash,
+                retrieval_configuration,
             )
             result["limitations"] = [
                 "Static RAG retrieval was deliberately withheld for this live or life-safety query.",
@@ -135,7 +181,7 @@ class RagService:
             return result
         status = inspect_rag_index(self.settings)
         if status["state"] != "ready":
-            return self._empty_result(status, query_hash)
+            return self._empty_result(status, query_hash, retrieval_configuration)
         try:
             before = index_snapshot(self.settings)
             manifest = load_and_validate_index(self.settings)
@@ -150,6 +196,12 @@ class RagService:
             candidate_k = max(
                 requested_top_k,
                 requested_top_k * self.settings.candidate_multiplier,
+            )
+            retrieval_configuration = _retrieval_configuration(
+                self.settings,
+                trusted_planning_scope=trusted_planning_scope,
+                top_k=requested_top_k,
+                candidate_k=candidate_k,
             )
             vectors = self.embedder.embed([query_text])
             dense_results = self._query_index(
@@ -169,19 +221,13 @@ class RagService:
                 dense_weight=self.settings.dense_weight,
                 rrf_k=self.settings.rrf_k,
                 max_chunks_per_source=self.settings.max_chunks_per_source,
-                lexical_coverage_threshold=(
-                    min(0.35, self.settings.lexical_coverage_threshold)
-                    if trusted_planning_scope
-                    else self.settings.lexical_coverage_threshold
-                ),
-                semantic_score_threshold=(
-                    self.settings.score_threshold if trusted_planning_scope else self.settings.semantic_score_threshold
-                ),
-                semantic_coverage_threshold=(
-                    min(0.1, self.settings.semantic_coverage_threshold)
-                    if trusted_planning_scope
-                    else self.settings.semantic_coverage_threshold
-                ),
+                lexical_coverage_threshold=retrieval_configuration["effective_thresholds"][
+                    "lexical_coverage_threshold"
+                ],
+                semantic_score_threshold=retrieval_configuration["effective_thresholds"]["semantic_score_threshold"],
+                semantic_coverage_threshold=retrieval_configuration["effective_thresholds"][
+                    "semantic_coverage_threshold"
+                ],
             )
             after = index_snapshot(self.settings)
             if after != before:
@@ -193,7 +239,7 @@ class RagService:
                 error_code=error.code,
                 error=str(error),
             )
-            return self._empty_result(failed, query_hash)
+            return self._empty_result(failed, query_hash, retrieval_configuration)
         result_status = "ready" if results else "no_match"
         return {
             "status": result_status,
@@ -204,16 +250,19 @@ class RagService:
             "jurisdiction_filter": jurisdiction or "Australia",
             "top_k": requested_top_k,
             "candidate_k": candidate_k,
-            "dense_score_threshold": self.settings.score_threshold,
-            "score_threshold": self.settings.score_threshold,
+            "dense_score_threshold": retrieval_configuration["effective_thresholds"]["dense_score_threshold"],
+            "score_threshold": retrieval_configuration["effective_thresholds"]["dense_score_threshold"],
             "retrieval_mode": "dense_bm25_rrf_v1",
-            "query_scope": "structured_planning" if trusted_planning_scope else "free_text",
+            "query_scope": retrieval_configuration["query_scope"],
             "dense_weight": self.settings.dense_weight,
             "lexical_weight": round(1 - self.settings.dense_weight, 6),
             "max_chunks_per_source": self.settings.max_chunks_per_source,
-            "lexical_coverage_threshold": self.settings.lexical_coverage_threshold,
-            "semantic_score_threshold": self.settings.semantic_score_threshold,
-            "semantic_coverage_threshold": self.settings.semantic_coverage_threshold,
+            "lexical_coverage_threshold": retrieval_configuration["effective_thresholds"]["lexical_coverage_threshold"],
+            "semantic_score_threshold": retrieval_configuration["effective_thresholds"]["semantic_score_threshold"],
+            "semantic_coverage_threshold": retrieval_configuration["effective_thresholds"][
+                "semantic_coverage_threshold"
+            ],
+            "retrieval_configuration": retrieval_configuration,
             "embedding_model": status["embedding_model"],
             "index_manifest_sha256": status["manifest_sha256"],
             "index_built_at_utc": status["built_at_utc"],
@@ -226,24 +275,26 @@ class RagService:
             ],
         }
 
-    def _empty_result(self, status, query_hash):
+    def _empty_result(self, status, query_hash, retrieval_configuration):
+        effective = retrieval_configuration["effective_thresholds"]
         return {
             "status": status["state"],
             "status_label": status["status"],
             "query_sha256": query_hash,
             "jurisdiction_filter": "",
-            "top_k": self.settings.top_k,
+            "top_k": retrieval_configuration["top_k"],
             "candidate_k": 0,
-            "score_threshold": self.settings.score_threshold,
-            "dense_score_threshold": self.settings.score_threshold,
+            "score_threshold": effective["dense_score_threshold"],
+            "dense_score_threshold": effective["dense_score_threshold"],
             "retrieval_mode": "dense_bm25_rrf_v1",
-            "query_scope": "free_text",
+            "query_scope": retrieval_configuration["query_scope"],
             "dense_weight": self.settings.dense_weight,
             "lexical_weight": round(1 - self.settings.dense_weight, 6),
             "max_chunks_per_source": self.settings.max_chunks_per_source,
-            "lexical_coverage_threshold": self.settings.lexical_coverage_threshold,
-            "semantic_score_threshold": self.settings.semantic_score_threshold,
-            "semantic_coverage_threshold": self.settings.semantic_coverage_threshold,
+            "lexical_coverage_threshold": effective["lexical_coverage_threshold"],
+            "semantic_score_threshold": effective["semantic_score_threshold"],
+            "semantic_coverage_threshold": effective["semantic_coverage_threshold"],
+            "retrieval_configuration": retrieval_configuration,
             "embedding_model": status.get("embedding_model", ""),
             "index_manifest_sha256": status.get("manifest_sha256", ""),
             "index_built_at_utc": status.get("built_at_utc", ""),

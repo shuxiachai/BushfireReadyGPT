@@ -26,7 +26,7 @@ Use this checklist before presenting BushfireReadyGPT.
 - [ ] The `Review & Export` tab opens.
 - [ ] The Evidence Trail is available after report generation.
 - [ ] You can explain O1 official references, P2 processed data, R3 rule inference, A4 AI draft and U0 unverified inputs.
-- [ ] The Structural Report Check appears after report generation.
+- [ ] The Governed Report Check appears after report generation.
 - [ ] The Human Review Checklist is visible.
 - [ ] Reviewer Approval / Human Sign-off can be explained.
 - [ ] The audit path or audit record is available after generation.

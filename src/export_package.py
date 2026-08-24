@@ -5,7 +5,6 @@ from io import BytesIO
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from src.agents.report_quality_agent import ReportQualityAgent
 from src.audit import (
     AuditIntegrityError,
     canonical_package_context,
@@ -30,7 +29,16 @@ from src.governance import (
     is_review_checklist_complete,
 )
 from src.pdf_export import create_report_pdf
+from src.report_generation_quality import (
+    QUALITY_POLICY_FINGERPRINT,
+    QUALITY_POLICY_VERSION,
+    evaluate_governed_report,
+    is_current_quality_policy_binding,
+    quality_policy_metadata,
+)
 from src.report_template import append_human_signoff
+
+PILOT_EXPORT_SCHEMA = "pilot-export-v4"
 
 
 def create_pilot_export_package(
@@ -40,6 +48,7 @@ def create_pilot_export_package(
     package_context=None,
     parent_audit_path=None,
     register_snapshot=None,
+    analysis=None,
 ):
     """Create a zip package for pilot review and stakeholder handover."""
 
@@ -55,6 +64,19 @@ def create_pilot_export_package(
     audit_file = Path(audit_path)
     audit_chain = capture_current_audit_chain(audit_file)
     latest_audit = audit_chain[-1]["record"]
+    if not is_current_quality_policy_binding(
+        latest_audit.get("quality_policy_version"),
+        latest_audit.get("quality_policy_fingerprint"),
+    ):
+        raise AuditIntegrityError(
+            "The audit uses a legacy or unknown quality policy; regenerate the report, or reassess it and "
+            "record a new review under the current governed-report policy before export."
+        )
+    if latest_audit.get("event_type") == "quality.reassessed":
+        raise AuditIntegrityError(
+            "A current-policy quality reassessment is not a human review; append a review.recorded event "
+            "before exporting a Pilot package."
+        )
     parent_lineage = _verified_parent_lineage(latest_audit, parent_audit_path)
     parent_audit_chain = parent_lineage[0]["chain"] if parent_lineage else []
     try:
@@ -78,11 +100,22 @@ def create_pilot_export_package(
             "The report does not end with the deterministic Human Review Sign-off bound to its review record."
         )
     _validate_audit_context(latest_audit, context)
-    exact_quality = ReportQualityAgent().run(report_markdown)
+    if not isinstance(analysis, dict):
+        raise AuditIntegrityError("The export requires the complete analysis snapshot bound to the report.")
+    if latest_audit.get("analysis", {}).get("analysis_hash") != sha256_json(analysis):
+        raise AuditIntegrityError("The export analysis does not match the verified report snapshot.")
+    exact_quality = evaluate_governed_report(report_markdown, analysis)
     if latest_audit.get("quality") != exact_quality:
         raise AuditIntegrityError(
             "The audit quality result does not match a fresh check of the report; export was blocked."
         )
+    if exact_quality.get("approval_gate", {}).get("passed") is not True:
+        raise AuditIntegrityError("The governed report quality gate is blocked; a pilot package cannot be exported.")
+    if (
+        exact_quality.get("quality_policy_version") != QUALITY_POLICY_VERSION
+        or exact_quality.get("quality_policy_fingerprint") != QUALITY_POLICY_FINGERPRINT
+    ):
+        raise AuditIntegrityError("The fresh report check did not bind the current governed-report policy.")
     _validate_review_for_export(review_record, latest_audit, exact_quality, context)
 
     markdown_path = f"reports/{file_prefix}.md"
@@ -104,7 +137,7 @@ def create_pilot_export_package(
     manifest = {
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "app_name": "BushfireReadyGPT",
-        "package_schema": "pilot-export-v3",
+        "package_schema": PILOT_EXPORT_SCHEMA,
         "purpose": "Pilot review package for a draft Australian bushfire preparedness report.",
         "safety_boundary": (
             "Preparedness planning support only. Not live emergency advice, not an evacuation order, "
@@ -122,6 +155,12 @@ def create_pilot_export_package(
         "captured_audit_head": {
             "audit_id": latest_audit.get("audit_id"),
             "record_hash": latest_audit.get("record_hash"),
+        },
+        "governed_quality": {
+            **quality_policy_metadata(),
+            "approval_gate_passed": True,
+            "analysis_sha256": sha256_json(analysis),
+            "quality_sha256": sha256_json(exact_quality),
         },
         "frozen_register_hashes": register_hashes,
         "included_files": [
@@ -255,7 +294,7 @@ def _validate_review_for_export(review_record, latest_audit, exact_quality, cont
     if not is_review_checklist_complete(review_record.get("review_checklist")):
         raise AuditIntegrityError("The approved export does not contain a complete canonical review checklist.")
     if exact_quality.get("approval_gate", {}).get("passed") is not True:
-        raise AuditIntegrityError("The approved export failed the structural quality gate.")
+        raise AuditIntegrityError("The approved export failed the governed report quality gate.")
     integrity = (latest_audit.get("analysis") or {}).get("data_integrity") or {}
     if integrity.get("core_ready") is not True or integrity.get("custom_data") is not False:
         raise AuditIntegrityError("The approved export is not bound to manifest-verified bundled core data.")

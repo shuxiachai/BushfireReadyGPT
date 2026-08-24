@@ -132,7 +132,7 @@ Mention the agents:
 Open:
 
 ```text
-Structural Report Check
+Governed Report Check
 Human Review Checklist
 Reviewer Approval / Human Sign-off
 ```

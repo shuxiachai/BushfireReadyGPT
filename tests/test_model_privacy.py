@@ -173,6 +173,9 @@ Preparedness content.
             "export_register_snapshot": register_snapshot,
         }
     )
+    audit_record = audit.load_and_verify_audit(report_record["audit_path"])
+    report_record["quality"] = audit_record["quality"]
+    report_record["generation_gate_blocked"] = audit_record["generation_gate_blocked"]
     state = SessionState({"model_client": model_client, "latest_report": report_record})
     monkeypatch.setattr(report_workflow, "st", SimpleNamespace(session_state=state))
     monkeypatch.setattr(report_workflow, "MODEL_ENDPOINT_IS_LOCAL", True)

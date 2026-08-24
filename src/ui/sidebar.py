@@ -2,6 +2,7 @@ import streamlit as st
 
 from src.docx_export import create_report_docx
 from src.pdf_export import create_report_pdf
+from src.report_generation_quality import evaluate_governed_report
 
 
 def render_sidebar(
@@ -36,6 +37,15 @@ def render_sidebar(
                 "In a real emergency, follow official emergency services and call 000 if life is at risk."
             )
             return
+        exact_quality = evaluate_governed_report(latest_report, report_record.get("analysis") or {})
+        if (
+            exact_quality != report_record.get("quality")
+            or exact_quality.get("approval_gate", {}).get("passed") is not True
+        ):
+            st.sidebar.warning(
+                "This report is a quality-blocked draft. Downloads remain available for human remediation, "
+                "but the report cannot be approved or packaged as a governed Pilot ZIP."
+            )
         st.sidebar.download_button(
             "Download latest report",
             data=latest_report,

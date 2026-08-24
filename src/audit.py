@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from src.agents.report_quality_agent import ReportQualityAgent
 from src.export_register import (
     REGISTER_SNAPSHOT_FILES,
     build_export_register_snapshot,
@@ -24,6 +23,14 @@ from src.governance import (
     REVIEWED_STATUSES,
     build_review_checklist_snapshot,
     is_review_checklist_complete,
+)
+from src.report_generation_quality import (
+    CURRENT_POLICY,
+    QUALITY_POLICY_FINGERPRINT,
+    QUALITY_POLICY_VERSION,
+    evaluate_governed_report,
+    is_current_quality_policy_binding,
+    is_readable_quality_policy_binding,
 )
 from src.report_template import build_human_signoff, remove_human_signoff
 
@@ -102,8 +109,12 @@ def _save_report_audit(payload, *, allow_parent):
         if payload.get("export_register_snapshot") is not None
         else build_export_register_snapshot()
     )
+    analysis = payload.get("analysis", {})
+    if not isinstance(analysis, dict):
+        raise AuditIntegrityError("A governed report audit requires an analysis dictionary.")
     normalized_payload = {
         **payload,
+        "analysis": analysis,
         "report_status": DRAFT_STATUS,
         "human_review": review_record,
         "export_register_snapshot": register_snapshot,
@@ -145,6 +156,9 @@ def _save_report_audit(payload, *, allow_parent):
         "inputs": _minimal_inputs(normalized_payload.get("inputs")),
         "analysis": _minimal_analysis(normalized_payload.get("analysis")),
         "quality": quality,
+        "quality_policy_version": QUALITY_POLICY_VERSION,
+        "quality_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
+        "generation_gate_blocked": quality.get("approval_gate", {}).get("passed") is not True,
         "grounding_evaluation_hash": sha256_json(
             normalized_payload.get("grounding_evaluation")
             if isinstance(normalized_payload.get("grounding_evaluation"), dict)
@@ -285,8 +299,8 @@ def save_revision_audit(parent_path, payload):
 def append_audit_event(previous_path, event_type, payload):
     """Append a verified event without modifying any existing audit file."""
 
-    if event_type != "review.recorded":
-        raise AuditIntegrityError("Only the review.recorded audit transition is supported.")
+    if event_type not in {"review.recorded", "quality.reassessed"}:
+        raise AuditIntegrityError("Only review.recorded and quality.reassessed audit transitions are supported.")
     if not isinstance(payload, dict) or "report_text" not in payload:
         raise AuditIntegrityError("Audit append payload must bind the resulting report text.")
     review_record = canonical_review_record(payload.get("human_review"))
@@ -318,10 +332,24 @@ def append_audit_event(previous_path, event_type, payload):
                 and _event_matches_retry(
                     recovered_record,
                     normalized_payload,
+                    event_type,
                 )
             ):
                 return str(recovered_path)
         _assert_current_head(previous_path.parent, previous, previous_path)
+        previous_policy = previous.get("quality_policy_version")
+        previous_fingerprint = previous.get("quality_policy_fingerprint")
+        previous_is_current = is_current_quality_policy_binding(
+            previous_policy,
+            previous_fingerprint,
+        )
+        if event_type == "review.recorded" and not previous_is_current:
+            raise AuditIntegrityError(
+                "Historical quality-policy audits are read-only; append a quality.reassessed event "
+                "before recording a new human review."
+            )
+        if event_type == "quality.reassessed" and previous_is_current:
+            raise AuditIntegrityError("The audit already uses the current governed-report quality policy.")
         payload_report_id = normalized_payload.get("report_id")
         if payload_report_id is not None and str(payload_report_id) != report_id:
             raise AuditIntegrityError("Audit append report ID does not match the previous event.")
@@ -335,9 +363,12 @@ def append_audit_event(previous_path, event_type, payload):
         _validate_exact_human_signoff(report_text, review_record)
         governed_body_hash = sha256_text(remove_human_signoff(report_text))
         if governed_body_hash != previous.get("governed_body_hash"):
-            raise AuditIntegrityError("A review event may change only the Human Review Sign-off section.")
+            raise AuditIntegrityError("An audit transition may not change the governed report body.")
         quality = _validated_report_quality(report_text, normalized_payload)
-        _validate_review_transition(review_record, quality, previous)
+        if event_type == "quality.reassessed":
+            _validate_quality_reassessment(previous, normalized_payload, review_record, context_hashes)
+        else:
+            _validate_review_transition(review_record, quality, previous)
         event = {
             "audit_schema": AUDIT_SCHEMA,
             "audit_id": uuid4().hex,
@@ -358,6 +389,9 @@ def append_audit_event(previous_path, event_type, payload):
             "inputs": previous.get("inputs", {}),
             "analysis": previous.get("analysis", {}),
             "quality": quality,
+            "quality_policy_version": QUALITY_POLICY_VERSION,
+            "quality_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
+            "generation_gate_blocked": quality.get("approval_gate", {}).get("passed") is not True,
             "grounding_evaluation_hash": previous.get("grounding_evaluation_hash"),
             "model_provider": previous.get("model_provider"),
             "model_name": previous.get("model_name"),
@@ -371,6 +405,16 @@ def append_audit_event(previous_path, event_type, payload):
             "source_payload_hash": sha256_json(normalized_payload),
             "privacy": _privacy_metadata(),
         }
+        if event_type == "quality.reassessed":
+            event["quality_reassessment"] = {
+                "previous_policy_version": previous_policy,
+                "previous_policy_fingerprint": previous_fingerprint,
+                "current_policy_version": CURRENT_POLICY,
+                "current_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
+                "human_review_performed": False,
+                "report_content_changed": False,
+                "review_record_changed": False,
+            }
         if _include_sensitive_content():
             event["sensitive_payload"] = normalized_payload
         new_path = _write_event(event, report_id, audit_dir=previous_path.parent)
@@ -381,6 +425,12 @@ def append_audit_event(previous_path, event_type, payload):
             _best_effort_unlink(new_path)
             raise
         return new_path
+
+
+def append_quality_reassessment(previous_path, payload):
+    """Re-evaluate an unchanged historical report without claiming human review."""
+
+    return append_audit_event(previous_path, "quality.reassessed", payload)
 
 
 def load_and_verify_audit(path, verify_chain=True, _seen=None):
@@ -410,6 +460,12 @@ def load_and_verify_audit(path, verify_chain=True, _seen=None):
         raise AuditIntegrityError("Audit chain previous ID does not match.")
     if previous.get("record_hash") != record.get("previous_record_hash"):
         raise AuditIntegrityError("Audit chain previous hash does not match.")
+    if record.get("event_type") == "quality.reassessed":
+        metadata = record.get("quality_reassessment") or {}
+        if metadata.get("previous_policy_version") != previous.get("quality_policy_version") or metadata.get(
+            "previous_policy_fingerprint"
+        ) != previous.get("quality_policy_fingerprint"):
+            raise AuditIntegrityError("Audit quality reassessment does not match its predecessor policy.")
     return record
 
 
@@ -675,6 +731,26 @@ def validate_audit_record(record):
     grounding_hash = record.get("grounding_evaluation_hash")
     if grounding_hash is not None and not _is_sha256(grounding_hash):
         raise AuditIntegrityError("Audit event has an invalid grounding-evaluation binding.")
+    quality = record.get("quality")
+    if not isinstance(quality, dict):
+        raise AuditIntegrityError("Audit event has no deterministic governed-report quality result.")
+    quality_policy_version = record.get("quality_policy_version")
+    quality_embedded_policy = quality.get("quality_policy_version")
+    quality_policy_fingerprint = record.get("quality_policy_fingerprint")
+    quality_embedded_fingerprint = quality.get("quality_policy_fingerprint")
+    if quality_policy_version != quality_embedded_policy:
+        raise AuditIntegrityError("Audit event has an invalid governed-report quality policy binding.")
+    if quality_policy_fingerprint != quality_embedded_fingerprint:
+        raise AuditIntegrityError("Audit event has an invalid governed-report quality fingerprint binding.")
+    if not is_readable_quality_policy_binding(
+        quality_policy_version,
+        quality_policy_fingerprint,
+    ):
+        raise AuditIntegrityError("Audit event uses an unknown governed-report quality policy binding.")
+    gate_blocked = record.get("generation_gate_blocked")
+    expected_gate_blocked = quality.get("approval_gate", {}).get("passed") is not True
+    if gate_blocked is not None and gate_blocked is not expected_gate_blocked:
+        raise AuditIntegrityError("Audit event generation-gate marker does not match its quality result.")
     register_hashes = record.get("export_register_hashes")
     if (
         not isinstance(register_hashes, dict)
@@ -686,6 +762,7 @@ def validate_audit_record(record):
         raise AuditIntegrityError("Audit event has no audit ID.")
     if not str(record.get("event_type") or "").strip():
         raise AuditIntegrityError("Audit event has no event type.")
+    _validate_quality_reassessment_record(record)
     if not str(record.get("report_id") or "").strip():
         raise AuditIntegrityError("Audit event has no report ID.")
     if not _is_positive_report_version(record.get("report_version")):
@@ -694,6 +771,43 @@ def validate_audit_record(record):
         raise AuditIntegrityError("Audit event contains an unknown report status.")
     _validate_parent_binding(record)
     return record
+
+
+def _validate_quality_reassessment_record(record):
+    metadata = record.get("quality_reassessment")
+    if record.get("event_type") != "quality.reassessed":
+        if metadata is not None:
+            raise AuditIntegrityError("A non-reassessment audit event contains reassessment metadata.")
+        return
+    expected_flags = {
+        "human_review_performed": False,
+        "report_content_changed": False,
+        "review_record_changed": False,
+    }
+    if not isinstance(metadata, dict) or any(metadata.get(key) != value for key, value in expected_flags.items()):
+        raise AuditIntegrityError("Audit quality reassessment metadata is missing or malformed.")
+
+    target_binding = (
+        record.get("quality_policy_version"),
+        record.get("quality_policy_fingerprint"),
+    )
+    metadata_target = (
+        metadata.get("current_policy_version"),
+        metadata.get("current_policy_fingerprint"),
+    )
+    if metadata_target != target_binding:
+        raise AuditIntegrityError("Audit quality reassessment target does not match its event policy binding.")
+    if target_binding[1] is None or not is_readable_quality_policy_binding(*target_binding):
+        raise AuditIntegrityError("Audit quality reassessment has an unknown target policy binding.")
+
+    previous_binding = (
+        metadata.get("previous_policy_version"),
+        metadata.get("previous_policy_fingerprint"),
+    )
+    if not is_readable_quality_policy_binding(*previous_binding):
+        raise AuditIntegrityError("Audit quality reassessment has an unknown predecessor policy binding.")
+    if previous_binding == target_binding:
+        raise AuditIntegrityError("Audit quality reassessment did not originate from a historical policy.")
 
 
 def _validate_parent_binding(record):
@@ -713,7 +827,15 @@ def _validate_parent_binding(record):
 
 
 def _validated_report_quality(report_text, payload):
-    quality = ReportQualityAgent().run(report_text)
+    analysis = payload.get("analysis")
+    if not isinstance(analysis, dict):
+        raise AuditIntegrityError("Governed report quality requires a complete analysis dictionary.")
+    quality = evaluate_governed_report(report_text, analysis)
+    if not is_current_quality_policy_binding(
+        quality.get("quality_policy_version"),
+        quality.get("quality_policy_fingerprint"),
+    ):
+        raise AuditIntegrityError("Governed report quality used an unsupported quality policy.")
     supplied = payload.get("quality")
     if supplied is not None and supplied != quality:
         raise AuditIntegrityError("Supplied report quality does not match a fresh deterministic check.")
@@ -739,7 +861,7 @@ def _validate_review_transition(review_record, quality, previous):
     if not is_review_checklist_complete(review_record.get("review_checklist")):
         raise AuditIntegrityError("Approved audit event requires the complete canonical checklist.")
     if quality.get("approval_gate", {}).get("passed") is not True:
-        raise AuditIntegrityError("Approved audit event failed the structural quality gate.")
+        raise AuditIntegrityError("Approved audit event failed the governed report quality gate.")
     integrity = (previous.get("analysis") or {}).get("data_integrity") or {}
     if integrity.get("core_ready") is not True or integrity.get("custom_data") is not False:
         raise AuditIntegrityError("Approved audit event requires manifest-verified bundled core data.")
@@ -748,6 +870,24 @@ def _validate_review_transition(review_record, quality, previous):
         and integrity.get("optional_map_state") != "bundle_verified"
     ):
         raise AuditIntegrityError("Approved audit event requires a sidecar-verified national-map bundle.")
+
+
+def _validate_quality_reassessment(previous, payload, review_record, context_hashes):
+    """Require a policy-only transition with no report, sign-off or status mutation."""
+
+    report_text = str(payload.get("report_text") or "")
+    unchanged = (
+        previous.get("report_content", {}).get("sha256") == sha256_text(report_text)
+        and previous.get("review_record_hash") == review_record_hash(review_record)
+        and previous.get("report_status") == payload.get("report_status")
+        and previous.get("package_context_hash") == context_hashes.get("package_context_hash")
+        and previous.get("immutable_package_context_hash") == context_hashes.get("immutable_package_context_hash")
+        and previous.get("organisation_context_hash") == context_hashes.get("organisation_context_hash")
+    )
+    if not unchanged:
+        raise AuditIntegrityError(
+            "A quality reassessment must preserve the exact report, sign-off, status and package context."
+        )
 
 
 def _validate_exact_human_signoff(report_text, review_record):
@@ -783,6 +923,12 @@ def _validated_append_context(previous, payload):
         raise AuditIntegrityError(
             "Package context changed immutable report inputs, geography, model or identity fields."
         )
+
+    analysis = payload.get("analysis")
+    if not isinstance(analysis, dict):
+        raise AuditIntegrityError("A review audit event must include its complete analysis snapshot.")
+    if sha256_json(analysis) != previous.get("analysis", {}).get("analysis_hash"):
+        raise AuditIntegrityError("Review analysis does not match the report's bound analysis snapshot.")
 
     review = payload.get("human_review")
     review = review if isinstance(review, dict) else {}
@@ -977,7 +1123,7 @@ def _commit_revision_claim(claim_path, parent_binding, child, child_path):
     )
 
 
-def _event_matches_retry(record, normalized_payload):
+def _event_matches_retry(record, normalized_payload, event_type):
     try:
         review = canonical_review_record(normalized_payload.get("human_review"))
         context = canonical_package_context(normalized_payload.get("package_context"))
@@ -986,7 +1132,7 @@ def _event_matches_retry(record, normalized_payload):
     except (AuditIntegrityError, TypeError, ValueError):
         return False
     return (
-        record.get("event_type") == "review.recorded"
+        record.get("event_type") == event_type
         and str(record.get("report_id")) == str(normalized_payload.get("report_id"))
         and record.get("report_version") == normalized_payload.get("report_version")
         and record.get("report_status") == normalized_payload.get("report_status")
@@ -1315,6 +1461,8 @@ def _minimal_analysis(analysis):
             key: item.get(key)
             for key in (
                 "source_id",
+                "title",
+                "agency",
                 "chunk_id",
                 "chunk_sha256",
                 "page",

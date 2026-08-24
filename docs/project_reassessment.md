@@ -2,7 +2,7 @@
 
 ## Current Position
 
-BushfireReadyGPT `v0.4.0` is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, report evidence-alignment diagnostics, explicit data-quality warnings, official source registers, human review controls and exportable report packages.
+BushfireReadyGPT `v0.4.0` plus the unreleased 2026-08-24 hardening is a working Australia-focused bushfire preparedness planning MVP. It is no longer just a renamed chatbot. The project has a form-first workflow, deterministic multi-agent analysis, conventional local RAG, ABS/ASGS evidence context, report evidence-alignment diagnostics, explicit data-quality warnings, official source registers, human review controls and exportable report packages.
 
 The strongest current use case is a controlled pilot demonstration for councils, schools, community organisations or internship assessment. It should still be presented as draft planning support, not as an operational emergency platform.
 
@@ -13,17 +13,17 @@ The strongest current use case is a controlled pilot demonstration for councils,
 | Product workflow | Clear form-to-report flow with review/export tabs. |
 | Multi-agent layer | Seven pre-generation agents, including Official Knowledge RAG, and one post-generation quality agent are separated. |
 | Australian data context | Local ABS/ASGS processed data and official source registers are available. |
-| Governance boundary | v4 audits bind exact report/review/data snapshots, deterministic sign-off and recursively verifiable version lineage. |
+| Governance boundary | One canonical gate is recomputed across generation, revision, organisational approval and governed pilot-package export; new v4 events bind `governed-report-v2`, the full-analysis hash, exact report/review/data snapshots, deterministic sign-off and recursively verifiable version lineage. |
 | Exports | Markdown, PDF, DOCX and pilot zip package are implemented. |
 | Local model runtime | Ollama is the default provider; an 8K dedicated model is called through a stateless, tool-free governed client. |
 | Official knowledge RAG | Nine page-level sources cover all states/territories with hybrid retrieval, abstention and answerable/unanswerable evaluation. |
 | Report evidence evaluation | Attributable claims receive deterministic support, citation, numeric and jurisdiction checks; flags remain subject to human source review. |
 | Runtime diagnosis | Privacy-minimised local Trace captures per-agent/model stages, latency, repair use and safe failure codes without report or identity content. |
 | Local setup | One self-checking Windows launcher reuses healthy dependencies, models and RAG assets and creates only missing or outdated components. |
-| Testing | 229 automated tests, including Chromium E2E and committed sample verification, pass with 85.63% coverage; four GitHub CI jobs cover Python 3.11, Python 3.13, Windows startup and Chromium. |
+| Testing | 353 automated tests pass (352 non-E2E plus one Chromium E2E); CI enforces at least 85% `src` coverage for the non-E2E suite, while four GitHub jobs cover Python 3.11, Python 3.13, Windows startup and Chromium. |
 | Portfolio evidence | A current local-model Markdown/PDF/DOCX sample, governed package, screenshots, short demo video and controlled-pilot protocol are committed. External pilot results remain pending. |
 
-The current retrieval baseline is Recall@5 `0.9706`, MRR `0.8922` and unanswerable accuracy `1.0000` over 84 questions. The eight-case `v0.4.0` real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation. Its committed run passed the structural, evidence-binding, attribution, topic, contamination and unsafe-claim gates, averaging `27.74 seconds` on the release machine. The new diagnostic grounding review measured average lexical evidence support `0.9540`, sentence-level citation coverage `0.2311`, cited-source precision `1.0000`, numeric consistency `0.9583` and zero jurisdiction conflicts; all eight reports still require human evidence review. These are regression baselines rather than factual-accuracy, production or external user-validation claims.
+The production-aligned retrieval profile covers 68 answerable questions plus five reachable safety negatives at Top-8, with passage recall `1.0000`, MRR `0.9216`, Top-1 accuracy `0.8529` and safety-negative abstention `1.0000`. The separate 84-question free-text diagnostic records Recall@5 `0.9706`, MRR `0.8922`, Top-1 accuracy `0.8235` and unanswerable accuracy `1.0000`. The eight-case `v0.4.0` real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation. Its committed run passed the then-configured structural, evidence-binding, attribution, topic, contamination and unsafe-claim gates, averaging `27.74 seconds` on the release machine. The diagnostic grounding review measured average lexical evidence support `0.9540`, sentence-level citation coverage `0.2311`, cited-source precision `1.0000`, numeric consistency `0.9583` and zero jurisdiction conflicts; all eight reports still require human evidence review. These are regression baselines rather than factual-accuracy, production or external user-validation claims.
 
 ## Main Gaps
 

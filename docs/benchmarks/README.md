@@ -29,8 +29,33 @@ official page before formal use.
 Repeat the current run with:
 
 ```powershell
-poetry run python scripts\evaluate_report_generation.py --output docs\benchmarks\report-generation-v0.4.0.json
+poetry run python scripts\evaluate_report_generation.py --output output\report-generation-next.json
 ```
+
+The committed `v0.4.0` result is historical release evidence. Do not overwrite
+it with a later evaluator or quality policy; review a new output and commit it
+under the next release/version name.
+
+## RAG Retrieval 2026-08-24
+
+`rag-retrieval-2026-08-24.json` records one local dual-profile invocation:
+
+- the production-aligned `structured_planning` Top-8 profile is the active
+  release gate and covers 68 answerable questions plus five reachable
+  live/life-safety negatives;
+- the separate `free_text` Top-5 profile covers the full 84-question diagnostic,
+  including 16 hard negatives;
+- both configured and actually effective thresholds are recorded, so the
+  trusted-planning relaxation is visible rather than hidden.
+
+Repeat it with:
+
+```powershell
+poetry run python scripts\evaluate_rag.py --warmup --summary-only
+```
+
+Latency is machine-specific. Retrieval metrics are regression evidence, not
+factual correctness or production accuracy.
 
 ## Report Generation v0.3.0
 

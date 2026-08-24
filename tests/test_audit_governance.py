@@ -107,6 +107,7 @@ def test_review_event_appends_a_verified_chain_without_rewriting_creation_event(
                 "report_id": "report-privacy-test",
                 "report_version": 1,
                 "report_text": updated_report,
+                "analysis": _sensitive_payload()["analysis"],
                 "report_status": "Reviewed draft",
                 "human_review": review_record,
                 "package_context": {

@@ -1,6 +1,9 @@
+import hashlib
 import re
+from collections import defaultdict
 
 from src.report_template import REPORT_TEMPLATE_SECTIONS, extract_narrative_body
+from src.safety_boundary import evaluate_safety_boundaries
 
 
 class ReportQualityAgent:
@@ -66,7 +69,8 @@ class ReportQualityAgent:
             self._check_action_plan(narrative),
             self._check_checklist(narrative),
             self._check_role_assignment(narrative),
-            self._check_candidate_assembly_language(text),
+            self._check_candidate_assembly_language(narrative),
+            self._check_safety_boundaries(narrative),
             self._check_evidence_tables(text),
             self._check_evidence_confidence(text),
             self._check_human_review_status(text),
@@ -93,7 +97,8 @@ class ReportQualityAgent:
                 "blocking_failures": blocking_failures,
             },
             "assessment_scope": (
-                "Deterministic structural lint only. Passing checks do not verify factual accuracy, "
+                "Deterministic structure and English-language safety-boundary lint only. "
+                "Passing checks do not verify factual accuracy, "
                 "official currency, legal validity or operational safety."
             ),
         }
@@ -269,6 +274,42 @@ class ReportQualityAgent:
             "Assembly point wording",
             "No obvious unsafe confirmation of candidate assembly points was detected.",
         )
+
+    def _check_safety_boundaries(self, text):
+        evaluation = evaluate_safety_boundaries(text)
+        if evaluation["passed"]:
+            return self._result(
+                "pass",
+                "Safety boundary assertions",
+                "No high-confidence live-status, evacuation, unsafe-place or governance-removal assertion was detected.",
+            )
+        violations = evaluation["violations"]
+        codes = sorted({item["code"] for item in violations})
+        result = self._result(
+            "fail",
+            "Safety boundary assertions",
+            "Remove or qualify prohibited operational assertions "
+            f"({', '.join(codes)}). {len(violations)} privacy-minimised finding(s) were recorded; "
+            "inspect the current in-memory report to locate the claims.",
+        )
+        result["privacy_minimised_findings"] = self._privacy_minimised_findings(violations)
+        return result
+
+    @staticmethod
+    def _privacy_minimised_findings(violations):
+        claims_by_code = defaultdict(list)
+        for violation in violations:
+            code = str(violation.get("code") or "unknown")
+            excerpt = re.sub(r"\s+", " ", str(violation.get("excerpt") or "")).strip()
+            claims_by_code[code].append(excerpt)
+        return [
+            {
+                "code": code,
+                "count": len(claims),
+                "claim_hash": hashlib.sha256("\n".join(sorted(claims)).encode("utf-8")).hexdigest(),
+            }
+            for code, claims in sorted(claims_by_code.items())
+        ]
 
     def _check_evidence_tables(self, text):
         lowered = text.lower()

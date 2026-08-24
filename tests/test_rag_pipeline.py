@@ -245,11 +245,39 @@ def test_rag_service_withholds_static_passages_for_live_safety_queries(tmp_path)
     result = RagService(settings, embedder=KeywordEmbedder()).retrieve(
         "Which evacuation order is active right now?",
         jurisdiction="Queensland",
+        top_k=3,
+        trusted_planning_scope=True,
     )
 
     assert result["status"] == "out_of_scope"
     assert result["retrieved_chunks"] == []
     assert "official authority" in result["status_label"]
+    assert result["query_scope"] == "structured_planning"
+    assert result["top_k"] == 3
+    assert result["lexical_coverage_threshold"] == 0.35
+    assert result["semantic_score_threshold"] == settings.score_threshold
+    assert result["semantic_coverage_threshold"] == 0.1
+    assert result["retrieval_configuration"] == {
+        "query_scope": "structured_planning",
+        "top_k": 3,
+        "candidate_k": 12,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+            "dense_score_threshold": 0.2,
+            "lexical_coverage_threshold": 0.61,
+            "semantic_score_threshold": 0.45,
+            "semantic_coverage_threshold": 0.2,
+        },
+        "effective_thresholds": {
+            "dense_score_threshold": 0.2,
+            "lexical_coverage_threshold": 0.35,
+            "semantic_score_threshold": 0.2,
+            "semantic_coverage_threshold": 0.1,
+        },
+    }
 
 
 def test_qdrant_index_retrieves_and_filters_by_jurisdiction(tmp_path):
@@ -432,6 +460,8 @@ def test_agent_report_evidence_and_minimal_audit_bind_retrieval_without_raw_text
     assert "Queensland guide" in table
     assert minimal["knowledge"]["index_manifest_sha256"] == "c" * 64
     assert minimal["knowledge"]["retrieved_chunks"][0]["chunk_sha256"] == "e" * 64
+    assert minimal["knowledge"]["retrieved_chunks"][0]["title"] == "Queensland guide"
+    assert minimal["knowledge"]["retrieved_chunks"][0]["agency"] == "Queensland Test Agency"
     assert minimal["knowledge"]["retrieval_mode"] == "dense_bm25_rrf_v1"
     assert minimal["knowledge"]["retrieved_chunks"][0]["lexical_rank"] == 1
     assert "EXACT PRIVATE RETRIEVED PASSAGE" not in json.dumps(minimal)

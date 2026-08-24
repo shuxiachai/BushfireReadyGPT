@@ -5,7 +5,6 @@ import streamlit as st
 
 from src.agents import run_analysis_pipeline
 from src.agents.profile_agent import ProfileAgent
-from src.agents.report_quality_agent import ReportQualityAgent
 from src.audit import (
     AuditIntegrityError,
     append_audit_event,
@@ -44,6 +43,7 @@ from src.report_generation_quality import (
     MAX_REPORT_REPAIR_ATTEMPTS,
     assess_generated_narrative,
     build_report_repair_prompt,
+    evaluate_governed_report,
     normalize_generated_narrative,
 )
 from src.report_grounding import evaluate_report_grounding, grounding_trace_metrics
@@ -221,12 +221,14 @@ def validate_review_record(review_record, quality=None, report_record=None):
                 "profile and boundary bundle was not sidecar-verified."
             )
         report_text = str((report_record or {}).get("text") or "")
-        exact_quality = ReportQualityAgent().run(report_text) if report_text else {}
+        exact_quality = (
+            evaluate_governed_report(report_text, (report_record or {}).get("analysis") or {}) if report_text else {}
+        )
         gate = exact_quality.get("approval_gate", {})
         if gate.get("passed") is not True:
             failures = gate.get("blocking_failures") or []
             suffix = f" ({len(failures)} blocking failure(s))." if failures else "."
-            return "Resolve all failed Structural Report Check items before recording organisational approval" + suffix
+            return "Resolve all failed Governed Report Check items before recording organisational approval" + suffix
     return None
 
 
@@ -242,7 +244,7 @@ def update_latest_audit_review(review_record):
     if not _report_matches_audit_snapshot(latest_report, previous_audit):
         return False
     updated_text = append_human_signoff(latest_report["text"], review_record)
-    updated_quality = ReportQualityAgent().run(updated_text)
+    updated_quality = evaluate_governed_report(updated_text, latest_report.get("analysis") or {})
     if validate_review_record(
         review_record,
         updated_quality,
@@ -258,6 +260,7 @@ def update_latest_audit_review(review_record):
                 "report_version": latest_report.get("version"),
                 "report_text": updated_text,
                 "quality": updated_quality,
+                "analysis": latest_report.get("analysis") or {},
                 "report_status": review_record.get("approval_status"),
                 "human_review": review_record,
                 "package_context": _package_context_for_record(
@@ -276,6 +279,7 @@ def update_latest_audit_review(review_record):
         {
             "text": updated_text,
             "quality": updated_quality,
+            "generation_gate_blocked": updated_quality.get("approval_gate", {}).get("passed") is not True,
             "review_record": review_record,
             "audit_path": new_audit_path,
             "audit_paths": audit_paths,
@@ -357,6 +361,11 @@ def _report_matches_audit_snapshot(report_record, audit_record):
         or audit_record.get("inputs_hash") != sha256_json(inputs)
         or audit_record.get("area_selection_hash") != sha256_json(area_selection)
         or audit_record.get("analysis", {}).get("analysis_hash") != sha256_json(analysis)
+        or audit_record.get("quality") != report_record.get("quality")
+        or (
+            audit_record.get("generation_gate_blocked") is not None
+            and audit_record.get("generation_gate_blocked") != report_record.get("generation_gate_blocked")
+        )
         or (
             audit_record.get("grounding_evaluation_hash") is not None
             and audit_record.get("grounding_evaluation_hash")
@@ -634,13 +643,31 @@ deterministic Evidence Tables and Human Review Sign-off after the revised narrat
             span.add_metrics(prompt_characters=len(prompt))
         try:
             with trace_stage("model_generation", attempt=1, prompt_characters=len(prompt)) as span:
-                revised_response = _call_governed_model(prompt)
+                revised_response = normalize_generated_narrative(_call_governed_model(prompt))
                 span.add_metrics(response_characters=len(revised_response))
+            revision_quality = assess_generated_narrative(revised_response, analysis)
+            generation_attempts = 1
+            for repair_attempt in range(MAX_REPORT_REPAIR_ATTEMPTS):
+                if revision_quality.get("approval_gate", {}).get("passed") is True:
+                    break
+                repair_prompt = build_report_repair_prompt(prompt, revised_response, revision_quality)
+                generation_attempts += 1
+                with trace_stage(
+                    "model_repair",
+                    attempt=repair_attempt + 1,
+                    prompt_characters=len(repair_prompt),
+                ) as span:
+                    revised_response = normalize_generated_narrative(_call_governed_model(repair_prompt))
+                    span.add_metrics(response_characters=len(revised_response))
+                revision_quality = assess_generated_narrative(revised_response, analysis)
         except ModelServiceError as error:
             trace.set_outcome("failed", "model_service_error")
             return None, str(error)
 
-        trace.add_metrics(generation_attempts=1, repair_required=False)
+        trace.add_metrics(
+            generation_attempts=generation_attempts,
+            repair_required=generation_attempts > 1,
+        )
         response, error = _finalize_report_version(
             revised_response,
             analysis,
@@ -682,7 +709,7 @@ def _finalize_report_version(
         full_response = apply_governance_notice(raw_response)
         full_response = append_evidence_tables(full_response, analysis)
         full_response = append_human_signoff(full_response, review_record)
-        quality = ReportQualityAgent().run(full_response)
+        quality = evaluate_governed_report(full_response, analysis)
         span.add_metrics(
             report_characters=len(full_response),
             structural_gate_passed=quality.get("approval_gate", {}).get("passed") is True,
@@ -775,6 +802,7 @@ def _finalize_report_version(
         "export_register_snapshot": frozen_register_snapshot,
         "text": full_response,
         "quality": quality,
+        "generation_gate_blocked": quality.get("approval_gate", {}).get("passed") is not True,
         "grounding_evaluation": grounding_evaluation,
         "runtime_trace_id": active_trace.trace_id if active_trace is not None and active_trace.enabled else None,
         "audit_path": audit_path,

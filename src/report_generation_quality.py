@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 
 from src.agents.report_quality_agent import ReportQualityAgent
@@ -7,9 +9,58 @@ from src.report_template import (
     append_evidence_tables,
     append_human_signoff,
     apply_governance_notice,
+    extract_narrative_body,
 )
 
 MAX_REPORT_REPAIR_ATTEMPTS = 2
+CURRENT_POLICY = "governed-report-v2"
+QUALITY_POLICY_VERSION = CURRENT_POLICY  # Backwards-compatible public alias.
+
+
+def _policy_fingerprint(manifest):
+    return hashlib.sha256(
+        json.dumps(
+            manifest,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+# Keep every fingerprinted manifest here after it stops being current. This is
+# the compatibility registry used to verify old audit chains without making
+# those policy bindings eligible for a new review or export transition.
+KNOWN_QUALITY_POLICY_MANIFESTS = {
+    "governed-report-v2": {
+        "fingerprint_schema": "quality-policy-manifest-v1",
+        "policy_version": "governed-report-v2",
+        "structural_ruleset": "report-quality-agent-v2",
+        "safety_boundary_ruleset": "safety-boundary-v2",
+        "rag_attribution_ruleset": "rag-attribution-v1",
+    },
+}
+_KNOWN_POLICY_FINGERPRINTS = {
+    version: _policy_fingerprint(manifest) for version, manifest in KNOWN_QUALITY_POLICY_MANIFESTS.items()
+}
+QUALITY_POLICY_MANIFEST = KNOWN_QUALITY_POLICY_MANIFESTS[CURRENT_POLICY]
+QUALITY_POLICY_FINGERPRINT = _KNOWN_POLICY_FINGERPRINTS[CURRENT_POLICY]
+
+# Unversioned v4 events, governed-report-v1, and early v2 events did not carry
+# implementation fingerprints. They remain readable only at those exact
+# version/fingerprint combinations.
+_UNFINGERPRINTED_POLICY_VERSIONS = frozenset({None, "governed-report-v1", "governed-report-v2"})
+READABLE_QUALITY_POLICY_BINDINGS = {
+    None: frozenset({None}),
+    "governed-report-v1": frozenset({None}),
+    **{
+        version: frozenset({fingerprint, *({None} if version in _UNFINGERPRINTED_POLICY_VERSIONS else set())})
+        for version, fingerprint in _KNOWN_POLICY_FINGERPRINTS.items()
+    },
+}
+SUPPORTED_HISTORICAL_POLICIES = frozenset(
+    version for version in READABLE_QUALITY_POLICY_BINDINGS if version != CURRENT_POLICY
+)
 _JURISDICTION_NAMES = (
     "Australian Capital Territory",
     "New South Wales",
@@ -118,14 +169,56 @@ def _append_rag_attribution_check(quality, narrative, analysis):
 
 
 def assess_generated_narrative(narrative, analysis):
-    """Run the exact structural gate against a provisional governed report."""
+    """Run the canonical governed gate against a provisional report."""
 
     narrative = normalize_generated_narrative(narrative)
     report = apply_governance_notice(narrative)
     report = append_evidence_tables(report, analysis)
     report = append_human_signoff(report, {"report_status": "Draft - human review required"})
+    return evaluate_governed_report(report, analysis)
+
+
+def evaluate_governed_report(report_text, analysis):
+    """Run the canonical deterministic gate used by every governed lifecycle stage.
+
+    RAG attribution is evaluated only against the model-authored narrative. The
+    deterministic evidence appendix contains source titles by construction and
+    must never be able to make an unattributed narrative pass.
+    """
+
+    report = str(report_text or "")
     quality = ReportQualityAgent().run(report)
-    return _append_rag_attribution_check(quality, narrative, analysis)
+    narrative = extract_narrative_body(report)
+    quality = _append_rag_attribution_check(quality, narrative, analysis or {})
+    quality["quality_policy_version"] = CURRENT_POLICY
+    quality["quality_policy_fingerprint"] = QUALITY_POLICY_FINGERPRINT
+    return quality
+
+
+def quality_policy_metadata():
+    """Return a detached, serialisable identity for the canonical gate."""
+
+    return {
+        "version": CURRENT_POLICY,
+        "fingerprint": QUALITY_POLICY_FINGERPRINT,
+        "manifest": dict(QUALITY_POLICY_MANIFEST),
+    }
+
+
+def is_current_quality_policy_binding(version, fingerprint):
+    """Return whether an audit/quality result uses the exact current policy."""
+
+    return version == CURRENT_POLICY and fingerprint == QUALITY_POLICY_FINGERPRINT
+
+
+def is_readable_quality_policy_binding(version, fingerprint):
+    """Return whether a historical or current policy binding can be verified."""
+
+    try:
+        readable_fingerprints = READABLE_QUALITY_POLICY_BINDINGS.get(version)
+    except TypeError:
+        return False
+    return readable_fingerprints is not None and fingerprint in readable_fingerprints
 
 
 def build_report_repair_prompt(original_prompt, previous_response, quality):

@@ -294,7 +294,7 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert not app.exception
     assert model_call.call_count == 3
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
-    assert app.session_state["latest_quality"]["summary"]["total"] == 12
+    assert app.session_state["latest_quality"]["summary"]["total"] == 13
     assert app.session_state["latest_audit_path"].startswith(str(TEST_AUDIT_DIR))
     assert app.session_state["latest_report"]["version"] == 1
     assert app.session_state["latest_report"]["audit_path"] == app.session_state["latest_audit_path"]
@@ -310,7 +310,7 @@ def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
     with patch(
         "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
-        side_effect=[MOCK_REPORT, MOCK_REPORT, MOCK_REPORT, revised_report],
+        side_effect=[MOCK_REPORT, MOCK_REPORT, MOCK_REPORT, revised_report, revised_report, revised_report],
     ) as model_call:
         app = _run_app()
         app.text_input(key="form_location").set_value("Hobart, Tasmania")
@@ -331,7 +331,7 @@ def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
 
     second_report = app.session_state["latest_report"]
     assert not app.exception
-    assert model_call.call_count == 4
+    assert model_call.call_count == 6
     assert second_report["version"] == 2
     assert second_report["parent_report_id"] == first_report["id"]
     assert second_report["id"] != first_report["id"]
@@ -411,7 +411,7 @@ def test_blocked_approval_does_not_mutate_authoritative_review_state(isolated_ap
     assert app.session_state["reviewer_name"] == ""
     assert app.session_state["latest_report"]["audit_path"] == original_report["audit_path"]
     assert app.session_state["latest_report"]["review_record"] == original_report["review_record"]
-    assert any("failed Structural Report Check" in warning.value for warning in app.warning)
+    assert any("failed Governed Report Check" in warning.value for warning in app.warning)
 
 
 def test_external_model_disclosure_is_visible_and_unconfirmed_request_is_blocked(isolated_app_storage):

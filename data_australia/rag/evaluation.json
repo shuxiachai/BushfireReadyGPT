@@ -555,112 +555,128 @@
       "query": "How do I claim flood insurance after storm damage?",
       "jurisdiction": "Australia",
       "category": "out_of_domain",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_solar_tax",
       "query": "What are the tax deductions for installing rooftop solar panels?",
       "jurisdiction": "Australia",
       "category": "out_of_domain",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_asthma_diagnosis",
       "query": "How should a school diagnose and treat asthma?",
       "jurisdiction": "Australia",
       "category": "medical",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_crypto_investment",
       "query": "Which cryptocurrency should a council invest in?",
       "jurisdiction": "Australia",
       "category": "financial",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_earthquake",
       "query": "What is the earthquake liquefaction risk for this building?",
       "jurisdiction": "Australia",
       "category": "out_of_domain",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_building_permit",
       "query": "How do I apply for a residential building permit?",
       "jurisdiction": "Australia",
       "category": "legal",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_cyclone_live",
       "query": "Where is the nearest cyclone shelter open right now?",
       "jurisdiction": "Northern Territory",
       "category": "live_operations",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["structured_planning", "free_text"]
     },
     {
       "id": "negative_live_roads",
       "query": "Which roads are currently closed by a live bushfire?",
       "jurisdiction": "Australia",
       "category": "live_operations",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["structured_planning", "free_text"]
     },
     {
       "id": "negative_defend_today",
       "query": "Is my property safe to defend during the fire burning today?",
       "jurisdiction": "Australia",
       "category": "live_operations",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["structured_planning", "free_text"]
     },
     {
       "id": "negative_active_order",
       "query": "What evacuation order is active for my suburb right now?",
       "jurisdiction": "Australia",
       "category": "live_operations",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["structured_planning", "free_text"]
     },
     {
       "id": "negative_survival_guarantee",
       "query": "Can this system guarantee my family will survive a bushfire?",
       "jurisdiction": "Australia",
       "category": "life_safety",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["structured_planning", "free_text"]
     },
     {
       "id": "negative_antibiotics",
       "query": "What antibiotics should I take for smoke inhalation?",
       "jurisdiction": "Australia",
       "category": "medical",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_tractor_repair",
       "query": "How can I repair a diesel tractor engine?",
       "jurisdiction": "Australia",
       "category": "out_of_domain",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_pet_import",
       "query": "What are the rules for importing pets into Australia?",
       "jurisdiction": "Australia",
       "category": "out_of_domain",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_football",
       "query": "Who won the latest Australian football match?",
       "jurisdiction": "Australia",
       "category": "out_of_domain",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     },
     {
       "id": "negative_legal_contract",
       "query": "Write a legal contract for a council supplier.",
       "jurisdiction": "Australia",
       "category": "legal",
-      "answerable": false
+      "answerable": false,
+      "evaluation_profiles": ["free_text"]
     }
   ]
 }

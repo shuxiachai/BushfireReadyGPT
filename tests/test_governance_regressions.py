@@ -9,6 +9,7 @@ from zipfile import ZipFile
 import pytest
 
 from src import audit, report_workflow
+from src import export_package as export_package_module
 from src.agents import run_analysis_pipeline
 from src.agents.profile_agent import ProfileAgent
 from src.agents.risk_context_agent import RiskContextAgent
@@ -16,6 +17,10 @@ from src.export_package import create_pilot_export_package
 from src.export_register import REGISTER_SNAPSHOT_FILES, export_register_snapshot_hashes
 from src.governance import build_review_checklist_snapshot
 from src.model_runtime import ModelServiceError
+from src.report_generation_quality import (
+    QUALITY_POLICY_FINGERPRINT,
+    QUALITY_POLICY_VERSION,
+)
 from src.report_template import append_human_signoff
 
 _RAW_SAVE_REPORT_AUDIT = audit.save_report_audit
@@ -87,6 +92,7 @@ def _needs_revision_event(report_id, report_text="Report", report_version=1, **c
         "report_id": report_id,
         "report_version": report_version,
         "report_text": append_human_signoff(report_text, review_record),
+        "analysis": {},
         "report_status": status,
         "human_review": review_record,
         "package_context": {
@@ -100,6 +106,21 @@ def _needs_revision_event(report_id, report_text="Report", report_version=1, **c
 
 def _frozen_register_snapshot(label="ORIGINAL"):
     return {path: f"{label}\n{path}\n" for path in REGISTER_SNAPSHOT_FILES}
+
+
+def _allow_governed_package_export(monkeypatch):
+    def passing_quality(_report, _analysis):
+        return {
+            "checks": [],
+            "summary": {"passed": 1, "warnings": 0, "failed": 0, "total": 1},
+            "approval_gate": {"passed": True, "status": "passed", "blocking_failures": []},
+            "assessment_scope": "Test fixture",
+            "quality_policy_version": QUALITY_POLICY_VERSION,
+            "quality_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
+        }
+
+    monkeypatch.setattr(audit, "evaluate_governed_report", passing_quality)
+    monkeypatch.setattr(export_package_module, "evaluate_governed_report", passing_quality)
 
 
 def _revision_payload(
@@ -438,6 +459,99 @@ def test_tampered_analysis_snapshot_cannot_receive_a_review_event(tmp_path, monk
     assert list(tmp_path.glob("audit_*.json")) == [Path(audit_path)]
 
 
+def test_review_append_requires_the_complete_bound_analysis_snapshot(tmp_path, monkeypatch):
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
+    first_path = _save_audit(
+        {
+            "report_id": "missing-review-analysis",
+            "report_version": 1,
+            "report_text": "# Bound report",
+            "analysis": {"profile": {"state": "Queensland"}},
+        }
+    )
+    payload = _needs_revision_event("missing-review-analysis", "# Bound report")
+    payload.pop("analysis")
+
+    with pytest.raises(audit.AuditIntegrityError, match="complete analysis snapshot"):
+        audit.append_audit_event(first_path, "review.recorded", payload)
+
+
+def test_review_cannot_substitute_analysis_to_bypass_the_governed_gate(tmp_path, monkeypatch):
+    bound_analysis = {
+        "data_integrity": {"core_ready": True, "custom_data": False},
+        "knowledge": {
+            "retrieved_chunks": [
+                {
+                    "source_id": "qld_prepare_home",
+                    "title": "Prepare your home for bushfire season",
+                    "agency": "Queensland Government",
+                }
+            ]
+        },
+    }
+
+    def omission_sensitive_quality(_report, analysis):
+        has_bound_sources = bool((analysis.get("knowledge") or {}).get("retrieved_chunks"))
+        passed = not has_bound_sources
+        return {
+            "checks": [],
+            "summary": {
+                "passed": int(passed),
+                "warnings": 0,
+                "failed": int(not passed),
+                "total": 1,
+            },
+            "approval_gate": {
+                "passed": passed,
+                "status": "passed" if passed else "blocked",
+                "blocking_failures": [] if passed else ["RAG source attribution"],
+            },
+            "assessment_scope": "Analysis-binding regression fixture",
+            "quality_policy_version": QUALITY_POLICY_VERSION,
+            "quality_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
+        }
+
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
+    monkeypatch.setattr(audit, "evaluate_governed_report", omission_sensitive_quality)
+    first_path = _save_audit(
+        {
+            "report_id": "analysis-substitution-bypass",
+            "report_version": 1,
+            "report_text": "# Report without narrative attribution",
+            "analysis": bound_analysis,
+        }
+    )
+    created = audit.load_and_verify_audit(first_path)
+    assert created["quality_policy_version"] == QUALITY_POLICY_VERSION
+    assert created["quality"]["quality_policy_version"] == QUALITY_POLICY_VERSION
+    assert created["generation_gate_blocked"] is True
+
+    review = _approved_review_record()
+    with pytest.raises(audit.AuditIntegrityError, match="bound analysis snapshot"):
+        audit.append_audit_event(
+            first_path,
+            "review.recorded",
+            {
+                "report_id": "analysis-substitution-bypass",
+                "report_version": 1,
+                "report_text": append_human_signoff("# Report without narrative attribution", review),
+                # Omitting the retrieved sources would make this fixture's
+                # quality evaluator pass, so the analysis hash must stop it.
+                "analysis": {},
+                "report_status": review["approval_status"],
+                "human_review": review,
+                "package_context": {
+                    "organisation_name": review["organisation_name"],
+                    "report_status": review["approval_status"],
+                    "report_id": "analysis-substitution-bypass",
+                    "report_version": 1,
+                },
+            },
+        )
+
+
 def test_stale_passing_quality_cannot_approve_a_blocked_report():
     review_record = _approved_review_record()
     stale_quality = {
@@ -454,7 +568,7 @@ def test_stale_passing_quality_cannot_approve_a_blocked_report():
         },
     )
 
-    assert "failed Structural Report Check" in error
+    assert "failed Governed Report Check" in error
 
 
 def test_audit_approval_rejects_unverified_selected_map_bundle(tmp_path, monkeypatch):
@@ -463,11 +577,13 @@ def test_audit_approval_rejects_unverified_selected_map_bundle(tmp_path, monkeyp
     passing_quality = {
         "summary": {"passed": 1, "warnings": 0, "failed": 0, "total": 1},
         "approval_gate": {"passed": True, "blocking_failures": []},
+        "quality_policy_version": QUALITY_POLICY_VERSION,
+        "quality_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
     }
     monkeypatch.setattr(
-        audit.ReportQualityAgent,
-        "run",
-        lambda _self, _text: passing_quality,
+        audit,
+        "evaluate_governed_report",
+        lambda _text, _analysis: passing_quality,
     )
     selection = {
         "state": "Queensland",
@@ -499,6 +615,13 @@ def test_audit_approval_rejects_unverified_selected_map_bundle(tmp_path, monkeyp
                 "report_id": "unverified-map-approval",
                 "report_version": 1,
                 "report_text": append_human_signoff("# Selected map report", review),
+                "analysis": {
+                    "data_integrity": {
+                        "core_ready": True,
+                        "custom_data": False,
+                        "optional_map_state": "present_unverified",
+                    }
+                },
                 "quality": passing_quality,
                 "report_status": review["approval_status"],
                 "human_review": review,
@@ -632,7 +755,175 @@ def test_export_rejects_report_text_that_differs_from_verified_audit(tmp_path, m
         )
 
 
+def test_export_requires_the_complete_analysis_snapshot(tmp_path, monkeypatch):
+    _allow_governed_package_export(monkeypatch)
+    review_record = _draft_review_record()
+    report_text = append_human_signoff("# Analysis-bound export", review_record)
+    register_snapshot = _frozen_register_snapshot()
+    package_context = {
+        "report_status": review_record["approval_status"],
+        "report_id": "missing-export-analysis",
+        "report_version": 1,
+    }
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
+    audit_path = _save_audit(
+        {
+            "report_id": "missing-export-analysis",
+            "report_version": 1,
+            "report_text": report_text,
+            "human_review": review_record,
+            "package_context": package_context,
+            "export_register_snapshot": register_snapshot,
+        }
+    )
+
+    with pytest.raises(audit.AuditIntegrityError, match="complete analysis snapshot"):
+        create_pilot_export_package(
+            report_text,
+            audit_path=audit_path,
+            review_record=review_record,
+            package_context=package_context,
+            register_snapshot=register_snapshot,
+        )
+
+
+def test_export_rejects_an_analysis_substituted_after_audit(tmp_path, monkeypatch):
+    _allow_governed_package_export(monkeypatch)
+    review_record = _draft_review_record()
+    report_text = append_human_signoff("# Analysis-bound export", review_record)
+    register_snapshot = _frozen_register_snapshot()
+    package_context = {
+        "report_status": review_record["approval_status"],
+        "report_id": "substituted-export-analysis",
+        "report_version": 1,
+    }
+    bound_analysis = {
+        "knowledge": {
+            "retrieved_chunks": [
+                {
+                    "source_id": "qld_prepare_home",
+                    "title": "Prepare your home for bushfire season",
+                    "agency": "Queensland Government",
+                }
+            ]
+        }
+    }
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
+    audit_path = _save_audit(
+        {
+            "report_id": "substituted-export-analysis",
+            "report_version": 1,
+            "report_text": report_text,
+            "analysis": bound_analysis,
+            "human_review": review_record,
+            "package_context": package_context,
+            "export_register_snapshot": register_snapshot,
+        }
+    )
+
+    with pytest.raises(audit.AuditIntegrityError, match="analysis does not match"):
+        create_pilot_export_package(
+            report_text,
+            audit_path=audit_path,
+            review_record=review_record,
+            package_context=package_context,
+            register_snapshot=register_snapshot,
+            analysis={},
+        )
+
+
+def test_pilot_zip_rejects_a_quality_blocked_draft(tmp_path, monkeypatch):
+    def blocked_quality(_report, _analysis):
+        return {
+            "checks": [],
+            "summary": {"passed": 0, "warnings": 0, "failed": 1, "total": 1},
+            "approval_gate": {
+                "passed": False,
+                "status": "blocked",
+                "blocking_failures": ["RAG source attribution"],
+            },
+            "assessment_scope": "Blocked export fixture",
+            "quality_policy_version": QUALITY_POLICY_VERSION,
+            "quality_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
+        }
+
+    monkeypatch.setattr(audit, "evaluate_governed_report", blocked_quality)
+    monkeypatch.setattr(export_package_module, "evaluate_governed_report", blocked_quality)
+    review_record = _draft_review_record()
+    report_text = append_human_signoff("# Quality-blocked draft", review_record)
+    register_snapshot = _frozen_register_snapshot()
+    package_context = {
+        "report_status": review_record["approval_status"],
+        "report_id": "blocked-draft-package",
+        "report_version": 1,
+    }
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
+    audit_path = _save_audit(
+        {
+            "report_id": "blocked-draft-package",
+            "report_version": 1,
+            "report_text": report_text,
+            "human_review": review_record,
+            "package_context": package_context,
+            "export_register_snapshot": register_snapshot,
+        }
+    )
+
+    with pytest.raises(audit.AuditIntegrityError, match="quality gate is blocked"):
+        create_pilot_export_package(
+            report_text,
+            audit_path=audit_path,
+            review_record=review_record,
+            package_context=package_context,
+            register_snapshot=register_snapshot,
+            analysis={},
+        )
+
+
+def test_legacy_v4_audit_is_readable_but_requires_new_policy_review_before_export(
+    tmp_path,
+    monkeypatch,
+):
+    _allow_governed_package_export(monkeypatch)
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
+    audit_path = _save_audit(
+        {
+            "report_id": "legacy-policy-export",
+            "report_version": 1,
+            "report_text": "# Legacy policy report",
+        }
+    )
+    legacy_record = audit.load_and_verify_audit(audit_path)
+    legacy_record.pop("quality_policy_version")
+    legacy_record["quality"].pop("quality_policy_version")
+    legacy_record.pop("quality_policy_fingerprint")
+    legacy_record["quality"].pop("quality_policy_fingerprint")
+    legacy_record.pop("generation_gate_blocked")
+    legacy_record["record_hash"] = audit.sha256_json(
+        {key: value for key, value in legacy_record.items() if key != "record_hash"}
+    )
+
+    assert audit.validate_audit_record(legacy_record) is legacy_record
+    monkeypatch.setattr(
+        export_package_module,
+        "capture_current_audit_chain",
+        lambda _path: [{"record": legacy_record}],
+    )
+
+    with pytest.raises(audit.AuditIntegrityError, match="legacy or unknown quality policy"):
+        create_pilot_export_package(
+            "# Legacy policy report",
+            audit_path=audit_path,
+            review_record=_draft_review_record(),
+        )
+
+
 def test_export_manifest_hashes_match_every_archived_artifact(tmp_path, monkeypatch):
+    _allow_governed_package_export(monkeypatch)
     report_text = "# Hash-bound report\n\nPreparedness planning draft."
     review_record = _draft_review_record()
     report_text = append_human_signoff(report_text, review_record)
@@ -660,6 +951,7 @@ def test_export_manifest_hashes_match_every_archived_artifact(tmp_path, monkeypa
         review_record=review_record,
         package_context=package_context,
         register_snapshot=register_snapshot,
+        analysis={},
     )
 
     with ZipFile(BytesIO(package["content"])) as archive:
@@ -736,6 +1028,7 @@ def test_export_preserves_exact_audited_markdown_without_adding_a_heading(
     tmp_path,
     monkeypatch,
 ):
+    _allow_governed_package_export(monkeypatch)
     report_text = "Plain governed report without a Markdown heading."
     review_record = _draft_review_record()
     report_text = append_human_signoff(report_text, review_record)
@@ -763,6 +1056,7 @@ def test_export_preserves_exact_audited_markdown_without_adding_a_heading(
         review_record=review_record,
         package_context=package_context,
         register_snapshot=register_snapshot,
+        analysis={},
     )
 
     with ZipFile(BytesIO(package["content"])) as archive:
@@ -962,6 +1256,7 @@ def test_v4_review_rejects_legacy_checklist_aggregate_without_items(tmp_path, mo
                 "report_id": "legacy-checklist",
                 "report_version": 1,
                 "report_text": append_human_signoff("Report", legacy_review),
+                "analysis": {},
                 "report_status": "Needs revision",
                 "human_review": legacy_review,
                 "package_context": {
@@ -1122,6 +1417,7 @@ def test_revision_export_requires_and_packages_exact_parent_lineage(
     tmp_path,
     monkeypatch,
 ):
+    _allow_governed_package_export(monkeypatch)
     monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
     monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
     register_snapshot = _frozen_register_snapshot()
@@ -1170,6 +1466,7 @@ def test_revision_export_requires_and_packages_exact_parent_lineage(
             review_record=child_review,
             package_context=child_context,
             register_snapshot=register_snapshot,
+            analysis={},
         )
 
     wrong_parent_path = _save_audit(
@@ -1187,6 +1484,7 @@ def test_revision_export_requires_and_packages_exact_parent_lineage(
             package_context=child_context,
             parent_audit_path=wrong_parent_path,
             register_snapshot=register_snapshot,
+            analysis={},
         )
 
     package = create_pilot_export_package(
@@ -1196,6 +1494,7 @@ def test_revision_export_requires_and_packages_exact_parent_lineage(
         package_context=child_context,
         parent_audit_path=parent_path,
         register_snapshot=register_snapshot,
+        analysis={},
     )
     with ZipFile(BytesIO(package["content"])) as archive:
         manifest = json.loads(archive.read("governance/package_manifest.json"))
@@ -1236,6 +1535,7 @@ def test_verified_revision_snapshot_rejects_missing_parent_path(tmp_path, monkey
         _draft_review_record(),
         default_status="Draft - human review required",
     )
+    child_audit = audit.load_and_verify_audit(child_path)
     report_record = {
         "id": "snapshot-child",
         "version": 2,
@@ -1248,6 +1548,8 @@ def test_verified_revision_snapshot_rejects_missing_parent_path(tmp_path, monkey
         "review_record": review_record,
         "export_register_snapshot": register_snapshot,
         "text": child_text,
+        "quality": child_audit["quality"],
+        "generation_gate_blocked": child_audit["generation_gate_blocked"],
         "audit_path": child_path,
     }
     assert report_workflow.verify_report_record_snapshot(report_record) is True
@@ -1263,6 +1565,7 @@ def test_third_generation_export_contains_recursive_ancestor_lineage(
     tmp_path,
     monkeypatch,
 ):
+    _allow_governed_package_export(monkeypatch)
     monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
     monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
     register_snapshot = _frozen_register_snapshot()
@@ -1305,6 +1608,7 @@ def test_third_generation_export_contains_recursive_ancestor_lineage(
         },
         parent_audit_path=second_path,
         register_snapshot=register_snapshot,
+        analysis={},
     )
     with ZipFile(BytesIO(package["content"])) as archive:
         manifest = json.loads(archive.read("governance/package_manifest.json"))
@@ -1367,7 +1671,9 @@ def test_generated_report_audits_and_exports_exact_frozen_register_snapshot(
     assert persisted == [True]
     report_record = state["latest_report"]
     assert report_record["export_register_snapshot"] == original_snapshot
+    assert report_record["generation_gate_blocked"] is True
     audit_record = audit.load_and_verify_audit(report_record["audit_path"])
+    assert audit_record["generation_gate_blocked"] is True
     assert audit_record["export_register_hashes"] == export_register_snapshot_hashes(original_snapshot)
 
     tampered_snapshot = dict(original_snapshot)
@@ -1381,21 +1687,15 @@ def test_generated_report_audits_and_exports_exact_frozen_register_snapshot(
             review_record=report_record["review_record"],
             package_context=package_context,
             register_snapshot=tampered_snapshot,
+            analysis=report_record["analysis"],
         )
 
-    package = create_pilot_export_package(
-        report_record["text"],
-        audit_path=report_record["audit_path"],
-        review_record=report_record["review_record"],
-        package_context=package_context,
-        register_snapshot=report_record["export_register_snapshot"],
-    )
-    with ZipFile(BytesIO(package["content"])) as archive:
-        manifest = json.loads(archive.read("governance/package_manifest.json"))
-        assert manifest["frozen_register_hashes"] == audit_record["export_register_hashes"]
-        for path, original_text in original_snapshot.items():
-            payload = archive.read(path)
-            assert payload == original_text.encode("utf-8")
-            expected_hash = hashlib.sha256(payload).hexdigest()
-            assert manifest["frozen_register_hashes"][path] == expected_hash
-            assert manifest["artifact_hashes"][path] == expected_hash
+    with pytest.raises(audit.AuditIntegrityError, match="quality gate is blocked"):
+        create_pilot_export_package(
+            report_record["text"],
+            audit_path=report_record["audit_path"],
+            review_record=report_record["review_record"],
+            package_context=package_context,
+            register_snapshot=report_record["export_register_snapshot"],
+            analysis=report_record["analysis"],
+        )

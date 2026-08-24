@@ -20,16 +20,39 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 load_dotenv(PROJECT_ROOT / ".env")
 
+from scripts.evaluation_artifacts import (  # noqa: E402
+    REPORT_EVALUATION_ARTIFACT_SCHEMA,
+    git_provenance,
+    ollama_model_identity,
+    project_relative,
+    rag_index_provenance,
+    sha256_file,
+    validate_report_evaluation_artifact,
+)
 from src.agents import run_analysis_pipeline  # noqa: E402
-from src.agents.report_quality_agent import ReportQualityAgent  # noqa: E402
-from src.config import LLM_PROVIDER, MODEL_MAX_TOKENS, MODEL_SEED, MODEL_TEMPERATURE, model  # noqa: E402
+from src.config import (  # noqa: E402
+    LLM_PROVIDER,
+    MODEL_ENDPOINT,
+    MODEL_MAX_RETRIES,
+    MODEL_MAX_TOKENS,
+    MODEL_SEED,
+    MODEL_TEMPERATURE,
+    MODEL_TIMEOUT_SECONDS,
+    model,
+)
 from src.model_runtime import GovernedModelClient, ModelServiceError  # noqa: E402
+from src.rag.errors import RagError  # noqa: E402
+from src.rag.settings import RagSettings  # noqa: E402
 from src.report_generation_quality import (  # noqa: E402
     MAX_REPORT_REPAIR_ATTEMPTS,
+    QUALITY_POLICY_FINGERPRINT,
+    QUALITY_POLICY_VERSION,
     assess_generated_narrative,
     attributed_rag_source_ids,
     build_report_repair_prompt,
+    evaluate_governed_report,
     normalize_generated_narrative,
+    quality_policy_metadata,
 )
 from src.report_grounding import GROUNDING_METHOD, evaluate_report_grounding  # noqa: E402
 from src.report_template import (  # noqa: E402
@@ -38,12 +61,20 @@ from src.report_template import (  # noqa: E402
     apply_governance_notice,
     build_report_prompt,
 )
+from src.safety_boundary import evaluate_safety_boundaries  # noqa: E402
 
 _UNSAFE_LIVE_PATTERNS = (
     r"\b(?:a|the) (?:bush)?fire is currently burning\b",
     r"\b(?:an|the) evacuation order is (?:currently )?active\b",
     r"\b(?:this|the) route is (?:currently )?(?:open|safe)\b",
     r"\b(?:there is|there are) (?:currently )?(?:no )?active (?:warning|fire|incident)s?\b",
+)
+_RELEASE_STABILITY_FIELDS = (
+    "scenario_file_sha256",
+    "git",
+    "rag_index",
+    "model",
+    "quality_policy",
 )
 
 
@@ -118,7 +149,9 @@ def _temporary_rag_mode(enabled):
             os.environ[name] = previous
 
 
-def _run_scenario(scenario):
+def run_scenario_with_artifacts(scenario):
+    """Run one governed scenario and return private generation artifacts separately."""
+
     started = time.perf_counter()
     with _temporary_rag_mode(scenario.get("rag_enabled")):
         analysis = run_analysis_pipeline(
@@ -154,9 +187,11 @@ def _run_scenario(scenario):
     report = apply_governance_notice(narrative)
     report = append_evidence_tables(report, analysis)
     report = append_human_signoff(report, {"report_status": "Draft - human review required"})
-    quality = ReportQualityAgent().run(report)
-    chunks = analysis.get("knowledge", {}).get("retrieved_chunks", [])
-    knowledge_status = str(analysis.get("knowledge", {}).get("status") or "unknown")
+    quality = evaluate_governed_report(report, analysis)
+    safety = evaluate_safety_boundaries(narrative)
+    knowledge = analysis.get("knowledge", {})
+    chunks = knowledge.get("retrieved_chunks", [])
+    knowledge_status = str(knowledge.get("status") or "unknown")
     unique_chunks = {chunk.get("chunk_id"): chunk for chunk in chunks if chunk.get("chunk_id")}
     evidence_bound = all(
         str(chunk.get("chunk_sha256") or "") in report and str(chunk.get("url") or "") in report
@@ -170,15 +205,22 @@ def _run_scenario(scenario):
     grounding = evaluate_report_grounding(narrative, analysis)
     grounding_metrics = grounding.get("metrics", {})
     report_character_limit = int(scenario.get("max_report_characters", 32000))
-    return {
+    row = {
         "id": scenario["id"],
         "kind": scenario.get("kind", "product_scenario"),
         "generation_attempts": generation_attempts,
         "repair_required": generation_attempts > 1,
+        "governed_gate_passed": quality["approval_gate"]["passed"],
         "structural_gate_passed": quality["approval_gate"]["passed"],
+        "quality_policy_version": quality.get("quality_policy_version"),
+        "quality_policy_fingerprint": quality.get("quality_policy_fingerprint"),
         "blocking_failures": quality["approval_gate"]["blocking_failures"],
+        "safety_violation_codes": sorted({item["code"] for item in safety["violations"]}),
+        "safety_violation_count": safety["summary"]["total"],
         "retrieved_chunks": len(unique_chunks),
         "knowledge_status": knowledge_status,
+        "rag_embedding_model": knowledge.get("embedding_model"),
+        "rag_index_manifest_sha256": knowledge.get("index_manifest_sha256"),
         "expected_knowledge_status": sorted(_expected_knowledge_states(scenario)),
         "rag_behavior_passed": _rag_behavior_passed(scenario, knowledge_status, len(unique_chunks)),
         "evidence_bound": evidence_bound,
@@ -198,6 +240,13 @@ def _run_scenario(scenario):
         "numeric_consistency_rate": grounding_metrics.get("numeric_consistency_rate"),
         "jurisdiction_conflicts": grounding_metrics.get("jurisdiction_conflicts", 0),
     }
+    return {"row": row, "report": report, "analysis": analysis}
+
+
+def _run_scenario(scenario):
+    """Compatibility wrapper that keeps private report/analysis text out of benchmark JSON."""
+
+    return run_scenario_with_artifacts(scenario)["row"]
 
 
 def _rate(rows, predicate):
@@ -217,10 +266,17 @@ def _failed_row(scenario, error):
         "kind": scenario.get("kind", "product_scenario"),
         "generation_attempts": 1,
         "repair_required": False,
+        "governed_gate_passed": False,
         "structural_gate_passed": False,
+        "quality_policy_version": QUALITY_POLICY_VERSION,
+        "quality_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
         "blocking_failures": [{"name": "Model generation", "detail": str(error)}],
+        "safety_violation_codes": [],
+        "safety_violation_count": 0,
         "retrieved_chunks": 0,
         "knowledge_status": "error",
+        "rag_embedding_model": None,
+        "rag_index_manifest_sha256": None,
         "expected_knowledge_status": sorted(_expected_knowledge_states(scenario)),
         "rag_behavior_passed": False,
         "evidence_bound": False,
@@ -244,6 +300,81 @@ def _failed_row(scenario, error):
     }
 
 
+def _quality_policy_provenance():
+    metadata = quality_policy_metadata()
+    metadata = metadata if isinstance(metadata, dict) else {}
+    manifest = metadata.get("manifest")
+    if not isinstance(manifest, dict):
+        manifest = metadata
+    return {
+        "version": metadata.get("version") or metadata.get("quality_policy_version") or QUALITY_POLICY_VERSION,
+        "fingerprint": metadata.get("fingerprint")
+        or metadata.get("quality_policy_fingerprint")
+        or QUALITY_POLICY_FINGERPRINT,
+        "manifest": manifest,
+    }
+
+
+def _report_run_metadata(payload, scenario_path, *, started_at_utc):
+    if LLM_PROVIDER == "ollama":
+        model_identity = ollama_model_identity(MODEL_ENDPOINT, model)
+    else:
+        model_identity = {
+            "name": model,
+            "digest": None,
+            "digest_status": "provider_does_not_expose_ollama_digest",
+        }
+    model_identity.update(
+        {
+            "provider": LLM_PROVIDER,
+            "parameters": {
+                "max_tokens": MODEL_MAX_TOKENS,
+                "temperature": MODEL_TEMPERATURE,
+                "top_p": 0.8,
+                "seed": MODEL_SEED,
+                "timeout_seconds": MODEL_TIMEOUT_SECONDS,
+                "max_retries": MODEL_MAX_RETRIES,
+                "max_report_repair_attempts": MAX_REPORT_REPAIR_ATTEMPTS,
+            },
+        }
+    )
+    try:
+        rag_index = rag_index_provenance(RagSettings.from_env())
+    except (OSError, RagError, TypeError, ValueError) as error:
+        rag_index = {
+            "status": "unavailable",
+            "error_code": getattr(error, "code", type(error).__name__),
+        }
+    return {
+        "started_at_utc": started_at_utc,
+        "scenario_file": project_relative(scenario_path, PROJECT_ROOT),
+        "scenario_file_sha256": sha256_file(scenario_path),
+        "scenario_schema_version": payload.get("schema_version"),
+        "git": git_provenance(PROJECT_ROOT),
+        "model": model_identity,
+        "quality_policy": _quality_policy_provenance(),
+        "rag_index": rag_index,
+        "grounding_evaluation_method": GROUNDING_METHOD,
+        "grounding_policy": "diagnostic_only_human_review_required",
+        "grounding_release_gate_enforced": False,
+    }
+
+
+def _finalize_provenance(run, completion_metadata, *, release_gate_active):
+    """Record an end snapshot and fail a release run if its identity drifted."""
+
+    drift_fields = [field for field in _RELEASE_STABILITY_FIELDS if run.get(field) != completion_metadata.get(field)]
+    completed_at_utc = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    if release_gate_active and drift_fields:
+        raise SystemExit("Report release provenance changed during evaluation: " + ", ".join(drift_fields))
+    run["provenance_stability"] = {
+        "checked": True,
+        "stable": not drift_fields,
+        "drift_fields": drift_fields,
+    }
+    run["completed_at_utc"] = completed_at_utc
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -259,6 +390,9 @@ def main():
     if payload.get("schema_version") != 2:
         raise SystemExit("Report evaluation schema_version must be 2.")
     scenarios = payload.get("scenarios", [])
+    declared_scenario_ids = [str(scenario.get("id") or "") for scenario in scenarios]
+    if not all(declared_scenario_ids) or len(set(declared_scenario_ids)) != len(declared_scenario_ids):
+        raise SystemExit("Report evaluation scenario IDs must be non-empty and unique.")
     required_product_scenarios = set(payload.get("required_product_scenarios", []))
     covered_product_scenarios = {
         scenario.get("scenario")
@@ -279,6 +413,11 @@ def main():
     if not scenarios:
         raise SystemExit("No report evaluation scenarios were found.")
 
+    selected_scenario_ids = [scenario["id"] for scenario in scenarios]
+    complete_selection = selected_scenario_ids == declared_scenario_ids
+    started_at_utc = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    run_metadata = _report_run_metadata(payload, args.scenarios, started_at_utc=started_at_utc)
+
     rows = []
     for scenario in scenarios:
         try:
@@ -288,10 +427,12 @@ def main():
     attribution_rows = [row for row in rows if row["retrieved_chunks"] > 0]
     summary = {
         "scenarios": len(rows),
+        "governed_gate_rate": round(_rate(rows, lambda row: row["governed_gate_passed"]), 4),
         "structural_gate_rate": round(_rate(rows, lambda row: row["structural_gate_passed"]), 4),
         "evidence_binding_rate": round(_rate(rows, lambda row: row["evidence_bound"]), 4),
         "rag_title_attribution_rate": round(_rate(attribution_rows, lambda row: row["rag_title_attributed"]), 4),
         "rag_behavior_rate": round(_rate(rows, lambda row: row["rag_behavior_passed"]), 4),
+        "safety_violation_rate": round(_rate(rows, lambda row: bool(row["safety_violation_codes"])), 4),
         "unsafe_live_claim_rate": round(_rate(rows, lambda row: bool(row["unsafe_live_claims"])), 4),
         "scenario_topic_rate": round(_rate(rows, lambda row: row["scenario_topics_passed"]), 4),
         "scenario_contamination_rate": round(_rate(rows, lambda row: bool(row["forbidden_term_hits"])), 4),
@@ -306,40 +447,51 @@ def main():
         "jurisdiction_conflicts": sum(row["jurisdiction_conflicts"] for row in rows),
     }
     thresholds = payload.get("thresholds", {})
+    governed_gate_threshold = float(thresholds.get("governed_gate_rate", thresholds.get("structural_gate_rate", 1.0)))
     passed = (
         all(math.isfinite(float(value)) for value in thresholds.values())
-        and summary["structural_gate_rate"] >= float(thresholds.get("structural_gate_rate", 1.0))
+        and summary["governed_gate_rate"] >= governed_gate_threshold
         and summary["evidence_binding_rate"] >= float(thresholds.get("evidence_binding_rate", 1.0))
         and summary["rag_title_attribution_rate"] >= float(thresholds.get("rag_title_attribution_rate", 0.66))
         and summary["rag_behavior_rate"] >= float(thresholds.get("rag_behavior_rate", 1.0))
+        and summary["safety_violation_rate"] <= float(thresholds.get("safety_violation_rate", 0.0))
         and summary["unsafe_live_claim_rate"] <= float(thresholds.get("unsafe_live_claim_rate", 0.0))
         and summary["scenario_topic_rate"] >= float(thresholds.get("scenario_topic_rate", 0.875))
         and summary["scenario_contamination_rate"] <= float(thresholds.get("scenario_contamination_rate", 0.0))
         and summary["repair_rate"] <= float(thresholds.get("repair_rate", 0.75))
         and summary["oversized_report_rate"] <= float(thresholds.get("oversized_report_rate", 0.0))
     )
-    try:
-        scenario_file = str(args.scenarios.resolve().relative_to(PROJECT_ROOT))
-    except ValueError:
-        scenario_file = args.scenarios.name
     result = {
-        "run": {
-            "completed_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "model_provider": LLM_PROVIDER,
-            "model_name": model,
-            "model_max_tokens": MODEL_MAX_TOKENS,
-            "model_temperature": MODEL_TEMPERATURE,
-            "model_seed": MODEL_SEED,
-            "scenario_file": scenario_file,
-            "grounding_evaluation_method": GROUNDING_METHOD,
-            "grounding_policy": "diagnostic_only_human_review_required",
-            "grounding_release_gate_enforced": False,
+        "artifact_schema": REPORT_EVALUATION_ARTIFACT_SCHEMA,
+        "evaluation_schema_version": 3,
+        "run": run_metadata,
+        "selection": {
+            "declared_scenario_ids": declared_scenario_ids,
+            "selected_scenario_ids": selected_scenario_ids,
+            "declared_scenarios": len(declared_scenario_ids),
+            "selected_scenarios": len(selected_scenario_ids),
+            "complete": complete_selection,
+        },
+        "release_gate": {
+            "active": complete_selection,
+            "passed": passed if complete_selection else None,
         },
         "passed": passed,
         "thresholds": thresholds,
         "summary": summary,
         "rows": rows,
     }
+    completion_metadata = _report_run_metadata(
+        payload,
+        args.scenarios,
+        started_at_utc=started_at_utc,
+    )
+    _finalize_provenance(
+        result["run"],
+        completion_metadata,
+        release_gate_active=result["release_gate"]["active"],
+    )
+    validate_report_evaluation_artifact(result)
     rendered = json.dumps(result, indent=2)
     if args.output:
         output_path = args.output.resolve()

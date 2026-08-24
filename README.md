@@ -50,6 +50,7 @@ Not ready for:
 - Uses local ABS / ASGS-derived geography and community context.
 - Provides official source, data and licence registers.
 - Adds draft notices, evidence tables, safety disclaimers and human review sign-off.
+- Re-runs one canonical Governed Report Check across generation, revision, organisational approval and governed pilot-package export: 13 fixed structure/safety checks plus conditional RAG source attribution.
 - Treats follow-up edits as governed report revisions with a new report ID, version, quality result and audit record.
 - Reviews attributable narrative claims against frozen evidence for citation, number and jurisdiction mismatches without presenting the heuristic as factual proof.
 - Records privacy-minimised local runtime Traces for per-agent/model latency, repair use and safe failure diagnosis.
@@ -63,6 +64,7 @@ Not ready for:
 - Replaced cloud-only OpenAI usage with local Ollama inference for offline-friendly demonstrations and no-cloud-key environments.
 - Built a reviewable evidence trail, governance notice, human sign-off section and audit-ready pilot export package.
 - Added deterministic evidence-confidence labels so official references, processed data, rule inference and AI prose are not presented as equivalent evidence.
+- Added a deterministic safety-boundary evaluator for prohibited live-status, evacuation, route/place-safety, absolute-safety and governance-removal assertions.
 - Added report versioning, approval validation and review-checklist reset so revised content cannot silently inherit an earlier approval.
 - Isolated browser sessions in memory by default and replaced optional pickle persistence with explicitly enabled JSON persistence for single-user installations.
 - Added Australia-specific official source, licence, data status and safety-boundary registries for more transparent outputs.
@@ -161,15 +163,27 @@ retriever. Build the RAG index from its declared official static sources:
 
 ```powershell
 poetry run python scripts\build_rag_index.py --download
-poetry run python scripts\evaluate_rag.py --top-k 5 --warmup --summary-only
+poetry run python scripts\evaluate_rag.py --warmup --summary-only
 ```
 
 The RAG corpus covers nine official pages across all eight states and territories. Retrieval combines
 local dense embeddings with BM25 using reciprocal-rank fusion, applies a
 deterministic source-diversity cap and exposes both component ranks in the
 Evidence Trail. The committed 84-query benchmark includes 68 answerable cases
-and 16 hard negatives. The documented local baseline achieves 0.9706 passage
-Recall@5, 0.8922 MRR, 0.8235 Top-1 accuracy and 1.0000 unanswerable accuracy.
+and 16 hard negatives. The default evaluation runs the production
+`structured_planning` profile at the configured runtime Top-K as the release
+gate, then reports the stricter `free_text` profile at Top-5 as a separate
+diagnostic. The production profile covers all 68 answerable cases plus the five
+live-operation/life-safety negatives that must always abstain. Arbitrary
+out-of-domain negatives remain in the free-text profile because the trusted
+planning scope is only called with a form-built, in-domain query at runtime.
+The previously documented free-text baseline achieved 0.9706
+passage Recall@5, 0.8922 MRR, 0.8235 Top-1 accuracy and 1.0000 unanswerable
+accuracy. Each result records both configured and actually effective retrieval
+thresholds. A [2026-08-24 production-profile run](docs/benchmarks/rag-retrieval-2026-08-24.json) covered 68 answerable questions
+and five reachable safety negatives at Top-8, achieving 1.0000 passage recall,
+0.9216 MRR, 0.8529 Top-1 accuracy and 1.0000 safety-negative abstention. These
+are local regression measurements, not production-accuracy claims.
 
 Raw RAG downloads, the verified document snapshot and Qdrant files stay local and are ignored by Git. The app
 still works if the optional index is absent, stale or disabled with
@@ -244,7 +258,7 @@ For the cleanest demonstration:
 4. Click `Load example`.
 5. Click `Generate report`.
 6. Show `Latest Report Preview`.
-7. Open `Review & Export` and show the Evidence Trail, Structural Report Check and Human Review Checklist.
+7. Open `Review & Export` and show the Evidence Trail, Governed Report Check and Human Review Checklist.
 8. Open `Data & Map` and show official sources, data status, licence register and map context.
 9. Show the verified RAG index card and retrieved passage provenance in the Evidence Trail.
 10. Download the pilot export package.
@@ -276,6 +290,7 @@ Project and commercial context:
 - [docs/pilot_results.md](docs/pilot_results.md) - Honest pilot evidence register; external sessions are currently pending.
 - [docs/benchmarks/report-generation-v0.3.0.json](docs/benchmarks/report-generation-v0.3.0.json) - Eight-case real-Ollama regression result.
 - [docs/benchmarks/report-generation-v0.4.0.json](docs/benchmarks/report-generation-v0.4.0.json) - Current eight-case run with diagnostic evidence-alignment metrics.
+- [docs/benchmarks/rag-retrieval-2026-08-24.json](docs/benchmarks/rag-retrieval-2026-08-24.json) - Production-aligned Top-8 release gate and separate free-text Top-5 retrieval diagnostic.
 
 Sample output and release evidence:
 
@@ -396,6 +411,11 @@ Run the fast unit, integration, Streamlit smoke and AppTest workflow suite:
 poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail-under=85
 ```
 
+The maintained coverage contract is the CI gate: the non-E2E suite must cover
+at least `85%` of `src` on supported Python versions. Exact percentages are
+run-specific diagnostics and may vary slightly by platform or instrumentation;
+release notes retain the measured value for their corresponding release run.
+
 Run the same static, dependency and security checks as CI:
 
 ```powershell
@@ -419,7 +439,7 @@ poetry run pytest -m e2e -q
 poetry run pytest -q
 ```
 
-Run the real-model report benchmark with structural, RAG and evidence-alignment
+Run the real-model report benchmark with governed report-quality, RAG and evidence-alignment
 metrics, or validate an anonymous pilot measurement file:
 
 ```powershell
@@ -461,7 +481,8 @@ map filtering, controlled official-source reachability and data-status rendering
 
 ## Audit And Approval Boundary
 
-New governed reports use the `government-pilot-v4` audit schema. Events are
+New governed reports use the `government-pilot-v4` audit schema and explicitly
+bind the `governed-report-v2` quality policy. Events are
 append-only and hash-linked at the application layer. Each positive-integer report
 version binds the exact Markdown body, deterministic Human Review Sign-off,
 quality gate, inputs, selected geography, provider boundary, canonical review
@@ -471,10 +492,13 @@ also bind and recursively package their verified ancestor lineage.
 Stale, malformed, forked or snapshot-mismatched chains fail closed. Per-report
 locks, authoritative head records, single-child revision claims and interrupted
 write recovery prevent concurrent tabs or an incomplete local write from silently
-forking the chain. Markdown, PDF, DOCX, audit JSON and `pilot-export-v3` packages
-are offered only for the current verified report snapshot; every package artifact
-is hashed in its manifest. Earlier audit schemas are legacy/read-only and must be
-regenerated before governed export or review.
+forking the chain. Convenience Markdown, PDF and DOCX downloads require the
+current verified report snapshot but remain available for remediation when the
+report is quality-blocked. A `pilot-export-v3` governance package additionally
+requires a passing fresh gate and a full analysis snapshot whose hash matches the
+audit; every package artifact is hashed in its manifest. Earlier audit schemas or
+v4 events without the current quality-policy binding remain readable but must be
+regenerated or re-reviewed before governed package export.
 
 This is tamper-evident local application logging, not a formally immutable
 government record. The prototype has no user authentication, independently

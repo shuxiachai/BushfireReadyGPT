@@ -12,6 +12,7 @@ from docx import Document
 from openai import APIConnectionError, APIStatusError
 from pypdf import PdfReader
 
+from src import export_package as export_package_module
 from src import session_store
 from src.agents import run_analysis_pipeline
 from src.agents.community_vulnerability_agent import CommunityVulnerabilityAgent
@@ -23,16 +24,19 @@ from src.data_paths import PROJECT_ROOT, DataPaths
 from src.data_status import get_community_data_status
 from src.docx_export import create_report_docx
 from src.export_content import extract_report_metadata
-from src.export_package import create_pilot_export_package
+from src.export_package import PILOT_EXPORT_SCHEMA, create_pilot_export_package
 from src.export_register import build_export_register_snapshot
 from src.governance import DRAFT_STATUS, build_review_checklist_snapshot
 from src.licence_register import get_licence_register, licence_register_csv
 from src.model_runtime import model_service_error_message
 from src.pdf_export import create_report_pdf
 from src.report_generation_quality import (
+    QUALITY_POLICY_FINGERPRINT,
+    QUALITY_POLICY_VERSION,
     assess_generated_narrative,
     attributed_rag_source_ids,
     build_report_repair_prompt,
+    evaluate_governed_report,
     normalize_generated_narrative,
 )
 from src.report_template import (
@@ -71,6 +75,21 @@ Preparedness planning draft.
 
 - [ ] Confirm official sources.
 """
+
+
+def _allow_governed_package_export(monkeypatch):
+    def passing_quality(_report, _analysis):
+        return {
+            "checks": [],
+            "summary": {"passed": 1, "warnings": 0, "failed": 0, "total": 1},
+            "approval_gate": {"passed": True, "status": "passed", "blocking_failures": []},
+            "assessment_scope": "Test fixture",
+            "quality_policy_version": QUALITY_POLICY_VERSION,
+            "quality_policy_fingerprint": QUALITY_POLICY_FINGERPRINT,
+        }
+
+    monkeypatch.setattr("src.audit.evaluate_governed_report", passing_quality)
+    monkeypatch.setattr(export_package_module, "evaluate_governed_report", passing_quality)
 
 
 def test_analysis_pipeline_returns_expected_sections():
@@ -314,6 +333,7 @@ def test_coverage_geojson_cache_is_scoped_to_the_resolved_path(monkeypatch, tmp_
 
 
 def test_pilot_export_package_contains_governance_files(tmp_path, monkeypatch):
+    _allow_governed_package_export(monkeypatch)
     review_record = {
         "approval_status": DRAFT_STATUS,
         "reviewer_name": "Test Reviewer",
@@ -343,6 +363,7 @@ def test_pilot_export_package_contains_governance_files(tmp_path, monkeypatch):
         review_record=review_record,
         package_context=package_context,
         register_snapshot=register_snapshot,
+        analysis={},
     )
 
     assert package["filename"].endswith("_pilot_export_package.zip")
@@ -429,6 +450,7 @@ Preparedness planning content.
 
 
 def test_pilot_export_package_includes_report_formats_and_manifest_boundary(tmp_path, monkeypatch):
+    _allow_governed_package_export(monkeypatch)
     review_record = {
         "approval_status": DRAFT_STATUS,
         "reviewer_name": "Test Reviewer",
@@ -458,9 +480,18 @@ def test_pilot_export_package_includes_report_formats_and_manifest_boundary(tmp_
         review_record=review_record,
         package_context=package_context,
         register_snapshot=register_snapshot,
+        analysis={},
     )
 
-    assert package["manifest"]["package_schema"] == "pilot-export-v3"
+    assert package["manifest"]["package_schema"] == PILOT_EXPORT_SCHEMA
+    assert package["manifest"]["governed_quality"] == {
+        "version": QUALITY_POLICY_VERSION,
+        "fingerprint": QUALITY_POLICY_FINGERPRINT,
+        "manifest": package["manifest"]["governed_quality"]["manifest"],
+        "approval_gate_passed": True,
+        "analysis_sha256": package["manifest"]["governed_quality"]["analysis_sha256"],
+        "quality_sha256": package["manifest"]["governed_quality"]["quality_sha256"],
+    }
     assert "Not live emergency advice" in package["manifest"]["safety_boundary"]
 
     with ZipFile(BytesIO(package["content"])) as archive:
@@ -472,6 +503,7 @@ def test_pilot_export_package_includes_report_formats_and_manifest_boundary(tmp_
 
 
 def test_pilot_export_package_writes_one_complete_manifest_with_audit(tmp_path, monkeypatch):
+    _allow_governed_package_export(monkeypatch)
     monkeypatch.setenv("BUSHFIRE_AUDIT_DIR", str(tmp_path))
     review_record = {
         "approval_status": DRAFT_STATUS,
@@ -503,6 +535,7 @@ def test_pilot_export_package_writes_one_complete_manifest_with_audit(tmp_path, 
             "report_version": 1,
         },
         register_snapshot=register_snapshot,
+        analysis={},
     )
 
     with ZipFile(BytesIO(package["content"])) as archive:
@@ -701,6 +734,32 @@ def test_generated_quality_blocks_missing_rag_source_attribution():
     assert any(item["name"] == "RAG source attribution" for item in failures)
 
 
+def test_canonical_gate_does_not_count_deterministic_appendix_as_narrative_attribution():
+    analysis = {
+        "knowledge": {
+            "retrieved_chunks": [
+                {
+                    "source_id": "qld_prepare_home",
+                    "title": "Prepare your home for bushfire season",
+                    "agency": "Queensland Government",
+                }
+            ]
+        }
+    }
+    report = append_human_signoff(
+        append_evidence_tables(
+            apply_governance_notice("## Data Sources and Limitations\nOfficial sources require human review."),
+            analysis,
+        ),
+        {},
+    )
+
+    quality = evaluate_governed_report(report, analysis)
+
+    rag_check = next(item for item in quality["checks"] if item["name"] == "RAG source attribution")
+    assert rag_check["status"] == "fail"
+
+
 def test_rag_source_attribution_accepts_recognised_agency_acronym():
     attributed = attributed_rag_source_ids(
         "The draft uses DFES preparedness guidance and still requires local verification.",
@@ -734,7 +793,7 @@ def test_incomplete_report_body_fails_quality_and_cannot_be_approved():
     assert checks["Required sections"] == "fail"
     assert quality["summary"]["failed"] >= 1
     assert (
-        "failed structural"
+        "failed governed"
         in validate_review_record(
             review_record,
             quality,
@@ -776,6 +835,25 @@ def test_candidate_assembly_quality_check_distinguishes_negation_from_confirmati
 
     assert safe["status"] == "pass"
     assert unsafe["status"] == "fail"
+
+
+def test_report_quality_gate_blocks_live_or_unverified_safety_assertions():
+    unsafe = ReportQualityAgent().run(
+        SAMPLE_REPORT + "\n\nThe highway remains open. Identify safe evacuation routes for residents."
+    )
+    check = next(item for item in unsafe["checks"] if item["name"] == "Safety boundary assertions")
+
+    assert check["status"] == "fail"
+    assert unsafe["approval_gate"]["passed"] is False
+
+
+def test_report_quality_gate_allows_candidate_routes_with_explicit_verification():
+    result = ReportQualityAgent()._check_safety_boundaries(
+        "Map multiple candidate evacuation routes and verify them with local authorities. "
+        "No evacuation route is confirmed safe."
+    )
+
+    assert result["status"] == "pass"
 
 
 def test_repeated_filler_under_every_required_heading_is_blocked():
@@ -888,9 +966,9 @@ def test_approval_fails_closed_for_missing_or_legacy_quality_results():
         "analysis": {"data_integrity": {"core_ready": True, "custom_data": False}},
     }
 
-    assert "failed Structural" in validate_review_record(review_record, None, report_record)
+    assert "failed Governed" in validate_review_record(review_record, None, report_record)
     legacy_quality = {"summary": {"passed": 11, "warnings": 0, "failed": 0, "total": 11}}
-    assert "failed Structural" in validate_review_record(review_record, legacy_quality, report_record)
+    assert "failed Governed" in validate_review_record(review_record, legacy_quality, report_record)
 
 
 def test_approval_is_blocked_for_unverified_custom_data():
@@ -1246,7 +1324,7 @@ def test_approved_review_requires_identity_fields_and_completed_checklist():
     )
     record["review_checklist"] = build_review_checklist_snapshot(lambda _item_id: True)
     record["review_checklist_complete"] = True
-    assert "failed Structural" in validate_review_record(record, report_record=report_record)
+    assert "failed Governed" in validate_review_record(record, report_record=report_record)
 
 
 def test_audit_paths_are_unique_for_rapid_successive_reports(monkeypatch):

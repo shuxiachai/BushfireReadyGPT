@@ -47,7 +47,7 @@ matching can miss valid paraphrases and matching words do not establish semantic
 entailment. A human must open the current cited page and verify the claim.
 
 The real-model regression script now emits these metrics per scenario alongside
-its existing structural, RAG-behaviour, attribution, safety and contamination
+its existing governed report-quality, RAG-behaviour, attribution, safety and contamination
 results:
 
 ```powershell

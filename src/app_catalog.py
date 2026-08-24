@@ -190,7 +190,7 @@ DEMO_PRESENTATION_STEPS = [
             "Evidence Trail",
             "O1 / P2 / R3 / A4 / U0 provenance labels",
             "ABS ASGS Geography Reference",
-            "Structural Report Check",
+            "Governed Report Check",
         ],
         "expected": "The audience sees explainable intermediate outputs and limitations.",
     },

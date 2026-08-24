@@ -246,7 +246,7 @@ def render_report_quality_summary():
         return
 
     summary = quality.get("summary", {})
-    with st.expander("Structural Report Check", expanded=False):
+    with st.expander("Governed Report Check", expanded=False):
         st.caption(
             quality.get("assessment_scope", "Structural checks do not establish factual or operational accuracy.")
         )
@@ -257,9 +257,9 @@ def render_report_quality_summary():
         )
         approval_gate = quality.get("approval_gate", {})
         if approval_gate.get("passed") is True:
-            st.success("Structural approval gate passed. Human review is still required.")
+            st.success("Governed quality gate passed. Human review is still required.")
         else:
-            st.error("Approval is blocked until every structural failure is resolved.")
+            st.error("Approval is blocked until every governed quality failure is resolved.")
         for check in quality.get("checks", []):
             status = check.get("status")
             marker = "OK" if status == "pass" else "Warning" if status == "warning" else "Fix"
@@ -478,6 +478,7 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
             package_context=get_package_context(),
             parent_audit_path=report_record.get("parent_audit_path"),
             register_snapshot=report_record.get("export_register_snapshot"),
+            analysis=report_record.get("analysis"),
         )
         st.download_button(
             "Download pilot export package",

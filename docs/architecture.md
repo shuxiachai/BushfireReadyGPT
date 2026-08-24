@@ -37,7 +37,7 @@ flowchart LR
     Workflow --> Report[Versioned draft preparedness report]
 
     Report --> Deterministic[Canonical notice, evidence tables<br/>and human sign-off]
-    Deterministic --> Quality[Structural Report Quality Agent]
+    Deterministic --> Quality[Governed Report Quality Agent]
     Deterministic --> Grounding[Deterministic evidence-alignment review<br/>claims, citations, numbers, jurisdiction]
     Deterministic --> Audit[v4 append-only audit events<br/>exact snapshot and recursive lineage]
     Grounding --> Audit
@@ -93,26 +93,33 @@ flowchart TD
 | Report Agent | Formats deterministic findings for the LLM prompt | Multi-agent prompt context |
 | Report Quality Agent | Checks generated report completeness and safety boundaries | Pass/warning/fail checklist |
 
+The Report Quality Agent delegates prohibited operational-assertion detection
+to the deterministic `SafetyBoundaryEvaluator` in `src/safety_boundary.py`.
+
 The eight named agents are specialised, deterministic pipeline components; none
 is an independent language-model call. One governed model call writes the report
-narrative; the structural gate may request up to two stateless replacement
-attempts. This keeps orchestration reproducible, reduces latency and makes the
-evidence trail inspectable while still demonstrating clear agent boundaries.
+narrative; the canonical governed gate may request up to two stateless
+replacement attempts. The same gate is recomputed for generation, revision,
+organisational approval and governed pilot-package export, with 13 fixed structure/safety
+checks plus conditional RAG source attribution. This keeps orchestration
+reproducible, reduces latency and makes the evidence trail inspectable while
+still demonstrating clear agent boundaries.
 
 The evidence confidence classifier is a deterministic shared component rather than an LLM agent. It records provenance in the analysis and audit JSON, supplies the prompt boundary, renders in the Evidence Trail and is appended to every exported report. Follow-up edits create a new governed report version; canonical evidence tables are rebuilt from stored analysis rather than trusted from model output, and the previous approval checklist is reset.
 
 The evidence-alignment evaluator is also deterministic and separate from the
-Report Quality Agent. Structural quality checks whether required report controls
-exist; evidence alignment extracts attributable narrative claims and compares
-them with the frozen analysis and retrieved passages. It reports citation,
-numeric and jurisdiction issues for human review but does not claim semantic fact
-verification and does not independently authorise a report.
+Report Quality Agent. Governed quality checks whether required report controls
+exist and reject high-confidence safety-boundary assertions; evidence alignment
+extracts attributable narrative claims and compares them with the frozen
+analysis and retrieved passages. It reports citation, numeric and jurisdiction
+issues for human review but does not claim semantic fact verification and does
+not independently authorise a report.
 
 The RAG path is optional and fail-closed. Its source catalog restricts downloads to declared HTTPS URLs and local paths, requires page-level licence and verification metadata, and covers all eight states and territories. HTML extraction can target one or more declared ID elements, and PDF/HTML signatures are checked before atomic publication. Builds use deterministic chunk IDs, local Ollama embeddings, a canonical document snapshot and a staged Qdrant directory. The manifest binds the catalog, exact source bytes, document snapshot, chunk corpus, model and dimensions. Retrieval validates those bindings and filters by jurisdiction before combining dense candidates with BM25 through weighted reciprocal-rank fusion, bounded metadata boosts and a per-source diversity cap. It also validates the Qdrant point count and every returned point ID/text hash before adding passages to the prompt. Component scores, ranks and rerank reasons are exposed for review; retrieved text is delimited as untrusted evidence, never as instructions, and is excluded from privacy-minimised audit events. Live/life-safety queries and unsupported free-text queries deterministically abstain. A missing, stale or corrupt index results in zero RAG passages while the deterministic pipeline continues.
 
 `DataPaths` is the single source of active data locations for the map, status views and every pipeline agent. The bundled core is checked against `data_australia/manifest.json` before use, and provenance digests are compared again after analysis so a concurrent refresh cannot silently relabel an analysis. Validated downloader outputs are staged and published as recoverable multi-file transactions; writers of the shared core manifest use one publication lock and recovery journal. The optional nationwide map additionally requires matching profile/boundary structure and a hash-valid bundle sidecar before selection, report generation or organisational approval.
 
-Browser sessions are isolated in memory by default. Optional JSON persistence is intended only for an explicitly single-user local installation and can contain full report/sign-off data. Governed model completions are stateless and tool-free, and external endpoints require an explicit privacy acknowledgement. Audit records are privacy-minimised, append-only and hash-linked at the application layer; v4 events bind the exact report, deterministic sign-off, quality, inputs, provider boundary, frozen register snapshot and recursive revision ancestry. Export surfaces verify the current authoritative head and exact snapshot before returning files. Clearing a session does not delete retained audit or saved-report files. The prototype has no authenticated multi-user database, digital signature, trusted timestamp or WORM store, so this local chain is tamper-evident rather than formally immutable.
+Browser sessions are isolated in memory by default. Optional JSON persistence is intended only for an explicitly single-user local installation and can contain full report/sign-off data. Governed model completions are stateless and tool-free, and external endpoints require an explicit privacy acknowledgement. Audit records are privacy-minimised, append-only and hash-linked at the application layer; new v4 events bind the `governed-report-v2` quality policy, exact report, deterministic sign-off, quality, inputs, provider boundary, frozen register snapshot and recursive revision ancestry. Pilot-package export requires the current policy, a passing fresh gate and the complete analysis whose hash matches the audit. Legacy events remain readable but cannot be packaged until regenerated or re-reviewed under the current policy. Clearing a session does not delete retained audit or saved-report files. The prototype has no authenticated multi-user database, digital signature, trusted timestamp or WORM store, so this local chain is tamper-evident rather than formally immutable.
 
 Operational Trace is deliberately separate from the audit chain. One atomic local
 record captures allowlisted stage names, status, duration, bounded counts/rates
@@ -126,8 +133,9 @@ monitoring system.
 ## Current Boundary
 
 The project is a planning and course-demonstration tool. Its Report Quality Agent
-is structural lint and its evidence-alignment evaluator is a bounded lexical
-heuristic; neither establishes factual truth, legal fitness or operational
-accuracy. It does not provide live fire conditions, evacuation orders, fire bans,
-or life-safety decisions. Live emergency instructions must come from official
-emergency services, and life-threatening emergencies require calling `000`.
+is deterministic governed structure/evidence-control/safety-boundary lint and
+its evidence-alignment evaluator is a bounded lexical heuristic; neither
+establishes factual truth, legal fitness or operational accuracy. It does not
+provide live fire conditions, evacuation orders, fire bans, or life-safety
+decisions. Live emergency instructions must come from official emergency
+services, and life-threatening emergencies require calling `000`.

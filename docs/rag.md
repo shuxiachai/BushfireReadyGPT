@@ -33,8 +33,33 @@ From the project root:
 ```powershell
 ollama pull embeddinggemma
 poetry run python scripts\build_rag_index.py --download
-poetry run python scripts\evaluate_rag.py --top-k 5 --warmup --summary-only
+poetry run python scripts\evaluate_rag.py --warmup --summary-only
 ```
+
+The default command evaluates two explicit profiles. `structured_planning`
+matches report generation by enabling the trusted planning scope and using the
+runtime `BUSHFIRE_RAG_TOP_K` value (8 by default); this profile controls the
+process exit code and release gate. `free_text` keeps the stricter answerability
+thresholds and runs at Top-5 as a diagnostic. The JSON records each profile's
+query scope, Top-K, candidate limit, configured thresholds and effective
+thresholds. This makes any structured-planning threshold relaxation visible.
+The production profile runs all 68 answerable questions and the five
+live-operation/life-safety negatives that the retrieval boundary must always
+withhold. The remaining 11 arbitrary out-of-domain negatives are scoped to
+`free_text`: the trusted planning profile is only reachable through a bounded,
+form-built, in-domain query in the application, so treating arbitrary user text
+as trusted would not represent production behavior.
+
+For a backward-compatible free-text-only run, use:
+
+```powershell
+poetry run python scripts\evaluate_rag.py --mode free_text --top-k 5 --warmup --summary-only
+```
+
+`--mode structured_planning` without `--top-k` uses the production Top-K and is
+a release gate. Supplying `--top-k` in that mode is allowed for investigation;
+the JSON marks the release gate inactive whenever that value differs from the
+runtime production setting.
 
 Use `--refresh` to re-download every declared source. The build creates local
 files under `data_australia/rag/raw/` and `data_australia/rag/index/`; both are
@@ -50,11 +75,19 @@ before redistribution.
 The committed evaluation set contains 68 answerable questions plus 16 hard
 negatives. It measures source-level and passage-level Recall@K, mean reciprocal
 rank, Top-1 accuracy, unanswerable accuracy, false-positive rate and latency. On
-the 2026-08-22 `v0.3.0` local baseline, Top-5 passage recall was 0.9706, MRR
+the 2026-08-22 `v0.3.0` free-text baseline, Top-5 passage recall was 0.9706, MRR
 0.8922, Top-1 accuracy 0.8235, unanswerable accuracy 1.0000, average latency
 133.48 ms and p95 latency 163.44 ms. These are reproducible project-benchmark
 results, not evidence of production accuracy. Unit tests use a deterministic test
 embedder and temporary Qdrant database, keeping CI offline and repeatable.
+
+On 2026-08-24, the production-aligned `structured_planning` profile ran at
+Top-8 over 68 answerable questions plus the five reachable live/life-safety
+negatives. It recorded passage recall 1.0000, MRR 0.9216, Top-1 accuracy 0.8529
+and safety-negative abstention 1.0000, and passed the configured release gate.
+The same invocation separately reproduced the free-text Top-5 diagnostic above;
+the machine-readable result is committed as
+[`rag-retrieval-2026-08-24.json`](benchmarks/rag-retrieval-2026-08-24.json).
 
 Retrieval uses weighted reciprocal-rank fusion (0.65 dense / 0.35 BM25 by
 default), then small exact-jurisdiction and title-overlap boosts. A deterministic

@@ -31,7 +31,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - O1 / P2 / R3 / A4 / U0 evidence confidence and provenance labels.
 - Evidence Tables appended to generated reports.
 - Reviewer Approval / Human Sign-off workflow.
-- Governed report revisions with new IDs, version lineage, structural re-checks and approval reset.
+- Governed report revisions with new IDs, version lineage, canonical governed-quality re-checks and approval reset.
 - Manifest-verified bundled core data, central data paths and transactionally published refresh bundles.
 - Stateless/tool-free governed model calls with an explicit external-provider privacy boundary.
 - In-memory session isolation by default and optional single-user JSON persistence without executable pickle loading.
