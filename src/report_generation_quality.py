@@ -227,14 +227,20 @@ def build_report_repair_prompt(original_prompt, previous_response, quality):
         f"- {item.get('name')}: {item.get('detail')}" for item in failures if isinstance(item, dict)
     )
     previous_character_count = len(str(previous_response or ""))
-    return f"""The previous draft failed deterministic structural checks.
+    return f"""The previous draft failed the deterministic governed quality checks.
 
 Blocking checks:
 {failure_lines or "- Complete every required section with substantive content."}
 
 Return one complete replacement report. Do not return a patch, explanation, preface, JSON or only appendices.
 Keep every safety, evidence and human-review boundary in the original instructions. Include an explicit Day 1,
-today or first-24-hours action and do not describe any candidate assembly location as confirmed safe.
+today or first-24-hours action. Treat every assembly point, evacuation centre, shelter, refuge, hall, school,
+gym, library, oval, sports field, car park, building and site as an unverified candidate. Never state that one
+of those places is, remains or has been safe, open, approved, authorised, available, operational, suitable or
+cleared, and never state that it will serve as an evacuation or assembly location. Instead say that each option
+is a candidate pending current verification by the responsible authority and organisational approval. Apply
+this rewrite everywhere in the replacement, including tables, checklists and examples; do not quote an unsafe
+claim merely to reject it.
 For every section reported as missing or insufficient, include at least one complete, section-specific sentence
 or a concrete list/table with multiple decision-useful items. Never leave a required heading followed only by
 subheadings or placeholder labels.

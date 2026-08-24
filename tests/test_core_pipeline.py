@@ -707,6 +707,29 @@ def test_repair_prompt_omits_full_previous_response_to_protect_local_context_win
     assert f"previous {len(previous)}-character response" in prompt
 
 
+def test_repair_prompt_gives_exhaustive_premises_status_rewrite_guidance():
+    prompt = build_report_repair_prompt(
+        "Original governed request",
+        "The school is available.",
+        {
+            "approval_gate": {
+                "blocking_failures": [
+                    {
+                        "name": "Safety boundary assertions",
+                        "detail": "Remove prohibited operational assertions (premises_status_assertion).",
+                    }
+                ]
+            }
+        },
+    )
+
+    assert "every assembly point" in prompt
+    assert "safe, open, approved, authorised, available, operational, suitable or" in prompt
+    assert "candidate pending current verification" in prompt
+    assert "including tables, checklists and examples" in prompt
+    assert "The school is available." not in prompt
+
+
 def test_generated_checklist_bullets_are_normalized_without_changing_other_sections():
     narrative = """## 14. Human Review and Approval Checklist
 - Confirm geography.
