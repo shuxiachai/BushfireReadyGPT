@@ -12,9 +12,6 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    KeepTogether,
-    ListFlowable,
-    ListItem,
     PageBreak,
     Paragraph,
     SimpleDocTemplate,
@@ -33,6 +30,7 @@ DRAFT_NOTICE_DETAIL = (
     "fire bans, evacuation orders or life-safety directions. The responsible organisation must "
     "review and approve it before formal use. Call 000 in a life-threatening emergency."
 )
+COMPACT_TABLE_CELL_CHARACTER_LIMIT = 600
 
 
 def _register_pdf_font():
@@ -176,7 +174,10 @@ def _build_styles(font_name):
             fontName=font_name,
             fontSize=9.5,
             leading=14,
-            leftIndent=8,
+            leftIndent=14,
+            bulletIndent=0,
+            bulletFontName="Helvetica",
+            bulletFontSize=10,
             textColor=colors.HexColor("#18212f"),
         ),
         "record_heading": ParagraphStyle(
@@ -188,6 +189,7 @@ def _build_styles(font_name):
             textColor=colors.HexColor("#7f2a19"),
             spaceBefore=6,
             spaceAfter=4,
+            keepWithNext=True,
         ),
         "record_label": ParagraphStyle(
             "BushfireRecordLabel",
@@ -240,18 +242,8 @@ def _build_cover_story(meta, styles):
 def _flush_bullets(story, bullet_items, styles):
     if not bullet_items:
         return
-    flowable_items = [
-        ListItem(Paragraph(_format_inline_markdown(item), styles["bullet"]), leftIndent=8) for item in bullet_items
-    ]
-    story.append(
-        ListFlowable(
-            flowable_items,
-            bulletType="bullet",
-            start="circle",
-            leftIndent=14,
-            bulletFontName=styles["body"].fontName,
-        )
-    )
+    for item in bullet_items:
+        story.append(Paragraph(_format_inline_markdown(item), styles["bullet"], bulletText="•"))
     story.append(Spacer(1, 0.08 * cm))
     bullet_items.clear()
 
@@ -278,7 +270,8 @@ def _append_table(story, table_lines, styles):
     if not raw_data:
         return
     column_count = max(len(row) for row in raw_data)
-    if column_count > 4:
+    has_oversized_cell = any(len(cell) > COMPACT_TABLE_CELL_CHARACTER_LIMIT for row in raw_data[1:] for cell in row)
+    if column_count > 4 or has_oversized_cell:
         _append_record_tables(story, raw_data, styles)
         return
 
@@ -295,7 +288,7 @@ def _append_table(story, table_lines, styles):
         repeatRows=1,
         hAlign="LEFT",
         splitByRow=1,
-        splitInRow=1,
+        splitInRow=0,
     )
     table.setStyle(
         TableStyle(
@@ -327,7 +320,13 @@ def _append_record_tables(story, data, styles):
                     Paragraph(_format_inline_markdown(value), styles["record_value"]),
                 ]
             )
-        table = Table(record_data, colWidths=[4.1 * cm, 12.8 * cm], hAlign="LEFT")
+        table = Table(
+            record_data,
+            colWidths=[4.1 * cm, 12.8 * cm],
+            hAlign="LEFT",
+            splitByRow=1,
+            splitInRow=1,
+        )
         table.setStyle(
             TableStyle(
                 [
@@ -341,15 +340,9 @@ def _append_record_tables(story, data, styles):
                 ]
             )
         )
-        story.append(
-            KeepTogether(
-                [
-                    Paragraph(f"Record {record_index}", styles["record_heading"]),
-                    table,
-                    Spacer(1, 0.1 * cm),
-                ]
-            )
-        )
+        story.append(Paragraph(f"Record {record_index}", styles["record_heading"]))
+        story.append(table)
+        story.append(Spacer(1, 0.1 * cm))
 
 
 def _markdown_to_story(markdown_text, styles):
@@ -433,11 +426,13 @@ def create_report_pdf(markdown_text):
     font_name = _register_pdf_font()
     styles = _build_styles(font_name)
     buffer = BytesIO()
+    left_margin = 1.6 * cm
+    right_margin = 1.6 * cm
     document = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=1.6 * cm,
-        leftMargin=1.6 * cm,
+        rightMargin=right_margin,
+        leftMargin=left_margin,
         topMargin=1.6 * cm,
         bottomMargin=1.6 * cm,
         title="BushfireReadyGPT Report",

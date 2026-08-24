@@ -410,24 +410,47 @@ Bushfire Preparedness Planning Report for Cairns, Queensland - Draft for Human R
 
 
 def test_wide_export_table_becomes_readable_record_layout():
-    wide_report = """# Evidence report
+    long_planning_context = " ".join(
+        [
+            "Confirm official information sources, responsible owners, candidate assembly-point approval,"
+            " backup communications, smoke-health support and human review before operational use."
+        ]
+        * 12
+    )
+    wide_report = (
+        """# Evidence report
 
 | Source | Page | Hybrid score | Dense score | BM25 score | Document date | Passage hash | URL |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Official source | web / 1 | 1.0 | 0.55 | 8.30 | 2024-02-26 | abcdef0123456789 | https://example.gov.au/long/source/path |
 """
+        + f"""
+
+| Contribution | Current output | Evidence level / note |
+| --- | --- | --- |
+| Planning priorities | {long_planning_context} | Deterministic planning transformation |
+"""
+    )
 
     docx_content = create_report_docx(wide_report)
     pdf_content = create_report_pdf(wide_report)
 
     document = Document(BytesIO(docx_content))
     table_column_counts = [len(table.columns) for table in document.tables]
-    pdf_text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(pdf_content)).pages)
+    pdf_reader = PdfReader(BytesIO(pdf_content))
+    pdf_pages = [page.extract_text() or "" for page in pdf_reader.pages]
+    pdf_text = "\n".join(pdf_pages)
 
     assert max(table_column_counts) <= 4
     assert any(paragraph.text == "Record 1" for paragraph in document.paragraphs)
-    assert "Record 1" in pdf_text
+    assert pdf_text.count("Record 1") == 2
     assert "Official source" in pdf_text
+    assert "Planning priorities" in pdf_text
+    assert all("BushfireReadyGPT" in page for page in pdf_pages)
+    assert all("Planning support only." in page for page in pdf_pages)
+    for page in pdf_reader.pages:
+        operators = page.get_contents().get_data().split()
+        assert operators.count(b"q") == operators.count(b"Q")
 
 
 def test_pdf_human_signoff_starts_on_a_dedicated_page():
