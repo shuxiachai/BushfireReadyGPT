@@ -117,6 +117,20 @@ def test_historical_v030_showcase_is_not_accepted_as_the_current_policy_sample()
         )
 
 
+def test_v050_showcase_retains_verifiable_recorded_gate_after_policy_advances():
+    sample_dir = PROJECT_ROOT / "examples" / "v0.5.0"
+    result = verify_sample_package(
+        sample_dir / "cairns-council-pilot-package.zip",
+        standalone_dir=sample_dir,
+        require_current_policy=False,
+    )
+
+    assert result["current_policy"] is False
+    assert result["historical_policy_verified"] is True
+    assert result["quality_policy_version"] == "governed-report-v2"
+    assert result["governed_gate_passed"] is True
+
+
 def test_verifier_rejects_testzip_reported_corruption(monkeypatch):
     monkeypatch.setattr(verify_sample_exports.ZipFile, "testzip", lambda _archive: "reports/corrupt.pdf")
 
@@ -222,3 +236,48 @@ def test_verifier_scans_governance_text_for_internal_prompt_markers(tmp_path):
 
     with pytest.raises(ValueError, match="governance/internal-notes.md"):
         verify_sample_package(_write_package(tmp_path, entries), require_current_policy=False)
+
+
+def test_sample_verifier_cli_defaults_to_project_release_paths(tmp_path, monkeypatch, capsys):
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.6.0"\n', encoding="utf-8")
+    captured = {}
+
+    def verify(package, *, standalone_dir, require_current_policy):
+        captured.update(
+            package=package,
+            standalone_dir=standalone_dir,
+            require_current_policy=require_current_policy,
+        )
+        return {"verified": True}
+
+    monkeypatch.setattr(verify_sample_exports, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(verify_sample_exports, "verify_sample_package", verify)
+
+    verify_sample_exports.main([])
+
+    assert captured == {
+        "package": tmp_path / "examples/v0.6.0/cairns-council-pilot-package.zip",
+        "standalone_dir": tmp_path / "examples/v0.6.0",
+        "require_current_policy": True,
+    }
+    assert '"verified": true' in capsys.readouterr().out.lower()
+
+
+def test_sample_verifier_cli_allows_explicit_immutable_v050_paths(tmp_path, monkeypatch):
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.6.0"\n', encoding="utf-8")
+    captured = {}
+
+    def verify(package, *, standalone_dir, require_current_policy):
+        captured.update(package=package, standalone_dir=standalone_dir, current=require_current_policy)
+        return {}
+
+    monkeypatch.setattr(verify_sample_exports, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(verify_sample_exports, "verify_sample_package", verify)
+
+    verify_sample_exports.main(["--release-version", "0.5.0", "--allow-legacy"])
+
+    assert captured == {
+        "package": tmp_path / "examples/v0.5.0/cairns-council-pilot-package.zip",
+        "standalone_dir": tmp_path / "examples/v0.5.0",
+        "current": False,
+    }

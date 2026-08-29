@@ -21,6 +21,7 @@ if str(PROJECT_ROOT) not in sys.path:
 load_dotenv(PROJECT_ROOT / ".env")
 
 from scripts.evaluate_report_generation import run_scenario_with_artifacts  # noqa: E402
+from scripts.release_paths import ReleasePathError, resolve_release_directory  # noqa: E402
 from src.app_catalog import EXAMPLE_CASES  # noqa: E402
 from src.audit import canonical_review_record, save_report_audit  # noqa: E402
 from src.config import LLM_PROVIDER, MODEL_ENDPOINT_IS_LOCAL, model  # noqa: E402
@@ -31,7 +32,7 @@ from src.report_generation_quality import evaluate_governed_report  # noqa: E402
 from src.report_grounding import evaluate_report_grounding  # noqa: E402
 from src.report_template import append_human_signoff  # noqa: E402
 
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "examples" / "v0.5.0"
+DEFAULT_OUTPUT_DIR = resolve_release_directory(PROJECT_ROOT)[1]
 DEFAULT_EXAMPLE = "Cairns Council pilot"
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -100,13 +101,13 @@ def _validate_showcase_retrieval(row, analysis):
     return manifest_sha256
 
 
-def build_showcase_sample(output_dir=DEFAULT_OUTPUT_DIR, *, example_name=DEFAULT_EXAMPLE):
+def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
     """Generate, audit, package and write one portfolio-safe governed sample."""
 
     if example_name not in EXAMPLE_CASES:
         raise ValueError(f"Unknown showcase example: {example_name}")
     _require_local_ollama_runtime()
-    output_dir = Path(output_dir).resolve()
+    output_dir = Path(output_dir if output_dir is not None else resolve_release_directory(PROJECT_ROOT)[1]).resolve()
     example = EXAMPLE_CASES[example_name]
     scenario = _scenario_from_example(example_name)
     artifacts = run_scenario_with_artifacts(scenario)
@@ -245,12 +246,37 @@ def build_showcase_sample(output_dir=DEFAULT_OUTPUT_DIR, *, example_name=DEFAULT
     }
 
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    output_group = parser.add_mutually_exclusive_group()
+    output_group.add_argument(
+        "--release-dir",
+        type=Path,
+        help="Repository-contained release directory (defaults to examples/v<project version>).",
+    )
+    output_group.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Legacy explicit output path; prefer --release-dir for committed release evidence.",
+    )
+    parser.add_argument(
+        "--release-version",
+        help="Release version used by the default release directory; defaults to project.version.",
+    )
     parser.add_argument("--example", choices=sorted(EXAMPLE_CASES), default=DEFAULT_EXAMPLE)
-    args = parser.parse_args()
-    result = build_showcase_sample(args.output_dir, example_name=args.example)
+    args = parser.parse_args(argv)
+    if args.output_dir is not None:
+        output_dir = args.output_dir
+    else:
+        try:
+            _, output_dir = resolve_release_directory(
+                PROJECT_ROOT,
+                release_version=args.release_version,
+                release_dir=args.release_dir,
+            )
+        except ReleasePathError as error:
+            parser.error(str(error))
+    result = build_showcase_sample(output_dir, example_name=args.example)
     print(json.dumps(result, indent=2))
     return 0
 

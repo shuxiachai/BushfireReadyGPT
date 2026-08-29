@@ -22,7 +22,10 @@ def _analysis():
 
 def test_grounding_supports_attributed_claim_against_retrieved_passage():
     result = evaluate_report_grounding(
-        "Queensland Fire Department guidance says households should prepare an emergency kit.",
+        (
+            "[O1-RAG][source_id=qld-guide] Queensland Bushfire Preparation Guide says households "
+            "should prepare an emergency kit."
+        ),
         _analysis(),
     )
 
@@ -31,6 +34,46 @@ def test_grounding_supports_attributed_claim_against_retrieved_passage():
     assert result["metrics"]["support_rate"] == 1.0
     assert result["metrics"]["citation_precision_rate"] == 1.0
     assert result["claims"][0]["best_evidence_source_id"] == "qld-guide"
+
+
+def test_grounding_does_not_count_plain_agency_or_title_as_a_citation():
+    result = evaluate_report_grounding(
+        "Queensland Fire Department guidance says households should prepare an emergency kit.",
+        _analysis(),
+    )
+
+    assert result["status"] == "review_required"
+    assert result["metrics"]["citation_coverage_rate"] == 0.0
+    assert result["claims"][0]["cited_source_ids"] == []
+
+
+def test_canonical_label_title_cannot_create_false_lexical_support():
+    result = evaluate_report_grounding(
+        (
+            "[O1-RAG][source_id=qld-guide] Queensland Bushfire Preparation Guide confirms "
+            "cryptocurrency investments are safe."
+        ),
+        _analysis(),
+    )
+
+    assert result["status"] == "review_required"
+    assert result["metrics"]["support_rate"] == 0.0
+    assert result["metrics"]["citation_precision_rate"] == 0.0
+    assert result["claims"][0]["cited_source_ids"] == ["qld-guide"]
+
+
+def test_repeating_source_title_after_label_cannot_create_false_support():
+    result = evaluate_report_grounding(
+        (
+            "[O1-RAG][source_id=qld-guide] Queensland Bushfire Preparation Guide "
+            "Queensland Bushfire Preparation Guide confirms cryptocurrency investments are safe."
+        ),
+        _analysis(),
+    )
+
+    assert result["status"] == "review_required"
+    assert result["metrics"]["support_rate"] == 0.0
+    assert result["metrics"]["citation_precision_rate"] == 0.0
 
 
 def test_grounding_flags_number_not_present_in_frozen_evidence():

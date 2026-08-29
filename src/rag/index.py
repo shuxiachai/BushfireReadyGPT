@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from src.data_artifacts import atomic_write_bytes, atomic_write_json, sha256_file
+from src.file_lock import lock_can_be_reclaimed, process_is_running, read_lock_owner
 from src.rag.corpus import (
     chunk_catalog_sources,
     load_source_catalog,
@@ -163,62 +164,19 @@ def index_file_lock(settings, timeout_seconds=10):
 
 
 def _read_index_lock_owner(lock_path):
-    try:
-        payload = json.loads(lock_path.read_text(encoding="ascii"))
-    except (FileNotFoundError, OSError, UnicodeError, json.JSONDecodeError):
-        return None
-    if (
-        not isinstance(payload, dict)
-        or type(payload.get("pid")) is not int
-        or payload["pid"] < 1
-        or not isinstance(payload.get("token"), str)
-        or not payload["token"]
-    ):
-        return None
-    return payload
+    return read_lock_owner(lock_path)
 
 
 def _process_is_running(pid):
-    if pid == os.getpid():
-        return True
-    if os.name == "nt":
-        try:
-            import ctypes
-
-            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-            kernel32.OpenProcess.argtypes = (ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong)
-            kernel32.OpenProcess.restype = ctypes.c_void_p
-            kernel32.WaitForSingleObject.argtypes = (ctypes.c_void_p, ctypes.c_ulong)
-            kernel32.WaitForSingleObject.restype = ctypes.c_ulong
-            kernel32.CloseHandle.argtypes = (ctypes.c_void_p,)
-            kernel32.CloseHandle.restype = ctypes.c_int
-            handle = kernel32.OpenProcess(0x00100000, False, pid)
-            if not handle:
-                return ctypes.get_last_error() != 87
-            try:
-                return kernel32.WaitForSingleObject(handle, 0) == 258
-            finally:
-                kernel32.CloseHandle(handle)
-        except (AttributeError, OSError):
-            return True
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except (PermissionError, OSError):
-        return True
-    return True
+    return process_is_running(pid)
 
 
 def _index_lock_can_be_reclaimed(lock_path):
-    try:
-        old_enough = time.time() - lock_path.stat().st_mtime > _STALE_INDEX_LOCK_SECONDS
-    except OSError:
-        return False
-    if not old_enough:
-        return False
-    owner = _read_index_lock_owner(lock_path)
-    return owner is not None and not _process_is_running(owner["pid"])
+    return lock_can_be_reclaimed(
+        lock_path,
+        _STALE_INDEX_LOCK_SECONDS,
+        is_process_running=_process_is_running,
+    )
 
 
 def _release_index_file_lock(lock_path, owner_token):

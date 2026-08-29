@@ -2,9 +2,9 @@
 
 ## Current Stage
 
-**Government-pilot MVP**
+**Governed portfolio MVP / controlled-pilot prototype**
 
-BushfireReadyGPT is strong enough for internship demonstration, portfolio presentation and controlled stakeholder pilot discussion. It is not yet ready for operational emergency use, public deployment or government procurement.
+BushfireReadyGPT is strong enough for internship demonstration, portfolio presentation and controlled stakeholder pilot discussion. External validation remains pending. It is not yet ready for operational emergency use, public deployment or government procurement.
 
 ## Maturity Scores
 
@@ -14,7 +14,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | User workflow | 8/10 | Strong MVP | Form, demo mode, evidence trail, reviewer sign-off and export package are in place. |
 | Data foundation | 6/10 | Pilot ready | ABS SA2/ASGS data is local and traceable; live warning data is not integrated. |
 | Multi-agent architecture | 7/10 | Pilot ready | Agent responsibilities are separated and visible, but testing and orchestration can be strengthened. |
-| Governance and audit | 7/10 | Pilot ready | v4 events bind the `governed-report-v2` policy fingerprint, exact report/review/data snapshots and recursive revision lineage. Policy-only reassessment cannot claim human review or directly authorise export; authenticated role-based approval and external immutable storage are still missing. |
+| Governance and audit | 7/10 | Pilot ready | v4 events bind the current `governed-report-v3` policy fingerprint, exact report/review/data snapshots and recursive revision lineage; v2 remains readable. Policy-only reassessment cannot claim human review or directly authorise export; authenticated role-based approval and external immutable storage are still missing. |
 | Commercial readiness | 4/10 | Not commercial yet | Needs licence review, legal boundary, deployment, privacy and user testing. |
 | Government procurement readiness | 3/10 | Early | Needs security, accessibility, procurement documentation and official data agreements. |
 
@@ -47,6 +47,9 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - Anonymous pilot metrics, edit/citation measures and a repository-safe Bad Case regression register are ready; real sessions remain pending.
 - Deterministic report evidence-alignment checks cover claim support, source attribution, numbers and jurisdiction conflicts without claiming semantic truth.
 - Local privacy-minimised runtime Trace exposes per-stage latency, repair use and safe failure codes without storing report or identity content.
+- PID/token-owned audit and RAG locks protect local cross-process writes; RAG can conservatively recover sufficiently old invalid lock records while preserving live-owner locks.
+- Model-authored RAG citations use one `[O1-RAG][source_id=...] <title>` contract. Verified URLs are supplied only by deterministic evidence tables.
+- The maintained working tree passes 584 non-E2E tests locally at 86.75% measured `src` coverage, including the user-facing BAT preflight and a fake-Ollama full Windows-launch integration test. Ruff lint/format, Bandit, Poetry/package consistency and `pip-audit` also pass locally; this is not a remote-CI or new-release claim.
 
 ## Main Gaps
 
@@ -58,13 +61,13 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | P1 | User testing | The report format has not been validated by real school/council/community reviewers. | Run a controlled pilot with 3-5 reviewers using the pilot feedback form. |
 | P1 | Authentication and approval | Reviewer fields exist, but there are no user accounts, permissions or signed approval states. | Design roles for drafter, reviewer and admin; later add login and immutable approval records. |
 | P2 | Deployment | The app runs locally and now has content-free local Trace, but is not packaged for secure hosting or central monitoring. | Add Docker, environment profiles, health checks, authenticated metrics/tracing, retention controls and deployment notes. |
-| P2 | Automated testing | Local verification covers 428 non-E2E tests, one Chromium workflow, 86.08% non-E2E `src` coverage, retrieval/report release evaluation and sample-package verification. External users have not validated usefulness or comprehension. | Keep the eight-case suite as a regression baseline; add scenarios only from measured pilot findings and keep visual review in the release process. |
+| P2 | Automated testing | The maintained working tree covers 584 non-E2E tests at 86.75% locally; the immutable `v0.5.0` baseline remains 428 non-E2E tests, one Chromium workflow and 86.08% coverage. Retrieval/report/red-team evaluation and sample-package verification are automated evidence, but external users have not validated usefulness or comprehension. | Keep the eight-case suite as a regression baseline; add scenarios only from measured pilot findings and keep visual review in the release process. |
 
 ## Recommended Roadmap
 
 | Phase | Goal | Work |
 | --- | --- | --- |
-| Now | Demo-ready portfolio MVP | Use the current screenshots, video and governed sample package for presentation; keep release checks green. |
+| Now | Demo-ready governed portfolio MVP | Use the current screenshots, video and governed sample package for presentation; keep release checks green without presenting local working-tree checks as a new release. |
 | Next 2 weeks | Controlled pilot execution | Recruit 3-5 reviewers, run the prepared protocol, validate evidence/data-quality labels and record anonymised results. |
 | Next 1-2 months | Stakeholder pilot | Test with school/council/community reviewers and refine report templates from feedback. |
 | Commercial path | Procurement-ready product concept | Add authentication, deployment hardening, privacy controls, legal review and data agreements. |

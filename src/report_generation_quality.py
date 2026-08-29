@@ -11,9 +11,14 @@ from src.report_template import (
     apply_governance_notice,
     extract_narrative_body,
 )
+from src.source_attribution import (
+    RAG_ATTRIBUTION_EXAMPLE,
+    canonical_rag_source_ids,
+    extract_markdown_section,
+)
 
 MAX_REPORT_REPAIR_ATTEMPTS = 2
-CURRENT_POLICY = "governed-report-v2"
+CURRENT_POLICY = "governed-report-v3"
 QUALITY_POLICY_VERSION = CURRENT_POLICY  # Backwards-compatible public alias.
 
 
@@ -39,6 +44,13 @@ KNOWN_QUALITY_POLICY_MANIFESTS = {
         "safety_boundary_ruleset": "safety-boundary-v2",
         "rag_attribution_ruleset": "rag-attribution-v1",
     },
+    "governed-report-v3": {
+        "fingerprint_schema": "quality-policy-manifest-v1",
+        "policy_version": "governed-report-v3",
+        "structural_ruleset": "report-quality-agent-v2",
+        "safety_boundary_ruleset": "safety-boundary-v2",
+        "rag_attribution_ruleset": "canonical-rag-source-label-v2",
+    },
 }
 _KNOWN_POLICY_FINGERPRINTS = {
     version: _policy_fingerprint(manifest) for version, manifest in KNOWN_QUALITY_POLICY_MANIFESTS.items()
@@ -60,17 +72,6 @@ READABLE_QUALITY_POLICY_BINDINGS = {
 }
 SUPPORTED_HISTORICAL_POLICIES = frozenset(
     version for version in READABLE_QUALITY_POLICY_BINDINGS if version != CURRENT_POLICY
-)
-_JURISDICTION_NAMES = (
-    "Australian Capital Territory",
-    "New South Wales",
-    "Northern Territory",
-    "South Australia",
-    "Western Australia",
-    "Queensland",
-    "Tasmania",
-    "Victoria",
-    "Australia",
 )
 
 
@@ -105,35 +106,9 @@ def normalize_generated_narrative(narrative):
     return "\n".join(result)
 
 
-def _agency_acronyms(agency):
-    value = str(agency or "").strip()
-    variants = {value}
-    for jurisdiction in _JURISDICTION_NAMES:
-        variants.add(re.sub(re.escape(jurisdiction), "", value, flags=re.IGNORECASE).strip(" ,-/"))
-    acronyms = set()
-    for variant in variants:
-        words = [word for word in re.findall(r"[A-Za-z]+", variant) if word.lower() not in {"and", "of", "the"}]
-        acronym = "".join(word[0].upper() for word in words)
-        if len(acronym) >= 3:
-            acronyms.add(acronym)
-    return acronyms
-
-
 def attributed_rag_source_ids(narrative, chunks):
-    text = str(narrative or "")
-    lowered = text.lower()
-    attributed = set()
-    for chunk in chunks or []:
-        title = str(chunk.get("title") or "").strip()
-        agency = str(chunk.get("agency") or "").strip()
-        exact_match = any(value and value.lower() in lowered for value in (title, agency))
-        acronym_match = any(
-            re.search(rf"(?<![A-Za-z0-9]){re.escape(acronym)}(?![A-Za-z0-9])", text, re.IGNORECASE)
-            for acronym in _agency_acronyms(agency)
-        )
-        if exact_match or acronym_match:
-            attributed.add(chunk.get("source_id"))
-    return attributed
+    section = extract_markdown_section(narrative, "Data Sources and Limitations")
+    return canonical_rag_source_ids(section, chunks)
 
 
 def _append_rag_attribution_check(quality, narrative, analysis):
@@ -154,7 +129,10 @@ def _append_rag_attribution_check(quality, narrative, analysis):
         "detail": (
             "The narrative attributes retrieved official source(s): " + ", ".join(sorted(attributed_ids))
             if passed
-            else "Name at least one retrieved source title, agency or recognised agency acronym in Data Sources and Limitations."
+            else (
+                "Cite at least one retrieved source in Data Sources and Limitations using the canonical label "
+                f"{RAG_ATTRIBUTION_EXAMPLE}."
+            )
         ),
     }
     quality["checks"].append(check)

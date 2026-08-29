@@ -13,9 +13,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.release_paths import ReleasePathError, resolve_release_directory  # noqa: E402
 from src.audit import AuditIntegrityError, review_record_hash, sha256_json, validate_audit_record  # noqa: E402
 from src.export_package import PILOT_EXPORT_SCHEMA  # noqa: E402
 from src.report_generation_quality import (  # noqa: E402
+    KNOWN_QUALITY_POLICY_MANIFESTS,
     QUALITY_POLICY_FINGERPRINT,
     QUALITY_POLICY_VERSION,
     is_current_quality_policy_binding,
@@ -368,8 +370,33 @@ def _verify_governance(manifest, audit_record, review_record, markdown_payload, 
     if require_current_policy and not current_policy:
         raise ValueError("The sample is historical and does not bind the current governed-report policy.")
     if not current_policy:
+        if manifest.get("package_schema") == PILOT_EXPORT_SCHEMA:
+            quality = audit_record.get("quality") or {}
+            governed_quality = manifest.get("governed_quality") or {}
+            expected_manifest = KNOWN_QUALITY_POLICY_MANIFESTS.get(policy_version)
+            if (
+                expected_manifest is None
+                or quality.get("approval_gate", {}).get("passed") is not True
+                or audit_record.get("generation_gate_blocked") is not False
+                or governed_quality.get("version") != policy_version
+                or governed_quality.get("fingerprint") != policy_fingerprint
+                or governed_quality.get("manifest") != expected_manifest
+                or governed_quality.get("approval_gate_passed") is not True
+                or governed_quality.get("analysis_sha256") != audit_record.get("analysis", {}).get("analysis_hash")
+                or governed_quality.get("quality_sha256") != sha256_json(quality)
+            ):
+                raise ValueError("Historical package governed-quality bindings are incomplete or inconsistent.")
+            return {
+                "current_policy": False,
+                "historical_policy_verified": True,
+                "quality_policy_version": policy_version,
+                "quality_policy_fingerprint": policy_fingerprint,
+                "governed_gate_passed": True,
+                **runtime_metadata,
+            }
         return {
             "current_policy": False,
+            "historical_policy_verified": False,
             "quality_policy_version": policy_version,
             "quality_policy_fingerprint": policy_fingerprint,
             "governed_gate_passed": None,
@@ -449,23 +476,43 @@ def _verify_standalone_reports(directory, report_payloads):
             raise ValueError(f"Standalone {suffix} report does not match the package: {path}")
 
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description="Verify the committed BushfireReadyGPT showcase exports.")
     parser.add_argument(
         "package",
         nargs="?",
-        default="examples/v0.5.0/cairns-council-pilot-package.zip",
+        type=Path,
+        help="Package to verify; defaults to the selected release directory.",
     )
-    parser.add_argument("--standalone-dir", default="examples/v0.5.0")
+    parser.add_argument("--standalone-dir", type=Path)
+    parser.add_argument(
+        "--release-version",
+        help="Release version used by default paths; defaults to project.version.",
+    )
+    parser.add_argument(
+        "--release-dir",
+        type=Path,
+        help="Override the repository-contained versioned sample directory.",
+    )
     parser.add_argument(
         "--allow-legacy",
         action="store_true",
         help="Allow hash-valid historical packages that are not eligible for current governed export.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    try:
+        _, selected_directory = resolve_release_directory(
+            PROJECT_ROOT,
+            release_version=args.release_version,
+            release_dir=args.release_dir,
+        )
+    except ReleasePathError as error:
+        parser.error(str(error))
+    package = args.package or selected_directory / "cairns-council-pilot-package.zip"
+    standalone_dir = args.standalone_dir or selected_directory
     result = verify_sample_package(
-        args.package,
-        standalone_dir=args.standalone_dir,
+        package,
+        standalone_dir=standalone_dir,
         require_current_policy=not args.allow_legacy,
     )
     print(json.dumps(result, indent=2))

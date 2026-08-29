@@ -21,7 +21,7 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 
 ## Current Status
 
-**Stage:** Government-pilot MVP
+**Stage:** Governed portfolio MVP / controlled-pilot prototype
 
 **Current release:** `v0.5.0`
 
@@ -31,10 +31,13 @@ It contains `429` passing tests (`428` non-E2E plus one Chromium E2E), with
 `86.08%` measured `src` coverage. Governed exports use `pilot-export-v4` and
 the `governed-report-v2` quality policy (`7c20b6fa...a5da9d1`).
 
-**Current main-branch verification (2026-08-24):** the post-release logic-
-hardening build passes `541` tests (`540` non-E2E plus one Chromium E2E), with
-`86.54%` measured `src` coverage. These figures describe the maintained branch;
-they do not rewrite the immutable `v0.5.0` release artifacts above.
+**Maintained v0.6.0 release-candidate verification (2026-08-29):** the post-release
+hardening build passes `584` non-E2E unit, integration, Streamlit and Windows
+launcher tests, with `86.75%` measured `src` coverage. Ruff lint/format, Bandit,
+Poetry/package consistency and `pip-audit` also pass locally. These exact values
+are run-specific local results, not a claim that the uncommitted changes have
+already passed remote CI, and they do not rewrite the immutable `v0.5.0`
+release artifacts above.
 
 Ready for:
 
@@ -90,10 +93,13 @@ Not ready for:
 - Added content-free per-stage runtime tracing and a Readiness diagnostic view, separate from governed audit records.
 - Unified form and map geography into one effective profile, and fail closed on explicit cross-state conflicts before evidence selection.
 - Hardened RAG builds and retrieval against concurrent source/index changes with process-local plus PID/token-owned cross-process locks, immutable build snapshots, backup-first recovery and before/after identity checks.
+- Reused one PID/token-owned lock contract for audit writes and RAG operations, including conservative recovery of sufficiently old invalid lock records without deleting a live owner's lock.
+- Standardised model-authored RAG citations as `[O1-RAG][source_id=...] <title>` and keep verified URLs out of model prose; deterministic evidence tables remain the only URL authority.
 - Added bounded input/session schemas, iterative audit-chain verification, strict review-date validation and one shared generation/repair workflow.
 - Enforced a hard wall-clock deadline for local model streams, separated U0 form values from deterministic prompt data, and reject blank or duplicate configured source/rule identifiers.
 - Bound release evaluations before and after each question/scenario call so drift visible at those boundaries, including A-to-B-to-A changes across calls, cannot be hidden by matching run-end snapshots; a model-tag swap wholly inside one HTTP call remains outside this observation boundary.
 - Reused one Markdown table parser and a privacy-safe, renderer-fingerprinted session-local export cache across PDF/DOCX preview paths.
+- Added a fake-Ollama Windows launcher integration test, a single PowerShell quality-check entry point and repository-local temporary-directory exclusion.
 
 ## Product Tour
 
@@ -270,6 +276,8 @@ powershell -ExecutionPolicy Bypass -File .\start_app.ps1
 ```
 
 The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It records the active project port locally, avoids launching a duplicate instance, and automatically selects an available port from `8501` to `8505`. Once the health check passes, the launcher opens the default browser; running the launcher again reopens the existing app. Streamlit is explicitly bound to `127.0.0.1` with usage telemetry disabled. Keep the terminal open while using the app. Press `Ctrl + C` or close this terminal to stop Streamlit and release the port.
+Process-level configuration values take precedence over `.env`, matching the
+configuration precedence used by the Python application.
 
 ## Demo Path
 
@@ -311,15 +319,15 @@ Project and commercial context:
 - [docs/pilot_feedback_form.md](docs/pilot_feedback_form.md) - Controlled pilot feedback form.
 - [docs/pilot_protocol.md](docs/pilot_protocol.md) - Executable 3-5 participant pilot protocol.
 - [docs/pilot_results.md](docs/pilot_results.md) - Honest pilot evidence register; external sessions are currently pending.
-- [docs/benchmarks/report-generation-v0.5.0.json](docs/benchmarks/report-generation-v0.5.0.json) - Current eight-scenario governed real-Ollama release gate and grounding diagnostics.
-- [docs/benchmarks/rag-retrieval-v0.5.0.json](docs/benchmarks/rag-retrieval-v0.5.0.json) - Current production-aligned Top-8 release gate and free-text Top-5 diagnostic.
+- [docs/benchmarks/report-generation-v0.5.0.json](docs/benchmarks/report-generation-v0.5.0.json) - Published eight-scenario governed real-Ollama release gate and grounding diagnostics.
+- [docs/benchmarks/rag-retrieval-v0.5.0.json](docs/benchmarks/rag-retrieval-v0.5.0.json) - Published production-aligned Top-8 release gate and free-text Top-5 diagnostic.
 - [docs/benchmarks/report-generation-v0.3.0.json](docs/benchmarks/report-generation-v0.3.0.json) - Historical eight-case real-Ollama regression result.
 - [docs/benchmarks/report-generation-v0.4.0.json](docs/benchmarks/report-generation-v0.4.0.json) - Historical evidence-alignment regression result.
 - [docs/benchmarks/rag-retrieval-2026-08-24.json](docs/benchmarks/rag-retrieval-2026-08-24.json) - Historical production-profile retrieval checkpoint.
 
 Sample output and release evidence:
 
-- [examples/v0.5.0/README.md](examples/v0.5.0/README.md) - current Markdown, PDF, DOCX and governed `pilot-export-v4` package.
+- [examples/v0.5.0/README.md](examples/v0.5.0/README.md) - published Markdown, PDF, DOCX and governed `pilot-export-v4` package.
 - [examples/v0.3.0/README.md](examples/v0.3.0/README.md) - historical governed sample retained for comparison.
 - [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md) - v0.3.0 scope, validation and limitations.
 - [docs/releases/v0.4.0.md](docs/releases/v0.4.0.md) - Evidence alignment, anonymous pilot measurement and privacy-minimised runtime Trace release.
@@ -439,21 +447,25 @@ poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail
 ```
 
 The maintained coverage contract is the CI gate: the non-E2E suite must cover
-at least `85%` of `src` on supported Python versions. The current main-branch
-verification passes `540` non-E2E tests at `86.54%` coverage plus one Chromium
-E2E test, for `541` passing tests in total. The immutable `v0.5.0` release run
-remains `428` non-E2E tests at `86.08%` plus one Chromium E2E test (`429` total).
-Exact percentages remain run-specific diagnostics.
+at least `85%` of `src` on supported Python versions. The maintained working
+tree was checked locally on 2026-08-29 with `584` passing non-E2E tests and
+`86.75%` coverage. This includes both the user-facing BAT preflight and the
+fake-Ollama Windows full-launch integration
+test; it does not claim a new remote Chromium or GitHub Actions result. The
+immutable `v0.5.0` release run remains `428` non-E2E tests at `86.08%` plus one
+Chromium E2E test (`429` total). Exact percentages remain run-specific
+diagnostics.
 
 Run the same static, dependency and security checks as CI:
 
 ```powershell
-poetry check --lock
-poetry run python -m pip check
-poetry run ruff check src tests scripts
-poetry run bandit -q -r src scripts -x src/legacy
-poetry run pip-audit --local --skip-editable
+powershell -ExecutionPolicy Bypass -File .\scripts\run_quality_checks.ps1
 ```
+
+The wrapper runs the lock, installed-dependency, Ruff formatting/linting,
+Bandit and `pip-audit` checks. It enables Python UTF-8 mode for the command so
+the dependency audit also works when the Windows checkout path contains
+non-ASCII characters.
 
 Install the browser-test dependencies and matching Chromium build once:
 
@@ -520,7 +532,9 @@ map filtering, controlled official-source reachability and data-status rendering
 ## Audit And Approval Boundary
 
 New governed reports use the `government-pilot-v4` audit schema and explicitly
-bind the `governed-report-v2` quality policy. Events are
+bind the `governed-report-v3` quality policy. Its canonical RAG-attribution gate
+requires an exact source ID/title label in the narrative Data Sources and
+Limitations section; historical v2 events remain readable. Events are
 append-only and hash-linked at the application layer. Each positive-integer report
 version binds the exact Markdown body, deterministic Human Review Sign-off,
 quality gate, inputs, selected geography, provider boundary, canonical review

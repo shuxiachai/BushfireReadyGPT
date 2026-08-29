@@ -4,8 +4,13 @@ import hashlib
 import re
 
 from src.report_template import extract_narrative_body
+from src.source_attribution import (
+    canonical_official_source_ids,
+    canonical_rag_source_ids,
+    strip_known_attribution_labels,
+)
 
-GROUNDING_METHOD = "deterministic_lexical_grounding_v1"
+GROUNDING_METHOD = "deterministic_lexical_grounding_v2"
 DEFAULT_THRESHOLDS = {
     "support_rate": 0.8,
     "citation_coverage_rate": 0.7,
@@ -77,12 +82,15 @@ def evaluate_report_grounding(report_text, analysis, *, thresholds=None):
     source_evidence = [item for item in evidence if item["source_id"]]
     claims = []
     for sentence in _sentences(narrative):
+        claim_body = _claim_body(sentence, source_evidence)
+        if not _WORD.search(claim_body):
+            continue
         cited_source_ids = _cited_source_ids(sentence, source_evidence)
-        numbers = _numbers(sentence)
-        citation_required = bool(cited_source_ids or numbers or _EVIDENCE_SIGNALS.search(sentence))
+        numbers = _numbers(claim_body)
+        citation_required = bool(cited_source_ids or numbers or _EVIDENCE_SIGNALS.search(claim_body))
         if not citation_required:
             continue
-        result = _assess_claim(sentence, evidence, cited_source_ids, analysis)
+        result = _assess_claim(sentence, claim_body, evidence, cited_source_ids, analysis)
         claims.append({"citation_required": True, **result})
 
     if not claims:
@@ -235,7 +243,6 @@ def _build_evidence_items(analysis):
 
 
 def _evidence_item(*, source_id, title, agency, text, evidence_type, jurisdictions):
-    combined = " ".join(value for value in (title, agency, text) if value)
     return {
         "source_id": source_id,
         "title": title,
@@ -243,8 +250,10 @@ def _evidence_item(*, source_id, title, agency, text, evidence_type, jurisdictio
         "text": text,
         "evidence_type": evidence_type,
         "jurisdictions": [str(value) for value in jurisdictions],
-        "tokens": _tokens(combined),
-        "numbers": _numbers(combined),
+        # Source titles and agency names identify a citation; they are not
+        # substantive support for the surrounding factual claim.
+        "tokens": _tokens(text),
+        "numbers": _numbers(text),
     }
 
 
@@ -261,9 +270,9 @@ def _scalar_values(value):
             yield text
 
 
-def _assess_claim(sentence, evidence, cited_source_ids, analysis):
-    claim_tokens = _tokens(sentence)
-    claim_numbers = _numbers(sentence)
+def _assess_claim(sentence, claim_body, evidence, cited_source_ids, analysis):
+    claim_tokens = _tokens(claim_body)
+    claim_numbers = _numbers(claim_body)
     ranked = []
     for item in evidence:
         overlap = claim_tokens & item["tokens"]
@@ -278,7 +287,7 @@ def _assess_claim(sentence, evidence, cited_source_ids, analysis):
     cited_matches = [
         row for row in ranked if row[3]["source_id"] in cited_source_ids and row[1] >= 2 and row[0] >= 0.25 and row[2]
     ]
-    conflicts = _jurisdiction_conflicts(sentence, analysis, evidence)
+    conflicts = _jurisdiction_conflicts(claim_body, analysis, evidence)
     claim_hash = hashlib.sha256(sentence.encode("utf-8")).hexdigest()[:16]
     return {
         "claim_id": claim_hash,
@@ -296,25 +305,40 @@ def _assess_claim(sentence, evidence, cited_source_ids, analysis):
 
 
 def _cited_source_ids(sentence, evidence):
-    lowered = sentence.lower()
-    cited = set()
-    for item in evidence:
-        source_id = item["source_id"]
-        if not source_id:
-            continue
-        values = [source_id, item["title"], item["agency"]]
-        acronym = "".join(
-            word[0].upper()
-            for word in re.findall(r"[A-Za-z]+", item["agency"] or item["title"])
-            if word.lower() not in {"and", "of", "the"}
-        )
-        exact = any(value and value.lower() in lowered for value in values)
-        acronym_match = len(acronym) >= 3 and re.search(
-            rf"(?<![A-Za-z0-9]){re.escape(acronym)}(?![A-Za-z0-9])", sentence, re.IGNORECASE
-        )
-        if exact or acronym_match:
-            cited.add(source_id)
-    return cited
+    rag_sources, official_sources = _attribution_sources(evidence)
+    return canonical_rag_source_ids(sentence, rag_sources) | canonical_official_source_ids(
+        sentence,
+        official_sources,
+    )
+
+
+def _claim_body(sentence, evidence):
+    rag_sources, official_sources = _attribution_sources(evidence)
+    return strip_known_attribution_labels(
+        sentence,
+        rag_sources=rag_sources,
+        official_sources=official_sources,
+    )
+
+
+def _attribution_sources(evidence):
+    rag_sources = [
+        {
+            "source_id": item["source_id"],
+            "title": item["title"],
+        }
+        for item in evidence
+        if item["evidence_type"] == "retrieved_chunk"
+    ]
+    official_sources = [
+        {
+            "id": item["source_id"],
+            "name": item["title"],
+        }
+        for item in evidence
+        if item["evidence_type"] == "official_source_metadata"
+    ]
+    return rag_sources, official_sources
 
 
 def _jurisdiction_conflicts(sentence, analysis, evidence):

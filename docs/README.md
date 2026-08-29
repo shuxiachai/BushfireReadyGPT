@@ -8,7 +8,7 @@ If you only have a few minutes, read these in order:
 
 1. `project_overview.md` - what the project is and what it is not.
 2. `demo_walkthrough.md` - how to demonstrate the app.
-3. `../examples/v0.5.0/README.md` - current Markdown, PDF, DOCX and governed package.
+3. `../examples/v0.5.0/README.md` - published Markdown, PDF, DOCX and governed package.
 4. `commercial_gap_assessment.md` - what remains before commercial or government use.
 
 ## Start Here
@@ -24,7 +24,7 @@ If you only have a few minutes, read these in order:
 
 | File | Purpose |
 | --- | --- |
-| `../examples/v0.5.0/README.md` | Current v0.5.0 local-Ollama sample in Markdown, PDF and DOCX plus its `pilot-export-v4` package. |
+| `../examples/v0.5.0/README.md` | Published v0.5.0 local-Ollama sample in Markdown, PDF and DOCX plus its `pilot-export-v4` package. |
 | `../examples/v0.3.0/README.md` | Historical governed sample retained for comparison. |
 | `assets/bushfire-ready-gpt-demo.webm` | 89-second local product demonstration. |
 | `pilot_pitch.md` | One-page pilot pitch for councils, schools or community stakeholders. |
@@ -51,8 +51,8 @@ If you only have a few minutes, read these in order:
 | `releases/v0.3.0.md` | Data-quality, scenario benchmark, sample package, visual QA and pilot-readiness release. |
 | `releases/v0.4.0.md` | Evidence-alignment, anonymous pilot measurement and privacy-minimised runtime Trace release. |
 | `releases/v0.5.0.md` | Reproducible release evidence, governed quality-policy binding and offline verification release. |
-| `benchmarks/rag-retrieval-v0.5.0.json` | Current Top-8 release gate and Top-5 diagnostic with dataset, model, index and Git provenance. |
-| `benchmarks/report-generation-v0.5.0.json` | Current eight-scenario governed real-Ollama gate with diagnostic grounding metrics. |
+| `benchmarks/rag-retrieval-v0.5.0.json` | Published Top-8 release gate and Top-5 diagnostic with dataset, model, index and Git provenance. |
+| `benchmarks/report-generation-v0.5.0.json` | Published eight-scenario governed real-Ollama gate with diagnostic grounding metrics. |
 | `benchmarks/report-generation-v0.3.0.json` | Historical eight-case real-Ollama regression result. |
 | `benchmarks/report-generation-v0.4.0.json` | Historical grounding-diagnostic regression result. |
 
@@ -64,6 +64,18 @@ RAG release gate evaluates 73 structured Top-8 questions; the free-text Top-5
 diagnostic evaluates all 84 questions. The report gate evaluates eight scenarios.
 See the two v0.5.0 benchmark JSON files and `../examples/v0.5.0/README.md` for the
 exact measured rates, provenance and limitations.
+
+## Maintained Working Tree
+
+The v0.6.0 release-candidate working tree was checked locally on 2026-08-29 with
+`584` passing non-E2E tests and `86.75%` measured `src` coverage. Ruff lint/format,
+Bandit, Poetry/package consistency and `pip-audit` also pass locally. The
+hardening includes PID/token-owned audit and RAG locks with conservative stale
+record recovery, canonical `[O1-RAG][source_id=...] <title>` model citations
+with deterministic URL binding, a fake-Ollama Windows full-launch test, one
+PowerShell quality-check wrapper and root `/tmp/` exclusion. These local values
+are not a new release or a remote-CI claim; the immutable `v0.5.0` evidence above
+remains unchanged.
 
 ## Removed Redundant Docs
 

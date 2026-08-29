@@ -1,6 +1,8 @@
 import json
 import math
 import os
+import subprocess
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -207,6 +209,37 @@ def test_failed_lock_initialisation_does_not_leave_a_permanent_lock(tmp_path, mo
     monkeypatch.setattr(index_module.os, "write", original_write)
     with index_file_lock(settings):
         assert lock_path.is_file()
+    assert not lock_path.exists()
+
+
+def test_young_incomplete_index_lock_is_not_reclaimed(tmp_path):
+    settings, _source_path = _settings(tmp_path)
+    lock_path = settings.rag_dir / ".index.lock"
+    lock_path.write_bytes(b"")
+
+    with pytest.raises(RagError) as captured:
+        with index_file_lock(settings, timeout_seconds=0):
+            pass
+
+    assert captured.value.code == "rag_index_locked"
+    assert lock_path.exists()
+
+
+def test_old_empty_index_lock_left_by_a_crashed_process_is_reclaimed(tmp_path):
+    settings, _source_path = _settings(tmp_path)
+    lock_path = settings.rag_dir / ".index.lock"
+    script = (
+        "import os, sys; descriptor = os.open(sys.argv[1], os.O_CREAT | os.O_EXCL | os.O_WRONLY); os.close(descriptor)"
+    )
+    subprocess.run([sys.executable, "-c", script, str(lock_path)], check=True)
+    old_timestamp = time.time() - index_module._STALE_INDEX_LOCK_SECONDS - 60
+    os.utime(lock_path, (old_timestamp, old_timestamp))
+
+    with index_file_lock(settings, timeout_seconds=0):
+        owner = json.loads(lock_path.read_text(encoding="ascii"))
+        assert owner["pid"] == os.getpid()
+        assert owner["token"]
+
     assert not lock_path.exists()
 
 

@@ -4,7 +4,7 @@
 
 BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It helps a user produce a structured draft preparedness report from a selected location, audience, scenario, planning focus and review context.
 
-The project is designed for controlled demonstration and pilot discussion with councils, schools and community resilience teams. It is not an operational emergency management platform.
+The project is a governed portfolio MVP designed for controlled demonstration and pilot discussion with councils, schools and community resilience teams. External validation is still pending, and it is not an operational emergency management platform.
 
 ## What Changed From The Original Project
 
@@ -80,22 +80,27 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - A current Cairns Council sample package, product screenshots and a short demonstration video.
 - Commercial gap and project maturity assessment.
 
-## Current Branch Validation (2026-08-24)
+## Maintained Working-Tree Validation (2026-08-29)
 
-- The maintained branch passes `541` automated tests: `540` non-E2E unit/integration/Streamlit tests and one Chromium end-to-end workflow. The measured non-E2E `src` coverage is `86.54%`.
+- The maintained working tree passes `584` non-E2E unit, integration, Streamlit and Windows-launcher tests. The measured non-E2E `src` coverage is `86.75%`.
+- Ruff lint/format, Bandit, Poetry/package consistency and `pip-audit` pass locally. A shared PowerShell wrapper runs the quality checks with Python UTF-8 mode so dependency auditing works from Windows paths containing non-ASCII characters.
 - Explicit map geography is now the effective profile for every downstream agent; conflicting known states fail closed before evidence selection.
-- RAG build/inspection/retrieval uses fixed process-then-file locking, token-owned cross-process locks, immutable source snapshots and backup-first publication recovery; release evaluation checks provenance before and after every question or scenario call to detect A-to-B-to-A drift visible across call boundaries, while explicitly not claiming visibility into a model-tag swap wholly inside one HTTP call.
+- Audit writes and RAG build/inspection/retrieval use PID/token-owned cross-process locks. RAG also uses a fixed process-then-file order, immutable source snapshots and backup-first publication recovery; sufficiently old invalid lock records can be recovered without deleting a live owner's lock.
+- Model-authored RAG claims use one canonical `[O1-RAG][source_id=...] <title>` citation contract. `governed-report-v3` accepts the exact label only inside the narrative Data Sources and Limitations section; grounding uses the same parser. The model does not author URLs; verified links are bound deterministically in the evidence tables.
+- Release evaluation checks provenance before and after every question or scenario call to detect A-to-B-to-A drift visible across call boundaries, while explicitly not claiming visibility into a model-tag swap wholly inside one HTTP call.
 - Session hydration validates a bounded versioned schema, report/review inputs have backend limits, audit ancestry is verified iteratively, and model generation/revision share one repair implementation.
 - Local model streaming has a hard wall-clock deadline; unverified U0 values stay in an escaped JSON block rather than deterministic analysis text, and configured YAML source/rule identifiers must be non-empty and unique.
 - Evidence Trail views and derived downloads are bound to the frozen report snapshot; PDF/DOCX table parsing is shared and renderer-fingerprinted preview artifacts are cached only inside the current browser session.
+- A fake-Ollama integration test exercises the full Windows launcher path, and repository-local `/tmp/` artifacts are excluded from version control.
 
-These current-branch figures are engineering verification, not a new release artifact or a production-accuracy claim.
+These are local engineering results for the maintained working tree. They are
+not a new release artifact, a remote-CI claim or a production-accuracy claim.
 
 ## Published Release Validation (`v0.5.0`)
 
 - The local release verification passed `429` automated tests: `428` non-E2E unit/integration/Streamlit tests and one Chromium end-to-end workflow. The measured non-E2E `src` coverage was `86.08%`.
 - Report generation and revision produce a deterministic evidence-alignment review for attributable claims, citations, numbers and jurisdiction conflicts.
-- The current quality contract is `governed-report-v2`, fingerprint `7c20b6fa049dc1028cc367955eb28b5434318b2d4050995cc9cf58b53a5da9d1`. The same canonical gate is recomputed for generation, revision, approval and governed export.
+- The published v0.5.0 quality contract is `governed-report-v2`, fingerprint `7c20b6fa049dc1028cc367955eb28b5434318b2d4050995cc9cf58b53a5da9d1`. The same canonical gate is recomputed for generation, revision, approval and governed export; the maintained v0.6.0 candidate has advanced to `governed-report-v3` while retaining v2 read compatibility.
 - Anonymous pilot aggregation and Bad Case regression tooling are ready, but the committed template still contains zero external participants.
 - Privacy-minimised runtime Trace records per-stage latency, repair use and safe error codes without prompt, report, retrieval or identity content.
 - The [production-aligned RAG artifact](benchmarks/rag-retrieval-v0.5.0.json) records Top-8 passage recall `1.0000`, MRR `0.9216`, Top-1 `0.8529` and safety-negative abstention `1.0000`. Its separate free-text Top-5 profile records recall `0.9706`, MRR `0.8922`, Top-1 `0.8235` and unanswerable accuracy `1.0000`.
@@ -122,7 +127,8 @@ These figures are release regression signals, not production accuracy or hardwar
 
 ## Best Current Positioning
 
-Use this project as a **government-pilot MVP** or **portfolio-ready prototype**.
+Use this project as a **governed portfolio MVP** or **controlled-pilot
+prototype with external validation pending**.
 
 The right claim is:
 

@@ -15,6 +15,7 @@ from src.export_register import (
     canonical_export_register_snapshot,
     export_register_snapshot_hashes,
 )
+from src.file_lock import lock_can_be_reclaimed, process_is_running, read_lock_owner
 from src.governance import (
     APPROVED_STATUS,
     DRAFT_STATUS,
@@ -1387,32 +1388,93 @@ def _report_lock(audit_dir, report_id, timeout_seconds=5.0):
     lock_path = audit_dir / f".lock_{_slugify(report_id)}.lock"
     deadline = time.monotonic() + timeout_seconds
     descriptor = None
+    owner_token = uuid4().hex
     while descriptor is None:
         try:
             descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError as error:
-            try:
-                stale = time.time() - lock_path.stat().st_mtime > AUDIT_LOCK_STALE_SECONDS
-            except OSError:
-                stale = False
-            if stale:
-                lock_path.unlink(missing_ok=True)
+            if _report_lock_can_be_reclaimed(lock_path):
+                try:
+                    lock_path.unlink(missing_ok=True)
+                except OSError as unlink_error:
+                    raise AuditIntegrityError("The stale report audit lock could not be removed.") from unlink_error
                 continue
             if time.monotonic() >= deadline:
                 raise AuditIntegrityError("Timed out waiting for the report audit lock.") from error
             time.sleep(0.05)
     try:
-        os.write(descriptor, f"pid={os.getpid()}\n".encode("ascii"))
-        os.close(descriptor)
+        try:
+            payload = json.dumps(
+                {"pid": os.getpid(), "token": owner_token},
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+            written = 0
+            while written < len(payload):
+                count = os.write(descriptor, payload[written:])
+                if count < 1:
+                    raise OSError("The report audit lock record could not be written.")
+                written += count
+            os.close(descriptor)
+        except OSError as error:
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+                descriptor = None
+            try:
+                lock_path.unlink(missing_ok=True)
+            except OSError as cleanup_error:
+                raise AuditIntegrityError(
+                    "The incomplete report audit lock could not be cleaned up."
+                ) from cleanup_error
+            raise AuditIntegrityError("The report audit lock could not be initialised.") from error
         descriptor = None
         yield
     finally:
         if descriptor is not None:
-            os.close(descriptor)
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        _release_report_lock(lock_path, owner_token)
+
+
+def _read_report_lock_owner(lock_path):
+    return read_lock_owner(lock_path)
+
+
+def _process_is_running(pid):
+    return process_is_running(pid)
+
+
+def _report_lock_can_be_reclaimed(lock_path):
+    return lock_can_be_reclaimed(
+        lock_path,
+        AUDIT_LOCK_STALE_SECONDS,
+        is_process_running=_process_is_running,
+    )
+
+
+def _release_report_lock(lock_path, owner_token):
+    owner = _read_report_lock_owner(lock_path)
+    if owner is None:
+        if lock_path.exists():
+            raise AuditIntegrityError("The report audit lock owner could not be verified during release.")
+        return
+    if owner["token"] != owner_token:
+        return
+    last_error = None
+    for attempt in range(3):
         try:
             lock_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+            return
+        except OSError as error:
+            last_error = error
+            if attempt < 2:
+                time.sleep(0.05)
+    raise AuditIntegrityError("The report audit lock could not be released.") from last_error
 
 
 def _include_sensitive_content():

@@ -1,11 +1,10 @@
-"""Verify the committed v0.5.0 release evidence without network or model access."""
+"""Verify a committed release evidence set without network or model access."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,16 +18,19 @@ from scripts.evaluation_artifacts import (  # noqa: E402
     validate_rag_evaluation_artifact,
     validate_report_evaluation_artifact,
 )
+from scripts.release_paths import (  # noqa: E402
+    ReleasePathError,
+    project_version,
+    release_version_tuple,
+    resolve_release_directory,
+    validate_release_version,
+)
 from scripts.verify_sample_exports import verify_sample_package  # noqa: E402
 from src.report_generation_quality import quality_policy_metadata  # noqa: E402
 
-RELEASE_VERSION = "0.5.0"
 RAG_QUESTIONS_PATH = Path("data_australia/rag/evaluation.json")
 REPORT_SCENARIOS_PATH = Path("data_australia/rag/report_evaluation.json")
-RAG_ARTIFACT_PATH = Path("docs/benchmarks/rag-retrieval-v0.5.0.json")
-REPORT_ARTIFACT_PATH = Path("docs/benchmarks/report-generation-v0.5.0.json")
-SAMPLE_DIRECTORY = Path("examples/v0.5.0")
-SAMPLE_PACKAGE_PATH = SAMPLE_DIRECTORY / "cairns-council-pilot-package.zip"
+RED_TEAM_MINIMUM_VERSION = (0, 6, 0)
 _INDEX_IDENTITY_FIELDS = (
     "schema",
     "manifest_sha256",
@@ -49,25 +51,42 @@ class ReleaseVerificationError(ValueError):
 class ReleasePaths:
     """All paths needed by the offline release verifier."""
 
+    release_version: str
     pyproject: Path
     rag_questions: Path
     report_scenarios: Path
+    red_team_scenarios: Path
     rag_artifact: Path
     report_artifact: Path
+    red_team_artifact: Path
     sample_package: Path
     sample_directory: Path
 
     @classmethod
-    def for_project(cls, project_root: Path) -> ReleasePaths:
+    def for_project(
+        cls,
+        project_root: Path,
+        *,
+        release_version: str | None = None,
+        release_dir: Path | str | None = None,
+    ) -> ReleasePaths:
         root = Path(project_root).resolve()
+        version, sample_directory = resolve_release_directory(
+            root,
+            release_version=release_version,
+            release_dir=release_dir,
+        )
         return cls(
+            release_version=version,
             pyproject=root / "pyproject.toml",
             rag_questions=root / RAG_QUESTIONS_PATH,
             report_scenarios=root / REPORT_SCENARIOS_PATH,
-            rag_artifact=root / RAG_ARTIFACT_PATH,
-            report_artifact=root / REPORT_ARTIFACT_PATH,
-            sample_package=root / SAMPLE_PACKAGE_PATH,
-            sample_directory=root / SAMPLE_DIRECTORY,
+            red_team_scenarios=root / "data_australia" / "rag" / f"report_red_team-v{version}.json",
+            rag_artifact=root / "docs" / "benchmarks" / f"rag-retrieval-v{version}.json",
+            report_artifact=root / "docs" / "benchmarks" / f"report-generation-v{version}.json",
+            red_team_artifact=root / "docs" / "benchmarks" / f"report-red-team-v{version}.json",
+            sample_package=sample_directory / "cairns-council-pilot-package.zip",
+            sample_directory=sample_directory,
         )
 
 
@@ -87,14 +106,10 @@ def _load_json(path: Path, label: str) -> dict:
 
 
 def _project_version(pyproject_path: Path) -> str:
-    _require(pyproject_path.is_file(), f"Project metadata is missing: {pyproject_path}")
     try:
-        payload = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
-        raise ReleaseVerificationError(f"Project metadata is unreadable: {pyproject_path}") from error
-    version = (payload.get("project") or {}).get("version")
-    _require(isinstance(version, str) and bool(version), "pyproject.toml does not declare project.version")
-    return version
+        return project_version(pyproject_path.parent)
+    except ReleasePathError as error:
+        raise ReleaseVerificationError(str(error)) from error
 
 
 def _verify_dataset_binding(
@@ -130,6 +145,18 @@ def _verify_release_gate(payload: dict, label: str) -> None:
     _require(payload.get("passed") is True, f"{label} evaluation did not pass")
 
 
+def _verify_diagnostic_gate(payload: dict, label: str) -> None:
+    gate = payload.get("diagnostic_gate")
+    release_gate = payload.get("release_gate")
+    _require(isinstance(gate, dict), f"{label} diagnostic gate is missing")
+    _require(gate.get("active") is True, f"{label} diagnostic gate is inactive")
+    _require(gate.get("passed") is True, f"{label} diagnostic gate did not pass")
+    _require(isinstance(release_gate, dict), f"{label} release gate declaration is missing")
+    _require(release_gate.get("active") is False, f"{label} must not claim release-gate authority")
+    _require(release_gate.get("passed") is None, f"{label} must not claim a release-gate result")
+    _require(payload.get("passed") is True, f"{label} evaluation did not pass")
+
+
 def _verify_shared_provenance(rag_payload: dict, report_payload: dict) -> str:
     rag_run = rag_payload["run"]
     report_run = report_payload["run"]
@@ -144,6 +171,28 @@ def _verify_shared_provenance(rag_payload: dict, report_payload: dict) -> str:
             f"RAG and report release evidence use different RAG index {field}",
         )
     return str(rag_commit)
+
+
+def _verify_red_team_provenance(report_payload: dict, red_team_payload: dict) -> None:
+    report_run = report_payload["run"]
+    red_team_run = red_team_payload["run"]
+    _require(
+        (report_run.get("git") or {}).get("commit") == (red_team_run.get("git") or {}).get("commit"),
+        "Report and red-team evidence came from different Git commits",
+    )
+    for field in _INDEX_IDENTITY_FIELDS:
+        _require(
+            (report_run.get("rag_index") or {}).get(field) == (red_team_run.get("rag_index") or {}).get(field),
+            f"Report and red-team evidence use different RAG index {field}",
+        )
+    _require(
+        report_run.get("model") == red_team_run.get("model"),
+        "Report and red-team evidence use different model identities or parameters",
+    )
+    _require(
+        report_run.get("quality_policy") == red_team_run.get("quality_policy"),
+        "Report and red-team evidence use different quality policies",
+    )
 
 
 def _verify_sample_runtime(sample: dict, rag_payload: dict, report_payload: dict) -> None:
@@ -170,25 +219,56 @@ def _verify_sample_runtime(sample: dict, rag_payload: dict, report_payload: dict
 def verify_release(
     project_root: Path = PROJECT_ROOT,
     *,
+    release_version: str | None = None,
+    release_dir: Path | str | None = None,
     paths: ReleasePaths | None = None,
 ) -> dict:
     """Validate the complete committed release evidence set offline."""
 
     root = Path(project_root).resolve()
-    release_paths = paths or ReleasePaths.for_project(root)
-    version = _project_version(release_paths.pyproject)
-    _require(version == RELEASE_VERSION, f"Expected project version {RELEASE_VERSION}, found {version}")
+    try:
+        selected_version = validate_release_version(release_version) if release_version is not None else None
+        release_paths = paths or ReleasePaths.for_project(
+            root,
+            release_version=selected_version,
+            release_dir=release_dir,
+        )
+    except ReleasePathError as error:
+        raise ReleaseVerificationError(str(error)) from error
+    if selected_version is not None:
+        _require(
+            release_paths.release_version == selected_version,
+            "Explicit release version does not match the supplied release paths",
+        )
+    else:
+        selected_version = release_paths.release_version
+
+    current_project_version = _project_version(release_paths.pyproject)
+    current_project_mode = release_version is None or selected_version == current_project_version
+    if current_project_mode:
+        _require(
+            current_project_version == selected_version,
+            f"Expected project version {selected_version}, found {current_project_version}",
+        )
 
     rag_payload = _load_json(release_paths.rag_artifact, "RAG release artifact")
     report_payload = _load_json(release_paths.report_artifact, "Report release artifact")
+    requires_red_team = release_version_tuple(selected_version) >= RED_TEAM_MINIMUM_VERSION
+    red_team_payload = (
+        _load_json(release_paths.red_team_artifact, "Red-team diagnostic artifact") if requires_red_team else None
+    )
     try:
         validate_rag_evaluation_artifact(rag_payload)
         validate_report_evaluation_artifact(report_payload)
+        if red_team_payload is not None:
+            validate_report_evaluation_artifact(red_team_payload)
     except ArtifactValidationError as error:
         raise ReleaseVerificationError(f"Release artifact contract failed: {error}") from error
 
     _verify_release_gate(rag_payload, "RAG")
     _verify_release_gate(report_payload, "Report")
+    if red_team_payload is not None:
+        _verify_diagnostic_gate(red_team_payload, "Red-team")
     _verify_dataset_binding(
         rag_payload["run"],
         source_path=release_paths.rag_questions,
@@ -204,50 +284,106 @@ def verify_release(
         relative_path=REPORT_SCENARIOS_PATH,
         file_field="scenario_file",
         sha_field="scenario_file_sha256",
-        hash_basis_field=None,
+        hash_basis_field="scenario_hash_basis" if requires_red_team else None,
         schema_field="scenario_schema_version",
     )
+    if red_team_payload is not None:
+        red_team_relative = Path("data_australia") / "rag" / f"report_red_team-v{selected_version}.json"
+        _verify_dataset_binding(
+            red_team_payload["run"],
+            source_path=release_paths.red_team_scenarios,
+            relative_path=red_team_relative,
+            file_field="scenario_file",
+            sha_field="scenario_file_sha256",
+            hash_basis_field="scenario_hash_basis",
+            schema_field="scenario_schema_version",
+        )
+        red_team_run = red_team_payload["run"]
+        _require(
+            red_team_run.get("scenario_suite_kind") == "prompt_injection_red_team",
+            "Red-team artifact uses the wrong scenario suite kind",
+        )
+        _require(
+            red_team_run.get("scenario_suite_version") == selected_version,
+            "Red-team scenario suite version does not match the release",
+        )
+        _require(
+            red_team_run.get("artifact_purpose") == "diagnostic_prompt_injection_red_team",
+            "Red-team artifact purpose is invalid",
+        )
+        _require(
+            report_payload["run"].get("scenario_suite_kind") == "product_regression",
+            "Report artifact does not declare the product regression suite",
+        )
 
     current_policy = quality_policy_metadata()
     recorded_policy = report_payload["run"].get("quality_policy")
-    _require(recorded_policy == current_policy, "Report release artifact is not bound to the current quality policy")
+    _require(isinstance(recorded_policy, dict), "Report release artifact has no bound quality policy")
+    if current_project_mode:
+        _require(
+            recorded_policy == current_policy, "Report release artifact is not bound to the current quality policy"
+        )
     commit = _verify_shared_provenance(rag_payload, report_payload)
+    if red_team_payload is not None:
+        _verify_red_team_provenance(report_payload, red_team_payload)
 
     try:
         sample = verify_sample_package(
             release_paths.sample_package,
             standalone_dir=release_paths.sample_directory,
-            require_current_policy=True,
+            require_current_policy=current_project_mode,
         )
     except ValueError as error:
         raise ReleaseVerificationError(f"Current showcase package failed verification: {error}") from error
-    _require(sample.get("current_policy") is True, "Showcase package is not bound to the current quality policy")
+    if current_project_mode:
+        _require(sample.get("current_policy") is True, "Showcase package is not bound to the current quality policy")
     _require(sample.get("governed_gate_passed") is True, "Showcase package did not pass the governed report gate")
-    _require(sample.get("quality_policy_version") == current_policy["version"], "Showcase policy version is stale")
+    _require(sample.get("quality_policy_version") == recorded_policy.get("version"), "Showcase policy version is stale")
     _require(
-        sample.get("quality_policy_fingerprint") == current_policy["fingerprint"],
+        sample.get("quality_policy_fingerprint") == recorded_policy.get("fingerprint"),
         "Showcase policy fingerprint is stale",
     )
     _verify_sample_runtime(sample, rag_payload, report_payload)
 
-    return {
-        "release_version": version,
+    result = {
+        "release_version": selected_version,
+        "project_version": current_project_version,
+        "verification_mode": "project_current" if current_project_mode else "immutable_release",
         "verified_offline": True,
         "source_commit": commit,
-        "quality_policy_version": current_policy["version"],
-        "quality_policy_fingerprint": current_policy["fingerprint"],
+        "quality_policy_version": recorded_policy["version"],
+        "quality_policy_fingerprint": recorded_policy["fingerprint"],
         "rag_release_gate_passed": True,
         "report_release_gate_passed": True,
         "sample": sample,
     }
+    if red_team_payload is not None:
+        result["red_team_diagnostic_gate_passed"] = True
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
+    parser.add_argument(
+        "--release-version",
+        help=(
+            "Verify an immutable major.minor.patch release independently of the current project version. "
+            "Omit this option to verify the version declared by pyproject.toml against current policy."
+        ),
+    )
+    parser.add_argument(
+        "--release-dir",
+        type=Path,
+        help="Override the versioned sample directory; it must remain inside the project root.",
+    )
     args = parser.parse_args(argv)
     try:
-        result = verify_release(args.project_root)
+        result = verify_release(
+            args.project_root,
+            release_version=args.release_version,
+            release_dir=args.release_dir,
+        )
     except ReleaseVerificationError as error:
         parser.exit(1, f"Release verification failed: {error}\n")
     print(json.dumps(result, indent=2))

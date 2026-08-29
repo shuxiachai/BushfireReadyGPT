@@ -1,6 +1,9 @@
 param(
     [switch]$PreflightOnly,
-    [string]$PythonPath = ""
+    [string]$PythonPath = "",
+    [switch]$NoBrowser,
+    [switch]$ExitAfterReady,
+    [string]$RuntimeStateDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,7 +17,13 @@ $virtualPython = if ([string]::IsNullOrWhiteSpace($PythonPath)) {
 } else {
     $PythonPath
 }
-$stateDirectory = Join-Path $projectRoot "chat_history"
+$stateDirectory = if ([string]::IsNullOrWhiteSpace($RuntimeStateDirectory)) {
+    Join-Path $projectRoot "chat_history"
+} elseif ([System.IO.Path]::IsPathRooted($RuntimeStateDirectory)) {
+    [System.IO.Path]::GetFullPath($RuntimeStateDirectory)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $RuntimeStateDirectory))
+}
 $statePath = Join-Path $stateDirectory "bushfire_ready_setup_state.json"
 $lockPath = Join-Path $projectRoot "poetry.lock"
 $modelfilePath = Join-Path $projectRoot "Modelfile"
@@ -53,6 +62,11 @@ function Get-DotEnvValue {
         [Parameter(Mandatory = $true)][string]$Name,
         [string]$DefaultValue = ""
     )
+
+    $processValue = [Environment]::GetEnvironmentVariable($Name, "Process")
+    if (-not [string]::IsNullOrWhiteSpace($processValue)) {
+        return $processValue.Trim()
+    }
 
     if (-not (Test-Path $envFile)) {
         return $DefaultValue
@@ -206,6 +220,11 @@ function Get-RagIndexState {
 function Open-AppBrowser {
     param([Parameter(Mandatory = $true)][string]$Url)
 
+    if ($NoBrowser) {
+        Write-Host "Browser launch skipped; BushfireReadyGPT is ready at $Url"
+        return
+    }
+
     try {
         Start-Process -FilePath $Url | Out-Null
         Write-Host "Opened BushfireReadyGPT in the default browser: $Url"
@@ -334,12 +353,14 @@ if ($needsOllama) {
         throw "Automatic model setup requires a local Ollama endpoint; configured endpoint: $ollamaRoot"
     }
 
+    $ollamaStatus = Get-OllamaStatus -TagsUrl $tagsUrl
     $ollama = Resolve-OllamaExecutable
-    if (-not $ollama) {
-        throw "Ollama is required for the configured local features. Install it from https://ollama.com/download/windows and run 'Start BushfireReadyGPT.bat' again."
+    if (-not $ollamaStatus) {
+        if (-not $ollama) {
+            throw "Ollama is required for the configured local features. Install it from https://ollama.com/download/windows and run 'Start BushfireReadyGPT.bat' again."
+        }
+        $ollamaStatus = Wait-ForOllama -Executable $ollama -TagsUrl $tagsUrl
     }
-
-    $ollamaStatus = Wait-ForOllama -Executable $ollama -TagsUrl $tagsUrl
 }
 
 $recordedModelfileHash = if ($setupState -and $setupState.modelfile_sha256) {
@@ -355,6 +376,9 @@ if (-not $skipModels -and $provider -eq "ollama") {
         $aliasAvailable = Test-OllamaModelAvailable -Status $ollamaStatus -Model $ollamaModel
         $aliasNeedsUpdate = (-not $aliasAvailable) -or ($recordedModelfileHash -ne $modelfileHash)
         if ($aliasNeedsUpdate) {
+            if (-not $ollama) {
+                throw "The local Ollama API is running, but the Ollama command is unavailable for model setup. Install Ollama or add it to PATH."
+            }
             if (-not (Test-OllamaModelAvailable -Status $ollamaStatus -Model "qwen2.5:7b")) {
                 Write-Host "Downloading the missing report base model: qwen2.5:7b"
                 Invoke-Checked -Command { & $ollama pull qwen2.5:7b } -FailureMessage "Could not install Ollama model 'qwen2.5:7b'."
@@ -367,6 +391,9 @@ if (-not $skipModels -and $provider -eq "ollama") {
         }
         $savedModelfileHash = $modelfileHash
     } elseif (-not (Test-OllamaModelAvailable -Status $ollamaStatus -Model $ollamaModel)) {
+        if (-not $ollama) {
+            throw "The local Ollama API is running, but the Ollama command is unavailable for model setup. Install Ollama or add it to PATH."
+        }
         Write-Host "Downloading the configured report model: $ollamaModel"
         Invoke-Checked -Command { & $ollama pull $ollamaModel } -FailureMessage "Could not install Ollama model '$ollamaModel'."
         $repairPerformed = $true
@@ -377,6 +404,9 @@ if (-not $skipModels -and $provider -eq "ollama") {
 
 if (-not $skipModels -and -not $skipRag -and $ragEnabled) {
     if (-not (Test-OllamaModelAvailable -Status $ollamaStatus -Model $ragModel)) {
+        if (-not $ollama) {
+            throw "The local Ollama API is running, but the Ollama command is unavailable for model setup. Install Ollama or add it to PATH."
+        }
         Write-Host "Downloading the missing RAG embedding model: $ragModel"
         Invoke-Checked -Command { & $ollama pull $ragModel } -FailureMessage "Could not install Ollama model '$ragModel'."
         $repairPerformed = $true
@@ -513,8 +543,15 @@ try {
     }
 
     Open-AppBrowser -Url $appUrl
-    $streamlitProcess.WaitForExit()
-    $streamlitExitCode = $streamlitProcess.ExitCode
+    if ($ExitAfterReady) {
+        Write-Host "Streamlit readiness check passed; stopping the verification instance."
+        Stop-Process -Id $streamlitProcess.Id -Force -ErrorAction SilentlyContinue
+        $streamlitProcess.WaitForExit()
+        $streamlitExitCode = 0
+    } else {
+        $streamlitProcess.WaitForExit()
+        $streamlitExitCode = $streamlitProcess.ExitCode
+    }
 } finally {
     if ($streamlitProcess) {
         $streamlitProcess.Dispose()

@@ -65,7 +65,7 @@ jobs:
 
       - name: Verify committed v0.5.0 release evidence offline
         if: matrix.python-version == '3.13'
-        run: poetry run python scripts/verify_release.py
+        run: poetry run python scripts/verify_release.py --release-version 0.5.0
 
   windows:
     name: Windows startup and tests
@@ -97,6 +97,10 @@ jobs:
         run: |
           & ".\Start BushfireReadyGPT.bat" --preflight
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Windows quality checks
+        shell: powershell
+        run: .\scripts\run_quality_checks.ps1
 
       - name: Run Windows unit and integration tests
         shell: pwsh

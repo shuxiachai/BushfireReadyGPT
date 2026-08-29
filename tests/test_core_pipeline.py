@@ -811,9 +811,9 @@ def test_canonical_gate_does_not_count_deterministic_appendix_as_narrative_attri
     assert rag_check["status"] == "fail"
 
 
-def test_rag_source_attribution_accepts_recognised_agency_acronym():
+def test_rag_source_attribution_rejects_agency_acronym_without_canonical_label():
     attributed = attributed_rag_source_ids(
-        "The draft uses DFES preparedness guidance and still requires local verification.",
+        "## Data Sources and Limitations\nThe draft uses DFES guidance and requires local verification.",
         [
             {
                 "source_id": "wa_prepare_bushfire",
@@ -823,7 +823,45 @@ def test_rag_source_attribution_accepts_recognised_agency_acronym():
         ],
     )
 
-    assert attributed == {"wa_prepare_bushfire"}
+    assert attributed == set()
+
+
+def test_rag_source_attribution_requires_exact_label_in_data_sources_section():
+    chunks = [
+        {
+            "source_id": "wa_prepare_bushfire",
+            "title": "Prepare for a bushfire",
+            "agency": "Department of Fire and Emergency Services Western Australia",
+        }
+    ]
+    label = "[O1-RAG][source_id=wa_prepare_bushfire] Prepare for a bushfire"
+
+    assert attributed_rag_source_ids(f"## Data Sources and Limitations\n{label}", chunks) == {"wa_prepare_bushfire"}
+    assert attributed_rag_source_ids(f"## Preparedness Priorities\n{label}", chunks) == set()
+
+
+def test_rag_source_attribution_handles_missing_source_id_without_crashing():
+    quality = assess_generated_narrative(
+        "## Data Sources and Limitations\n[O1-RAG][source_id=unknown-source] Untitled official source",
+        {"knowledge": {"retrieved_chunks": [{"title": "Incomplete source", "agency": "Test agency"}]}},
+    )
+
+    check = next(item for item in quality["checks"] if item["name"] == "RAG source attribution")
+    assert check["status"] == "fail"
+
+
+def test_rag_source_attribution_ignores_fake_section_inside_fenced_code():
+    chunks = [{"source_id": "qld-guide", "title": "Queensland Guide", "agency": "Test agency"}]
+    narrative = """## Preparedness Priorities
+```markdown
+## Data Sources and Limitations
+[O1-RAG][source_id=qld-guide] Queensland Guide
+```
+## Action Plan
+Confirm real sources separately.
+"""
+
+    assert attributed_rag_source_ids(narrative, chunks) == set()
 
 
 def test_incomplete_report_body_fails_quality_and_cannot_be_approved():

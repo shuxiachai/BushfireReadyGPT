@@ -15,8 +15,8 @@ def _write_json(path, payload):
 
 @pytest.fixture
 def release_fixture(tmp_path, monkeypatch):
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.5.0"\n', encoding="utf-8")
     paths = release_verifier.ReleasePaths.for_project(tmp_path)
-    paths.pyproject.write_text('[project]\nversion = "0.5.0"\n', encoding="utf-8")
     questions = {"schema_version": 3, "questions": []}
     scenarios = {"schema_version": 2, "scenarios": []}
     _write_json(paths.rag_questions, questions)
@@ -75,7 +75,7 @@ def release_fixture(tmp_path, monkeypatch):
         "model_name": "bushfire-ready-qwen",
         "model_endpoint_boundary": "local_loopback",
     }
-    calls = {"rag": 0, "report": 0, "sample": 0}
+    calls = {"rag": 0, "report": 0, "sample": 0, "sample_current_policy": []}
 
     def validate_rag(payload):
         calls["rag"] += 1
@@ -87,9 +87,8 @@ def release_fixture(tmp_path, monkeypatch):
 
     def verify_sample(package_path, *, standalone_dir, require_current_policy):
         calls["sample"] += 1
-        assert package_path == paths.sample_package
-        assert standalone_dir == paths.sample_directory
-        assert require_current_policy is True
+        calls["sample_current_policy"].append(require_current_policy)
+        assert package_path == standalone_dir / "cairns-council-pilot-package.zip"
         return sample_result
 
     monkeypatch.setattr(release_verifier, "validate_rag_evaluation_artifact", validate_rag)
@@ -107,7 +106,44 @@ def test_verify_release_accepts_current_offline_evidence(release_fixture):
     assert result["verified_offline"] is True
     assert result["rag_release_gate_passed"] is True
     assert result["report_release_gate_passed"] is True
-    assert calls == {"rag": 1, "report": 1, "sample": 1}
+    assert calls == {"rag": 1, "report": 1, "sample": 1, "sample_current_policy": [True]}
+
+
+def test_explicit_current_version_keeps_strict_current_policy_mode(release_fixture):
+    root, paths, _rag, _report, calls = release_fixture
+
+    result = release_verifier.verify_release(root, paths=paths, release_version="0.5.0")
+
+    assert result["verification_mode"] == "project_current"
+    assert calls["sample_current_policy"] == [True]
+
+
+def test_explicit_v050_remains_verifiable_after_project_advances(release_fixture):
+    root, paths, _rag, _report, calls = release_fixture
+    paths.pyproject.write_text('[project]\nversion = "0.6.0"\n', encoding="utf-8")
+
+    result = release_verifier.verify_release(root, paths=paths, release_version="0.5.0")
+
+    assert result["release_version"] == "0.5.0"
+    assert result["project_version"] == "0.6.0"
+    assert result["verification_mode"] == "immutable_release"
+    assert calls["sample_current_policy"] == [False]
+
+
+def test_release_paths_follow_current_or_explicit_future_version(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.6.0"\n', encoding="utf-8")
+
+    current = release_verifier.ReleasePaths.for_project(tmp_path)
+    explicit = release_verifier.ReleasePaths.for_project(tmp_path, release_version="0.5.0")
+
+    assert current.release_version == "0.6.0"
+    assert current.rag_artifact == tmp_path / "docs/benchmarks/rag-retrieval-v0.6.0.json"
+    assert current.report_artifact == tmp_path / "docs/benchmarks/report-generation-v0.6.0.json"
+    assert current.red_team_artifact == tmp_path / "docs/benchmarks/report-red-team-v0.6.0.json"
+    assert current.red_team_scenarios == tmp_path / "data_australia/rag/report_red_team-v0.6.0.json"
+    assert current.sample_directory == tmp_path / "examples/v0.6.0"
+    assert explicit.release_version == "0.5.0"
+    assert explicit.sample_directory == tmp_path / "examples/v0.5.0"
 
 
 def test_verify_release_rejects_wrong_project_version(release_fixture):
@@ -208,4 +244,82 @@ def test_verify_release_rejects_mismatched_sample_model_runtime(
     monkeypatch.setattr(release_verifier, "verify_sample_package", lambda *_args, **_kwargs: sample)
 
     with pytest.raises(release_verifier.ReleaseVerificationError, match=message):
+        release_verifier.verify_release(root, paths=paths)
+
+
+def _upgrade_fixture_to_v060(root, old_paths, rag_payload, report_payload):
+    old_paths.pyproject.write_text('[project]\nversion = "0.6.0"\n', encoding="utf-8")
+    paths = release_verifier.ReleasePaths.for_project(root)
+    _write_json(paths.rag_questions, {"schema_version": 3, "questions": []})
+    _write_json(paths.report_scenarios, {"schema_version": 2, "scenarios": []})
+    _write_json(
+        paths.red_team_scenarios,
+        {
+            "schema_version": 3,
+            "suite_kind": "prompt_injection_red_team",
+            "suite_version": "0.6.0",
+            "scenarios": [],
+        },
+    )
+    rag = copy.deepcopy(rag_payload)
+    rag["run"]["questions_sha256"] = sha256_file(paths.rag_questions)
+    report = copy.deepcopy(report_payload)
+    report["run"].update(
+        {
+            "scenario_file_sha256": sha256_file(paths.report_scenarios),
+            "scenario_hash_basis": "exact_file_bytes",
+            "scenario_suite_kind": "product_regression",
+        }
+    )
+    red_team = copy.deepcopy(report)
+    red_team.update(
+        {
+            "release_gate": {"active": False, "passed": None},
+            "diagnostic_gate": {"active": True, "passed": True},
+        }
+    )
+    red_team["run"].update(
+        {
+            "artifact_purpose": "diagnostic_prompt_injection_red_team",
+            "scenario_file": "data_australia/rag/report_red_team-v0.6.0.json",
+            "scenario_file_sha256": sha256_file(paths.red_team_scenarios),
+            "scenario_schema_version": 3,
+            "scenario_suite_kind": "prompt_injection_red_team",
+            "scenario_suite_version": "0.6.0",
+        }
+    )
+    _write_json(paths.rag_artifact, rag)
+    _write_json(paths.report_artifact, report)
+    _write_json(paths.red_team_artifact, red_team)
+    paths.sample_package.parent.mkdir(parents=True, exist_ok=True)
+    paths.sample_package.write_bytes(b"test fixture")
+    return paths, red_team
+
+
+def test_v060_release_requires_passing_bound_red_team_evidence(release_fixture):
+    root, old_paths, rag_payload, report_payload, calls = release_fixture
+    paths, _red_team = _upgrade_fixture_to_v060(root, old_paths, rag_payload, report_payload)
+
+    result = release_verifier.verify_release(root, paths=paths)
+
+    assert result["red_team_diagnostic_gate_passed"] is True
+    assert calls["report"] == 2
+
+
+def test_v060_release_rejects_stale_red_team_dataset(release_fixture):
+    root, old_paths, rag_payload, report_payload, _calls = release_fixture
+    paths, _red_team = _upgrade_fixture_to_v060(root, old_paths, rag_payload, report_payload)
+    _write_json(paths.red_team_scenarios, {"schema_version": 3, "scenarios": [{"id": "changed"}]})
+
+    with pytest.raises(release_verifier.ReleaseVerificationError, match="stale report_red_team-v0.6.0.json SHA"):
+        release_verifier.verify_release(root, paths=paths)
+
+
+def test_v060_red_team_cannot_claim_release_gate_authority(release_fixture):
+    root, old_paths, rag_payload, report_payload, _calls = release_fixture
+    paths, red_team = _upgrade_fixture_to_v060(root, old_paths, rag_payload, report_payload)
+    red_team["release_gate"] = {"active": True, "passed": True}
+    _write_json(paths.red_team_artifact, red_team)
+
+    with pytest.raises(release_verifier.ReleaseVerificationError, match="must not claim release-gate authority"):
         release_verifier.verify_release(root, paths=paths)

@@ -245,14 +245,14 @@ def test_historical_reassessment_remains_readable_after_runtime_policy_advances(
         )
     )
 
-    monkeypatch.setattr(audit, "CURRENT_POLICY", "governed-report-v3")
-    monkeypatch.setattr(audit, "QUALITY_POLICY_FINGERPRINT", "3" * 64)
-    monkeypatch.setattr(quality_policy_module, "CURRENT_POLICY", "governed-report-v3")
-    monkeypatch.setattr(quality_policy_module, "QUALITY_POLICY_FINGERPRINT", "3" * 64)
+    monkeypatch.setattr(audit, "CURRENT_POLICY", "governed-report-v4")
+    monkeypatch.setattr(audit, "QUALITY_POLICY_FINGERPRINT", "4" * 64)
+    monkeypatch.setattr(quality_policy_module, "CURRENT_POLICY", "governed-report-v4")
+    monkeypatch.setattr(quality_policy_module, "QUALITY_POLICY_FINGERPRINT", "4" * 64)
 
     record = audit.load_and_verify_audit(reassessed_path)
-    assert record["quality_policy_version"] == "governed-report-v2"
-    assert record["quality_policy_fingerprint"] in READABLE_QUALITY_POLICY_BINDINGS["governed-report-v2"]
+    assert record["quality_policy_version"] == "governed-report-v3"
+    assert record["quality_policy_fingerprint"] in READABLE_QUALITY_POLICY_BINDINGS["governed-report-v3"]
 
 
 def test_quality_reassessment_head_cannot_be_exported_as_a_human_review(monkeypatch):

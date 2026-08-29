@@ -97,6 +97,16 @@ Every generated or revised report runs
 local report session record and appears under **Review & Export > Evidence
 Alignment Review (heuristic)**.
 
+The maintained working tree uses one model-visible retrieval citation contract:
+`[O1-RAG][source_id=<source_id>] <source title>`. Retrieved source IDs and titles
+are normalised before prompt assembly, and model-authored narrative must not
+write, infer or retype a URL. Verified URLs are appended deterministically from
+the frozen source metadata in Evidence Table 4 and Evidence Table 5. Governed
+quality checks the canonical label against the supplied sources; the grounding
+evaluator remains diagnostic and does not turn a matching label into factual
+proof. The committed `v0.5.0` report artifact predates this post-release prompt
+contract and is not rewritten.
+
 The deterministic evaluator:
 
 - extracts model-authored sentences that contain numbers, recognised source
@@ -235,11 +245,14 @@ human feedback and operational logs within their appropriate privacy boundaries.
 
 ## Local Engineering Validation
 
-The maintained branch was checked locally on 2026-08-24 with `541` automated
-tests (`540` non-E2E plus one Chromium E2E) and `86.54%` non-E2E `src` coverage
-against the enforced `85%` minimum. Ruff, formatting, Bandit, Poetry lock
-consistency, installed-package consistency and `pip-audit` passed; `pip-audit`
-reported no known vulnerabilities. The immutable `v0.5.0` release baseline
-remains `429` tests and `86.08%` coverage. These are local results. They must not
-be described as a successful GitHub Actions run until the pushed commit's
-workflow has completed successfully.
+The maintained working tree was checked locally on 2026-08-29 with `584`
+passing non-E2E unit, integration, Streamlit and Windows-launcher tests and
+`86.75%` non-E2E `src` coverage against the enforced `85%` minimum. The suite
+includes a fake-Ollama full-launch integration test. Ruff lint/format, Bandit,
+Poetry lock consistency, installed-package consistency and `pip-audit` passed;
+`pip-audit` reported no known vulnerabilities. The shared PowerShell quality
+wrapper enables Python UTF-8 mode so dependency auditing works from Windows
+paths containing non-ASCII characters. The immutable `v0.5.0` release baseline
+remains `429` tests and `86.08%` coverage. These exact values are local,
+run-specific results; the uncommitted working-tree changes must not be described
+as a successful GitHub Actions run or a new release.
