@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -67,6 +69,10 @@ jobs:
         if: matrix.python-version == '3.13'
         run: poetry run python scripts/verify_release.py --release-version 0.5.0
 
+      - name: Verify committed v0.6.0 release evidence offline
+        if: matrix.python-version == '3.13'
+        run: poetry run python scripts/verify_release.py --release-version 0.6.0
+
   windows:
     name: Windows startup and tests
     runs-on: windows-latest
@@ -77,6 +83,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6

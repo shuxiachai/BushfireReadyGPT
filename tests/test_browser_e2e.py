@@ -60,7 +60,8 @@ MOCK_REPORT = (
 
 ## Operational Planning Detail
 
-Day 1 assigns the preparedness coordinator to confirm contacts with Queensland emergency services, the local
+The Council community preparedness plan assigns accountable owners across the controlled pilot. Day 1 assigns
+the preparedness coordinator to confirm contacts with Queensland emergency services, the local
 council and the Bureau of Meteorology. Call 000 for life-threatening emergencies. Wardens document accessible
 routes, mobility assistance, transport contingencies, family reunification, interpreter support, backup
 communications, first-aid supplies, training attendance, exercise observations and corrective actions. Leaders
@@ -68,6 +69,8 @@ compare seasonal hazards, building exposure, vegetation, smoke impacts, road con
 availability and community capacity. Owners record deadlines, dependencies, evidence, escalation triggers,
 alternate arrangements and consultation outcomes. Current live warnings and any evacuation order must be checked
 with official authorities; this draft never replaces operational direction or professional site assessment.
+Smoke exposure and health support are assigned to documented roles and responsibilities. Human review and
+organisational approval remain mandatory before formal use.
 
 ## Readiness Checklist
 

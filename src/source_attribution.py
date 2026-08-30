@@ -74,6 +74,60 @@ _PROMPT_CONTROL_MARKER = re.compile(
     r"(?P<retrieved>/?\s*retrieved\s*-\s*official\s*-\s*evidence\b[^>]*))\s*>",
     re.IGNORECASE,
 )
+_CONTROL_SHAPED_TAG_NAME = (
+    r"(?:BEGIN|END)[A-Za-z0-9_.:-]*|"
+    r"[A-Za-z0-9_.:-]*(?:SYSTEM|DEVELOPER|ASSISTANT|TOOL|PROMPT|INSTRUCTION|ROLE)[A-Za-z0-9_.:-]*"
+)
+_UNKNOWN_PROMPT_CONTROL_BLOCK = re.compile(
+    rf"<\s*(?P<tag>{_CONTROL_SHAPED_TAG_NAME})(?:\s+[^>\r\n]*)?\s*>.*?"
+    rf"<\s*/\s*(?P=tag)\s*>",
+    re.IGNORECASE | re.DOTALL,
+)
+_BEGIN_END_PROMPT_CONTROL_BLOCK = re.compile(
+    r"<\s*BEGIN(?P<suffix>[_:.-][A-Za-z0-9_.:-]{0,95})(?:\s+[^>\r\n]*)?\s*>.*?"
+    r"<\s*/?\s*END(?P=suffix)\s*>",
+    re.IGNORECASE | re.DOTALL,
+)
+_UNKNOWN_PROMPT_CONTROL_TAG = re.compile(
+    rf"<\s*/?\s*(?:{_CONTROL_SHAPED_TAG_NAME})(?:\s+[^>\r\n]*)?\s*>",
+    re.IGNORECASE,
+)
+_UNCLOSED_UNKNOWN_PROMPT_CONTROL_BLOCK = re.compile(
+    rf"<\s*(?:{_CONTROL_SHAPED_TAG_NAME})(?:\s+[^>\r\n]*)?\s*>.*\Z",
+    re.IGNORECASE | re.DOTALL,
+)
+_PROMPT_ROLE_NAME = r"(?:SYSTEM|DEVELOPER|ASSISTANT|TOOL|USER)"
+_PROMPT_ROLE_QUALIFIER = r"(?:OVERRIDE|INSTRUCTION|MESSAGE|PROMPT|ROLE)"
+_PROMPT_ROLE_DECORATION = r"(?:[*_~`]{1,3})?"
+_PROMPT_ROLE_SUBJECT = (
+    rf"{_PROMPT_ROLE_DECORATION}(?:[\[(]\s*)?{_PROMPT_ROLE_NAME}"
+    rf"(?:\s+{_PROMPT_ROLE_QUALIFIER})?(?:\s*[\])])?{_PROMPT_ROLE_DECORATION}"
+)
+_PROMPT_ROLE_SEPARATOR = r"(?::|=>|[ \t]+-[ \t]+|[\u2010-\u2015])"
+_PROMPT_STRUCTURED_ROLE_BLOCK = re.compile(
+    rf"^[ \t]*(?:(?:>[ \t]*)+|[-+*][ \t]+)?(?:role|['\"]role['\"])[ \t]*:[ \t]*"
+    rf"['\"]?{_PROMPT_ROLE_NAME}['\"]?[ \t]*,?[ \t]*\n"
+    r"[ \t]*(?:(?:>[ \t]*)+|[-+*][ \t]+)?(?:content|['\"]content['\"])[ \t]*:[ \t]*"
+    r"[^\r\n]*(?:\r?\n|$)",
+    re.IGNORECASE | re.MULTILINE,
+)
+_PROMPT_STRUCTURED_ROLE_OBJECT = re.compile(
+    rf"(?<![A-Za-z0-9_])\{{(?=[^\r\n]*['\"]role['\"][ \t]*:[ \t]*['\"]{_PROMPT_ROLE_NAME}['\"]?)"
+    r"(?=[^\r\n]*['\"]content['\"][ \t]*:)[^\r\n]*(?:\r?\n|$)",
+    re.IGNORECASE | re.MULTILINE,
+)
+_PROMPT_ROLE_LINE = re.compile(
+    rf"^[ \t]*(?:>[ \t]*)*(?:(?:#{{1,6}}|[-+*])\s+)?{_PROMPT_ROLE_SUBJECT}\s*"
+    rf"{_PROMPT_ROLE_SEPARATOR}\s*"
+    rf"{_PROMPT_ROLE_DECORATION}[^\r\n]*(?:\r?\n|$)",
+    re.IGNORECASE | re.MULTILINE,
+)
+_PROMPT_INLINE_ROLE_OVERRIDE = re.compile(
+    rf"(?P<prefix>(?:[.!?,;:/|+\-\u2010-\u2015][ \t]*)|(?:[\x28\x5b\x7b<][ \t]*))"
+    rf"{_PROMPT_ROLE_SUBJECT}\s*{_PROMPT_ROLE_SEPARATOR}\s*"
+    rf"{_PROMPT_ROLE_DECORATION}[^\r\n]*",
+    re.IGNORECASE,
+)
 _RAW_HTML = re.compile(
     r"<!--|<\s*(?:!\s*\[CDATA\[|/?\s*[A-Za-z][\w:-]*(?=\s|/?>|$)|![A-Za-z]|\?)",
     re.IGNORECASE | re.MULTILINE,
@@ -555,16 +609,35 @@ def has_unbound_attribution_marker(text):
 
 
 def neutralise_prompt_control_markers(value, *, preserve_retrieved_evidence=False):
-    """Remove untrusted text that could close or forge an application prompt block."""
+    """Remove untrusted text that could forge prompt roles or control blocks.
+
+    Ordinary prose is preserved. Role-labelled command lines and the contents of
+    control-shaped ``BEGIN``/``SYSTEM`` tags are discarded as a unit so merely
+    removing their delimiters cannot leave an executable-looking instruction in
+    model-visible data.
+    """
 
     content = normalise_render_equivalent_text(value)
+    content = re.sub(r"\r\n?|\u2028|\u2029", "\n", content)
+    content = _BEGIN_END_PROMPT_CONTROL_BLOCK.sub("[prompt control block removed]", content)
+    content = _UNKNOWN_PROMPT_CONTROL_BLOCK.sub("[prompt control block removed]", content)
+    content = _UNCLOSED_UNKNOWN_PROMPT_CONTROL_BLOCK.sub("[prompt control block removed]", content)
+    content = _PROMPT_STRUCTURED_ROLE_BLOCK.sub("[prompt role override removed]\n", content)
+    content = _PROMPT_STRUCTURED_ROLE_OBJECT.sub("[prompt role override removed]\n", content)
+    content = _PROMPT_ROLE_LINE.sub("[prompt role override removed]\n", content)
+
+    def replace_inline_role(match):
+        return f"{match.group('prefix')}[prompt role override removed]"
+
+    content = _PROMPT_INLINE_ROLE_OVERRIDE.sub(replace_inline_role, content)
 
     def replace(match):
         if preserve_retrieved_evidence and match.group("retrieved") is not None:
             return match.group(0)
         return "[prompt control marker removed]"
 
-    return _PROMPT_CONTROL_MARKER.sub(replace, content)
+    content = _PROMPT_CONTROL_MARKER.sub(replace, content)
+    return _UNKNOWN_PROMPT_CONTROL_TAG.sub("[prompt control marker removed]", content)
 
 
 def _plain_visible_lines(text):

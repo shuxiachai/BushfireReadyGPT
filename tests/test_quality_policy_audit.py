@@ -92,6 +92,9 @@ def test_policy_identity_is_stable_and_exposed_as_detached_metadata():
     assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v4"] == frozenset(
         {"b32323fe77b1d7f620735b1cc734152a06b37867958a86f3bf8840b304be76d7"}
     )
+    assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v5"] == frozenset(
+        {"0221e3725e10e6aa861f3ab4ac1387a5bf8a04722c2abb11a8600d3c0d651e06"}
+    )
     assert QUALITY_POLICY_FINGERPRINT in READABLE_QUALITY_POLICY_BINDINGS[CURRENT_POLICY]
     metadata["manifest"]["policy_version"] = "tampered"
     assert QUALITY_POLICY_MANIFEST["policy_version"] == CURRENT_POLICY
@@ -225,6 +228,59 @@ def test_quality_reassessment_upgrades_policy_without_claiming_human_review(tmp_
     assert audit.load_and_verify_audit(review_path)["event_type"] == "review.recorded"
 
 
+def test_v5_reassessment_cannot_skip_v6_legacy_scenario_and_focus_gates(tmp_path, monkeypatch):
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    monkeypatch.delenv("BUSHFIRE_AUDIT_INCLUDE_SENSITIVE_CONTENT", raising=False)
+    monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
+    review = _draft_review()
+    report_id = "legacy-contract-gates"
+    report_text = append_human_signoff("# Generic historical report", review)
+    legacy_analysis = {
+        "profile": {
+            "scenario": "Household bushfire preparedness",
+            "concerns": ["emergency kits"],
+        },
+        "plan": {},
+    }
+    path = Path(
+        audit.save_report_audit(
+            {
+                "report_id": report_id,
+                "report_version": 1,
+                "report_text": report_text,
+                "analysis": legacy_analysis,
+                "report_status": DRAFT_STATUS,
+                "human_review": review,
+                "package_context": _context(report_id),
+            }
+        )
+    )
+    _rewrite_as_fingerprinted_historical(
+        path,
+        "governed-report-v5",
+        "0221e3725e10e6aa861f3ab4ac1387a5bf8a04722c2abb11a8600d3c0d651e06",
+    )
+
+    reassessed_path = audit.append_quality_reassessment(
+        path,
+        {
+            "report_id": report_id,
+            "report_version": 1,
+            "report_text": report_text,
+            "analysis": legacy_analysis,
+            "report_status": DRAFT_STATUS,
+            "human_review": review,
+            "package_context": _context(report_id),
+        },
+    )
+    reassessed = audit.load_and_verify_audit(reassessed_path)
+    failures = {item["name"] for item in reassessed["quality"]["approval_gate"]["blocking_failures"]}
+
+    assert reassessed["quality_policy_version"] == "governed-report-v6"
+    assert reassessed["generation_gate_blocked"] is True
+    assert {"Selected scenario coverage", "Selected focus-area coverage"} <= failures
+
+
 def test_quality_reassessment_rejects_report_or_signoff_changes(tmp_path, monkeypatch):
     path, _report_text, review = _create_report(tmp_path, monkeypatch)
     _rewrite_as_historical(path)
@@ -262,17 +318,17 @@ def test_historical_reassessment_remains_readable_after_runtime_policy_advances(
         )
     )
 
-    monkeypatch.setattr(audit, "CURRENT_POLICY", "governed-report-v6")
-    monkeypatch.setattr(audit, "QUALITY_POLICY_FINGERPRINT", "6" * 64)
-    monkeypatch.setattr(quality_policy_module, "CURRENT_POLICY", "governed-report-v6")
-    monkeypatch.setattr(quality_policy_module, "QUALITY_POLICY_FINGERPRINT", "6" * 64)
+    monkeypatch.setattr(audit, "CURRENT_POLICY", "governed-report-v7")
+    monkeypatch.setattr(audit, "QUALITY_POLICY_FINGERPRINT", "7" * 64)
+    monkeypatch.setattr(quality_policy_module, "CURRENT_POLICY", "governed-report-v7")
+    monkeypatch.setattr(quality_policy_module, "QUALITY_POLICY_FINGERPRINT", "7" * 64)
 
     record = audit.load_and_verify_audit(reassessed_path)
-    assert record["quality_policy_version"] == "governed-report-v5"
-    assert record["quality_policy_fingerprint"] in READABLE_QUALITY_POLICY_BINDINGS["governed-report-v5"]
+    assert record["quality_policy_version"] == "governed-report-v6"
+    assert record["quality_policy_fingerprint"] in READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"]
 
 
-def test_fingerprinted_v3_chain_remains_readable_and_reassesses_to_v5(tmp_path, monkeypatch):
+def test_fingerprinted_v3_chain_remains_readable_and_reassesses_to_current_policy(tmp_path, monkeypatch):
     path, report_text, review = _create_report(tmp_path, monkeypatch, "v3-compatible")
     v3_fingerprint = "6968d649b4ee0cc57a1365470dbdef9fa20803e778c56c1235c1053c180a74e2"
     historical = _rewrite_as_fingerprinted_historical(path, "governed-report-v3", v3_fingerprint)
@@ -306,7 +362,7 @@ def test_fingerprinted_v3_chain_remains_readable_and_reassesses_to_v5(tmp_path, 
         },
     )
     reassessed = audit.load_and_verify_audit(reassessed_path)
-    assert reassessed["quality_policy_version"] == CURRENT_POLICY == "governed-report-v5"
+    assert reassessed["quality_policy_version"] == CURRENT_POLICY == "governed-report-v6"
     assert reassessed["quality_policy_fingerprint"] == QUALITY_POLICY_FINGERPRINT
     assert reassessed["previous_record_hash"] == historical["record_hash"]
 

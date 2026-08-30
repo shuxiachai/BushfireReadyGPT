@@ -6,6 +6,7 @@ import streamlit as st
 
 from src.agents import run_analysis_pipeline
 from src.agents.profile_agent import ProfileAgent
+from src.app_catalog import CONCERN_OPTIONS, SCENARIO_OPTIONS, TIMEFRAME_OPTIONS
 from src.audit import (
     AuditIntegrityError,
     append_audit_event,
@@ -90,6 +91,8 @@ def validate_report_inputs(inputs):
         return budget_error
     location = (inputs.get("location") or "").strip()
     audience = (inputs.get("audience") or "").strip()
+    scenario = (inputs.get("scenario") or "").strip()
+    timeframe = (inputs.get("timeframe") or "").strip()
     concerns = inputs.get("concerns") or []
     report_status = inputs.get("report_status") or "Draft - human review required"
     organisation_name = (inputs.get("organisation_name") or "").strip()
@@ -100,6 +103,12 @@ def validate_report_inputs(inputs):
         return "Please enter a location and audience, or load a pilot example."
     if not concerns:
         return "Please select at least one focus area, or load a pilot example."
+    if scenario not in SCENARIO_OPTIONS:
+        return "Please select a scenario from the application catalogue."
+    if timeframe not in TIMEFRAME_OPTIONS:
+        return "Please select a timeframe from the application catalogue."
+    if not isinstance(concerns, (list, tuple)) or any(concern not in CONCERN_OPTIONS for concern in concerns):
+        return "Please select focus areas from the application catalogue."
     if report_status in {"Reviewed draft", "Approved by organisation"}:
         missing = []
         if not organisation_name:

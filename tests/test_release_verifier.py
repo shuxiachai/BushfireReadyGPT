@@ -167,6 +167,19 @@ def release_fixture(tmp_path, monkeypatch):
     monkeypatch.setattr(release_verifier, "validate_rag_evaluation_artifact", validate_rag)
     monkeypatch.setattr(release_verifier, "validate_report_evaluation_artifact", validate_report)
     monkeypatch.setattr(release_verifier, "verify_sample_package", verify_sample)
+    monkeypatch.setattr(
+        release_verifier,
+        "_verify_repository_provenance",
+        lambda *_args, **_kwargs: {
+            "repository_verified": True,
+            "working_tree_clean": True,
+            "dirty_override_used": False,
+            "source_commit_resolved": commit,
+            "head_commit": commit,
+            "source_commit_is_ancestor": True,
+            "tracked_release_files": [],
+        },
+    )
     return tmp_path, paths, rag_payload, report_payload, calls
 
 
@@ -219,6 +232,156 @@ def test_release_paths_follow_current_or_explicit_future_version(tmp_path):
     assert explicit.release_version == "0.5.0"
     assert explicit.report_scenarios == tmp_path / "data_australia/rag/report_evaluation.json"
     assert explicit.sample_directory == tmp_path / "examples/v0.5.0"
+
+
+def _repository_provenance_fixture(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.5.0"\n', encoding="utf-8")
+    paths = release_verifier.ReleasePaths.for_project(tmp_path)
+    for path in (paths.rag_artifact, paths.report_artifact, paths.sample_package):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"tracked release fixture")
+    return paths
+
+
+def _passing_git_query(source_commit, head_commit, calls):
+    def run_git(_root, *arguments):
+        calls.append(arguments)
+        if arguments == ("rev-parse", "--is-inside-work-tree"):
+            return 0, "true", ""
+        if arguments == ("status", "--porcelain=v1", "--untracked-files=all"):
+            return 0, "", ""
+        if arguments[:3] == ("ls-files", "--error-unmatch", "--"):
+            return 0, arguments[-1], ""
+        if arguments == ("rev-parse", "--verify", f"{source_commit}^{{commit}}"):
+            return 0, source_commit, ""
+        if arguments == ("rev-parse", "--verify", "HEAD^{commit}"):
+            return 0, head_commit, ""
+        if arguments == ("merge-base", "--is-ancestor", source_commit, head_commit):
+            return 0, "", ""
+        raise AssertionError(f"Unexpected Git query: {arguments}")
+
+    return run_git
+
+
+def test_repository_provenance_requires_tracked_evidence_and_ancestor_commit(tmp_path, monkeypatch):
+    paths = _repository_provenance_fixture(tmp_path)
+    source_commit = "a" * 40
+    head_commit = "b" * 40
+    calls = []
+    monkeypatch.setattr(
+        release_verifier,
+        "_run_git",
+        _passing_git_query(source_commit, head_commit, calls),
+    )
+
+    result = release_verifier._verify_repository_provenance(
+        tmp_path,
+        paths,
+        source_commit,
+        requires_red_team=False,
+        allow_dirty=False,
+    )
+
+    assert result["repository_verified"] is True
+    assert result["working_tree_clean"] is True
+    assert result["source_commit_is_ancestor"] is True
+    assert len(result["tracked_release_files"]) == 3
+    assert any(call[:3] == ("ls-files", "--error-unmatch", "--") for call in calls)
+
+
+def test_repository_provenance_rejects_dirty_tree_without_explicit_override(tmp_path, monkeypatch):
+    paths = _repository_provenance_fixture(tmp_path)
+
+    def run_git(_root, *arguments):
+        if arguments == ("rev-parse", "--is-inside-work-tree"):
+            return 0, "true", ""
+        if arguments == ("status", "--porcelain=v1", "--untracked-files=all"):
+            return 0, " M README.md", ""
+        raise AssertionError(f"Unexpected Git query: {arguments}")
+
+    monkeypatch.setattr(release_verifier, "_run_git", run_git)
+
+    with pytest.raises(release_verifier.ReleaseVerificationError, match="clean Git working tree"):
+        release_verifier._verify_repository_provenance(
+            tmp_path,
+            paths,
+            "a" * 40,
+            requires_red_team=False,
+            allow_dirty=False,
+        )
+
+
+def test_repository_provenance_records_dirty_diagnostic_override(tmp_path, monkeypatch):
+    paths = _repository_provenance_fixture(tmp_path)
+    source_commit = "a" * 40
+    head_commit = "b" * 40
+    calls = []
+    passing = _passing_git_query(source_commit, head_commit, calls)
+
+    def run_git(root, *arguments):
+        if arguments == ("status", "--porcelain=v1", "--untracked-files=all"):
+            return 0, " M README.md", ""
+        return passing(root, *arguments)
+
+    monkeypatch.setattr(release_verifier, "_run_git", run_git)
+
+    result = release_verifier._verify_repository_provenance(
+        tmp_path,
+        paths,
+        source_commit,
+        requires_red_team=False,
+        allow_dirty=True,
+    )
+
+    assert result["working_tree_clean"] is False
+    assert result["dirty_override_used"] is True
+
+
+def test_repository_provenance_rejects_untracked_evidence(tmp_path, monkeypatch):
+    paths = _repository_provenance_fixture(tmp_path)
+
+    def run_git(_root, *arguments):
+        if arguments == ("rev-parse", "--is-inside-work-tree"):
+            return 0, "true", ""
+        if arguments == ("status", "--porcelain=v1", "--untracked-files=all"):
+            return 0, "", ""
+        if arguments[:3] == ("ls-files", "--error-unmatch", "--"):
+            return 1, "", "not tracked"
+        raise AssertionError(f"Unexpected Git query: {arguments}")
+
+    monkeypatch.setattr(release_verifier, "_run_git", run_git)
+
+    with pytest.raises(release_verifier.ReleaseVerificationError, match="not tracked by Git"):
+        release_verifier._verify_repository_provenance(
+            tmp_path,
+            paths,
+            "a" * 40,
+            requires_red_team=False,
+            allow_dirty=False,
+        )
+
+
+def test_repository_provenance_rejects_non_ancestor_source_commit(tmp_path, monkeypatch):
+    paths = _repository_provenance_fixture(tmp_path)
+    source_commit = "a" * 40
+    head_commit = "b" * 40
+    passing = _passing_git_query(source_commit, head_commit, [])
+
+    def run_git(root, *arguments):
+        if arguments == ("merge-base", "--is-ancestor", source_commit, head_commit):
+            return 1, "", ""
+        return passing(root, *arguments)
+
+    monkeypatch.setattr(release_verifier, "_run_git", run_git)
+
+    with pytest.raises(release_verifier.ReleaseVerificationError, match="not an ancestor"):
+        release_verifier._verify_repository_provenance(
+            tmp_path,
+            paths,
+            source_commit,
+            requires_red_team=False,
+            allow_dirty=False,
+        )
 
 
 def test_verify_release_rejects_wrong_project_version(release_fixture):

@@ -18,8 +18,8 @@ def _valid_report_inputs():
     return {
         "location": "Cairns, Queensland",
         "audience": "School community",
-        "scenario": "School preparedness",
-        "concerns": ["Evacuation planning"],
+        "scenario": "School bushfire preparedness",
+        "concerns": ["Evacuation"],
         "timeframe": "7-day action plan",
         "extra_context": "",
         "report_status": "Draft - human review required",

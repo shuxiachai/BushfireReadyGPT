@@ -38,7 +38,8 @@ QUALITY_PASSING_REPORT = (
     "# Governed Bushfire Preparedness Draft\n\n"
     + "\n\n".join(
         f"## {heading}\n"
-        f"The {heading} section requires the responsible organisation to review local arrangements, evidence, "
+        f"The School bushfire preparedness plan's {heading} section requires the responsible organisation to "
+        "review local arrangements, evidence, "
         "accessibility, communications, "
         "training, accountability and documented preparedness actions with authorised partners before formal use. "
         "This planning content records assumptions and requires verification against current official sources."
@@ -298,7 +299,7 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert not app.exception
     assert model_call.call_count == 3
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
-    assert app.session_state["latest_quality"]["summary"]["total"] == 16
+    assert app.session_state["latest_quality"]["summary"]["total"] == 18
     assert app.session_state["latest_audit_path"].startswith(str(isolated_app_storage["audit_dir"]))
     assert app.session_state["latest_report"]["version"] == 1
     assert app.session_state["latest_report"]["audit_path"] == app.session_state["latest_audit_path"]

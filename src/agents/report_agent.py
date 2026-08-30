@@ -23,6 +23,10 @@ class ReportAgent:
             f"- State / territory inference: {profile['state']}",
             f"- Scenario type: {profile['setting_type']}",
         ]
+        if profile.get("scenario_concept"):
+            profile_lines.append(f"- Application-recognised scenario: {profile['scenario_concept']['label']}")
+        if profile.get("timeframe_concept"):
+            profile_lines.append(f"- Application-recognised timeframe: {profile['timeframe_concept']['label']}")
         if isinstance(area_selection, dict) and area_selection:
             selected_geography = {
                 "area_name": profile.get("locality") or area_selection.get("area_name"),
@@ -64,6 +68,9 @@ class ReportAgent:
             "",
             "Planner Agent:",
             *[f"- {item}" for item in plan_result.get("planning_priorities", [])],
+            "",
+            "Application-recognised focus areas (cover each one in the report):",
+            *[f"- {item['label']}" for item in plan_result.get("focus_area_concepts", [])],
             "",
             "Data limitations:",
             *[f"- {item}" for item in data_result.get("data_limitations", [])],

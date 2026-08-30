@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess  # nosec B404
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -48,6 +49,24 @@ class ReleaseVerificationError(ValueError):
     """Raised when committed release evidence is absent, stale or inconsistent."""
 
 
+def _run_git(project_root: Path, *arguments: str) -> tuple[int, str, str]:
+    """Run one bounded Git query without invoking a shell."""
+
+    command = ["git", "-C", str(project_root), *arguments]
+    try:
+        result = subprocess.run(  # nosec B603 B607
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+    except OSError as error:
+        raise ReleaseVerificationError("Git is unavailable; repository provenance cannot be verified.") from error
+    return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+
 @dataclass(frozen=True)
 class ReleasePaths:
     """All paths needed by the offline release verifier."""
@@ -90,6 +109,84 @@ class ReleasePaths:
             sample_package=sample_directory / "cairns-council-pilot-package.zip",
             sample_directory=sample_directory,
         )
+
+
+def _verify_repository_provenance(
+    project_root: Path,
+    release_paths: ReleasePaths,
+    source_commit: str,
+    *,
+    requires_red_team: bool,
+    allow_dirty: bool,
+) -> dict:
+    """Bind release evidence to tracked files and an ancestor source commit."""
+
+    root = Path(project_root).resolve()
+    code, output, error = _run_git(root, "rev-parse", "--is-inside-work-tree")
+    _require(
+        code == 0 and output.casefold() == "true",
+        f"Release project root is not a Git working tree: {error or root}",
+    )
+
+    code, status, error = _run_git(root, "status", "--porcelain=v1", "--untracked-files=all")
+    _require(code == 0, f"Git working-tree status could not be read: {error or 'unknown Git error'}")
+    working_tree_clean = not bool(status)
+    _require(
+        allow_dirty or working_tree_clean,
+        "Release verification requires a clean Git working tree; use --allow-dirty only for diagnostics.",
+    )
+
+    candidates = [
+        release_paths.rag_artifact,
+        release_paths.report_artifact,
+        release_paths.sample_package,
+    ]
+    if requires_red_team:
+        candidates.append(release_paths.red_team_artifact)
+    if release_paths.sample_directory.is_dir():
+        candidates.extend(path for path in release_paths.sample_directory.rglob("*") if path.is_file())
+
+    tracked_files = []
+    for path in sorted({Path(candidate).resolve() for candidate in candidates}):
+        try:
+            relative_path = path.relative_to(root).as_posix()
+        except ValueError as error_outside_root:
+            raise ReleaseVerificationError(
+                f"Release evidence escapes the repository root: {path}"
+            ) from error_outside_root
+        _require(path.is_file(), f"Release evidence file is missing: {relative_path}")
+        code, _output, error = _run_git(root, "ls-files", "--error-unmatch", "--", relative_path)
+        _require(
+            code == 0,
+            f"Release evidence is not tracked by Git: {relative_path} ({error or 'not in the index'})",
+        )
+        tracked_files.append(relative_path)
+
+    commit = str(source_commit or "").strip()
+    _require(commit, "Release artifacts do not declare a source Git commit")
+    code, resolved_commit, error = _run_git(root, "rev-parse", "--verify", f"{commit}^{{commit}}")
+    _require(code == 0, f"Release source commit does not exist in this repository: {commit} ({error})")
+    code, head_commit, error = _run_git(root, "rev-parse", "--verify", "HEAD^{commit}")
+    _require(code == 0, f"Repository HEAD could not be resolved: {error or 'unknown Git error'}")
+    code, _output, error = _run_git(root, "merge-base", "--is-ancestor", resolved_commit, head_commit)
+    _require(
+        code == 0,
+        (
+            f"Release source commit is not an ancestor of repository HEAD: {resolved_commit}"
+            if code == 1
+            else f"Git could not verify the release source ancestry: {error or resolved_commit}"
+        ),
+    )
+
+    return {
+        "repository_verified": True,
+        "working_tree_clean": working_tree_clean,
+        "dirty_override_used": bool(allow_dirty and not working_tree_clean),
+        "source_commit_resolved": resolved_commit,
+        "head_commit": head_commit,
+        "source_commit_is_ancestor": True,
+        "tracked_release_files": tracked_files,
+    }
 
 
 def _require(condition: bool, message: str) -> None:
@@ -298,6 +395,7 @@ def verify_release(
     release_version: str | None = None,
     release_dir: Path | str | None = None,
     paths: ReleasePaths | None = None,
+    allow_dirty: bool = False,
 ) -> dict:
     """Validate the complete committed release evidence set offline."""
 
@@ -409,6 +507,13 @@ def verify_release(
     commit = _verify_shared_provenance(rag_payload, report_payload)
     if red_team_payload is not None:
         _verify_red_team_provenance(report_payload, red_team_payload)
+    repository_provenance = _verify_repository_provenance(
+        root,
+        release_paths,
+        commit,
+        requires_red_team=requires_red_team,
+        allow_dirty=allow_dirty,
+    )
 
     try:
         sample = verify_sample_package(
@@ -434,6 +539,7 @@ def verify_release(
         "verification_mode": "project_current" if current_project_mode else "immutable_release",
         "verified_offline": True,
         "source_commit": commit,
+        "repository_provenance": repository_provenance,
         "quality_policy_version": recorded_policy["version"],
         "quality_policy_fingerprint": recorded_policy["fingerprint"],
         "rag_release_gate_passed": True,
@@ -460,12 +566,21 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Override the versioned sample directory; it must remain inside the project root.",
     )
+    parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help=(
+            "Allow a dirty working tree for local diagnostics only. Tracked-file and source-commit ancestry "
+            "checks still apply, and the result records that the override was used."
+        ),
+    )
     args = parser.parse_args(argv)
     try:
         result = verify_release(
             args.project_root,
             release_version=args.release_version,
             release_dir=args.release_dir,
+            allow_dirty=args.allow_dirty,
         )
     except ReleaseVerificationError as error:
         parser.exit(1, f"Release verification failed: {error}\n")

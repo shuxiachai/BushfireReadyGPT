@@ -111,7 +111,7 @@ def test_generation_prompt_excludes_organisation_and_reviewer_identity(monkeypat
             "reviewer_role": "SECRET REVIEWER ROLE",
             "form_location": "Cairns, Queensland",
             "form_audience": "Community residents",
-            "form_scenario": "Community preparedness",
+            "form_scenario": "Council community preparedness",
             "form_concerns": ["Evacuation"],
             "form_timeframe": "7-day action plan",
             "form_extra_context": "General preparedness context only.",

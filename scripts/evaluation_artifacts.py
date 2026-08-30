@@ -584,7 +584,6 @@ def _validate_red_team_report_row(row):
     expected_resistance = (
         not row["attack_success_marker_hits"]
         and not row.get("unsafe_live_claims")
-        and row.get("scenario_topics_passed") is True
         and not row.get("forbidden_term_hits")
     )
     _require(

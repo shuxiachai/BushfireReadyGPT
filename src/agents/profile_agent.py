@@ -21,6 +21,89 @@ STATE_SHORT = {
 class ProfileAgent:
     """Normalizes user form inputs into a compact analysis profile."""
 
+    _SCENARIO_CONCEPTS = {
+        "school bushfire preparedness": {
+            "id": "school_preparedness",
+            "label": "School bushfire preparedness",
+            "setting_type": "campus",
+            "match_terms": [
+                "school bushfire preparedness",
+                "school preparedness plan",
+                "campus bushfire preparedness",
+            ],
+        },
+        "council community preparedness": {
+            "id": "council_community_preparedness",
+            "label": "Council community preparedness",
+            "setting_type": "community",
+            "match_terms": [
+                "council community preparedness",
+                "council-led community preparedness",
+                "council preparedness program",
+                "council preparedness plan",
+            ],
+        },
+        "community workshop material": {
+            "id": "community_workshop",
+            "label": "Community workshop material",
+            "setting_type": "community",
+            "match_terms": ["community workshop", "community preparedness workshop"],
+        },
+        "household bushfire preparedness": {
+            "id": "household_preparedness",
+            "label": "Household bushfire preparedness",
+            "setting_type": "household",
+            "match_terms": [
+                "household bushfire preparedness",
+                "household preparedness plan",
+                "home preparedness",
+            ],
+        },
+        "aged care care facility preparedness": {
+            "id": "aged_care_preparedness",
+            "label": "Aged care / care facility preparedness",
+            "setting_type": "aged_care",
+            "match_terms": [
+                "aged care preparedness",
+                "care facility preparedness",
+                "aged care bushfire plan",
+            ],
+        },
+        "farm land management preparedness": {
+            "id": "farm_land_management",
+            "label": "Farm / land management preparedness",
+            "setting_type": "farm",
+            "match_terms": [
+                "farm bushfire preparedness",
+                "farm preparedness plan",
+                "land management preparedness",
+            ],
+        },
+        "current active bushfire route safety request": {
+            "id": "live_route_request",
+            "label": "Current active bushfire route safety request",
+            "setting_type": "general",
+            "match_terms": [
+                "current route safety request",
+                "live evacuation route request",
+                "active bushfire route",
+            ],
+        },
+    }
+    _TIMEFRAME_CONCEPTS = {
+        "7 day action plan": {"id": "seven_day", "label": "7-day action plan"},
+        "this month preparedness plan": {"id": "this_month", "label": "This-month preparedness plan"},
+        "before the next bushfire season": {
+            "id": "before_next_season",
+            "label": "Before the next bushfire season",
+        },
+        "long term community resilience planning": {
+            "id": "long_term_resilience",
+            "label": "Long-term community resilience planning",
+        },
+        "immediate live decision": {"id": "immediate_live_decision", "label": "Immediate live decision"},
+    }
+
     # Tier 2: match state name or postal abbreviation in the location string
     _STATE_KEYWORDS = {
         "Queensland": ["queensland", "qld"],
@@ -107,19 +190,42 @@ class ProfileAgent:
     def _normalise_place(self, value):
         return " ".join(re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).split())
 
+    @classmethod
+    def _normalise_concept_key(cls, value):
+        return " ".join(re.sub(r"[^a-z0-9]+", " ", str(value or "").casefold()).split())
+
+    @classmethod
+    def _canonical_concept(cls, value, concepts):
+        concept = concepts.get(cls._normalise_concept_key(value))
+        return dict(concept) if concept is not None else None
+
+    @classmethod
+    def resolve_scenario_concept(cls, value):
+        """Resolve only an exact application-recognised scenario label."""
+
+        return cls._canonical_concept(value, cls._SCENARIO_CONCEPTS)
+
     def run(self, location, audience, scenario, concerns, timeframe, extra_context):
         location_text = location.strip()
         scenario_text = scenario.strip()
         lower_scenario = scenario_text.lower()
+        scenario_concept = self.resolve_scenario_concept(scenario_text)
+        timeframe_concept = self._canonical_concept(timeframe, self._TIMEFRAME_CONCEPTS)
 
         locality, state = self._resolve_location(location_text)
 
-        if any(keyword in lower_scenario for keyword in ["campus", "school", "university"]):
+        if scenario_concept is not None:
+            setting_type = scenario_concept["setting_type"]
+        elif any(keyword in lower_scenario for keyword in ["campus", "school", "university"]):
             setting_type = "campus"
         elif any(keyword in lower_scenario for keyword in ["community", "resident"]):
             setting_type = "community"
         elif any(keyword in lower_scenario for keyword in ["aged care", "nursing"]):
             setting_type = "aged_care"
+        elif any(keyword in lower_scenario for keyword in ["household", "home preparedness"]):
+            setting_type = "household"
+        elif any(keyword in lower_scenario for keyword in ["farm", "land management"]):
+            setting_type = "farm"
         else:
             setting_type = "general"
 
@@ -129,8 +235,10 @@ class ProfileAgent:
             "state": state,
             "audience": audience.strip(),
             "scenario": scenario_text,
+            "scenario_concept": scenario_concept,
             "setting_type": setting_type,
             "concerns": concerns,
             "timeframe": timeframe,
+            "timeframe_concept": timeframe_concept,
             "extra_context": extra_context.strip(),
         }

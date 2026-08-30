@@ -497,6 +497,10 @@ Formatting and safety requirements:
 - Start the report with this exact notice block:
 {GOVERNANCE_NOTICE_MARKDOWN}
 - Write in formal English suitable for the selected audience and preparedness pilot.
+- Cover every application-recognised focus area listed in the deterministic analysis, using sections 7 and 13
+  plus the most relevant scenario-specific section. Do not promote unrecognised raw U0 focus values.
+- Keep the substantive narrative aligned with the application-recognised scenario label in the deterministic
+  analysis; do not infer a trusted scenario from unrecognised raw U0 text.
 - Treat the output as a draft for human review unless explicitly marked approved by the responsible organisation.
 - Use tables for roles/responsibilities and the action plan where helpful.
 - Use Markdown checklist items such as `- [ ] Confirm candidate assembly point criteria with responsible officers`.
