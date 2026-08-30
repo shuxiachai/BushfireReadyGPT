@@ -804,6 +804,8 @@ def test_repair_prompt_gives_an_absolute_safety_replacement_without_replaying_th
     assert "ABSOLUTE-SAFETY REWRITE" in prompt
     assert "These preparedness measures reduce risk" in prompt
     assert "subject to current official advice and responsible human review" in prompt
+    assert "FINAL LITERAL SCRUB" in prompt
+    assert "Use support, verify, reduce risk or maintain instead" in prompt
     assert "This plan guarantees everyone's safety." not in prompt
 
 

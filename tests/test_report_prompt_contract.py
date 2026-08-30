@@ -117,6 +117,14 @@ def test_build_report_prompt_adds_only_canonical_copy_ready_coverage_declaration
     assert "FOCUS LEAK" not in prompt
 
 
+def test_initial_prompt_applies_literal_absolute_claim_vocabulary_ban():
+    prompt = _build_prompt({"prompt_context": "Frozen analysis prompt context."})
+    normalised = " ".join(prompt.split())
+
+    assert "Do not use any form of the words `ensure`, `guarantee` or `assure`" in prompt
+    assert "Use `support`, `verify`, `reduce risk` or `maintain` instead" in normalised
+
+
 def test_dynamic_evidence_confidence_values_remain_json_data_not_prompt_rules():
     analysis = {
         "prompt_context": "Frozen analysis prompt context.",

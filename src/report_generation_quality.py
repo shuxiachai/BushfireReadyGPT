@@ -114,6 +114,7 @@ KNOWN_QUALITY_POLICY_MANIFESTS = {
         "focus_area_coverage_ruleset": "allowlisted-composite-focus-coverage-v2",
         "scenario_coverage_ruleset": "allowlisted-scenario-coverage-v1",
         "coverage_declaration_ruleset": "canonical-copy-lines-v1",
+        "model_safety_prompt_ruleset": "literal-absolute-claim-ban-v1",
         "legacy_contract_migration_ruleset": "exact-allowlist-or-fail-closed-v1",
     },
 }
@@ -566,7 +567,9 @@ def build_report_repair_prompt(original_prompt, previous_response, quality, *, a
             "- ABSOLUTE-SAFETY REWRITE: Replace every promise to ensure or guarantee safety, every risk-free or "
             'zero-risk statement and every survival guarantee with: "These preparedness measures reduce risk, '
             'subject to current official advice and responsible human review." Do not quote the rejected wording, '
-            "including in tables, checklists or examples."
+            "including in tables, checklists or examples. FINAL LITERAL SCRUB: the returned report must not contain "
+            "any form of the words ensure, guarantee or assure, or the expressions risk-free, zero risk or zero-risk. "
+            "Use support, verify, reduce risk or maintain instead, including in tables and checklists."
         )
     if "duplicat" in failure_text and "required section" in failure_text:
         targeted_safety_rules.append(
@@ -608,8 +611,10 @@ Fixed heading sequence (each exactly once, in this order):
 {coverage_requirement}
 - Treat every road, route, place and premises only as an unverified candidate pending current authorised
   verification and organisational approval. Never issue live directions or state current operational status.
-- Never promise, guarantee or claim to ensure safety. Describe measures only as risk reduction subject to current
-  official advice and responsible human judgement. Keep the draft and human-review boundaries.
+- Do not use any form of the words `ensure`, `guarantee` or `assure`, or the expressions `risk-free`, `zero risk`
+  or `zero-risk`, anywhere in the returned report. Use `support`, `verify`, `reduce risk` or `maintain` instead.
+  Describe measures only as risk reduction subject to current official advice and responsible human judgement.
+  Keep the draft and human-review boundaries.
 - Include at least 300 prose words outside headings, tables and checklist bullets. Give every required section
   section-specific substantive content and use Markdown checkboxes in section 14. Prefer one concise paragraph
   per section and do not repeat the same priority list in multiple sections.
