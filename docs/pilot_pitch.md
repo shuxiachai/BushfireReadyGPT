@@ -25,7 +25,7 @@ Core capabilities:
 - All-Australia SA2 / SA3 / SA4 geography selection.
 - ABS-derived community context for selected areas.
 - Official source register for Queensland, local council and national weather information.
-- Multi-agent evidence trail showing profile, data, risk, planning and quality checks.
+- Eight-role deterministic evidence trail showing profile, data, risk, planning and quality checks; these Python components are not autonomous agents, and only report narration or revision calls the language model.
 - O1 / P2 / R3 / A4 / U0 labels separating official references, processed data, deterministic inference, AI text and unverified inputs.
 - Human review checklist and audit JSON export.
 - Markdown, PDF and DOCX report outputs.

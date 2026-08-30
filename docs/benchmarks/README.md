@@ -4,32 +4,38 @@ This folder contains machine-readable engineering regression results. It does
 not contain stakeholder validation, production accuracy claims or emergency-use
 evidence.
 
-## v0.5.0 Release Evidence
+## v0.6.0 Release Evidence
 
-The current release evidence consists of two complete machine-readable artifacts:
+The current release evidence consists of three complete machine-readable artifacts:
 
-- [`rag-retrieval-v0.5.0.json`](rag-retrieval-v0.5.0.json), schema
+- [`rag-retrieval-v0.6.0.json`](rag-retrieval-v0.6.0.json), schema
   `bushfire-rag-evaluation-v3`;
-- [`report-generation-v0.5.0.json`](report-generation-v0.5.0.json), schema
-  `bushfire-report-generation-evaluation-v3`.
+- [`report-generation-v0.6.0.json`](report-generation-v0.6.0.json), schema
+  `bushfire-report-generation-evaluation-v4`;
+- [`report-red-team-v0.6.0.json`](report-red-team-v0.6.0.json), schema
+  `bushfire-report-generation-evaluation-v4`.
 
-Both runs were collected from clean source commit
-`e02f07687ee2e2329fc59afb5fe1c8ea4f532646`. Their start and completion
-snapshots were stable, and both bind the same verified RAG manifest
+All three runs were collected from clean source commit
+`44d0c3f1f8c78af4291f79b090eb3fc53da95ea7`. Their call-boundary and completion
+snapshots were stable, and all bind the same verified RAG manifest
 `aa8e42d3d7837ee3927b21108cedf5f6553332f92ba89e9f70caa2852febedd2`.
 The retrieval run records embedding model digest
 `85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1`.
-The report run records model digest
+Both report runs record model digest
 `21aa9b63ebd65652bfda214b8012ba0d61375855a448d7396ed57a7d7fa0f8ac`
-and governed quality policy `governed-report-v2` with fingerprint
-`7c20b6fa049dc1028cc367955eb28b5434318b2d4050995cc9cf58b53a5da9d1`.
+and governed quality policy `governed-report-v6` with fingerprint
+`b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`.
+
+Local source validation completed with `884` passing non-E2E tests, `1`
+separately selected E2E test and `86.95%` non-E2E `src` coverage. These are
+engineering results, not a substitute for external user validation.
 
 ### RAG retrieval
 
 | Profile | Questions | Passage Recall@K | MRR | Top-1 | Abstention | Average | P95 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Structured planning Top-8 | 73 (68 answerable + 5 unanswerable) | 1.0000 | 0.9216 | 0.8529 | 1.0000 | 130.36 ms | 157.49 ms |
-| Free text Top-5 | 84 (68 answerable + 16 unanswerable) | 0.9706 | 0.8922 | 0.8235 | 1.0000 | 131.59 ms | 159.00 ms |
+| Structured planning Top-8 | 73 (68 answerable + 5 unanswerable) | 1.0000 | 0.9216 | 0.8529 | 1.0000 | 86.05 ms | 124.15 ms |
+| Free text Top-5 | 84 (68 answerable + 16 unanswerable) | 0.9706 | 0.8922 | 0.8235 | 1.0000 | 94.00 ms | 113.10 ms |
 
 An active release artifact must retain every per-question row for every included
 profile. Offline validation rejects missing or duplicate question IDs and
@@ -47,7 +53,8 @@ poetry run python scripts\evaluate_rag.py --warmup --output output\rag-retrieval
 ### Governed report generation
 
 The eight-case run covers all six product scenarios, deterministic refusal of a
-live-route request and explicit no-RAG degradation. Its enforced rates were:
+live-route request and explicit no-RAG degradation. Its active release gate
+passed all `8/8` cases; enforced rates were:
 
 | Gate | Result |
 | --- | ---: |
@@ -61,14 +68,18 @@ live-route request and explicit no-RAG degradation. Its enforced rates were:
 | Unsafe live claims | 0.0000 |
 | Scenario contamination | 0.0000 |
 | Oversized reports | 0.0000 |
-| Repair rate | 0.6250 |
+| Repair rate | 0.1250 |
+| Repair success rate | 1.0000 |
+| Repair exhaustion rate | 0.0000 |
 
-Average model-run latency was `46.77 seconds` on the release machine. All eight
+Average model-run latency was `26.99 seconds` on the release machine. All eight
 reports remained `review_required` under the diagnostic grounding heuristic.
-Average grounding support was `0.9280`, citation coverage `0.2687`, citation
-precision `0.8571`, numeric consistency `0.9167`, and jurisdiction conflicts
-were `0`. These grounding metrics remain advisory and are not included in the
-release `passed` decision.
+Average grounding support was `0.9612`, citation coverage `0.0000`, citation
+precision `0.0000`, numeric consistency `0.9792`, and jurisdiction conflicts
+were `0`. The attribution metric represents application-bound retrieval
+provenance, not claim-level model citation accuracy. Grounding remains a lexical
+diagnostic, is not included in the release `passed` decision, and requires human
+source review.
 
 Repeat the complete report run with:
 
@@ -76,7 +87,31 @@ Repeat the complete report run with:
 poetry run python scripts\evaluate_report_generation.py --output output\report-generation-next.json
 ```
 
-After both reviewed artifacts and the current showcase package are in their
+### Prompt-injection red team
+
+The six-case red-team suite covers U0 location, audience and additional-context
+overrides; governance removal; forged tool Markdown; and delimiter/live-route
+prompt leakage. Its active diagnostic gate passed all six cases:
+
+| Diagnostic | Result |
+| --- | ---: |
+| Governed report | 1.0000 |
+| Prompt-injection resistance | 1.0000 |
+| Safety violations | 0.0000 |
+| Repair success | 1.0000 |
+| Repair exhaustion | 0.0000 |
+
+Average model-run latency was `30.45 seconds`. The red-team artifact's release
+gate is inactive by design and its diagnostic gate is active and passing; it
+cannot replace the eight-case product release suite.
+
+Repeat the red-team diagnostic with:
+
+```powershell
+poetry run python scripts\evaluate_report_generation.py --scenario-file data_australia\rag\report_red_team-v0.6.0.json --output output\report-red-team-next.json
+```
+
+After all three reviewed artifacts and the current showcase package are in their
 versioned repository paths, verify the complete release evidence offline:
 
 ```powershell
@@ -86,7 +121,17 @@ poetry run python scripts\verify_release.py
 The verifier does not call Ollama or the network. It validates artifact schemas
 and active passing gates, exact current source-dataset hashes, shared Git and RAG
 index provenance, the current quality-policy binding, and the governed
-`examples/v0.5.0` showcase package.
+`examples/v0.6.0` showcase package.
+
+These artifacts are engineering regression evidence, not operational-safety or
+stakeholder-validation evidence. No real external pilot has been completed.
+
+## Historical: v0.5.0 Release Evidence
+
+The immutable `rag-retrieval-v0.5.0.json` and
+`report-generation-v0.5.0.json` artifacts remain available as the previous
+release baseline. They retain their original source-commit, model, policy and
+latency metadata and are not rewritten under the v0.6.0 contract.
 
 ## Historical: Report Generation v0.4.0
 

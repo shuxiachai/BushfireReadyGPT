@@ -6,29 +6,30 @@ Current visual and sample assets:
 
 - `docs/assets/bushfire-ready-gpt-demo.webm` — 89-second local demonstration;
 - `docs/assets/*.png` — current Create Report, report, evidence, map and readiness views;
-- `examples/v0.5.0/` — current governed Cairns Council Markdown, PDF, DOCX and `pilot-export-v4` package;
-- `docs/benchmarks/rag-retrieval-v0.5.0.json` — current structured Top-8 release gate and free-text Top-5 diagnostic;
-- `docs/benchmarks/report-generation-v0.5.0.json` — current eight-scenario real-model release gate with diagnostic grounding metrics.
+- `examples/v0.6.0/` — current governed Cairns Council Markdown, PDF, DOCX and `pilot-export-v4` package;
+- `docs/benchmarks/rag-retrieval-v0.6.0.json` — current 73-question structured Top-8 release gate;
+- `docs/benchmarks/report-generation-v0.6.0.json` — current eight-scenario real-model product gate;
+- `docs/benchmarks/report-red-team-v0.6.0.json` — current six-scenario adversarial prompt-injection diagnostic gate; its release gate is inactive by design.
 
-The v0.3.0 sample and v0.3.0/v0.4.0 report artifacts remain historical evidence,
+Earlier sample and benchmark versions remain historical evidence,
 not the current release baseline.
 
-## v0.5.0 Evidence Snapshot
+## v0.6.0 Evidence Snapshot
 
 | Evidence | Current measured result |
 | --- | --- |
-| Benchmark source and policy | Commit `e02f076`; `governed-report-v2` fingerprint `7c20b6fa...a5da9d1`; `pilot-export-v4` |
-| Automated validation | 429 passing tests: 428 non-E2E plus one Chromium E2E; 86.08% coverage |
-| Structured RAG Top-8 | 73 questions (68 answerable + 5 safety negatives); recall 1.0000; MRR 0.9216; Top-1 0.8529; abstention 1.0000; average/p95 130.36/157.49 ms |
-| Free-text RAG Top-5 | 84 questions (68 answerable + 16 negatives); recall 0.9706; MRR 0.8922; Top-1 0.8235; abstention 1.0000; average/p95 131.59/159.00 ms |
-| Governed reports | Eight scenarios; governed, structural, evidence, RAG attribution, RAG behaviour and topic rates 1.0000; safety and unsafe-live rates 0.0000; repair 0.6250; average 46.77 s |
-| Grounding diagnostics | Support 0.9280; citation coverage 0.2687; precision 0.8571; numeric consistency 0.9167; zero jurisdiction conflicts; all cases require human review |
+| Benchmark source and policy | Commit `44d0c3f1f8c78af4291f79b090eb3fc53da95ea7`; `governed-report-v6` fingerprint `b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`; `pilot-export-v4` |
+| Automated validation | 885 passing checks: 884 non-E2E plus one Chromium E2E; 86.95% non-E2E `src` coverage |
+| Structured RAG Top-8 | 73 questions; recall 1.0000; MRR 0.9216; Top-1 0.8529; abstention 1.0000; average 86.05 ms |
+| Governed product reports | 8/8 passed; average 26.99 s; one controlled repair succeeded; zero safety violations and zero repair exhaustion |
+| Adversarial reports | 6/6 passed; prompt-injection resistance 1.0000; average 30.45 s; every scenario-level governed gate and the suite diagnostic gate passed; release gate inactive by design |
+| Grounding boundary | Evidence-alignment metrics are diagnostics for human review, not semantic-truth or claim-level citation guarantees |
 
-The current sample passed on its first generation attempt and contains a 16-page PDF
-and a 203-paragraph DOCX. Its audit binds the provider (`ollama`), model name
-(`bushfire-ready-qwen`), `local_loopback` boundary and release RAG manifest. The
-sample does not bind a model digest; only the real-model benchmark artifact records
-its own model identity and digest.
+The current sample set is committed under `examples/v0.6.0/`. Its audit binds the
+provider (`ollama`), model name (`bushfire-ready-qwen`), `local_loopback` boundary
+and release RAG manifest. The evaluation artifacts bind exact dataset, Git,
+index and model/embedding provenance. This is application-level retrieval
+provenance, not proof that every narrative claim has a correct claim-level citation.
 
 ## Recommended Reading Order
 
@@ -37,7 +38,7 @@ its own model identity and digest.
 | First-time project explanation | `docs/project_overview.md` | Explain what the project is, what changed from the original open-source project, and what it can do now. |
 | Live demo preparation | `docs/demo_walkthrough.md` | Follow a clear step-by-step demo flow during a presentation. |
 | Commercial / pilot positioning | `docs/pilot_pitch.md` | Explain the problem, solution, target users, pilot scope and governance boundary. |
-| Technical architecture | `docs/architecture.md` | Explain the Streamlit app, multi-agent pipeline, data flow and model runtime. |
+| Technical architecture | `docs/architecture.md` | Explain the Streamlit app, eight-role deterministic component pipeline, data flow and model runtime. |
 | Current maturity and gaps | `docs/project_reassessment.md` | Explain what is already working and what is still missing before commercial use. |
 | Commercial readiness | `docs/commercial_gap_assessment.md` | Discuss the gap between the MVP and a procurement-ready product. |
 | Feedback collection | `docs/pilot_feedback_form.md` | Collect structured feedback from a school, council or community reviewer. |
@@ -53,13 +54,13 @@ its own model identity and digest.
    Explain that schools, councils and communities often need structured preparedness planning material, but source information, local data, review status and export records are usually fragmented.
 
 3. **Solution**
-   Show the form-first workflow, multi-agent evidence trail, local data context, human review boundary and report exports.
+   Show the form-first workflow, deterministic component evidence trail, local data context, human review boundary and report exports.
 
 4. **Live Demo**
    Use `docs/demo_walkthrough.md` and the Cairns Council or Cairns school pilot example.
 
 5. **Architecture**
-   Use `docs/architecture.md` to explain the agents, data layer and Ollama runtime.
+   Use `docs/architecture.md` to explain that eight named agent roles are deterministic Python components and only report narration calls the LLM, then cover the data layer and Ollama runtime.
 
 6. **Current Boundary**
    Clearly state that the app does not provide live warnings, evacuation orders, fire bans or life-safety decisions.
@@ -74,7 +75,7 @@ Use the built-in **Cairns Council pilot** first because it best shows the full p
 - Council/community preparedness audience
 - Queensland official source context
 - ABS / ASGS geography evidence
-- Multi-agent summary
+- Deterministic eight-role component summary
 - Human review and sign-off
 - PDF, DOCX, Markdown and pilot package export
 
@@ -90,7 +91,7 @@ Use the **Cairns school pilot** as the second example if the audience cares more
 
 ## Best One-Sentence Description
 
-BushfireReadyGPT is an Australia-focused multi-agent MVP that helps councils, schools and communities generate draft bushfire preparedness reports with local evidence, official-source references, human review controls and exportable audit records.
+BushfireReadyGPT is an Australia-focused governed MVP that uses eight deterministic Python responsibility components, local hybrid RAG and one LLM report-narration step to create reviewable draft preparedness reports and audit records.
 
 ## Current Status
 
@@ -101,6 +102,8 @@ The project is ready for:
 - Portfolio showcase
 - Controlled stakeholder discussion
 - Early pilot scoping
+
+No real external participant pilot has yet been completed; engineering, retrieval and model regression results are not user validation.
 
 The project is not yet ready for:
 

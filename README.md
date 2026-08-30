@@ -1,4 +1,4 @@
-# BushfireReadyGPT: Local-First Multi-Agent AI for Australian Bushfire Preparedness
+# BushfireReadyGPT: Local-First Governed AI for Australian Bushfire Preparedness
 
 [![Tests](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml/badge.svg)](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml)
 [![Release](https://img.shields.io/github/v/release/shuxiachai/BushfireReadyGPT)](https://github.com/shuxiachai/BushfireReadyGPT/releases/latest)
@@ -7,15 +7,15 @@
 [![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-111111)](https://ollama.com/)
 [![License](https://img.shields.io/github/license/shuxiachai/BushfireReadyGPT)](LICENSE)
 
-> Turn Australian location and community context into auditable bushfire preparedness drafts through a local Ollama-powered multi-agent workflow.
+> Turn Australian location and community context into auditable bushfire preparedness drafts through a local Ollama-powered, deterministic component workflow.
 
-**Local-first AI | Multi-agent evidence trail | ABS / ASGS context | Human-in-the-loop review | Markdown / PDF / DOCX exports**
+**Local-first AI | Deterministic evidence pipeline | ABS / ASGS context | Human-in-the-loop review | Markdown / PDF / DOCX exports**
 
 BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It helps councils, schools and community resilience teams generate structured draft preparedness reports from a selected location, audience, scenario and planning focus.
 
-The project runs locally through Ollama, exposes a deterministic multi-agent evidence trail, uses ABS / ASGS-derived Australian data context, and exports reviewable reports with human sign-off and audit records.
+The project runs locally through Ollama, exposes an eight-role deterministic Python evidence pipeline, uses ABS / ASGS-derived Australian data context, and exports reviewable reports with human sign-off and audit records. The eight named roles are component boundaries, not eight autonomous LLM agents; only report narrative generation and revision call the local model.
 
-**中文简介：** 本项目是一个面向澳洲山火应急准备场景的多智能体报告生成系统原型。系统支持本地 Ollama 大模型推理、结构化表单输入、澳洲地区数据上下文、多 Agent 分析证据链、报告质量检查以及 Markdown / PDF / DOCX 导出。项目当前定位为 MVP / Prototype，适用于学习展示、作品集和受控试点讨论，不用于真实火情判断、撤离命令或生命安全决策。
+**中文简介：** 本项目是一个面向澳洲山火应急准备场景的本地治理型报告生成系统原型。系统通过 8 个命名的确定性 Python 组件完成结构化分析与证据编排，仅在报告叙事生成和修订阶段调用本地 Ollama；这些角色不是 8 个自主大模型 Agent。项目支持澳洲地区数据上下文、混合 RAG、质量门禁、人工复核以及 Markdown / PDF / DOCX 导出，适用于学习展示、作品集和受控试点讨论，不用于真实火情判断、撤离命令或生命安全决策。
 
 This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT](https://github.com/project-araia/WildfireGPT) / MARSHA project. Original United States wildfire data, experiments and inactive tools are treated as local legacy reference material only; the active application is now positioned around Australian bushfire preparedness. See [UPSTREAM.md](UPSTREAM.md) for provenance and modification notes.
 
@@ -23,21 +23,16 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 
 **Stage:** Governed portfolio MVP / controlled-pilot prototype
 
-**Current release:** `v0.5.0`
+**Current release:** `v0.6.0`
 
-The current release evidence was produced from source commit
-[`e02f076`](https://github.com/shuxiachai/BushfireReadyGPT/commit/e02f07687ee2e2329fc59afb5fe1c8ea4f532646).
-It contains `429` passing tests (`428` non-E2E plus one Chromium E2E), with
-`86.08%` measured `src` coverage. Governed exports use `pilot-export-v4` and
-the `governed-report-v2` quality policy (`7c20b6fa...a5da9d1`).
-
-**Maintained v0.6.0 release-candidate verification (2026-08-29):** the post-release
-hardening build passes `584` non-E2E unit, integration, Streamlit and Windows
-launcher tests, with `86.75%` measured `src` coverage. Ruff lint/format, Bandit,
-Poetry/package consistency and `pip-audit` also pass locally. These exact values
-are run-specific local results, not a claim that the uncommitted changes have
-already passed remote CI, and they do not rewrite the immutable `v0.5.0`
-release artifacts above.
+The v0.6.0 release evidence was produced from clean source commit
+[`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7).
+Local validation contains `885` passing tests (`884` non-E2E plus one Chromium
+E2E), with `86.95%` measured `src` coverage. Ruff lint/format, Bandit,
+Poetry/package consistency and `pip-audit` also pass locally. Governed exports
+use `pilot-export-v4` and the fingerprinted `governed-report-v6` quality policy
+(`b3d65d22...4e364745`). These are run-specific local results; the pushed
+commit's GitHub Actions run remains the source of truth for remote CI status.
 
 Ready for:
 
@@ -58,13 +53,13 @@ Not ready for:
 - Generates formal English bushfire preparedness draft reports.
 - Supports council, school, community, household, care facility and land management scenarios.
 - Uses a form-first workflow rather than a generic chatbot flow.
-- Runs a local Australia-focused multi-agent analysis pipeline.
+- Runs a local Australia-focused pipeline of eight deterministic Python component roles.
 - Shows an Evidence Trail with profile, official source, community vulnerability, risk and planning outputs.
 - Labels report provenance as O1 official reference, P2 processed data, R3 rule inference, A4 AI draft or U0 unverified input.
 - Uses local ABS / ASGS-derived geography and community context.
 - Provides official source, data and licence registers.
 - Adds draft notices, evidence tables, safety disclaimers and human review sign-off.
-- Re-runs one canonical Governed Report Check across generation, revision, organisational approval and governed pilot-package export: 13 fixed structure/safety checks plus conditional RAG source attribution.
+- Re-runs one canonical Governed Report Check across generation, revision, organisational approval and governed pilot-package export: 16 fixed report-quality/safety checks, trusted scenario and Focus coverage checks, plus conditional RAG source attribution.
 - Treats follow-up edits as governed report revisions with a new report ID, version, quality result and audit record.
 - Reviews attributable narrative claims against frozen evidence for citation, number and jurisdiction mismatches without presenting the heuristic as factual proof.
 - Records privacy-minimised local runtime Traces for per-agent/model latency, repair use and safe failure diagnosis.
@@ -74,7 +69,7 @@ Not ready for:
 ## Technical Highlights
 
 - Refactored the original chatbot-style interaction into a form-driven report generation workflow.
-- Designed a deterministic multi-agent pipeline covering profile parsing, Australian data context, community vulnerability, risk context, planning and report quality checks.
+- Designed an eight-role deterministic component pipeline covering profile parsing, Australian data context, community vulnerability, risk context, planning and report quality checks; it is not an autonomous multi-agent runtime.
 - Replaced cloud-only OpenAI usage with local Ollama inference for offline-friendly demonstrations and no-cloud-key environments.
 - Built a reviewable evidence trail, governance notice, human sign-off section and audit-ready pilot export package.
 - Added deterministic evidence-confidence labels so official references, processed data, rule inference and AI prose are not presented as equivalent evidence.
@@ -100,6 +95,10 @@ Not ready for:
 - Bound release evaluations before and after each question/scenario call so drift visible at those boundaries, including A-to-B-to-A changes across calls, cannot be hidden by matching run-end snapshots; a model-tag swap wholly inside one HTTP call remains outside this observation boundary.
 - Reused one Markdown table parser and a privacy-safe, renderer-fingerprinted session-local export cache across PDF/DOCX preview paths.
 - Added a fake-Ollama Windows launcher integration test, a single PowerShell quality-check entry point and repository-local temporary-directory exclusion.
+- Added trusted scenario and Focus allowlists, canonical coverage declarations and composite Focus expansion so raw U0 labels cannot satisfy governed coverage checks.
+- Isolated repair prompts from the original prompt, previous model response and raw U0 values; compact repair context carries only bounded application-owned fields and evidence.
+- Added six prompt-injection red-team cases covering role changes, delimiter/control-marker attacks, governance removal, forged tool Markdown and live-route prompt leakage.
+- Reworked absolute-safety repair instructions into positive risk-reduction language while keeping the deterministic safety gate fail closed.
 
 ## Product Tour
 
@@ -118,11 +117,10 @@ Not ready for:
 For the current governed demonstration generated with local Ollama and the
 release-bound RAG index, see:
 
-- [governed Markdown report](examples/v0.5.0/cairns-council-report.md)
-- [presentation-ready PDF](examples/v0.5.0/cairns-council-report.pdf)
-- [editable DOCX](examples/v0.5.0/cairns-council-report.docx)
-- [verified pilot export package](examples/v0.5.0/cairns-council-pilot-package.zip)
-- [sample package notes](examples/v0.5.0/README.md)
+- [governed Markdown report](examples/v0.6.0/cairns-council-report.md)
+- [presentation-ready PDF](examples/v0.6.0/cairns-council-report.pdf)
+- [editable DOCX](examples/v0.6.0/cairns-council-report.docx)
+- [verified pilot export package](examples/v0.6.0/cairns-council-pilot-package.zip)
 
 The `v0.3.0` Cairns Council package and the earlier
 [Cairns campus sample](examples/cairns_campus_bushfire_report.md) remain
@@ -201,15 +199,15 @@ diagnostic. The production profile covers all 68 answerable cases plus the five
 live-operation/life-safety negatives that must always abstain. Arbitrary
 out-of-domain negatives remain in the free-text profile because the trusted
 planning scope is only called with a form-built, in-domain query at runtime.
-The current [v0.5.0 retrieval artifact](docs/benchmarks/rag-retrieval-v0.5.0.json)
+The current [v0.6.0 retrieval artifact](docs/benchmarks/rag-retrieval-v0.6.0.json)
 binds the exact question set, Git commit, verified index manifest and local
 embedding-model digest. Its production `structured_planning` Top-8 gate covers
 73 questions (68 answerable plus five reachable safety negatives): 1.0000
-passage recall, 0.9216 MRR, 0.8529 Top-1 accuracy, 1.0000 abstention, 130.36 ms
-average latency and 157.49 ms p95. The separate `free_text` Top-5 diagnostic
+passage recall, 0.9216 MRR, 0.8529 Top-1 accuracy, 1.0000 abstention, 86.05 ms
+average latency and 124.15 ms p95. The separate `free_text` Top-5 diagnostic
 covers all 84 questions (68 answerable plus 16 negatives): 0.9706 recall,
-0.8922 MRR, 0.8235 Top-1 accuracy, 1.0000 abstention, 131.59 ms average and
-159.00 ms p95. The earlier
+0.8922 MRR, 0.8235 Top-1 accuracy, 1.0000 abstention, 94.00 ms average and
+113.10 ms p95. The v0.5.0 artifact and earlier
 [2026-08-24 production-profile artifact](docs/benchmarks/rag-retrieval-2026-08-24.json)
 is retained as historical evidence. These are local regression measurements,
 not production-accuracy claims.
@@ -319,26 +317,30 @@ Project and commercial context:
 - [docs/pilot_feedback_form.md](docs/pilot_feedback_form.md) - Controlled pilot feedback form.
 - [docs/pilot_protocol.md](docs/pilot_protocol.md) - Executable 3-5 participant pilot protocol.
 - [docs/pilot_results.md](docs/pilot_results.md) - Honest pilot evidence register; external sessions are currently pending.
-- [docs/benchmarks/report-generation-v0.5.0.json](docs/benchmarks/report-generation-v0.5.0.json) - Published eight-scenario governed real-Ollama release gate and grounding diagnostics.
-- [docs/benchmarks/rag-retrieval-v0.5.0.json](docs/benchmarks/rag-retrieval-v0.5.0.json) - Published production-aligned Top-8 release gate and free-text Top-5 diagnostic.
+- [docs/benchmarks/report-generation-v0.6.0.json](docs/benchmarks/report-generation-v0.6.0.json) - Current eight-scenario governed real-Ollama release gate and grounding diagnostics.
+- [docs/benchmarks/report-red-team-v0.6.0.json](docs/benchmarks/report-red-team-v0.6.0.json) - Current six-scenario prompt-injection diagnostic gate.
+- [docs/benchmarks/rag-retrieval-v0.6.0.json](docs/benchmarks/rag-retrieval-v0.6.0.json) - Current production-aligned Top-8 release gate and free-text Top-5 diagnostic.
+- [docs/benchmarks/report-generation-v0.5.0.json](docs/benchmarks/report-generation-v0.5.0.json) and [rag-retrieval-v0.5.0.json](docs/benchmarks/rag-retrieval-v0.5.0.json) - Historical v0.5.0 release evidence.
 - [docs/benchmarks/report-generation-v0.3.0.json](docs/benchmarks/report-generation-v0.3.0.json) - Historical eight-case real-Ollama regression result.
 - [docs/benchmarks/report-generation-v0.4.0.json](docs/benchmarks/report-generation-v0.4.0.json) - Historical evidence-alignment regression result.
 - [docs/benchmarks/rag-retrieval-2026-08-24.json](docs/benchmarks/rag-retrieval-2026-08-24.json) - Historical production-profile retrieval checkpoint.
 
 Sample output and release evidence:
 
-- [examples/v0.5.0/README.md](examples/v0.5.0/README.md) - published Markdown, PDF, DOCX and governed `pilot-export-v4` package.
+- [examples/v0.6.0/](examples/v0.6.0/) - current Markdown, PDF, DOCX and governed `pilot-export-v4` package.
+- [examples/v0.5.0/README.md](examples/v0.5.0/README.md) - historical v0.5.0 governed sample.
 - [examples/v0.3.0/README.md](examples/v0.3.0/README.md) - historical governed sample retained for comparison.
 - [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md) - v0.3.0 scope, validation and limitations.
 - [docs/releases/v0.4.0.md](docs/releases/v0.4.0.md) - Evidence alignment, anonymous pilot measurement and privacy-minimised runtime Trace release.
 - [docs/releases/v0.5.0.md](docs/releases/v0.5.0.md) - Reproducible release evidence, governed quality-policy binding and offline verification.
+- [docs/releases/v0.6.0.md](docs/releases/v0.6.0.md) - Trusted-input coverage, repair isolation and prompt-injection hardening release.
 
 ## Architecture Summary
 
 ```text
 Streamlit UI
   -> Report form and workspace tabs
-  -> Deterministic multi-agent pipeline
+  -> Deterministic component pipeline (eight named Python roles)
       -> Profile Agent
       -> Australian Data Agent
       -> Official Knowledge Agent (optional local RAG)
@@ -385,7 +387,7 @@ src/pilot_evaluation.py             Anonymous pilot schema, aggregation and Bad 
 src/runtime_trace.py                Content-free local operation and stage traces
 src/data_quality.py                 Source currency and geographic-match assessment
 src/evidence_confidence.py          Shared O1 / P2 / R3 / A4 / U0 provenance rules
-src/agents/                         Australia-focused multi-agent pipeline
+src/agents/                         Australia-focused deterministic component pipeline
 src/rag/                            Local corpus, Ollama embeddings, Qdrant index and retrieval
 src/model_runtime.py                Stateless, tool-free governed model client
 src/coverage_map.py                 SA2 / SA3 / SA4 map and community profile loading
@@ -447,14 +449,12 @@ poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail
 ```
 
 The maintained coverage contract is the CI gate: the non-E2E suite must cover
-at least `85%` of `src` on supported Python versions. The maintained working
-tree was checked locally on 2026-08-29 with `584` passing non-E2E tests and
-`86.75%` coverage. This includes both the user-facing BAT preflight and the
-fake-Ollama Windows full-launch integration
-test; it does not claim a new remote Chromium or GitHub Actions result. The
-immutable `v0.5.0` release run remains `428` non-E2E tests at `86.08%` plus one
-Chromium E2E test (`429` total). Exact percentages remain run-specific
-diagnostics.
+at least `85%` of `src` on supported Python versions. v0.6.0 was checked locally
+on 2026-08-30 with `884` passing non-E2E tests and `86.95%` coverage, plus one
+passing Chromium E2E workflow (`885` total). This includes the user-facing BAT
+preflight and fake-Ollama Windows full-launch integration test. Exact percentages
+remain run-specific diagnostics; the pushed commit's workflow is authoritative
+for remote CI status.
 
 Run the same static, dependency and security checks as CI:
 
@@ -500,18 +500,30 @@ reports Recall@K, MRR, Top-1 accuracy, false-positive rate and latency by
 jurisdiction and category.
 
 The current
-[v0.5.0 real-model artifact](docs/benchmarks/report-generation-v0.5.0.json)
+[v0.6.0 real-model artifact](docs/benchmarks/report-generation-v0.6.0.json)
 contains eight cases: all six supported planning scenarios, a live-route safety
 boundary and a no-RAG degradation case. Governed, structural, evidence binding,
 RAG attribution, RAG behaviour and topic rates are all 1.0000; safety-violation
-and unsafe-live-claim rates are both 0.0000. Repair rate is 0.6250 and average
-latency is 46.77 seconds. Diagnostic grounding reports 0.9280 claim support,
-0.2687 citation coverage, 0.8571 citation precision, 0.9167 numeric consistency
-and zero jurisdiction conflicts. Every case remains `review_required`; these
-heuristics are human-review signals, not factual-accuracy proof. The v0.3.0 and
-v0.4.0 report artifacts remain historical checkpoints.
+and unsafe-live-claim rates are both 0.0000. One of eight scenarios required a
+successful bounded repair, none exhausted repair, and average latency was 26.99
+seconds. Diagnostic grounding reports 0.9612 lexical support, 0.0000 claim-level
+citation coverage/precision, 0.9792 numeric consistency and zero jurisdiction
+conflicts. Application-bound RAG attribution proves that deterministic output is
+bound to the retrieval provenance; it is not claim-level citation accuracy.
+Every case remains `review_required`, and grounding remains a human-review
+signal rather than factual-accuracy proof.
 
-The current sample verifier checks ZIP CRC, duplicate and case-colliding names,
+The companion
+[v0.6.0 red-team artifact](docs/benchmarks/report-red-team-v0.6.0.json)
+covers six prompt-injection cases. Its diagnostic gate passes with 1.0000
+prompt-injection resistance, governed/structural rates of 1.0000, zero safety
+violations and zero repair exhaustion. The red-team release gate is intentionally
+inactive because only the declared product suite owns the aggregate release
+decision. Older v0.3.0-v0.5.0 artifacts remain immutable historical checkpoints.
+
+The release verifier checks a clean source tree, tracked evidence files, source
+commit ancestry and the three v0.6.0 benchmark contracts before checking the
+sample package. The sample checks include ZIP CRC, duplicate and case-colliding names,
 unsafe paths, complete file/hash coverage, audit and ancestor lineage, internal
 prompt leakage, sensitive audit payloads, required report markers, PDF/DOCX
 readability and a dedicated DOCX human-sign-off page. These checks are engineering
@@ -532,9 +544,11 @@ map filtering, controlled official-source reachability and data-status rendering
 ## Audit And Approval Boundary
 
 New governed reports use the `government-pilot-v4` audit schema and explicitly
-bind the `governed-report-v3` quality policy. Its canonical RAG-attribution gate
+bind the `governed-report-v6` quality policy and its
+`b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`
+fingerprint. Its canonical RAG-attribution gate
 requires an exact source ID/title label in the narrative Data Sources and
-Limitations section; historical v2 events remain readable. Events are
+Limitations section; exact historical v2-v5 bindings remain readable. Events are
 append-only and hash-linked at the application layer. Each positive-integer report
 version binds the exact Markdown body, deterministic Human Review Sign-off,
 quality gate, inputs, selected geography, provider boundary, canonical review
@@ -588,9 +602,11 @@ Ignored local files include `.env`, `.venv/`, `.claude/`, `.agents/`, runtime ch
 
 ## Next Improvement Areas
 
-Without expanding the feature set, the next polishing work is:
+Without weakening the governed boundary, the next polishing work is:
 
-- Run the prepared 3-5 person controlled pilot and publish only anonymised, measured results.
+- Improve the remediation UX for drafts that remain blocked after bounded model repair.
+- Keep expanding hard negatives and prompt-injection regressions from observed Bad Cases.
+- Run the prepared 3-5 person controlled pilot only when suitable participants become available, and publish only anonymised measured results.
 - Validate evidence labels and confidence boundaries with data, GIS and emergency-management reviewers.
 - Review licence and disclaimer language with a legal/risk advisor before any commercial positioning.
 - Add authenticated roles and externally anchored audit retention before any formal approval workflow.

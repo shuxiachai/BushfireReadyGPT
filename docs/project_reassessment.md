@@ -3,10 +3,9 @@
 ## Current Position
 
 BushfireReadyGPT is a working Australia-focused governed portfolio MVP and
-controlled-pilot prototype. Published release `v0.5.0` remains the immutable
-release evidence baseline; the maintained working tree contains additional
-post-release hardening that has not yet been presented as a new release. The
-project has a form-first workflow, deterministic multi-agent analysis,
+controlled-pilot prototype. Published release `v0.6.0` is the current evidence
+baseline; earlier releases remain immutable historical evidence. The project
+has a form-first workflow, deterministic multi-component analysis,
 conventional local RAG, ABS/ASGS evidence context, report evidence-alignment
 diagnostics, explicit data-quality warnings, official source registers, human
 review controls and exportable report packages.
@@ -18,21 +17,21 @@ The strongest current use case is a controlled pilot demonstration for councils,
 | Area | Current state |
 | --- | --- |
 | Product workflow | Clear form-to-report flow with review/export tabs. |
-| Multi-agent layer | Seven pre-generation agents, including Official Knowledge RAG, and one post-generation quality agent are separated. |
+| Multi-agent layer | Seven pre-generation roles and one post-generation quality role are separated as deterministic Python components. They are not autonomous LLM agents; only the report narrative is model generated. |
 | Australian data context | Local ABS/ASGS processed data and official source registers are available. |
-| Governance boundary | One canonical gate is recomputed across generation, revision, organisational approval and governed `pilot-export-v4` export; new v4 events bind `governed-report-v3` fingerprint `6968d649b4ee0cc57a1365470dbdef9fa20803e778c56c1235c1053c180a74e2`, including the exact section-scoped RAG source-label contract, full-analysis hash, exact report/review/data snapshots, deterministic sign-off and recursively verifiable version lineage. Historical v2 bindings remain readable. A policy-only reassessment preserves report/sign-off/status/package context and cannot substitute for the later human review required for export. |
+| Governance boundary | One canonical gate is recomputed across generation, revision, organisational approval and governed `pilot-export-v4` export. Current records bind `governed-report-v6` fingerprint `b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`, trusted scenario/focus coverage declarations, full-analysis hash, exact report/review/data snapshots, deterministic sign-off and recursively verifiable version lineage. Historical policies remain readable. A policy-only reassessment preserves report/sign-off/status/package context and cannot substitute for the later human review required for export. |
 | Exports | Markdown, PDF, DOCX and `pilot-export-v4` zip package are implemented. |
 | Local model runtime | Ollama is the default provider; an 8K dedicated model is called through a stateless, tool-free governed client. |
 | Official knowledge RAG | Nine page-level sources cover all states/territories with hybrid retrieval, abstention and answerable/unanswerable evaluation. |
-| Report evidence evaluation | Attributable claims receive deterministic support, citation, numeric and jurisdiction checks; flags remain subject to human source review. |
+| Report evidence evaluation | Attributable claims receive deterministic support, citation, numeric and jurisdiction checks. These are diagnostics for human source review, not semantic-truth or claim-level citation guarantees. |
 | Runtime diagnosis | Privacy-minimised local Trace captures per-agent/model stages, latency, repair use and safe failure codes without report or identity content. |
 | Local setup | One self-checking Windows launcher reuses healthy dependencies, models and RAG assets and creates only missing or outdated components. |
-| Testing | The maintained working tree passes 584 non-E2E tests locally with measured `src` coverage of 86.75%; Ruff lint/format, Bandit, Poetry/package consistency and `pip-audit` also pass. The immutable `v0.5.0` release baseline remains 428 non-E2E tests plus one Chromium E2E (429 total) at 86.08% coverage. |
-| Portfolio evidence | The current Cairns Council sample uses Ollama `bushfire-ready-qwen` through a local-loopback boundary and the release RAG manifest; its `pilot-export-v4` package contains a 16-page PDF and 203-paragraph DOCX generated successfully on the first attempt. Screenshots, a short demo video and a controlled-pilot protocol are also committed; external pilot results remain pending. |
+| Testing | The `v0.6.0` release passes 884 non-E2E tests plus one Chromium E2E with measured non-E2E `src` coverage of 86.95%; Ruff lint/format, Bandit, Poetry/package consistency and `pip-audit` also pass locally. |
+| Portfolio evidence | The governed sample set is committed under `examples/v0.6.0/` and binds the release runtime and RAG evidence. Screenshots, a short demo video and a controlled-pilot protocol are also committed; no real external pilot has yet been completed. |
 
-The current production-aligned retrieval profile records Top-8 passage recall `1.0000`, MRR `0.9216`, Top-1 accuracy `0.8529` and safety-negative abstention `1.0000`. The separate free-text Top-5 diagnostic records recall `0.9706`, MRR `0.8922`, Top-1 accuracy `0.8235` and unanswerable accuracy `1.0000`. The `v0.5.0` eight-case real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation: all `8/8` cases passed the governed and RAG gates, safety violations were zero, repair rate was `0.625` and average latency was `46.77 seconds` on the release machine. Diagnostic grounding measured average support `0.9280`, citation coverage `0.2687`, citation precision `0.8571`, numeric consistency `0.9167` and zero jurisdiction conflicts; all eight reports still require human evidence review. These are regression baselines rather than factual-accuracy, production or external user-validation claims.
+The `v0.6.0` production-aligned retrieval profile contains `73` questions and records Top-8 passage recall `1.0000`, MRR `0.9216`, Top-1 accuracy `0.8529`, safety-negative abstention `1.0000` and average retrieval latency `86.05 ms`. Retrieval provenance binds the application inputs, index, embedding identity and returned sources; it does not prove claim-level citation accuracy. The eight-case real-Ollama report benchmark covers all six planning scenarios, live-request refusal and no-RAG degradation: all `8/8` cases passed with average latency `26.99 seconds`, one successful controlled repair, zero safety violations and zero repair exhaustion. The six-case red-team benchmark passed `6/6`, including `100%` prompt-injection resistance, at an average of `30.45 seconds`; every scenario-level governed gate and the suite diagnostic gate passed, while its release gate is inactive by design. Grounding remains diagnostic and every generated report still requires human evidence review. These are regression baselines rather than factual-accuracy, production or external user-validation claims.
 
-The committed RAG and report artifacts include every evaluation row and bind exact dataset hashes, clean source commit `e02f07687ee2e2329fc59afb5fe1c8ea4f532646`, the shared RAG index and exact model/embedding identities. Active release runs abort on end-of-run provenance drift, and the offline release verifier rejects inactive gates, stale datasets or policy, mismatched commit/index provenance, or a sample produced through a different provider, model, endpoint boundary or RAG manifest. The maintained working tree additionally checks provenance at each warm-up/question/scenario boundary, uses PID/token-owned audit and RAG locks with conservative stale-record recovery, and standardises model-authored RAG citations while binding verified URLs only in deterministic evidence tables.
+The committed RAG, product and red-team artifacts include every evaluation row and each binds its exact dataset hash, clean source commit `44d0c3f1f8c78af4291f79b090eb3fc53da95ea7` and the shared RAG index. The RAG artifact binds the embedding identity; the product and red-team artifacts bind the generation-model identity and `governed-report-v6` fingerprint. Active release runs abort on provenance drift, and the offline release verifier rejects inactive or failed required RAG/product release gates, an inactive or failed red-team diagnostic gate, stale datasets or policy, mismatched commit/index provenance, or a sample produced through a different provider, model, endpoint boundary or RAG manifest. The red-team release gate remains inactive by design. PID/token-owned audit and RAG locks protect cross-process state, and verified URLs remain application-bound evidence rather than model-authored trust claims.
 
 ## Main Gaps
 
@@ -78,12 +77,14 @@ The committed RAG and report artifacts include every evaluation row and bind exa
 - Added a strict anonymous pilot-measurement schema, calculated aggregates and Bad Case-to-regression linkage while keeping the committed template at zero participants.
 - Added deterministic report evidence-alignment review for claim support, source attribution, numeric consistency and jurisdiction conflicts.
 - Added privacy-minimised per-stage runtime Trace and local Readiness diagnostics, separate from the governance audit chain.
-- Added full-row RAG/report release artifacts with exact dataset, Git, index, model/embedding and quality-policy provenance plus start/end drift detection.
+- Added full-row RAG/report release artifacts with exact dataset, Git and index provenance plus start/end drift detection; the RAG artifact binds the embedding identity, while both report artifacts bind the generation-model identity and quality policy.
 - Added policy-only quality reassessment for unchanged historical reports; it never claims human review and cannot be the export head without a later review event.
-- Added an offline release verifier that ties `v0.5.0` metadata, both passing release gates and the governed sample package to one reproducible evidence set.
+- Added an offline release verifier that ties `v0.6.0` metadata, the two active passing release gates, the active passing red-team diagnostic gate and the governed sample package to one reproducible evidence set.
 - Unified audit and RAG cross-process ownership around PID/token lock records; RAG can conservatively reclaim sufficiently old invalid records while preserving live-owner locks.
 - Standardised model-authored RAG citations as `[O1-RAG][source_id=...] <title>` and removed model-authored URLs from the trust contract; deterministic evidence tables bind the verified links.
 - Added a fake-Ollama full Windows-launch integration test, a single PowerShell quality-check wrapper with UTF-8-safe dependency auditing and a root `/tmp/` ignore rule.
+- Upgraded the contract to `governed-report-v6`, deriving required scenario/focus declarations only from trusted canonical IDs, isolating U0 text from control instructions and bounding governed repair without a deterministic fallback report.
+- Added a six-case adversarial suite for U0 field overrides, governance removal, forged tool/HTML output and delimiter-based prompt/live-route leakage; all cases pass while grounding results remain explicitly diagnostic and human-review-only.
 
 ## Suggested Next Build Order
 

@@ -15,7 +15,7 @@ This version has been rebuilt around an Australian preparedness use case:
 - Australia-specific bushfire preparedness theme.
 - Form-first report generation instead of a generic chat-first workflow.
 - Local Ollama runtime, so no OpenAI API key is required.
-- Australia-focused multi-agent analysis pipeline.
+- Australia-focused deterministic component pipeline with eight named responsibility boundaries.
 - ABS / ASGS-derived geography and community context.
 - Official source and licence registers.
 - O1 / P2 / R3 / A4 / U0 evidence confidence and provenance labels.
@@ -28,15 +28,17 @@ This version has been rebuilt around an Australian preparedness use case:
 1. The user opens the Streamlit app.
 2. The user loads a pilot example or fills in the report form.
 3. The user selects the location, audience, scenario, timeframe and focus areas.
-4. The multi-agent pipeline prepares local context, retrieves optional official-knowledge RAG passages and builds planning evidence.
-5. The stateless, tool-free local Ollama client generates a formal English draft report.
+4. Seven deterministic Python components prepare local context, retrieve optional official-knowledge RAG passages and build planning evidence.
+5. The stateless, tool-free local Ollama client performs the only LLM-authored step: generating the formal English report narrative.
 6. The app appends governance notices, provenance-labelled evidence tables and human review sign-off, then records the canonical Governed Report Check result.
 7. A follow-up edit creates a new report ID/version, rebuilds deterministic evidence, reruns the same governed gate and writes a separate audit record.
 8. The reviewer checks the evidence trail, data sources, map context and governed checks, then records sign-off; every new version starts as a draft with an empty checklist.
 9. Individual draft files remain available for remediation; the governed pilot package requires a fresh passing gate, exact analysis/audit binding and matching review state.
 10. A historical-policy audit can be upgraded only through a policy-only `quality.reassessed` event that preserves the exact report, sign-off, status and package context. That event is not a human review, so a later `review.recorded` event is required before pilot-package export.
 
-## Multi-Agent Architecture
+## Deterministic Component Architecture
+
+The eight named agents are deterministic Python responsibility components, not eight autonomous LLM agents. Only the report-narrative step calls the LLM; retrieval, evidence selection, planning rules, quality gates and audit decisions remain application controlled.
 
 | Agent | Role |
 | --- | --- |
@@ -68,7 +70,7 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 
 - A working Australia-focused preparedness planning interface.
 - A structured form-to-report workflow.
-- Multi-agent analysis with visible intermediate evidence.
+- Deterministic multi-component analysis with visible intermediate evidence.
 - Local model generation through Ollama.
 - Conventional local RAG using EmbeddingGemma, Qdrant, BM25 and reciprocal-rank fusion.
 - Human review and approval boundary.
@@ -80,38 +82,22 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - A current Cairns Council sample package, product screenshots and a short demonstration video.
 - Commercial gap and project maturity assessment.
 
-## Maintained Working-Tree Validation (2026-08-29)
+## Published Release Validation (`v0.6.0`)
 
-- The maintained working tree passes `584` non-E2E unit, integration, Streamlit and Windows-launcher tests. The measured non-E2E `src` coverage is `86.75%`.
-- Ruff lint/format, Bandit, Poetry/package consistency and `pip-audit` pass locally. A shared PowerShell wrapper runs the quality checks with Python UTF-8 mode so dependency auditing works from Windows paths containing non-ASCII characters.
-- Explicit map geography is now the effective profile for every downstream agent; conflicting known states fail closed before evidence selection.
-- Audit writes and RAG build/inspection/retrieval use PID/token-owned cross-process locks. RAG also uses a fixed process-then-file order, immutable source snapshots and backup-first publication recovery; sufficiently old invalid lock records can be recovered without deleting a live owner's lock.
-- Model-authored RAG claims use one canonical `[O1-RAG][source_id=...] <title>` citation contract. `governed-report-v3` accepts the exact label only inside the narrative Data Sources and Limitations section; grounding uses the same parser. The model does not author URLs; verified links are bound deterministically in the evidence tables.
-- Release evaluation checks provenance before and after every question or scenario call to detect A-to-B-to-A drift visible across call boundaries, while explicitly not claiming visibility into a model-tag swap wholly inside one HTTP call.
-- Session hydration validates a bounded versioned schema, report/review inputs have backend limits, audit ancestry is verified iteratively, and model generation/revision share one repair implementation.
-- Local model streaming has a hard wall-clock deadline; unverified U0 values stay in an escaped JSON block rather than deterministic analysis text, and configured YAML source/rule identifiers must be non-empty and unique.
-- Evidence Trail views and derived downloads are bound to the frozen report snapshot; PDF/DOCX table parsing is shared and renderer-fingerprinted preview artifacts are cached only inside the current browser session.
-- A fake-Ollama integration test exercises the full Windows launcher path, and repository-local `/tmp/` artifacts are excluded from version control.
+- The release verification passes `885` automated checks: `884` non-E2E unit, integration, Streamlit and Windows-launcher tests plus one Chromium end-to-end workflow. Measured non-E2E `src` coverage is `86.95%`.
+- Ruff lint/format, Bandit, Poetry/package consistency and `pip-audit` pass locally.
+- The active quality contract is `governed-report-v6`, fingerprint `b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`. It enforces trusted scenario/focus coverage declarations, bounded governed repair, prompt-input isolation and deterministic safety checks across generation, revision, review and governed export.
+- The [production-aligned RAG artifact](benchmarks/rag-retrieval-v0.6.0.json) contains `73` questions: `68` answerable cases and `5` safety negatives. Top-8 passage recall is `1.0000`, MRR `0.9216`, Top-1 `0.8529`, abstention `1.0000` and average retrieval latency `86.05 ms` on the release machine.
+- RAG provenance binds the retrieval dataset, index, embedding identity and returned source records. It is application-level retrieval provenance, not proof that every model-authored claim has a correct claim-level citation.
+- The [eight-case report artifact](benchmarks/report-generation-v0.6.0.json) covers all six planning scenarios, live-request refusal and no-RAG degradation. All `8/8` cases passed; average latency was `26.99 seconds`, one case required one controlled repair which succeeded, and both safety-violation and repair-exhaustion rates were `0`.
+- The [six-case red-team artifact](benchmarks/report-red-team-v0.6.0.json) passed `6/6` adversarial cases, including `100%` prompt-injection resistance, with a `30.45-second` average. Every scenario-level governed gate and the suite diagnostic gate passed; its release gate is inactive by design.
+- Grounding scores and evidence-alignment flags are diagnostics only. They help a reviewer find claims to inspect but do not establish semantic truth, factual correctness or approval; every generated report remains subject to human evidence review.
+- All three release artifacts retain their evaluation rows and bind exact dataset hashes, clean source commit `44d0c3f1f8c78af4291f79b090eb3fc53da95ea7`, RAG index identity and model or embedding identity. Active runs abort instead of publishing evidence if bound provenance drifts.
+- The governed showcase outputs are committed under [`examples/v0.6.0/`](../examples/v0.6.0/). Historical release artifacts remain available as immutable evidence rather than being rewritten.
+- `scripts/verify_release.py` verifies the project version, datasets, active RAG/product release gates, the active red-team diagnostic gate, Git/index provenance, policy fingerprint and sample runtime/package bindings offline.
+- Anonymous pilot aggregation, feedback and Bad Case tooling are ready, but no real external participant pilot has been completed. Engineering and model evaluations are not user validation.
 
-These are local engineering results for the maintained working tree. They are
-not a new release artifact, a remote-CI claim or a production-accuracy claim.
-
-## Published Release Validation (`v0.5.0`)
-
-- The local release verification passed `429` automated tests: `428` non-E2E unit/integration/Streamlit tests and one Chromium end-to-end workflow. The measured non-E2E `src` coverage was `86.08%`.
-- Report generation and revision produce a deterministic evidence-alignment review for attributable claims, citations, numbers and jurisdiction conflicts.
-- The published v0.5.0 quality contract is `governed-report-v2`, fingerprint `7c20b6fa049dc1028cc367955eb28b5434318b2d4050995cc9cf58b53a5da9d1`. The same canonical gate is recomputed for generation, revision, approval and governed export; the maintained v0.6.0 candidate has advanced to `governed-report-v3` while retaining v2 read compatibility.
-- Anonymous pilot aggregation and Bad Case regression tooling are ready, but the committed template still contains zero external participants.
-- Privacy-minimised runtime Trace records per-stage latency, repair use and safe error codes without prompt, report, retrieval or identity content.
-- The [production-aligned RAG artifact](benchmarks/rag-retrieval-v0.5.0.json) records Top-8 passage recall `1.0000`, MRR `0.9216`, Top-1 `0.8529` and safety-negative abstention `1.0000`. Its separate free-text Top-5 profile records recall `0.9706`, MRR `0.8922`, Top-1 `0.8235` and unanswerable accuracy `1.0000`.
-- The [eight-case report artifact](benchmarks/report-generation-v0.5.0.json) covers all six planning scenarios, live-request refusal and no-RAG degradation. All `8/8` cases passed the governed and RAG gates with zero safety violations; repair rate was `0.625` and average latency was `46.77 seconds` on the release machine.
-- Report grounding remains diagnostic and human-review-only: average support `0.9280`, citation coverage `0.2687`, citation precision `0.8571`, numeric consistency `0.9167` and zero jurisdiction conflicts. All eight reports require human evidence review.
-- Both evaluation artifacts retain every per-question/per-scenario row and bind the exact source dataset SHA-256, clean source commit `e02f07687ee2e2329fc59afb5fe1c8ea4f532646`, RAG index identity and model or embedding digest. Active release runs take start/end provenance snapshots and abort before writing if any bound identity drifts.
-- The committed `pilot-export-v4` Cairns Council sample passed on its first generation attempt and verifies as a 16-page PDF and 203-paragraph DOCX. It uses Ollama `bushfire-ready-qwen` through a local-loopback boundary and the same RAG manifest as both release benchmarks.
-- `scripts/verify_release.py` verifies the project version, exact dataset hashes, active gates, shared Git/index provenance, current policy fingerprint and sample runtime/package bindings offline.
-- Ruff, formatting, Bandit, dependency consistency and the public vulnerability audit pass.
-
-These figures are release regression signals, not production accuracy or hardware-independent performance claims.
+These figures are release regression signals, not production accuracy, claim-level citation accuracy, hardware-independent performance or external user-validation claims.
 
 ## Current Limitations
 

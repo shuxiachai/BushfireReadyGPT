@@ -12,25 +12,27 @@ collapsed into one accuracy number:
 
 None of these alone proves operational safety, legal fitness or factual currency.
 
-## v0.5.0 Release Evidence Contract
+## v0.6.0 Release Evidence Contract
 
 The current machine-readable release evidence is:
 
-- [`benchmarks/rag-retrieval-v0.5.0.json`](benchmarks/rag-retrieval-v0.5.0.json),
+- [`benchmarks/rag-retrieval-v0.6.0.json`](benchmarks/rag-retrieval-v0.6.0.json),
   schema `bushfire-rag-evaluation-v3`;
-- [`benchmarks/report-generation-v0.5.0.json`](benchmarks/report-generation-v0.5.0.json),
-  schema `bushfire-report-generation-evaluation-v3`.
+- [`benchmarks/report-generation-v0.6.0.json`](benchmarks/report-generation-v0.6.0.json),
+  schema `bushfire-report-generation-evaluation-v4`;
+- [`benchmarks/report-red-team-v0.6.0.json`](benchmarks/report-red-team-v0.6.0.json),
+  schema `bushfire-report-generation-evaluation-v4`.
 
-Both artifacts were collected from clean source commit
-`e02f07687ee2e2329fc59afb5fe1c8ea4f532646`, bind verified RAG manifest
+All three artifacts were collected from clean source commit
+`44d0c3f1f8c78af4291f79b090eb3fc53da95ea7`, bind verified RAG manifest
 `aa8e42d3d7837ee3927b21108cedf5f6553332f92ba89e9f70caa2852febedd2`,
-and record stable start/end provenance snapshots. The RAG artifact binds
-embedding model digest
+and record stable call-boundary and completion provenance snapshots. The RAG
+artifact binds embedding model digest
 `85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1`.
-The report artifact binds model digest
+Both report artifacts bind model digest
 `21aa9b63ebd65652bfda214b8012ba0d61375855a448d7396ed57a7d7fa0f8ac`
-and quality policy `governed-report-v2`, fingerprint
-`7c20b6fa049dc1028cc367955eb28b5434318b2d4050995cc9cf58b53a5da9d1`.
+and quality policy `governed-report-v6`, fingerprint
+`b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`.
 
 Release evaluation uses two layers of tamper detection:
 
@@ -39,17 +41,14 @@ Release evaluation uses two layers of tamper detection:
 2. offline artifact validation recomputes outcomes instead of trusting an
    aggregate `passed` field.
 
-The maintained branch adds an inner boundary check for future artifacts: RAG
-runs re-check dataset, Git, index and embedding-model identity before and after
-every warm-up and question call, while report runs re-check dataset, Git, index,
+RAG runs re-check dataset, Git, index and embedding-model identity before and
+after every warm-up and question call. Report runs re-check dataset, Git, index,
 generation-model and policy identity before and after every scenario call. Each
 row is also checked against the RAG manifest actually used. This catches drift
 visible at those call boundaries, including an A-to-B-to-A change across
 adjacent calls before the final snapshot returns to A. It cannot prove that a
 model tag did not change and return entirely inside one embedding or generation
-HTTP call; that in-flight window is recorded explicitly in new run metadata.
-The committed `v0.5.0` artifacts remain the immutable historical evidence
-produced by the start/end contract above.
+HTTP call; that in-flight window is recorded explicitly in run metadata.
 
 For RAG, every active profile must contain complete, uniquely identified
 per-question rows. The validator re-aggregates question counts,
@@ -59,36 +58,45 @@ inactive diagnostic artifact and cannot pass the release verifier. For report
 generation, the validator binds all eight declared scenarios to their rows and
 recomputes the governed, evidence, safety and degradation rates.
 
-The current RAG release gate covers structured-planning Top-8 over 73 questions
+The active RAG release gate passed structured-planning Top-8 over 73 questions
 (68 answerable + 5 unanswerable): passage recall `1.0000`, MRR `0.9216`, Top-1
-`0.8529`, abstention `1.0000`, average `130.36 ms`, p95 `157.49 ms`. Its separate
+`0.8529`, abstention `1.0000`, average `86.05 ms`, p95 `124.15 ms`. Its separate
 free-text Top-5 diagnostic covers 84 questions (68 + 16): passage recall
-`0.9706`, MRR `0.8922`, Top-1 `0.8235`, abstention `1.0000`, average `131.59 ms`,
-p95 `159.00 ms`.
+`0.9706`, MRR `0.8922`, Top-1 `0.8235`, abstention `1.0000`, average `94.00 ms`,
+p95 `113.10 ms`.
 
-The current report gate covers eight scenarios. Governed, structural,
+The active product report release gate passed all eight scenarios. Governed, structural,
 evidence-binding, RAG-title-attribution, RAG-behaviour and scenario-topic rates
 are all `1.0000`. Safety-violation, unsafe-live-claim, contamination and
-oversized-report rates are all `0.0000`; repair rate is `0.6250`; average model
-latency is `46.77 seconds`.
+oversized-report rates are all `0.0000`. One report required repair
+(`0.1250` repair rate), that repair succeeded, and no repair budget was
+exhausted. Average model latency is `26.99 seconds`.
 
 The report grounding heuristic remains diagnostic: grounding-review rate
-`1.0000`, average support `0.9280`, citation coverage `0.2687`, citation
-precision `0.8571`, numeric consistency `0.9167`, and zero jurisdiction
-conflicts. These values do not establish factual correctness and are not part of
-the enforced release decision.
+`1.0000`, average support `0.9612`, numeric consistency `0.9792`, and zero
+jurisdiction conflicts. Citation coverage and precision were both `0.0000` for
+this run because the v0.6 attribution metric records application-bound retrieval
+provenance, not claim-level model citation accuracy. These grounding values do
+not establish factual correctness and are not part of the enforced release
+decision; every externally used claim still requires human source review.
+
+The separate six-case prompt-injection red-team suite passed its active
+diagnostic gate: governed-gate and prompt-injection-resistance rates were both
+`1.0000`, with no safety violations or repair exhaustion and average latency
+`30.45 seconds`. Its release gate is inactive by design, so diagnostic success
+cannot be substituted for the product release suite.
 
 Verify the committed artifacts, current source datasets, shared provenance,
-quality policy and governed `examples/v0.5.0` sample package without contacting
+quality policy and governed `examples/v0.6.0` sample package without contacting
 Ollama or the network:
 
 ```powershell
 poetry run python scripts\verify_release.py
 ```
 
-Older `v0.3.0`, `v0.4.0` and summary-only retrieval artifacts remain historical
-baselines. They are not silently reinterpreted as satisfying the current
-artifact schemas and policy.
+Older `v0.3.0`, `v0.4.0`, `v0.5.0` and summary-only retrieval artifacts remain
+historical baselines. They are not silently reinterpreted as satisfying the
+current artifact schemas and policy.
 
 ## Report Evidence Alignment
 
@@ -97,15 +105,15 @@ Every generated or revised report runs
 local report session record and appears under **Review & Export > Evidence
 Alignment Review (heuristic)**.
 
-The maintained working tree uses one model-visible retrieval citation contract:
+The v0.6.0 release uses one model-visible retrieval citation contract:
 `[O1-RAG][source_id=<source_id>] <source title>`. Retrieved source IDs and titles
 are normalised before prompt assembly, and model-authored narrative must not
 write, infer or retype a URL. Verified URLs are appended deterministically from
 the frozen source metadata in Evidence Table 4 and Evidence Table 5. Governed
-quality checks the canonical label against the supplied sources; the grounding
-evaluator remains diagnostic and does not turn a matching label into factual
-proof. The committed `v0.5.0` report artifact predates this post-release prompt
-contract and is not rewritten.
+quality checks the canonical label against the supplied sources. This is
+application-bound retrieval provenance, not proof that a model claim is
+entailed by the cited passage. The grounding evaluator remains diagnostic and
+does not turn a matching label into factual proof.
 
 The deterministic evaluator:
 
@@ -245,14 +253,14 @@ human feedback and operational logs within their appropriate privacy boundaries.
 
 ## Local Engineering Validation
 
-The maintained working tree was checked locally on 2026-08-29 with `584`
-passing non-E2E unit, integration, Streamlit and Windows-launcher tests and
-`86.75%` non-E2E `src` coverage against the enforced `85%` minimum. The suite
-includes a fake-Ollama full-launch integration test. Ruff lint/format, Bandit,
+The v0.6.0 source was checked locally on 2026-08-30 with `884` passing non-E2E
+unit, integration, Streamlit and Windows-launcher tests, plus `1` separately
+selected E2E test, and `86.95%` non-E2E `src` coverage against the enforced
+`85%` minimum. The suite includes a fake-Ollama full-launch integration test.
+Ruff lint/format, Bandit,
 Poetry lock consistency, installed-package consistency and `pip-audit` passed;
 `pip-audit` reported no known vulnerabilities. The shared PowerShell quality
 wrapper enables Python UTF-8 mode so dependency auditing works from Windows
-paths containing non-ASCII characters. The immutable `v0.5.0` release baseline
-remains `429` tests and `86.08%` coverage. These exact values are local,
-run-specific results; the uncommitted working-tree changes must not be described
-as a successful GitHub Actions run or a new release.
+paths containing non-ASCII characters. These exact values are local,
+run-specific results and do not claim that real external users completed a
+pilot. No real external pilot or stakeholder validation has been completed.

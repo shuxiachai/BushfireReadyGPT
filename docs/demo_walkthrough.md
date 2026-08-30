@@ -31,10 +31,10 @@ Confirm that the page opens and the sidebar shows the safety boundary.
 Before presenting committed release evidence, run the offline verifier:
 
 ```powershell
-poetry run python scripts/verify_release.py
+poetry run python scripts/verify_release.py --release-version 0.6.0
 ```
 
-The `v0.5.0` evidence set is tied to source commit `e02f076`, exact evaluation-dataset hashes, one RAG manifest, resolved model identities and the current governed-report policy. This is an offline consistency check, not external user validation.
+The `v0.6.0` evidence set is tied to source commit `44d0c3f1f8c78af4291f79b090eb3fc53da95ea7`, exact evaluation-dataset hashes, one RAG manifest, resolved model identities and `governed-report-v6`. This is an offline consistency check, not external user validation.
 
 ## Recommended Demo: Cairns Council Pilot
 
@@ -84,7 +84,7 @@ Generate report
 
 Say:
 
-> The app runs a deterministic multi-agent analysis pipeline first, then asks the local Ollama model to generate a formal report using that evidence context.
+> The app runs seven deterministic Python analysis components first, asks the local Ollama model to write the report narrative, and then runs a deterministic quality component. The eight named agents are responsibility boundaries, not eight autonomous LLMs.
 
 Wait for the report to appear.
 
@@ -137,6 +137,8 @@ Mention the agents:
 - Report Agent
 - Report Quality Agent
 
+Clarify that retrieval provenance binds application inputs, the local index and returned source records. It does not prove that every narrative claim has a correct claim-level citation.
+
 ### 6. Show Report Quality And Review
 
 Open:
@@ -151,7 +153,7 @@ Say:
 
 > The project keeps AI output in draft status until a responsible human reviewer checks the evidence, limitations and source boundaries.
 
-Show that the current quality result is bound to `governed-report-v2`. Explain that a policy-only reassessment of an unchanged historical report is not a human review and cannot authorise pilot-package export until a new review event is recorded.
+Show that the current quality result is bound to `governed-report-v6`, fingerprint `b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`. Explain that a policy-only reassessment of an unchanged historical report is not a human review and cannot authorise pilot-package export until a new review event is recorded.
 
 Key point:
 
@@ -203,23 +205,23 @@ Say:
 
 > The export package is useful for stakeholder handover because it includes the report, review metadata, data register and audit materials.
 
-The current package uses `pilot-export-v4`. The committed Cairns Council sample passed on its first generation attempt and verifies as a 16-page PDF plus a 203-paragraph DOCX; it uses Ollama `bushfire-ready-qwen` through a local-loopback endpoint and the same RAG manifest as the release benchmarks.
+The current package uses `pilot-export-v4`. The committed governed sample is under `examples/v0.6.0/`; it uses Ollama `bushfire-ready-qwen` through a local-loopback endpoint and the same RAG manifest as the release benchmarks.
 
 ### 9. Show Release Evidence
 
-Open the committed `v0.5.0` benchmark summaries and say:
+Open the committed `v0.6.0` benchmark summaries and say:
 
-> The production RAG profile uses Top-8 and records recall 1.0000, MRR 0.9216, Top-1 0.8529 and abstention 1.0000. The separate free-text Top-5 profile records recall 0.9706, MRR 0.8922, Top-1 0.8235 and abstention 1.0000.
+> The 73-question production RAG profile uses Top-8 and records recall 1.0000, MRR 0.9216, Top-1 0.8529, abstention 1.0000 and average retrieval latency 86.05 milliseconds on the release machine.
 
-> All eight report cases passed the governed and RAG gates with zero safety violations. Repair rate was 0.625 and average latency was 46.77 seconds on the release machine. Grounding support was 0.9280, citation coverage 0.2687, citation precision 0.8571, numeric consistency 0.9167 and jurisdiction conflicts zero; all reports still require human evidence review.
+> All eight product cases passed at an average of 26.99 seconds. One controlled repair was required and succeeded; safety violations and repair exhaustion were both zero. All six red-team cases also passed, including 100% prompt-injection resistance, at a 30.45-second average. Every red-team scenario-level governed gate and the suite diagnostic gate passed; its release gate is inactive by design.
 
-Point out that both JSON artifacts keep every evaluation row, bind exact dataset/Git/index/model provenance, and record a stable end-of-run snapshot. The release run aborts rather than writing an artifact if those identities drift.
+Point out that all three JSON artifacts keep their evaluation rows, bind exact dataset/Git/index provenance, and record stable provenance snapshots. The retrieval artifact binds the embedding identity; the report artifacts bind the generation-model identity and quality policy. The release run aborts rather than writing an artifact if those identities drift. Grounding and evidence-alignment results are diagnostics for human review, not semantic-truth or approval guarantees.
 
 ### 10. Close The Demo
 
 Say:
 
-> The current project is a working MVP for controlled demonstration and pilot scoping. The next step toward commercial or government use would be validation of the confidence rules, legal and licence review, stronger approval records, user testing, accessibility review and deployment hardening.
+> The current project is a working MVP for controlled demonstration and pilot scoping. No real external participant pilot has yet been completed. The next step toward commercial or government use would be validation of the confidence rules, legal and licence review, stronger approval records, user testing, accessibility review and deployment hardening.
 
 ## Short Version
 
@@ -240,7 +242,7 @@ If you only have two minutes:
 
 - The main workflow is form-first.
 - The report follows a fixed structure.
-- Intermediate agent outputs are visible.
+- Intermediate deterministic component outputs are visible.
 - Data sources and limitations are documented.
 - Human review and export records are built into the workflow.
 

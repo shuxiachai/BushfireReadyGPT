@@ -13,8 +13,8 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | Product concept | 8/10 | Strong MVP | Clear Australia bushfire preparedness positioning and report workflow. |
 | User workflow | 8/10 | Strong MVP | Form, demo mode, evidence trail, reviewer sign-off and export package are in place. |
 | Data foundation | 6/10 | Pilot ready | ABS SA2/ASGS data is local and traceable; live warning data is not integrated. |
-| Multi-agent architecture | 7/10 | Pilot ready | Agent responsibilities are separated and visible, but testing and orchestration can be strengthened. |
-| Governance and audit | 7/10 | Pilot ready | v4 events bind the current `governed-report-v3` policy fingerprint, exact report/review/data snapshots and recursive revision lineage; v2 remains readable. Policy-only reassessment cannot claim human review or directly authorise export; authenticated role-based approval and external immutable storage are still missing. |
+| Multi-agent architecture | 7/10 | Pilot ready | Eight deterministic Python responsibility components are separated and visible; only report narration calls the LLM. This demonstrates governed orchestration, not autonomous tool-using agents. |
+| Governance and audit | 7/10 | Pilot ready | v4 events bind `governed-report-v6` fingerprint `b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`, exact report/review/data snapshots and recursive revision lineage; historical policies remain readable. Policy-only reassessment cannot claim human review or directly authorise export; authenticated role-based approval and external immutable storage are still missing. |
 | Commercial readiness | 4/10 | Not commercial yet | Needs licence review, legal boundary, deployment, privacy and user testing. |
 | Government procurement readiness | 3/10 | Early | Needs security, accessibility, procurement documentation and official data agreements. |
 
@@ -25,7 +25,7 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - Local Ollama model service, no OpenAI API requirement.
 - Local hybrid RAG with page-level provenance, all-jurisdiction coverage, hard-negative evaluation and deterministic abstention.
 - Self-checking Windows launcher, startup preflight and a dedicated 8K-context report model.
-- Local multi-agent analysis pipeline with visible Evidence Trail.
+- Eight-role deterministic Python analysis pipeline with visible Evidence Trail; only the report narrative is LLM authored.
 - A bundled small demo map plus optional all-Australia SA2/SA3/SA4 map selection.
 - ABS ASGS allocation and LGA 2025 reference data.
 - O1 / P2 / R3 / A4 / U0 evidence confidence and provenance labels.
@@ -38,18 +38,18 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 - Audit-bound Markdown, PDF, DOCX, audit JSON and `pilot-export-v4` package with frozen registers and recursive parent lineage.
 - Demo Mode, Presentation Mode and sample scenario pack.
 - Source currency, age, freshness and geographic-match quality displayed in reports and Evidence Trail views.
-- Full-row RAG/report release artifacts bound to exact datasets, clean source commit `e02f076`, shared index identity, exact model/embedding identities and the current quality-policy fingerprint; active release runs abort on provenance drift.
+- Full-row RAG/product/red-team release artifacts bound to exact datasets, clean source commit `44d0c3f1f8c78af4291f79b090eb3fc53da95ea7`, shared index identity, exact model/embedding identities and the current quality-policy fingerprint; active release runs abort on provenance drift.
 - An offline release verifier rejects stale or mismatched datasets, gates, Git/index provenance, policy and sample runtime/package identity.
-- The current structured Top-8 RAG profile records recall `1.0000`, MRR `0.9216`, Top-1 `0.8529` and abstention `1.0000`; the free-text Top-5 profile records recall `0.9706`, MRR `0.8922`, Top-1 `0.8235` and abstention `1.0000`.
-- The current eight-case real-model regression passed all governed and RAG gates with zero safety violations, repair rate `0.625` and average release-machine latency `46.77 seconds`. Grounding support `0.9280`, citation coverage `0.2687`, citation precision `0.8571`, numeric consistency `0.9167` and zero jurisdiction conflicts remain human-review-only; all eight reports require review.
-- A current hash-verified `pilot-export-v4` Cairns Council sample that passed on its first generation attempt, with a 16-page PDF, 203-paragraph DOCX, Ollama `bushfire-ready-qwen`, local-loopback boundary and the release RAG manifest.
+- The current `73`-question structured Top-8 RAG profile records recall `1.0000`, MRR `0.9216`, Top-1 `0.8529`, abstention `1.0000` and average retrieval latency `86.05 ms`.
+- The current eight-case real-model regression passed `8/8` with average latency `26.99 seconds`, one successful controlled repair, zero safety violations and zero repair exhaustion. The six-case red-team regression passed `6/6`, including `100%` prompt-injection resistance, at a `30.45-second` average; every scenario-level governed gate and the suite diagnostic gate passed, while its release gate is inactive by design.
+- A current hash-verified governed sample set under `examples/v0.6.0/`, using Ollama `bushfire-ready-qwen`, a local-loopback boundary and the release RAG manifest.
 - Product screenshots, a short demo video and a ready-to-run controlled-pilot protocol.
 - Anonymous pilot metrics, edit/citation measures and a repository-safe Bad Case regression register are ready; real sessions remain pending.
-- Deterministic report evidence-alignment checks cover claim support, source attribution, numbers and jurisdiction conflicts without claiming semantic truth.
+- Deterministic report evidence-alignment checks cover claim support, source attribution, numbers and jurisdiction conflicts without claiming semantic truth. Grounding remains diagnostic and requires human review.
 - Local privacy-minimised runtime Trace exposes per-stage latency, repair use and safe failure codes without storing report or identity content.
 - PID/token-owned audit and RAG locks protect local cross-process writes; RAG can conservatively recover sufficiently old invalid lock records while preserving live-owner locks.
-- Model-authored RAG citations use one `[O1-RAG][source_id=...] <title>` contract. Verified URLs are supplied only by deterministic evidence tables.
-- The maintained working tree passes 584 non-E2E tests locally at 86.75% measured `src` coverage, including the user-facing BAT preflight and a fake-Ollama full Windows-launch integration test. Ruff lint/format, Bandit, Poetry/package consistency and `pip-audit` also pass locally; this is not a remote-CI or new-release claim.
+- RAG records provide application-level retrieval provenance for datasets, index identity and returned sources. They do not establish claim-level citation accuracy; verified URLs are supplied only by deterministic evidence tables.
+- The `v0.6.0` release passes 884 non-E2E tests plus one Chromium E2E at 86.95% measured non-E2E `src` coverage, including the user-facing BAT preflight and a fake-Ollama full Windows-launch integration test. Ruff lint/format, Bandit, Poetry/package consistency and `pip-audit` also pass locally.
 
 ## Main Gaps
 
@@ -61,20 +61,20 @@ BushfireReadyGPT is strong enough for internship demonstration, portfolio presen
 | P1 | User testing | The report format has not been validated by real school/council/community reviewers. | Run a controlled pilot with 3-5 reviewers using the pilot feedback form. |
 | P1 | Authentication and approval | Reviewer fields exist, but there are no user accounts, permissions or signed approval states. | Design roles for drafter, reviewer and admin; later add login and immutable approval records. |
 | P2 | Deployment | The app runs locally and now has content-free local Trace, but is not packaged for secure hosting or central monitoring. | Add Docker, environment profiles, health checks, authenticated metrics/tracing, retention controls and deployment notes. |
-| P2 | Automated testing | The maintained working tree covers 584 non-E2E tests at 86.75% locally; the immutable `v0.5.0` baseline remains 428 non-E2E tests, one Chromium workflow and 86.08% coverage. Retrieval/report/red-team evaluation and sample-package verification are automated evidence, but external users have not validated usefulness or comprehension. | Keep the eight-case suite as a regression baseline; add scenarios only from measured pilot findings and keep visual review in the release process. |
+| P2 | Automated testing | The `v0.6.0` baseline covers 884 non-E2E tests at 86.95%, one Chromium workflow, 73 RAG cases, eight product cases and six adversarial cases. This is automated evidence, but no real external user has validated usefulness or comprehension. | Keep the suites as regression baselines; add scenarios from measured pilot findings and keep visual review in the release process. |
 
 ## Recommended Roadmap
 
 | Phase | Goal | Work |
 | --- | --- | --- |
-| Now | Demo-ready governed portfolio MVP | Use the current screenshots, video and governed sample package for presentation; keep release checks green without presenting local working-tree checks as a new release. |
+| Now | Demo-ready governed portfolio MVP | Use the `v0.6.0` screenshots, video and governed sample package for presentation; keep the verified release checks green. |
 | Next 2 weeks | Controlled pilot execution | Recruit 3-5 reviewers, run the prepared protocol, validate evidence/data-quality labels and record anonymised results. |
 | Next 1-2 months | Stakeholder pilot | Test with school/council/community reviewers and refine report templates from feedback. |
 | Commercial path | Procurement-ready product concept | Add authentication, deployment hardening, privacy controls, legal review and data agreements. |
 
 ## Bottom Line
 
-The project is no longer just a modified chatbot. It is now a coherent Australian bushfire preparedness planning MVP with data evidence, multi-agent analysis, report exports and review governance.
+The project is no longer just a modified chatbot. It is now a coherent Australian bushfire preparedness planning MVP with data evidence, deterministic multi-component analysis, report exports and review governance. Its eight named agents are Python responsibility boundaries rather than eight autonomous LLMs.
 
 The project now includes **Official Source Reachability**, which checks official source entry-point availability and timestamped status without making emergency decisions.
 

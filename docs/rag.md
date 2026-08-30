@@ -88,26 +88,33 @@ the 2026-08-22 `v0.3.0` free-text baseline, Top-5 passage recall was 0.9706, MRR
 results, not evidence of production accuracy. Unit tests use a deterministic test
 embedder and temporary Qdrant database, keeping CI offline and repeatable.
 
-The current `v0.5.0` run was collected from clean commit
-`e02f07687ee2e2329fc59afb5fe1c8ea4f532646`. The production-aligned
+The current `v0.6.0` run was collected from clean commit
+`44d0c3f1f8c78af4291f79b090eb3fc53da95ea7`. The production-aligned
 `structured_planning` profile ran at Top-8 over 73 questions: 68 answerable
 questions plus five reachable live/life-safety negatives. It recorded passage
 recall `1.0000`, MRR `0.9216`, Top-1 accuracy `0.8529`, abstention `1.0000`,
-average latency `130.36 ms` and p95 latency `157.49 ms`. The same complete run
+average latency `86.05 ms` and p95 latency `124.15 ms`. The same complete run
 evaluated the 84-question free-text Top-5 profile and recorded passage recall
 `0.9706`, MRR `0.8922`, Top-1 `0.8235`, abstention `1.0000`, average latency
-`131.59 ms` and p95 latency `159.00 ms`.
+`94.00 ms` and p95 latency `113.10 ms`.
 
 The machine-readable result is committed as
-[`rag-retrieval-v0.5.0.json`](benchmarks/rag-retrieval-v0.5.0.json), schema
+[`rag-retrieval-v0.6.0.json`](benchmarks/rag-retrieval-v0.6.0.json), schema
 `bushfire-rag-evaluation-v3`. It binds embedding model digest
 `85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1`
 and verified RAG manifest
 `aa8e42d3d7837ee3927b21108cedf5f6553332f92ba89e9f70caa2852febedd2`.
-Its start/end provenance check was stable. The older
+Its call-boundary and completion provenance checks were stable. The older
 [`rag-retrieval-2026-08-24.json`](benchmarks/rag-retrieval-2026-08-24.json) is
 retained as historical summary evidence; it does not satisfy the current
 full-row release contract.
+
+The returned source IDs, titles, hashes and ranks are application-bound
+retrieval provenance. They show which frozen passages entered the application
+context; they are not claim-level citation accuracy, semantic entailment or
+proof that a generated statement is factually correct. The separate lexical
+grounding review remains diagnostic, and a human reviewer must verify any
+externally used claim against the current official source.
 
 Retrieval uses weighted reciprocal-rank fusion (0.65 dense / 0.35 BM25 by
 default), then small exact-jurisdiction and title-overlap boosts. A deterministic
@@ -136,7 +143,8 @@ rerank reasons so the result can be explained in an interview or review.
 These controls make accidental corruption and common prompt-injection paths
 visible. They do not make a local operator-proof or cryptographically signed
 knowledge base. A person with filesystem access can replace the whole project,
-sources and audit history.
+sources and audit history. The benchmark is engineering regression evidence;
+no real external pilot or stakeholder validation has been completed.
 
 ## Interview discussion points
 

@@ -8,7 +8,7 @@ If you only have a few minutes, read these in order:
 
 1. `project_overview.md` - what the project is and what it is not.
 2. `demo_walkthrough.md` - how to demonstrate the app.
-3. `../examples/v0.5.0/README.md` - published Markdown, PDF, DOCX and governed package.
+3. `../examples/v0.6.0/` - current Markdown, PDF, DOCX and governed package.
 4. `commercial_gap_assessment.md` - what remains before commercial or government use.
 
 ## Start Here
@@ -24,7 +24,8 @@ If you only have a few minutes, read these in order:
 
 | File | Purpose |
 | --- | --- |
-| `../examples/v0.5.0/README.md` | Published v0.5.0 local-Ollama sample in Markdown, PDF and DOCX plus its `pilot-export-v4` package. |
+| `../examples/v0.6.0/` | Current v0.6.0 local-Ollama sample in Markdown, PDF and DOCX plus its `pilot-export-v4` package. |
+| `../examples/v0.5.0/README.md` | Historical v0.5.0 governed sample retained for comparison. |
 | `../examples/v0.3.0/README.md` | Historical governed sample retained for comparison. |
 | `assets/bushfire-ready-gpt-demo.webm` | 89-second local product demonstration. |
 | `pilot_pitch.md` | One-page pilot pitch for councils, schools or community stakeholders. |
@@ -51,31 +52,28 @@ If you only have a few minutes, read these in order:
 | `releases/v0.3.0.md` | Data-quality, scenario benchmark, sample package, visual QA and pilot-readiness release. |
 | `releases/v0.4.0.md` | Evidence-alignment, anonymous pilot measurement and privacy-minimised runtime Trace release. |
 | `releases/v0.5.0.md` | Reproducible release evidence, governed quality-policy binding and offline verification release. |
-| `benchmarks/rag-retrieval-v0.5.0.json` | Published Top-8 release gate and Top-5 diagnostic with dataset, model, index and Git provenance. |
-| `benchmarks/report-generation-v0.5.0.json` | Published eight-scenario governed real-Ollama gate with diagnostic grounding metrics. |
+| `releases/v0.6.0.md` | Trusted-input coverage, repair isolation and prompt-injection hardening release. |
+| `benchmarks/rag-retrieval-v0.6.0.json` | Current Top-8 release gate and Top-5 diagnostic with dataset, model, index and Git provenance. |
+| `benchmarks/report-generation-v0.6.0.json` | Current eight-scenario governed real-Ollama release gate with grounding diagnostics. |
+| `benchmarks/report-red-team-v0.6.0.json` | Current six-scenario prompt-injection diagnostic gate. |
+| `benchmarks/rag-retrieval-v0.5.0.json` | Historical v0.5.0 retrieval release evidence. |
+| `benchmarks/report-generation-v0.5.0.json` | Historical v0.5.0 report release evidence. |
 | `benchmarks/report-generation-v0.3.0.json` | Historical eight-case real-Ollama regression result. |
 | `benchmarks/report-generation-v0.4.0.json` | Historical grounding-diagnostic regression result. |
 
 ## Current Release Evidence
 
-v0.5.0 is bound to source commit `e02f076`. The release verification set records
-429 passing tests (428 non-E2E plus one Chromium E2E) and 86.08% coverage. The
-RAG release gate evaluates 73 structured Top-8 questions; the free-text Top-5
-diagnostic evaluates all 84 questions. The report gate evaluates eight scenarios.
-See the two v0.5.0 benchmark JSON files and `../examples/v0.5.0/README.md` for the
-exact measured rates, provenance and limitations.
-
-## Maintained Working Tree
-
-The v0.6.0 release-candidate working tree was checked locally on 2026-08-29 with
-`584` passing non-E2E tests and `86.75%` measured `src` coverage. Ruff lint/format,
-Bandit, Poetry/package consistency and `pip-audit` also pass locally. The
-hardening includes PID/token-owned audit and RAG locks with conservative stale
-record recovery, canonical `[O1-RAG][source_id=...] <title>` model citations
-with deterministic URL binding, a fake-Ollama Windows full-launch test, one
-PowerShell quality-check wrapper and root `/tmp/` exclusion. These local values
-are not a new release or a remote-CI claim; the immutable `v0.5.0` evidence above
-remains unchanged.
+v0.6.0 is bound to clean source commit `44d0c3f`. Local validation records 885
+passing tests (884 non-E2E plus one Chromium E2E) and 86.95% coverage. The RAG
+release gate evaluates 73 structured Top-8 questions; the free-text Top-5
+diagnostic evaluates all 84 questions. The product report release gate passes
+all eight scenarios, while the separate diagnostic gate passes all six
+prompt-injection red-team scenarios. All three artifacts bind the same clean
+source commit and shared RAG index. The retrieval artifact separately binds the
+embedding identity; the two report artifacts bind the generation-model identity
+and `governed-report-v6` fingerprint. See the v0.6.0 JSON files,
+`releases/v0.6.0.md` and `../examples/v0.6.0/` for exact measurements and
+limitations. The v0.5.0 evidence remains unchanged as historical proof.
 
 ## Removed Redundant Docs
 
@@ -105,7 +103,7 @@ For a stakeholder or pilot discussion:
 For GitHub reviewers:
 
 1. Start from the root `README.md`.
-2. Open the current sample output in `examples/v0.5.0/`.
+2. Open the current sample output in `examples/v0.6.0/`.
 3. Read `architecture.md` only if they want implementation details.
 4. Read `rag.md` for the retrieval design and evaluation story.
 5. Read `commercial_gap_assessment.md` to understand current limits.
