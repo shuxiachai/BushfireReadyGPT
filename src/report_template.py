@@ -119,7 +119,7 @@ def build_evidence_tables(analysis):
         "",
         "### Evidence Confidence and Provenance",
         "",
-        "Evidence codes describe provenance and required review. They are not fire danger ratings, live incident severity levels or guarantees of legal or operational reliability.",
+        "Evidence codes describe provenance and required review. They are not fire danger ratings, live incident severity levels or promises of legal or operational reliability.",
         "",
         "| Code | Evidence class | Confidence / use boundary | Required review |",
         "| --- | --- | --- | --- |",
@@ -526,9 +526,8 @@ Formatting and safety requirements:
 - If a retrieved passage does not support a model-authored factual claim, write "To be confirmed" rather than attaching a citation token.
 - Treat every proposed place or premises only as an unverified candidate pending current verification by the responsible authority and organisational approval.
 - Treat every road, route, corridor and exit only as an unverified candidate. Do not state that one is current, open, closed, clear, passable, safe, approved, designated, primary or secondary. Say: "Identify candidate routes and verify current status through authorised official sources before operational use; follow current official directions."
-- Do not use any form of the words `ensure`, `guarantee` or `assure`, or the expressions `risk-free`,
-  `zero risk` or `zero-risk`, anywhere in the model-authored report. Use `support`, `verify`, `reduce risk` or
-  `maintain` instead. Describe preparedness measures only as risk-reduction actions that still require current
-  official advice and human judgement.
+- For every safety or survival outcome, use only non-absolute risk-reduction wording built with `support`,
+  `verify`, `reduce risk` or `maintain`. Delete competing certainty claims. Describe preparedness measures only
+  as risk-reduction actions that still require current official advice and human judgement.
 - Official sources are verification entry points only. Live warnings, fire bans, evacuation orders and life-safety decisions must come from official emergency services. Call 000 in life-threatening emergencies.
 """

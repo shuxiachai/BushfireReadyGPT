@@ -804,9 +804,14 @@ def test_repair_prompt_gives_an_absolute_safety_replacement_without_replaying_th
     assert "ABSOLUTE-SAFETY REWRITE" in prompt
     assert "These preparedness measures reduce risk" in prompt
     assert "subject to current official advice and responsible human review" in prompt
-    assert "FINAL LITERAL SCRUB" in prompt
-    assert "Use support, verify, reduce risk or maintain instead" in prompt
+    assert "use only support, verify, reduce risk or maintain" in prompt
+    assert "absolute-outcome wording detected" in prompt
+    assert "absolute_safety_guarantee" not in prompt
     assert "This plan guarantees everyone's safety." not in prompt
+    assert all(
+        term not in prompt.casefold()
+        for term in ("ensure", "guarantee", "assure", "risk-free", "zero risk", "zero-risk")
+    )
 
 
 def test_repair_prompt_targets_duplicate_required_headings_and_finishes_with_single_report_rule():

@@ -1,5 +1,6 @@
 import inspect
 import json
+import re
 
 import pytest
 
@@ -117,12 +118,13 @@ def test_build_report_prompt_adds_only_canonical_copy_ready_coverage_declaration
     assert "FOCUS LEAK" not in prompt
 
 
-def test_initial_prompt_applies_literal_absolute_claim_vocabulary_ban():
+def test_initial_prompt_uses_positive_risk_reduction_language_without_priming_absolute_claims():
     prompt = _build_prompt({"prompt_context": "Frozen analysis prompt context."})
     normalised = " ".join(prompt.split())
 
-    assert "Do not use any form of the words `ensure`, `guarantee` or `assure`" in prompt
-    assert "Use `support`, `verify`, `reduce risk` or `maintain` instead" in normalised
+    assert "use only non-absolute risk-reduction wording" in normalised
+    assert "built with `support`, `verify`, `reduce risk` or `maintain`" in normalised
+    assert not re.search(r"\b(?:ensure|guarantee|assure)(?:s|d|ing)?\b", prompt, re.IGNORECASE)
 
 
 def test_dynamic_evidence_confidence_values_remain_json_data_not_prompt_rules():
@@ -347,6 +349,33 @@ def test_structure_repair_reuses_the_same_source_attribution_contract():
     assert "<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>" not in repair_prompt
     assert len(repair_prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS
     assert "Day 1: Assign the responsible preparedness lead" in repair_prompt
+
+
+def test_production_absolute_safety_repair_prompt_uses_only_positive_replacement_language():
+    analysis = _analysis_with_attributed_sources()
+    repair_prompt = build_report_repair_prompt(
+        "Original governed request",
+        "This plan guarantees everyone's safety.",
+        {
+            "approval_gate": {
+                "blocking_failures": [
+                    {
+                        "name": "Safety boundary assertions",
+                        "detail": "Remove prohibited operational assertions (absolute_safety_guarantee).",
+                    }
+                ]
+            }
+        },
+        analysis=analysis,
+    )
+
+    assert "absolute-outcome wording detected" in repair_prompt
+    assert "These preparedness measures reduce risk" in repair_prompt
+    assert not re.search(
+        r"\b(?:ensure|guarantee|assure)(?:s|d|ing)?\b|risk[- ]free|zero[- ]risk",
+        repair_prompt,
+        re.IGNORECASE,
+    )
 
 
 def test_source_metadata_markers_never_reach_model_prompt_repair_agent_or_rag_formatter():

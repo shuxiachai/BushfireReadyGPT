@@ -114,7 +114,7 @@ KNOWN_QUALITY_POLICY_MANIFESTS = {
         "focus_area_coverage_ruleset": "allowlisted-composite-focus-coverage-v2",
         "scenario_coverage_ruleset": "allowlisted-scenario-coverage-v1",
         "coverage_declaration_ruleset": "canonical-copy-lines-v1",
-        "model_safety_prompt_ruleset": "literal-absolute-claim-ban-v1",
+        "model_safety_prompt_ruleset": "positive-risk-reduction-language-v1",
         "legacy_contract_migration_ruleset": "exact-allowlist-or-fail-closed-v1",
     },
 }
@@ -530,6 +530,12 @@ def _compact_failure_lines(failures):
             continue
         name = _bounded_repair_text(item.get("name"), limit=100) or "Governed check"
         detail = _bounded_repair_text(item.get("detail"), limit=280)
+        detail = re.sub(
+            r"absolute_safety_guarantee",
+            "absolute-outcome wording detected",
+            detail,
+            flags=re.IGNORECASE,
+        )
         lines.append(f"- {name}: {detail}" if detail else f"- {name}")
     return "\n".join(lines)
 
@@ -564,12 +570,10 @@ def build_report_repair_prompt(original_prompt, previous_response, quality, *, a
         )
     if "absolute_safety_guarantee" in failure_text:
         targeted_safety_rules.append(
-            "- ABSOLUTE-SAFETY REWRITE: Replace every promise to ensure or guarantee safety, every risk-free or "
-            'zero-risk statement and every survival guarantee with: "These preparedness measures reduce risk, '
-            'subject to current official advice and responsible human review." Do not quote the rejected wording, '
-            "including in tables, checklists or examples. FINAL LITERAL SCRUB: the returned report must not contain "
-            "any form of the words ensure, guarantee or assure, or the expressions risk-free, zero risk or zero-risk. "
-            "Use support, verify, reduce risk or maintain instead, including in tables and checklists."
+            "- ABSOLUTE-SAFETY REWRITE: For every safety or survival outcome, use only support, verify, reduce risk "
+            'or maintain. Replace the failing claim exactly with: "These preparedness measures reduce risk, subject '
+            'to current official advice and responsible human review." Delete every competing certainty or survival '
+            "outcome sentence, including in tables, checklists and examples, without quoting the rejected wording."
         )
     if "duplicat" in failure_text and "required section" in failure_text:
         targeted_safety_rules.append(
@@ -611,10 +615,9 @@ Fixed heading sequence (each exactly once, in this order):
 {coverage_requirement}
 - Treat every road, route, place and premises only as an unverified candidate pending current authorised
   verification and organisational approval. Never issue live directions or state current operational status.
-- Do not use any form of the words `ensure`, `guarantee` or `assure`, or the expressions `risk-free`, `zero risk`
-  or `zero-risk`, anywhere in the returned report. Use `support`, `verify`, `reduce risk` or `maintain` instead.
-  Describe measures only as risk reduction subject to current official advice and responsible human judgement.
-  Keep the draft and human-review boundaries.
+- For every safety or survival outcome, use only `support`, `verify`, `reduce risk` or `maintain`. Delete competing
+  certainty claims rather than describing or quoting them. Describe measures only as risk reduction subject to
+  current official advice and responsible human judgement. Keep the draft and human-review boundaries.
 - Include at least 300 prose words outside headings, tables and checklist bullets. Give every required section
   section-specific substantive content and use Markdown checkboxes in section 14. Prefer one concise paragraph
   per section and do not repeat the same priority list in multiple sections.
