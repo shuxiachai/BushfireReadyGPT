@@ -1,6 +1,5 @@
 import hashlib
 import json
-import shutil
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,9 +11,6 @@ from src.source_attribution import format_official_citation_token
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
-TEST_SESSION_PATH = PROJECT_ROOT / "chat_history" / "test_session_state.json"
-TEST_INTERACTION_PATH = PROJECT_ROOT / "chat_history" / "test_interaction.jsonl"
-TEST_AUDIT_DIR = PROJECT_ROOT / "chat_history" / "test_audit"
 TASMANIA_FIRE_SOURCE = {"id": "tasmania_fire_service", "name": "Tasmania Fire Service"}
 BOM_WARNINGS_SOURCE = {"id": "bom_warnings_alerts", "name": "Bureau of Meteorology - Warnings and Alerts"}
 
@@ -188,23 +184,22 @@ def _write_verified_map_fixture(directory):
     return profile_path, boundary_path
 
 
-def _remove_test_files():
-    for path in (TEST_SESSION_PATH, TEST_INTERACTION_PATH):
-        path.unlink(missing_ok=True)
-    shutil.rmtree(TEST_AUDIT_DIR, ignore_errors=True)
-
-
 @pytest.fixture
-def isolated_app_storage():
-    _remove_test_files()
+def isolated_app_storage(tmp_path):
+    session_path = tmp_path / "session_state.json"
+    interaction_path = tmp_path / "interaction.jsonl"
+    audit_dir = tmp_path / "audit"
     with (
-        patch("src.session_store.SESSION_STATE_PATH", str(TEST_SESSION_PATH)),
-        patch("src.session_store.INTERACTION_LOG_PATH", str(TEST_INTERACTION_PATH)),
-        patch("src.audit.AUDIT_DIR", TEST_AUDIT_DIR),
+        patch("src.session_store.SESSION_STATE_PATH", str(session_path)),
+        patch("src.session_store.INTERACTION_LOG_PATH", str(interaction_path)),
+        patch("src.audit.AUDIT_DIR", audit_dir),
         patch("src.coverage_map.is_area_selection_available", return_value=False),
     ):
-        yield
-    _remove_test_files()
+        yield {
+            "session_path": session_path,
+            "interaction_path": interaction_path,
+            "audit_dir": audit_dir,
+        }
 
 
 def _run_app():
@@ -303,8 +298,8 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert not app.exception
     assert model_call.call_count == 3
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
-    assert app.session_state["latest_quality"]["summary"]["total"] == 15
-    assert app.session_state["latest_audit_path"].startswith(str(TEST_AUDIT_DIR))
+    assert app.session_state["latest_quality"]["summary"]["total"] == 16
+    assert app.session_state["latest_audit_path"].startswith(str(isolated_app_storage["audit_dir"]))
     assert app.session_state["latest_report"]["version"] == 1
     assert app.session_state["latest_report"]["audit_path"] == app.session_state["latest_audit_path"]
     assert any("Latest Report Preview" in markdown.value for markdown in app.markdown)

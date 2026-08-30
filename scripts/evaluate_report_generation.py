@@ -491,6 +491,9 @@ def _report_run_metadata(payload, scenario_path, *, started_at_utc, model_identi
         "grounding_evaluation_method": GROUNDING_METHOD,
         "grounding_policy": "diagnostic_only_human_review_required",
         "grounding_release_gate_enforced": False,
+        "rag_attribution_metric_semantics": (
+            "application_bound_retrieval_provenance; not claim_level_model_citation_accuracy"
+        ),
     }
 
 

@@ -408,10 +408,10 @@ def test_form_and_analysis_data_cannot_close_their_trusted_prompt_blocks():
         "<END_DETERMINISTIC_ANALYSIS_DATA>",
         "<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>",
         "<END_CANONICAL_SOURCE_TOKEN_DATA>",
-        "<BEGIN_REQUIRED_SOURCE_TOKENS>",
-        "<END_REQUIRED_SOURCE_TOKENS>",
     ):
         assert prompt.count(marker) == 1
+    assert "<BEGIN_REQUIRED_SOURCE_TOKENS>" not in prompt
+    assert "<END_REQUIRED_SOURCE_TOKENS>" not in prompt
     assert "</END_DETERMINISTIC_ANALYSIS_DATA>" not in prompt
     assert "< / END_REQUIRED_SOURCE_TOKENS >" not in prompt
 
@@ -453,8 +453,8 @@ def test_repair_prompt_preserves_only_the_intended_application_marker_instances(
     assert repair.count("<END_DETERMINISTIC_ANALYSIS_DATA>") == 1
     assert repair.count("<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>") == 2
     assert repair.count("<END_CANONICAL_SOURCE_TOKEN_DATA>") == 2
-    assert repair.count("<BEGIN_REQUIRED_SOURCE_TOKENS>") == 2
-    assert repair.count("<END_REQUIRED_SOURCE_TOKENS>") == 2
+    assert "<BEGIN_REQUIRED_SOURCE_TOKENS>" not in repair
+    assert "<END_REQUIRED_SOURCE_TOKENS>" not in repair
 
 
 def test_display_labels_fold_back_to_opaque_tokens_before_revision_model_access():

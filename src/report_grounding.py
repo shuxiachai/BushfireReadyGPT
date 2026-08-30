@@ -7,10 +7,11 @@ from src.report_template import extract_narrative_body
 from src.source_attribution import (
     canonical_official_source_ids,
     canonical_rag_source_ids,
+    strip_application_source_bindings,
     strip_known_attribution_labels,
 )
 
-GROUNDING_METHOD = "deterministic_lexical_grounding_v2"
+GROUNDING_METHOD = "deterministic_lexical_grounding_v3"
 DEFAULT_THRESHOLDS = {
     "support_rate": 0.8,
     "citation_coverage_rate": 0.7,
@@ -77,8 +78,13 @@ def evaluate_report_grounding(report_text, analysis, *, thresholds=None):
     """
 
     active_thresholds = _validate_thresholds(thresholds or DEFAULT_THRESHOLDS)
-    narrative = extract_narrative_body(str(report_text or ""))
-    evidence = _build_evidence_items(analysis if isinstance(analysis, dict) else {})
+    analysis_context = analysis if isinstance(analysis, dict) else {}
+    narrative = strip_application_source_bindings(
+        extract_narrative_body(str(report_text or "")),
+        official_sources=(analysis_context.get("data") or {}).get("sources") or [],
+        rag_sources=(analysis_context.get("knowledge") or {}).get("retrieved_chunks") or [],
+    )
+    evidence = _build_evidence_items(analysis_context)
     source_evidence = [item for item in evidence if item["source_id"]]
     claims = []
     for sentence in _sentences(narrative):
@@ -90,7 +96,7 @@ def evaluate_report_grounding(report_text, analysis, *, thresholds=None):
         citation_required = bool(cited_source_ids or numbers or _EVIDENCE_SIGNALS.search(claim_body))
         if not citation_required:
             continue
-        result = _assess_claim(sentence, claim_body, evidence, cited_source_ids, analysis)
+        result = _assess_claim(sentence, claim_body, evidence, cited_source_ids, analysis_context)
         claims.append({"citation_required": True, **result})
 
     if not claims:

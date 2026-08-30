@@ -26,6 +26,10 @@ _ATTRIBUTION_TOKEN = re.compile(
     r"\[O1(?:-RAG)?\]\[(?:source_id|ref)=[^\]\r\n]+\]",
     re.IGNORECASE,
 )
+_UNBOUND_ATTRIBUTION_MARKER = re.compile(
+    r"\]\s*\[\s*[^\]\r\n=]{1,32}\s*=",
+    re.IGNORECASE,
+)
 _HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 _UNCLOSED_HTML_COMMENT = re.compile(r"<!--.*\Z", re.DOTALL)
 _NON_VISIBLE_HTML_BLOCK = re.compile(
@@ -47,6 +51,17 @@ _UNCLOSED_HIDDEN_HTML_BLOCK = re.compile(
 )
 _REFERENCE_DEFINITION = re.compile(r"^ {0,3}\[[^\]\r\n]+\]:")
 _LIST_MARKER = re.compile(r"^\s*(?:[-+*]\s+|\d+[.)]\s+)")
+_CANONICAL_RAG_RETRIEVAL_CLAIM = (
+    "The application retrieved this static official passage as preparedness-planning evidence for human review."
+)
+_SOURCE_ANNOTATION_WORD = (
+    r"(?:unregistered|registered|retrieved|verified|official|canonical|source|citation|verification|knowledge|"
+    r"evidence|entry|record|reference)"
+)
+_SOURCE_ANNOTATION_ONLY = re.compile(
+    rf"^\(?\s*{_SOURCE_ANNOTATION_WORD}(?:[\s/,:;-]+{_SOURCE_ANNOTATION_WORD})*\s*\)?[.!]?$",
+    re.IGNORECASE,
+)
 _PROMPT_DATA_MARKER_NAME = (
     r"(?:DETERMINISTIC\s*_\s*ANALYSIS\s*_\s*DATA|"
     r"CANONICAL\s*_\s*SOURCE\s*_\s*TOKEN\s*_\s*DATA|"
@@ -60,7 +75,7 @@ _PROMPT_CONTROL_MARKER = re.compile(
     re.IGNORECASE,
 )
 _RAW_HTML = re.compile(
-    r"<!--|<\s*(?:/?\s*[A-Za-z][\w:-]*(?=\s|/?>|$)|![A-Za-z]|\?)",
+    r"<!--|<\s*(?:!\s*\[CDATA\[|/?\s*[A-Za-z][\w:-]*(?=\s|/?>|$)|![A-Za-z]|\?)",
     re.IGNORECASE | re.MULTILINE,
 )
 _VOID_HTML_TAGS = frozenset(
@@ -198,6 +213,67 @@ def expand_known_attribution_tokens(text, *, official_sources=(), rag_sources=()
     return matcher.sub(replace, str(text or ""))
 
 
+def canonicalise_model_source_section(text, *, official_sources=(), rag_sources=()):
+    """Install the application-owned citation block in one real source section.
+
+    Local models are useful for drafting prose but are not reliable custodians of
+    exact citation-line syntax.  The application therefore owns the small set of
+    source lines that the deterministic quality gate evaluates.  Existing
+    model-authored attribution lines are removed only from the real Markdown
+    ``Data Sources and Limitations`` section; all other prose is preserved.
+
+    Missing or duplicate target headings, raw HTML and incomplete source
+    bindings are deliberately left unchanged for the governed quality checks
+    rather than being rewritten invisibly by this step.
+    """
+
+    content = str(text or "")
+    if has_model_authored_raw_html(content):
+        return content
+
+    token_data = canonical_source_token_data(
+        official_sources=official_sources,
+        rag_sources=rag_sources,
+    )
+    official_tokens = token_data["official_source_tokens"][:2]
+    if len(official_tokens) < 2:
+        return content
+
+    lines = content.splitlines()
+    target_headings = _markdown_heading_positions(lines, "Data Sources and Limitations")
+    if len(target_headings) != 1:
+        return content
+
+    heading_index, heading_level = target_headings[0]
+    section_end = _markdown_section_end(lines, heading_index, heading_level)
+    known_labels = {
+        *canonical_official_labels(official_sources),
+        *canonical_rag_labels(rag_sources),
+    }
+    cleaned_section = _remove_model_attribution_lines(
+        lines[heading_index + 1 : section_end],
+        known_labels=known_labels,
+    )
+    while cleaned_section and not cleaned_section[0].strip():
+        cleaned_section.pop(0)
+
+    canonical_lines = [*(f"- {token}" for token in official_tokens)]
+    canonical_lines.append("")
+    rag_tokens = token_data["rag_source_tokens"]
+    if rag_tokens:
+        canonical_lines.append(f"{_CANONICAL_RAG_RETRIEVAL_CLAIM} {rag_tokens[0]}")
+        canonical_lines.append("")
+
+    return "\n".join(
+        [
+            *lines[: heading_index + 1],
+            *canonical_lines,
+            *cleaned_section,
+            *lines[section_end:],
+        ]
+    )
+
+
 def canonical_attribution_bindings(*, official_sources=(), rag_sources=()):
     """Build a unique token-to-label map and reject canonical identifier collisions."""
 
@@ -326,10 +402,37 @@ def strip_known_attribution_labels(text, *, rag_sources=(), official_sources=())
     return result
 
 
+def strip_application_source_bindings(text, *, official_sources=(), rag_sources=()):
+    """Remove exact application-owned source lines before scoring model prose."""
+
+    token_data = canonical_source_token_data(
+        official_sources=official_sources,
+        rag_sources=rag_sources,
+    )
+    official_bindings = {
+        *canonical_official_labels(official_sources),
+        *token_data["official_source_tokens"],
+    }
+    rag_bindings = {
+        *canonical_rag_labels(rag_sources),
+        *token_data["rag_source_tokens"],
+    }
+    result = []
+    for line in str(text or "").splitlines():
+        visible = normalise_render_equivalent_text(line)
+        candidate = _LIST_MARKER.sub("", visible).strip()
+        if candidate in official_bindings:
+            continue
+        if any(candidate == f"{_CANONICAL_RAG_RETRIEVAL_CLAIM} {binding}" for binding in rag_bindings):
+            continue
+        result.append(line)
+    return "\n".join(result)
+
+
 def extract_markdown_section(text, heading):
     """Extract one exact Markdown section, including only its nested subsections."""
 
-    target = _normalise_heading(heading)
+    target = normalise_markdown_heading(heading)
     selected = []
     active_level = None
     fence_character = None
@@ -366,7 +469,7 @@ def extract_markdown_section(text, heading):
         match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*$", line)
         if match:
             level = len(match.group(1))
-            current = _normalise_heading(match.group(2))
+            current = normalise_markdown_heading(match.group(2))
             if current == target:
                 active_level = level
                 continue
@@ -441,6 +544,14 @@ def has_model_authored_raw_html(text):
     """Return whether a narrative contains a raw HTML tag or comment opener."""
 
     return _RAW_HTML.search(normalise_render_equivalent_text(text)) is not None
+
+
+def has_unbound_attribution_marker(text):
+    """Return whether model prose retains an attribution-like unverified marker."""
+
+    content = normalise_render_equivalent_text(text)
+    dash_normalised = "".join("-" if unicodedata.category(character) == "Pd" else character for character in content)
+    return _UNBOUND_ATTRIBUTION_MARKER.search(dash_normalised) is not None
 
 
 def neutralise_prompt_control_markers(value, *, preserve_retrieved_evidence=False):
@@ -548,6 +659,97 @@ def _opaque_source_ref(kind, source_id):
     return hashlib.sha256(f"{kind}:{source_id}".encode("utf-8")).hexdigest()[:12]
 
 
+def _markdown_heading_positions(lines, heading):
+    target = normalise_markdown_heading(heading)
+    positions = []
+    fence_character = None
+    fence_length = 0
+    for index, line in enumerate(lines):
+        fence = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence_character is not None:
+            marker = fence.group(1) if fence else ""
+            suffix = fence.group(2) if fence else ""
+            if marker.startswith(fence_character * fence_length) and not suffix.strip():
+                fence_character = None
+                fence_length = 0
+            continue
+        if fence:
+            marker = fence.group(1)
+            fence_character = marker[0]
+            fence_length = len(marker)
+            continue
+        match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*$", line)
+        if match and normalise_markdown_heading(match.group(2)) == target:
+            positions.append((index, len(match.group(1))))
+    return positions
+
+
+def _markdown_section_end(lines, heading_index, heading_level):
+    fence_character = None
+    fence_length = 0
+    for index in range(heading_index + 1, len(lines)):
+        line = lines[index]
+        fence = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence_character is not None:
+            marker = fence.group(1) if fence else ""
+            suffix = fence.group(2) if fence else ""
+            if marker.startswith(fence_character * fence_length) and not suffix.strip():
+                fence_character = None
+                fence_length = 0
+            continue
+        if fence:
+            marker = fence.group(1)
+            fence_character = marker[0]
+            fence_length = len(marker)
+            continue
+        match = re.match(r"^ {0,3}(#{1,6})\s+", line)
+        if match and len(match.group(1)) <= heading_level:
+            return index
+    return len(lines)
+
+
+def _remove_model_attribution_lines(lines, *, known_labels):
+    result = []
+    fence_character = None
+    fence_length = 0
+    normalised_labels = sorted(
+        (normalise_render_equivalent_text(label) for label in known_labels),
+        key=len,
+        reverse=True,
+    )
+    for line in lines:
+        fence = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence_character is not None:
+            result.append(line)
+            marker = fence.group(1) if fence else ""
+            suffix = fence.group(2) if fence else ""
+            if marker.startswith(fence_character * fence_length) and not suffix.strip():
+                fence_character = None
+                fence_length = 0
+            continue
+        if fence:
+            marker = fence.group(1)
+            fence_character = marker[0]
+            fence_length = len(marker)
+            result.append(line)
+            continue
+        visible = normalise_render_equivalent_text(line)
+        if _ATTRIBUTION_TOKEN.search(visible) is None and not any(label in visible for label in normalised_labels):
+            result.append(line)
+            continue
+        visible = _ATTRIBUTION_TOKEN.sub("", visible)
+        for label in normalised_labels:
+            visible = visible.replace(label, "")
+        visible = visible.rstrip()
+        if re.fullmatch(r"\s*(?:[-+*]|\d+[.)])\s*", visible):
+            continue
+        prose = _LIST_MARKER.sub("", visible).strip()
+        if not prose or prose == _CANONICAL_RAG_RETRIEVAL_CLAIM or _SOURCE_ANNOTATION_ONLY.fullmatch(prose) is not None:
+            continue
+        result.append(visible)
+    return result
+
+
 def _is_variation_selector(character):
     codepoint = ord(character)
     return 0xFE00 <= codepoint <= 0xFE0F or 0xE0100 <= codepoint <= 0xE01EF
@@ -561,5 +763,10 @@ def _normalise_metadata(value, *, fallback):
     return text[:300] or fallback
 
 
-def _normalise_heading(value):
-    return re.sub(r"^\d+[.)]\s*", "", " ".join(str(value or "").split())).casefold()
+def normalise_markdown_heading(value):
+    """Canonicalise a rendered ATX heading title for governed comparisons."""
+
+    content = normalise_render_equivalent_text(value)
+    content = re.sub(r"\s+#+\s*$", "", content)
+    content = " ".join(content.split())
+    return re.sub(r"^\d+[.)]\s*", "", content).casefold()

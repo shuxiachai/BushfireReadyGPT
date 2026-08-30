@@ -10,7 +10,10 @@ from src.source_attribution import (
     extract_markdown_section,
     has_model_authored_raw_html,
     has_model_authored_url,
+    has_unbound_attribution_marker,
+    normalise_markdown_heading,
     plain_markdown_claim_text,
+    strip_application_source_bindings,
     strip_known_attribution_labels,
     visible_markdown_text,
 )
@@ -70,8 +73,13 @@ class ReportQualityAgent:
     def run(self, report_text, *, official_sources=None, rag_sources=None):
         text = report_text or ""
         narrative = extract_narrative_body(text)
-        claim_narrative = strip_known_attribution_labels(
+        scored_narrative = strip_application_source_bindings(
             narrative,
+            official_sources=official_sources or [],
+            rag_sources=rag_sources or [],
+        )
+        claim_narrative = strip_known_attribution_labels(
+            scored_narrative,
             official_sources=official_sources or [],
             rag_sources=rag_sources or [],
         )
@@ -89,6 +97,10 @@ class ReportQualityAgent:
             self._check_safety_boundaries(lint_narrative),
             self._check_model_authored_urls(claim_narrative),
             self._check_model_authored_raw_html(claim_narrative),
+            self._check_unbound_attribution_markers(
+                claim_narrative,
+                enforce=official_sources is not None or rag_sources is not None,
+            ),
             self._check_evidence_tables(text),
             self._check_evidence_confidence(text),
             self._check_human_review_status(text),
@@ -163,7 +175,9 @@ class ReportQualityAgent:
 
     def _check_sections(self, text):
         sections = self._extract_sections(text)
-        missing = [section for section in self.REQUIRED_SECTION_HEADINGS if section.lower() not in sections]
+        heading_counts = self._required_heading_counts(text)
+        missing = [section for section in self.REQUIRED_SECTION_HEADINGS if heading_counts[section.lower()] == 0]
+        duplicated = [section for section in self.REQUIRED_SECTION_HEADINGS if heading_counts[section.lower()] > 1]
         shallow = []
         for section in self.REQUIRED_SECTION_HEADINGS:
             if section.lower() not in sections or "checklist" in section.lower():
@@ -172,7 +186,7 @@ class ReportQualityAgent:
             unique = {word.lower() for word in words if word.lower() not in self.STOPWORDS and len(word) > 2}
             if len(words) < 7 or len(unique) < 4:
                 shallow.append(section)
-        if not missing and not shallow:
+        if not missing and not duplicated and not shallow:
             return self._result(
                 "pass",
                 "Required sections",
@@ -181,6 +195,8 @@ class ReportQualityAgent:
         detail = []
         if missing:
             detail.append("missing: " + ", ".join(missing))
+        if duplicated:
+            detail.append("duplicated: " + ", ".join(duplicated))
         if shallow:
             detail.append("insufficient content: " + ", ".join(shallow))
         return self._result(
@@ -219,10 +235,9 @@ class ReportQualityAgent:
             "fail",
             "Official sources",
             (
-                "Cite at least two different registered official sources in Data Sources and Limitations "
-                "using supplied opaque [O1][ref=<opaque_ref>] tokens. Put each token on its own plain-text "
-                "or Markdown bullet line with no surrounding prose or hidden markup; the application expands "
-                "it to a complete display label after generation."
+                "Keep one real visible Markdown Data Sources and Limitations section. The application must bind "
+                "at least two complete registered official sources there as plain-text or Markdown bullet lines; "
+                "raw HTML, hidden markup and incomplete source records are not accepted."
             ),
         )
 
@@ -370,6 +385,26 @@ class ReportQualityAgent:
             "Remove raw HTML tags and comments; use only the governed Markdown report format.",
         )
 
+    def _check_unbound_attribution_markers(self, text, *, enforce):
+        if not enforce:
+            return self._result(
+                "pass",
+                "Unverified attribution markers",
+                "No frozen source register was supplied; the legacy compatibility assessment does not bind labels.",
+            )
+        if not has_unbound_attribution_marker(text):
+            return self._result(
+                "pass",
+                "Unverified attribution markers",
+                "The narrative contains no residual unverified attribution-like markers.",
+            )
+        return self._result(
+            "fail",
+            "Unverified attribution markers",
+            "Remove unverified or visually confusable attribution markers; only application-bound source labels "
+            "are accepted.",
+        )
+
     @staticmethod
     def _privacy_minimised_findings(violations):
         claims_by_code = defaultdict(list)
@@ -432,12 +467,12 @@ class ReportQualityAgent:
         sections = {}
         current = None
         current_level = None
-        known_sections = {heading.lower() for heading in self.REQUIRED_SECTION_HEADINGS}
-        for line in text.splitlines():
+        known_sections = {normalise_markdown_heading(heading) for heading in self.REQUIRED_SECTION_HEADINGS}
+        for line in self._non_fenced_markdown_lines(text):
             match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*$", line)
             if match:
                 level = len(match.group(1))
-                heading = re.sub(r"^\d+[.)]\s*", "", match.group(2).strip()).lower()
+                heading = normalise_markdown_heading(match.group(2))
                 if heading in known_sections:
                     current = heading
                     current_level = level
@@ -450,6 +485,38 @@ class ReportQualityAgent:
             elif current is not None:
                 sections[current].append(line)
         return {heading: "\n".join(lines) for heading, lines in sections.items()}
+
+    def _required_heading_counts(self, text):
+        known_sections = {normalise_markdown_heading(heading) for heading in self.REQUIRED_SECTION_HEADINGS}
+        counts = {heading: 0 for heading in known_sections}
+        for line in self._non_fenced_markdown_lines(text):
+            match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*$", line)
+            if not match:
+                continue
+            heading = normalise_markdown_heading(match.group(2))
+            if heading in counts:
+                counts[heading] += 1
+        return counts
+
+    @staticmethod
+    def _non_fenced_markdown_lines(text):
+        fence_character = None
+        fence_length = 0
+        for line in str(text or "").splitlines():
+            fence = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+            if fence_character is not None:
+                marker = fence.group(1) if fence else ""
+                suffix = fence.group(2) if fence else ""
+                if marker.startswith(fence_character * fence_length) and not suffix.strip():
+                    fence_character = None
+                    fence_length = 0
+                continue
+            if fence:
+                marker = fence.group(1)
+                fence_character = marker[0]
+                fence_length = len(marker)
+                continue
+            yield line
 
     def _result(self, status, name, detail):
         return {

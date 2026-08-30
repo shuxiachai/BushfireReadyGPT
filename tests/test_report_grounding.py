@@ -128,6 +128,19 @@ Reviewer: pending
     assert result["metrics"]["claims_evaluated"] == 0
 
 
+def test_grounding_excludes_application_owned_retrieval_provenance_line():
+    report = (
+        "## Data Sources and Limitations\n"
+        "The application retrieved this static official passage as preparedness-planning evidence for human "
+        "review. [O1-RAG][source_id=qld-guide] Queensland Bushfire Preparation Guide"
+    )
+
+    result = evaluate_report_grounding(report, _analysis())
+
+    assert result["status"] == "not_applicable"
+    assert result["metrics"]["claims_evaluated"] == 0
+
+
 def test_trace_projection_does_not_include_claim_text():
     result = evaluate_report_grounding(
         "The community data shows a population of 999999 residents.",
