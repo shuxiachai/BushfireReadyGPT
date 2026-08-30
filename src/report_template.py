@@ -5,6 +5,7 @@ from src.evidence_confidence import (
     build_evidence_confidence_rows,
     format_evidence_confidence_rules_for_prompt,
 )
+from src.focus_coverage import canonical_coverage_declarations
 from src.governance import HUMAN_REVIEW_CHECKLIST
 from src.source_attribution import (
     MODEL_SOURCE_ATTRIBUTION_RULES,
@@ -453,6 +454,12 @@ def build_report_prompt(
         analysis["prompt_context"],
         preserve_retrieved_evidence=True,
     )
+    coverage_declarations = canonical_coverage_declarations(analysis)
+    coverage_declaration_text = (
+        "\n".join(f"- {line}" for line in coverage_declarations)
+        if coverage_declarations
+        else "- No application-recognised scenario or focus declaration was supplied."
+    )
 
     return f"""Generate a formal English bushfire preparedness planning report using the form inputs and evidence context below.
 
@@ -484,6 +491,10 @@ also installs the canonical source-register lines in the real Data Sources and L
 section as ordinary visible Markdown and concentrate on its human-readable limitations and review requirements.
 Required exact Action Plan line (copy character-for-character into section 13):
 `Day 1: Assign the responsible preparedness lead to verify official contacts, action owners and review checkpoints.`
+
+Required coverage declaration lines (application-owned; copy every supplied line as ordinary prose into section 3,
+without negating, paraphrasing, quoting or placing it in a code block):
+{coverage_declaration_text}
 
 Evidence confidence and provenance rules (application-owned instructions):
 {confidence_rules_context}

@@ -14,6 +14,36 @@ FOCUS_COVERAGE_CHECK_NAME = "Selected focus-area coverage"
 SCENARIO_COVERAGE_CHECK_NAME = "Selected scenario coverage"
 
 
+def canonical_coverage_declarations(analysis):
+    """Build copy-ready coverage lines only from canonical deterministic IDs."""
+
+    analysis = analysis if isinstance(analysis, dict) else {}
+    declarations = []
+    profile = analysis.get("profile") if isinstance(analysis.get("profile"), dict) else {}
+    candidate = profile.get("scenario_concept")
+    if isinstance(candidate, dict):
+        concept = next(
+            (item for item in ProfileAgent._SCENARIO_CONCEPTS.values() if item["id"] == candidate.get("id")),
+            None,
+        )
+        if concept is not None:
+            declarations.append(f"This draft covers the application-recognised {concept['match_terms'][0]} scenario.")
+
+    plan = analysis.get("plan") if isinstance(analysis.get("plan"), dict) else {}
+    candidates = plan.get("focus_area_concepts")
+    seen = set()
+    if isinstance(candidates, list):
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            concept = PlannerAgent.canonical_focus_concept(candidate.get("id"))
+            if concept is None or concept["id"] in seen:
+                continue
+            seen.add(concept["id"])
+            declarations.append(f"This draft includes {concept['match_terms'][0]} in its preparedness planning.")
+    return declarations
+
+
 def _contains_term(text, term):
     words = re.findall(r"[a-z0-9]+", normalise_policy_lint_text(term).casefold())
     if not words:

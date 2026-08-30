@@ -86,6 +86,37 @@ def test_build_report_prompt_preserves_explicit_analysis_context():
     assert "Verify the frozen sources" not in prompt
 
 
+def test_build_report_prompt_adds_only_canonical_copy_ready_coverage_declarations():
+    analysis = {
+        "prompt_context": "Frozen analysis prompt context.",
+        "profile": {
+            "scenario_concept": {
+                "id": "school_preparedness",
+                "label": "MALICIOUS SCENARIO LABEL",
+                "match_terms": ["SCENARIO LEAK"],
+            }
+        },
+        "plan": {
+            "focus_area_concepts": [
+                {
+                    "id": "road_access",
+                    "label": "MALICIOUS FOCUS LABEL",
+                    "match_terms": ["FOCUS LEAK"],
+                }
+            ]
+        },
+    }
+
+    prompt = _build_prompt(analysis)
+
+    assert "This draft covers the application-recognised school bushfire preparedness scenario." in prompt
+    assert "This draft includes road disruption in its preparedness planning." in prompt
+    assert "MALICIOUS SCENARIO LABEL" not in prompt
+    assert "SCENARIO LEAK" not in prompt
+    assert "MALICIOUS FOCUS LABEL" not in prompt
+    assert "FOCUS LEAK" not in prompt
+
+
 def test_dynamic_evidence_confidence_values_remain_json_data_not_prompt_rules():
     analysis = {
         "prompt_context": "Frozen analysis prompt context.",
@@ -643,9 +674,9 @@ def test_compact_repair_context_carries_only_allowlisted_focus_concept_fields_an
     assert "RAW_U0_CONCERN_MUST_NOT_REPLAY" not in repair
     assert "RAW_FOCUS_FIELD_MUST_NOT_REPLAY" not in repair
     assert "untrusted alias" not in repair
-    assert "application-recognised scenario: School bushfire preparedness" in repair
-    assert "Cover every application-recognised focus label" in repair
-    assert "communications and warning channels" in repair
+    assert "This draft covers the application-recognised school bushfire preparedness scenario." in repair
+    assert "Copy every supplied line below character-for-character" in repair
+    assert "This draft includes communication in its preparedness planning." in repair
 
 
 def test_display_labels_fold_back_to_opaque_tokens_before_revision_model_access():

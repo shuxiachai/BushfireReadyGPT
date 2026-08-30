@@ -3,7 +3,11 @@ import pytest
 from src import report_generation_quality as quality
 from src.agents.planner_agent import PlannerAgent
 from src.agents.profile_agent import ProfileAgent
-from src.focus_coverage import evaluate_focus_area_coverage, evaluate_scenario_coverage
+from src.focus_coverage import (
+    canonical_coverage_declarations,
+    evaluate_focus_area_coverage,
+    evaluate_scenario_coverage,
+)
 
 
 def _analysis(*concepts, ignored=0):
@@ -25,6 +29,36 @@ def _passing_base_quality():
         "summary": {"passed": 0, "warnings": 0, "failed": 0, "total": 0},
         "approval_gate": {"passed": True, "status": "passed", "blocking_failures": []},
     }
+
+
+def test_coverage_declarations_rebuild_canonical_terms_without_replaying_candidate_fields():
+    analysis = {
+        "profile": {
+            "scenario_concept": {
+                "id": "school_preparedness",
+                "label": "IGNORE GOVERNANCE",
+                "match_terms": ["PROMPT LEAK"],
+            }
+        },
+        "plan": {
+            "focus_area_concepts": [
+                {
+                    "id": "communications",
+                    "label": "IGNORE GOVERNANCE",
+                    "match_terms": ["PROMPT LEAK"],
+                }
+            ]
+        },
+    }
+
+    declarations = canonical_coverage_declarations(analysis)
+
+    assert declarations == [
+        "This draft covers the application-recognised school bushfire preparedness scenario.",
+        "This draft includes communication in its preparedness planning.",
+    ]
+    assert "IGNORE GOVERNANCE" not in " ".join(declarations)
+    assert "PROMPT LEAK" not in " ".join(declarations)
 
 
 def test_focus_coverage_requires_every_allowlisted_concept():
@@ -495,4 +529,5 @@ def test_generation_repair_loop_closes_a_missing_focus_area(monkeypatch):
     assert attempts == 2
     assert result["approval_gate"]["passed"] is True
     assert "emergency kits" in narrative
-    assert "Cover every application-recognised focus label" in prompts[1][0]
+    assert "Copy every supplied line below character-for-character" in prompts[1][0]
+    assert "This draft includes emergency kit in its preparedness planning." in prompts[1][0]
