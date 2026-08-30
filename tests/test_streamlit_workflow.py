@@ -8,12 +8,15 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from src.audit import get_audit_chain_paths, load_and_verify_audit
+from src.source_attribution import format_official_citation_token
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
 TEST_SESSION_PATH = PROJECT_ROOT / "chat_history" / "test_session_state.json"
 TEST_INTERACTION_PATH = PROJECT_ROOT / "chat_history" / "test_interaction.jsonl"
 TEST_AUDIT_DIR = PROJECT_ROOT / "chat_history" / "test_audit"
+TASMANIA_FIRE_SOURCE = {"id": "tasmania_fire_service", "name": "Tasmania Fire Service"}
+BOM_WARNINGS_SOURCE = {"id": "bom_warnings_alerts", "name": "Bureau of Meteorology - Warnings and Alerts"}
 
 MOCK_REPORT = """# Hobart School Bushfire Preparedness Draft
 
@@ -43,6 +46,12 @@ QUALITY_PASSING_REPORT = (
         "accessibility, communications, "
         "training, accountability and documented preparedness actions with authorised partners before formal use. "
         "This planning content records assumptions and requires verification against current official sources."
+        + (
+            f"\n{format_official_citation_token(TASMANIA_FIRE_SOURCE)}"
+            f"\n{format_official_citation_token(BOM_WARNINGS_SOURCE)}"
+            if heading == "Data Sources and Limitations"
+            else ""
+        )
         + (
             " Day 1 assigns the preparedness coordinator to verify contacts and action owners."
             if heading == "Action Plan"
@@ -294,7 +303,7 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert not app.exception
     assert model_call.call_count == 3
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
-    assert app.session_state["latest_quality"]["summary"]["total"] == 13
+    assert app.session_state["latest_quality"]["summary"]["total"] == 15
     assert app.session_state["latest_audit_path"].startswith(str(TEST_AUDIT_DIR))
     assert app.session_state["latest_report"]["version"] == 1
     assert app.session_state["latest_report"]["audit_path"] == app.session_state["latest_audit_path"]

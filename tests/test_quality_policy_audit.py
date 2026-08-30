@@ -65,6 +65,17 @@ def _rewrite_as_historical(path, version="governed-report-v1"):
     return record
 
 
+def _rewrite_as_fingerprinted_historical(path, version, fingerprint):
+    record = json.loads(Path(path).read_text(encoding="utf-8"))
+    record["quality_policy_version"] = version
+    record["quality_policy_fingerprint"] = fingerprint
+    record["quality"]["quality_policy_version"] = version
+    record["quality"]["quality_policy_fingerprint"] = fingerprint
+    record["record_hash"] = audit.sha256_json({key: value for key, value in record.items() if key != "record_hash"})
+    Path(path).write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return record
+
+
 def test_policy_identity_is_stable_and_exposed_as_detached_metadata():
     metadata = quality_policy_metadata()
 
@@ -75,6 +86,9 @@ def test_policy_identity_is_stable_and_exposed_as_detached_metadata():
     }
     assert len(QUALITY_POLICY_FINGERPRINT) == 64
     assert "governed-report-v1" in SUPPORTED_HISTORICAL_POLICIES
+    assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v3"] == frozenset(
+        {"6968d649b4ee0cc57a1365470dbdef9fa20803e778c56c1235c1053c180a74e2"}
+    )
     assert QUALITY_POLICY_FINGERPRINT in READABLE_QUALITY_POLICY_BINDINGS[CURRENT_POLICY]
     metadata["manifest"]["policy_version"] = "tampered"
     assert QUALITY_POLICY_MANIFEST["policy_version"] == CURRENT_POLICY
@@ -245,14 +259,53 @@ def test_historical_reassessment_remains_readable_after_runtime_policy_advances(
         )
     )
 
-    monkeypatch.setattr(audit, "CURRENT_POLICY", "governed-report-v4")
-    monkeypatch.setattr(audit, "QUALITY_POLICY_FINGERPRINT", "4" * 64)
-    monkeypatch.setattr(quality_policy_module, "CURRENT_POLICY", "governed-report-v4")
-    monkeypatch.setattr(quality_policy_module, "QUALITY_POLICY_FINGERPRINT", "4" * 64)
+    monkeypatch.setattr(audit, "CURRENT_POLICY", "governed-report-v5")
+    monkeypatch.setattr(audit, "QUALITY_POLICY_FINGERPRINT", "5" * 64)
+    monkeypatch.setattr(quality_policy_module, "CURRENT_POLICY", "governed-report-v5")
+    monkeypatch.setattr(quality_policy_module, "QUALITY_POLICY_FINGERPRINT", "5" * 64)
 
     record = audit.load_and_verify_audit(reassessed_path)
-    assert record["quality_policy_version"] == "governed-report-v3"
-    assert record["quality_policy_fingerprint"] in READABLE_QUALITY_POLICY_BINDINGS["governed-report-v3"]
+    assert record["quality_policy_version"] == "governed-report-v4"
+    assert record["quality_policy_fingerprint"] in READABLE_QUALITY_POLICY_BINDINGS["governed-report-v4"]
+
+
+def test_fingerprinted_v3_chain_remains_readable_and_reassesses_to_v4(tmp_path, monkeypatch):
+    path, report_text, review = _create_report(tmp_path, monkeypatch, "v3-compatible")
+    v3_fingerprint = "6968d649b4ee0cc57a1365470dbdef9fa20803e778c56c1235c1053c180a74e2"
+    historical = _rewrite_as_fingerprinted_historical(path, "governed-report-v3", v3_fingerprint)
+
+    assert audit.validate_audit_record(historical) is historical
+    with pytest.raises(audit.AuditIntegrityError, match="Historical quality-policy audits are read-only"):
+        audit.append_audit_event(
+            path,
+            "review.recorded",
+            {
+                "report_id": "v3-compatible",
+                "report_version": 1,
+                "report_text": report_text,
+                "analysis": {},
+                "report_status": DRAFT_STATUS,
+                "human_review": review,
+                "package_context": _context("v3-compatible"),
+            },
+        )
+
+    reassessed_path = audit.append_quality_reassessment(
+        path,
+        {
+            "report_id": "v3-compatible",
+            "report_version": 1,
+            "report_text": report_text,
+            "analysis": {},
+            "report_status": DRAFT_STATUS,
+            "human_review": review,
+            "package_context": _context("v3-compatible"),
+        },
+    )
+    reassessed = audit.load_and_verify_audit(reassessed_path)
+    assert reassessed["quality_policy_version"] == CURRENT_POLICY == "governed-report-v4"
+    assert reassessed["quality_policy_fingerprint"] == QUALITY_POLICY_FINGERPRINT
+    assert reassessed["previous_record_hash"] == historical["record_hash"]
 
 
 def test_quality_reassessment_head_cannot_be_exported_as_a_human_review(monkeypatch):

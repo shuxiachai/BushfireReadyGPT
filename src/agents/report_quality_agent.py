@@ -4,6 +4,16 @@ from collections import defaultdict
 
 from src.report_template import REPORT_TEMPLATE_SECTIONS, extract_narrative_body
 from src.safety_boundary import evaluate_safety_boundaries
+from src.source_attribution import (
+    canonical_official_labels,
+    canonical_official_source_ids_on_plain_lines,
+    extract_markdown_section,
+    has_model_authored_raw_html,
+    has_model_authored_url,
+    plain_markdown_claim_text,
+    strip_known_attribution_labels,
+    visible_markdown_text,
+)
 
 
 class ReportQualityAgent:
@@ -15,7 +25,7 @@ class ReportQualityAgent:
         if title.partition(". ")[2] != "Title"
     ]
 
-    OFFICIAL_SOURCE_TERMS = [
+    LEGACY_OFFICIAL_SOURCE_TERMS = [
         "Bureau of Meteorology",
         "BoM",
         "000",
@@ -57,20 +67,28 @@ class ReportQualityAgent:
         "with",
     }
 
-    def run(self, report_text):
+    def run(self, report_text, *, official_sources=None, rag_sources=None):
         text = report_text or ""
         narrative = extract_narrative_body(text)
+        claim_narrative = strip_known_attribution_labels(
+            narrative,
+            official_sources=official_sources or [],
+            rag_sources=rag_sources or [],
+        )
+        lint_narrative = plain_markdown_claim_text(claim_narrative)
         checks = [
-            self._check_substantive_narrative(narrative),
-            self._check_sections(narrative),
-            self._check_official_sources(narrative),
+            self._check_substantive_narrative(claim_narrative),
+            self._check_sections(claim_narrative),
+            self._check_official_sources(narrative, official_sources),
             self._check_safety_disclaimer(text),
             self._check_emergency_number(text),
-            self._check_action_plan(narrative),
-            self._check_checklist(narrative),
-            self._check_role_assignment(narrative),
-            self._check_candidate_assembly_language(narrative),
-            self._check_safety_boundaries(narrative),
+            self._check_action_plan(claim_narrative),
+            self._check_checklist(claim_narrative),
+            self._check_role_assignment(claim_narrative),
+            self._check_candidate_assembly_language(lint_narrative),
+            self._check_safety_boundaries(lint_narrative),
+            self._check_model_authored_urls(claim_narrative),
+            self._check_model_authored_raw_html(claim_narrative),
             self._check_evidence_tables(text),
             self._check_evidence_confidence(text),
             self._check_human_review_status(text),
@@ -169,16 +187,43 @@ class ReportQualityAgent:
             "fail", "Required sections", "Required structure is incomplete (" + "; ".join(detail) + ")."
         )
 
-    def _check_official_sources(self, text):
-        found = [term for term in self.OFFICIAL_SOURCE_TERMS if term.lower() in text.lower()]
-        if len(found) >= 4:
+    def _check_official_sources(self, text, official_sources=None):
+        if official_sources is None:
+            found = [term for term in self.LEGACY_OFFICIAL_SOURCE_TERMS if term.lower() in text.lower()]
+            if len(found) >= 4:
+                return self._result(
+                    "pass", "Official sources", "The report includes multiple official information sources."
+                )
             return self._result(
-                "pass", "Official sources", "The report includes multiple official information sources."
+                "fail",
+                "Official sources",
+                "Add the state fire service, local council, Bureau of Meteorology and 000 where relevant.",
+            )
+
+        labels = canonical_official_labels(official_sources)
+        if has_model_authored_raw_html(text):
+            return self._result(
+                "fail",
+                "Official sources",
+                "Use visible plain-text or Markdown list citation lines; raw HTML is not accepted.",
+            )
+        section = extract_markdown_section(visible_markdown_text(text), "Data Sources and Limitations")
+        attributed_ids = canonical_official_source_ids_on_plain_lines(section, official_sources)
+        if len(labels) >= 2 and len(attributed_ids) >= 2:
+            return self._result(
+                "pass",
+                "Official sources",
+                "The source section attributes at least two registered official information sources.",
             )
         return self._result(
             "fail",
             "Official sources",
-            "Add the state fire service, local council, Bureau of Meteorology and 000 where relevant.",
+            (
+                "Cite at least two different registered official sources in Data Sources and Limitations "
+                "using supplied opaque [O1][ref=<opaque_ref>] tokens. Put each token on its own plain-text "
+                "or Markdown bullet line with no surrounding prose or hidden markup; the application expands "
+                "it to a complete display label after generation."
+            ),
         )
 
     def _check_safety_disclaimer(self, text):
@@ -231,10 +276,11 @@ class ReportQualityAgent:
         role_terms = [
             "roles",
             "responsib",
+            "organisation",
+            "management",
             "coordinator",
             "warden",
-            "teacher",
-            "student",
+            "staff",
             "first aid",
             "communication",
             "backup",
@@ -245,7 +291,10 @@ class ReportQualityAgent:
         return self._result(
             "fail",
             "Roles and responsibilities",
-            "Add management, staff/teachers, students, wardens, first aiders and communications roles.",
+            (
+                "Add audience-appropriate roles for the responsible organisation, operational lead, "
+                "communications, first aid and backup coverage."
+            ),
         )
 
     def _check_candidate_assembly_language(self, text):
@@ -294,6 +343,32 @@ class ReportQualityAgent:
         )
         result["privacy_minimised_findings"] = self._privacy_minimised_findings(violations)
         return result
+
+    def _check_model_authored_urls(self, text):
+        if not has_model_authored_url(text):
+            return self._result(
+                "pass",
+                "Model-authored URLs",
+                "The narrative contains no model-authored web links.",
+            )
+        return self._result(
+            "fail",
+            "Model-authored URLs",
+            "Remove model-authored URLs; verified links are bound only in deterministic Evidence Tables.",
+        )
+
+    def _check_model_authored_raw_html(self, text):
+        if not has_model_authored_raw_html(text):
+            return self._result(
+                "pass",
+                "Model-authored raw HTML",
+                "The narrative uses the governed Markdown-only format.",
+            )
+        return self._result(
+            "fail",
+            "Model-authored raw HTML",
+            "Remove raw HTML tags and comments; use only the governed Markdown report format.",
+        )
 
     @staticmethod
     def _privacy_minimised_findings(violations):

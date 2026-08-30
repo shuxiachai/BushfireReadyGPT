@@ -29,6 +29,12 @@ MOCK_REPORT = (
         "authorised partners before formal use. This planning content records assumptions and requires "
         "verification against current official sources."
         + (
+            "\n[O1][source_id=mock_qld_source] Mock Queensland Official Source"
+            "\n[O1][source_id=mock_bom_source] Mock Bureau of Meteorology Source"
+            if heading == "Data Sources and Limitations"
+            else ""
+        )
+        + (
             " Day 1 assigns the preparedness coordinator to verify contacts and action owners."
             if heading == "Action Plan"
             else ""
@@ -291,6 +297,12 @@ def _write_official_sources_fixture(server_port):
         f"    url: http://127.0.0.1:{server_port}/official/healthy\n"
         "    scope: [australia, queensland]\n"
         "    purpose: Controlled entry-point reachability test.\n"
+        "    use_when: Browser E2E verification only.\n"
+        "  - id: mock_bom_source\n"
+        "    name: Mock Bureau of Meteorology Source\n"
+        f"    url: http://127.0.0.1:{server_port}/official/healthy\n"
+        "    scope: [australia, queensland, weather]\n"
+        "    purpose: Controlled weather-source reachability test.\n"
         "    use_when: Browser E2E verification only.\n",
         encoding="utf-8",
     )
@@ -475,8 +487,8 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 expect(data_map_panel.get_by_text("Mock Queensland Official Source", exact=True)).to_be_visible()
                 page.get_by_role("button", name="Check official source status", exact=True).click()
                 reachable_card = page.locator(".status-card").filter(has_text="Reachable")
-                expect(reachable_card).to_contain_text("1", timeout=30_000)
-                assert MockModelHandler.official_request_count == 1
+                expect(reachable_card).to_contain_text("2", timeout=30_000)
+                assert MockModelHandler.official_request_count == 2
 
                 active_data_card = page.locator(".status-card").filter(has_text="Active data")
                 expect(active_data_card).to_contain_text("ABS processed data")

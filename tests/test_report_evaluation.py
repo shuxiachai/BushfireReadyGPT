@@ -20,6 +20,8 @@ def _passing_row(scenario_id):
         "kind": "product_scenario",
         "generation_attempts": 1,
         "repair_required": False,
+        "repair_succeeded": False,
+        "repair_exhausted": False,
         "governed_gate_passed": True,
         "structural_gate_passed": True,
         "quality_policy_version": evaluate_report_generation.QUALITY_POLICY_VERSION,
@@ -27,6 +29,7 @@ def _passing_row(scenario_id):
         "blocking_failures": [],
         "safety_violation_codes": [],
         "safety_violation_count": 0,
+        "safety_findings": [],
         "retrieved_chunks": 0,
         "knowledge_status": "ready",
         "rag_embedding_model": None,
@@ -44,13 +47,17 @@ def _passing_row(scenario_id):
         "report_characters": 100,
         "report_character_limit": 32000,
         "report_size_passed": True,
-        "grounding_status": "review_required",
+        "grounding_status": "not_applicable",
         "grounding_claims_evaluated": 0,
         "grounding_support_rate": None,
         "citation_coverage_rate": None,
         "citation_precision_rate": None,
         "numeric_consistency_rate": None,
         "jurisdiction_conflicts": 0,
+        "grounding_review_claim_count": 0,
+        "grounding_review_claim_unique_count": 0,
+        "grounding_review_claim_ids": [],
+        "grounding_review_claim_ids_truncated": False,
     }
 
 
@@ -73,6 +80,7 @@ def _release_metadata():
             "name": "bushfire-ready-qwen",
             "digest": "1" * 64,
             "digest_status": "resolved",
+            "parameters": {"max_report_repair_attempts": 2},
         },
         "quality_policy": {
             "version": evaluate_report_generation.QUALITY_POLICY_VERSION,
@@ -112,6 +120,31 @@ def test_scenario_alignment_supports_synonym_groups_and_reports_contamination():
     assert result["scenario_topics_passed"] is True
     assert result["scenario_topic_coverage"] == 1.0
     assert result["forbidden_term_hits"] == ["teacher"]
+
+
+def test_council_contamination_uses_scenario_specific_phrases_not_single_words():
+    scenario = {
+        "expected_topic_groups": ["council", "community"],
+        "minimum_topic_coverage": 1.0,
+        "forbidden_terms": [
+            "student roll-call",
+            "teacher responsibilities",
+            "school assembly point",
+            "campus evacuation",
+        ],
+    }
+
+    exclusion = _assess_scenario_alignment(
+        "This council community draft does not assert school-specific arrangements.",
+        scenario,
+    )
+    contamination = _assess_scenario_alignment(
+        "The council community plan assigns a school assembly point and student roll-call.",
+        scenario,
+    )
+
+    assert exclusion["forbidden_term_hits"] == []
+    assert contamination["forbidden_term_hits"] == ["student roll-call", "school assembly point"]
 
 
 def test_rag_behavior_checks_status_and_expected_chunk_presence():
@@ -190,22 +223,26 @@ def test_single_scenario_uses_canonical_gate_and_returns_private_artifacts_separ
             "approval_gate": {"passed": False, "blocking_failures": [{"name": "Safety", "detail": "blocked"}]},
             "quality_policy_version": "governed-report-v2",
             "quality_policy_fingerprint": "f" * 64,
+            "checks": [
+                {
+                    "name": "Safety boundary assertions",
+                    "privacy_minimised_findings": [
+                        {
+                            "code": "road_status_assertion",
+                            "count": 2,
+                            "claim_hash": "e" * 64,
+                        }
+                    ],
+                }
+            ],
         }
 
     monkeypatch.setattr(evaluate_report_generation, "evaluate_governed_report", canonical_gate)
-    monkeypatch.setattr(
-        evaluate_report_generation,
-        "evaluate_safety_boundaries",
-        lambda _text: {
-            "violations": [{"code": "road_status_assertion"}, {"code": "road_status_assertion"}],
-            "summary": {"total": 2},
-        },
-    )
     monkeypatch.setattr(evaluate_report_generation, "attributed_rag_source_ids", lambda *_args: set())
     monkeypatch.setattr(
         evaluate_report_generation,
         "evaluate_report_grounding",
-        lambda *_args: {"status": "review_required", "metrics": {}},
+        lambda *_args: {"status": "not_applicable", "metrics": {}, "claims": []},
     )
 
     result = run_scenario_with_artifacts(scenario)
@@ -215,6 +252,10 @@ def test_single_scenario_uses_canonical_gate_and_returns_private_artifacts_separ
     assert result["row"]["governed_gate_passed"] is False
     assert result["row"]["quality_policy_fingerprint"] == "f" * 64
     assert result["row"]["safety_violation_codes"] == ["road_status_assertion"]
+    assert result["row"]["safety_violation_count"] == 2
+    assert result["row"]["safety_findings"] == [{"code": "road_status_assertion", "count": 2, "claim_hash": "e" * 64}]
+    assert result["row"]["grounding_review_claim_unique_count"] == 0
+    assert result["row"]["grounding_review_claim_ids_truncated"] is False
     assert "report" not in result["row"]
     assert "analysis" not in result["row"]
 
@@ -246,6 +287,8 @@ def test_partial_cli_run_cannot_claim_the_release_gate(tmp_path, monkeypatch):
         "kind": "product_scenario",
         "generation_attempts": 1,
         "repair_required": False,
+        "repair_succeeded": False,
+        "repair_exhausted": False,
         "governed_gate_passed": True,
         "structural_gate_passed": True,
         "quality_policy_version": evaluate_report_generation.QUALITY_POLICY_VERSION,
@@ -253,6 +296,7 @@ def test_partial_cli_run_cannot_claim_the_release_gate(tmp_path, monkeypatch):
         "blocking_failures": [],
         "safety_violation_codes": [],
         "safety_violation_count": 0,
+        "safety_findings": [],
         "retrieved_chunks": 0,
         "knowledge_status": "ready",
         "rag_embedding_model": None,
@@ -270,13 +314,17 @@ def test_partial_cli_run_cannot_claim_the_release_gate(tmp_path, monkeypatch):
         "report_characters": 100,
         "report_character_limit": 32000,
         "report_size_passed": True,
-        "grounding_status": "review_required",
+        "grounding_status": "not_applicable",
         "grounding_claims_evaluated": 0,
         "grounding_support_rate": None,
         "citation_coverage_rate": None,
         "citation_precision_rate": None,
         "numeric_consistency_rate": None,
         "jurisdiction_conflicts": 0,
+        "grounding_review_claim_count": 0,
+        "grounding_review_claim_unique_count": 0,
+        "grounding_review_claim_ids": [],
+        "grounding_review_claim_ids_truncated": False,
     }
     monkeypatch.setattr(evaluate_report_generation, "_run_scenario", lambda _scenario: dict(row))
     monkeypatch.setattr(
@@ -286,7 +334,12 @@ def test_partial_cli_run_cannot_claim_the_release_gate(tmp_path, monkeypatch):
             "started_at_utc": "2026-08-24T00:00:00+00:00",
             "scenario_file_sha256": "a" * 64,
             "git": {"commit": None, "working_tree_dirty": True, "collection_status": "unavailable"},
-            "model": {"name": "test", "digest": None, "digest_status": "unavailable"},
+            "model": {
+                "name": "test",
+                "digest": None,
+                "digest_status": "unavailable",
+                "parameters": {"max_report_repair_attempts": 2},
+            },
             "quality_policy": {
                 "version": evaluate_report_generation.QUALITY_POLICY_VERSION,
                 "fingerprint": evaluate_report_generation.QUALITY_POLICY_FINGERPRINT,

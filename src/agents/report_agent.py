@@ -1,7 +1,7 @@
 import json
 
 from src.rag.service import format_retrieved_context
-from src.source_attribution import format_official_attribution, normalise_source_metadata
+from src.source_attribution import format_official_citation_token
 
 
 class ReportAgent:
@@ -48,7 +48,7 @@ class ReportAgent:
             "",
             "Australian Data Agent:",
             *[
-                f"- {format_official_attribution(source)}: {normalise_source_metadata(source.get('purpose'))}"
+                f"- {format_official_citation_token(source)} (registered official verification source)"
                 for source in data_result.get("sources", [])
             ],
             "",

@@ -7,6 +7,7 @@ import tomllib
 from pathlib import Path
 
 _RELEASE_VERSION = re.compile(r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$")
+_VERSIONED_REPORT_SCENARIO_MINIMUM = (0, 6, 0)
 
 
 class ReleasePathError(ValueError):
@@ -25,6 +26,15 @@ def release_version_tuple(value: str) -> tuple[int, int, int]:
     """Return a validated release version as a comparable integer tuple."""
 
     return tuple(int(part) for part in validate_release_version(value).split("."))
+
+
+def report_scenario_relative_path(release_version: str) -> Path:
+    """Return the immutable product-scenario path used by one release."""
+
+    version = validate_release_version(release_version)
+    if release_version_tuple(version) >= _VERSIONED_REPORT_SCENARIO_MINIMUM:
+        return Path("data_australia") / "rag" / f"report_evaluation-v{version}.json"
+    return Path("data_australia") / "rag" / "report_evaluation.json"
 
 
 def project_version(project_root: Path) -> str:

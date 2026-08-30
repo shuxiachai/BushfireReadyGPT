@@ -240,7 +240,16 @@ def test_model_failure_does_not_replace_prior_analysis_or_report(monkeypatch):
             "messages": [{"role": "assistant", "content": "existing"}],
         }
     )
-    candidate_analysis = {"profile": {"location": "Candidate location"}}
+    candidate_analysis = {
+        "profile": {"location": "Candidate location"},
+        "data": {
+            "sources": [
+                {"id": "official-one", "name": "Official source one"},
+                {"id": "official-two", "name": "Official source two"},
+            ]
+        },
+        "knowledge": {"retrieved_chunks": []},
+    }
     monkeypatch.setattr(report_workflow, "st", SimpleNamespace(session_state=state))
     monkeypatch.setattr(report_workflow, "validate_current_report_form", lambda: None)
     monkeypatch.setattr(report_workflow, "validate_model_privacy_boundary", lambda: None)

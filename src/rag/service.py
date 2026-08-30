@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import re
 from uuid import NAMESPACE_URL, uuid5
 
 from src.rag.embeddings import OllamaEmbeddingClient
@@ -17,8 +16,8 @@ from src.rag.qdrant import load_qdrant
 from src.rag.settings import RagSettings
 from src.source_attribution import (
     MODEL_SOURCE_ATTRIBUTION_RULES,
-    format_rag_attribution,
-    normalise_source_metadata,
+    format_rag_citation_token,
+    neutralise_prompt_control_markers,
     redact_urls,
 )
 
@@ -50,10 +49,6 @@ _OPERATIONAL_QUERY_TERMS = {
     "shelter",
     "warning",
 }
-_RETRIEVED_EVIDENCE_TAG = re.compile(
-    r"<\s*/?\s*retrieved-official-evidence\b[^>]*(?:>|$)",
-    re.IGNORECASE,
-)
 
 
 def _retrieval_configuration(settings, *, trusted_planning_scope, top_k, candidate_k=0):
@@ -458,20 +453,16 @@ def format_retrieved_context(knowledge_result, *, max_characters=8000, max_chunk
         MODEL_SOURCE_ATTRIBUTION_RULES,
     ]
     rendered = "\n\n".join(lines)
-    for chunk in chunks:
-        page = chunk.get("page") or "web"
+    for item_number, chunk in enumerate(chunks, start=1):
         header = (
-            f"[O1-RAG source={chunk.get('source_id')} chunk={chunk.get('chunk_id')} "
-            f"page={page} hybrid_score={chunk.get('score')} "
+            f"[retrieved-evidence item={item_number} hybrid_score={chunk.get('score')} "
             f"dense_score={chunk.get('dense_score')} dense_rank={chunk.get('dense_rank')} "
             f"bm25_score={chunk.get('lexical_score')} bm25_rank={chunk.get('lexical_rank')} "
             f"mode={chunk.get('retrieval_mode') or result.get('retrieval_mode')} "
             f"sha256={chunk.get('chunk_sha256')}]\n"
-            f"Citation label: {format_rag_attribution(chunk)}\n"
-            f"Agency: {normalise_source_metadata(chunk.get('agency'))}\n"
+            f"Citation token: {format_rag_citation_token(chunk)}\n"
         )
-        text = redact_urls(chunk.get("text"))
-        text = _RETRIEVED_EVIDENCE_TAG.sub("[retrieved evidence delimiter removed]", text)
+        text = redact_urls(neutralise_prompt_control_markers(chunk.get("text")))
         block = f"{header}<retrieved-official-evidence>\n{text[:max_chunk_characters]}\n</retrieved-official-evidence>"
         candidate = f"{rendered}\n\n{block}"
         if len(candidate) > max_characters:

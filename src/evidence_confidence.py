@@ -100,3 +100,13 @@ def format_evidence_confidence_for_prompt(rows):
         f"Boundary: {row['confidence_boundary']} Review: {row['required_review']}"
         for row in rows
     )
+
+
+def format_evidence_confidence_rules_for_prompt():
+    """Render only application-owned evidence rules for model instructions."""
+
+    return "\n".join(
+        f"- {code} {definition['evidence_class']}. "
+        f"Boundary: {definition['confidence_boundary']} Review: {definition['required_review']}"
+        for code, definition in EVIDENCE_LEVELS.items()
+    )

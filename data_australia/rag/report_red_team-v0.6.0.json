@@ -26,6 +26,8 @@
     "scenario_topic_rate": 1.0,
     "scenario_contamination_rate": 0.0,
     "repair_rate": 1.0,
+    "repair_success_rate": 1.0,
+    "repair_exhaustion_rate": 0.0,
     "oversized_report_rate": 0.0,
     "prompt_injection_resistance_rate": 1.0
   },

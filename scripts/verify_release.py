@@ -22,6 +22,7 @@ from scripts.release_paths import (  # noqa: E402
     ReleasePathError,
     project_version,
     release_version_tuple,
+    report_scenario_relative_path,
     resolve_release_directory,
     validate_release_version,
 )
@@ -76,11 +77,12 @@ class ReleasePaths:
             release_version=release_version,
             release_dir=release_dir,
         )
+        report_scenarios_path = report_scenario_relative_path(version)
         return cls(
             release_version=version,
             pyproject=root / "pyproject.toml",
             rag_questions=root / RAG_QUESTIONS_PATH,
-            report_scenarios=root / REPORT_SCENARIOS_PATH,
+            report_scenarios=root / report_scenarios_path,
             red_team_scenarios=root / "data_australia" / "rag" / f"report_red_team-v{version}.json",
             rag_artifact=root / "docs" / "benchmarks" / f"rag-retrieval-v{version}.json",
             report_artifact=root / "docs" / "benchmarks" / f"report-generation-v{version}.json",
@@ -121,7 +123,7 @@ def _verify_dataset_binding(
     sha_field: str,
     hash_basis_field: str | None,
     schema_field: str,
-) -> None:
+) -> dict:
     source = _load_json(source_path, f"Release source dataset {relative_path.as_posix()}")
     _require(
         run.get(file_field) == relative_path.as_posix(), f"Release artifact is not bound to {relative_path.as_posix()}"
@@ -135,6 +137,80 @@ def _verify_dataset_binding(
         run.get(schema_field) == source.get("schema_version"),
         f"Release artifact uses a stale {relative_path.name} schema version",
     )
+    return source
+
+
+def _verify_scenario_suite_binding(payload: dict, source: dict, *, label: str) -> None:
+    """Bind artifact decisions to the exact source suite semantics, not only its byte hash."""
+
+    run = payload.get("run") or {}
+    selection = payload.get("selection") or {}
+    scenarios = source.get("scenarios")
+    _require(isinstance(scenarios, list) and scenarios, f"{label} source scenarios are missing")
+    expected_ids = [str(scenario.get("id") or "") for scenario in scenarios if isinstance(scenario, dict)]
+    _require(len(expected_ids) == len(scenarios) and all(expected_ids), f"{label} source scenario IDs are invalid")
+    _require(
+        selection.get("declared_scenario_ids") == expected_ids,
+        f"{label} artifact scenario IDs do not match the bound source suite",
+    )
+    _require(
+        payload.get("thresholds") == source.get("thresholds"),
+        f"{label} artifact thresholds do not match the bound source suite",
+    )
+    source_kind = source.get("suite_kind")
+    source_version = source.get("suite_version")
+    _require(
+        run.get("scenario_suite_kind") == source_kind,
+        f"{label} artifact suite kind does not match the bound source suite",
+    )
+    _require(
+        run.get("scenario_suite_version") == source_version,
+        f"{label} artifact suite version does not match the bound source suite",
+    )
+    if source.get("schema_version") >= 3:
+        expected_kinds = [
+            {
+                "id": scenario["id"],
+                "kind": scenario.get("kind", "product_scenario"),
+                "attack_surface": scenario.get("attack_surface"),
+            }
+            for scenario in scenarios
+        ]
+        _require(
+            selection.get("declared_scenario_kinds") == expected_kinds,
+            f"{label} artifact scenario kinds do not match the bound source suite",
+        )
+
+
+def _verify_rag_suite_binding(payload: dict, source: dict) -> None:
+    questions = source.get("questions")
+    _require(isinstance(questions, list) and questions, "RAG source questions are missing")
+    question_ids = [str(question.get("id") or "") for question in questions if isinstance(question, dict)]
+    _require(len(question_ids) == len(questions) and all(question_ids), "RAG source question IDs are invalid")
+    source_thresholds = source.get("thresholds")
+    source_profile_thresholds = source.get("profile_thresholds") or {}
+    default_profiles = {"structured_planning", "free_text"}
+    expected_profiles = {
+        profile_name for question in questions for profile_name in question.get("evaluation_profiles", default_profiles)
+    }
+    profiles = payload.get("profiles") or {}
+    _require(set(profiles) == expected_profiles, "RAG artifact profiles do not match the bound source suite")
+    for profile_name, profile in profiles.items():
+        expected_thresholds = dict(source_thresholds or {})
+        expected_thresholds.update(source_profile_thresholds.get(profile_name, {}))
+        expected_ids = [
+            str(question["id"])
+            for question in questions
+            if profile_name in question.get("evaluation_profiles", default_profiles)
+        ]
+        _require(
+            profile.get("thresholds") == expected_thresholds,
+            f"RAG profile {profile_name} thresholds do not match the bound source suite",
+        )
+        _require(
+            [row.get("id") for row in profile.get("rows") or []] == expected_ids,
+            f"RAG profile {profile_name} question IDs do not match the bound source suite",
+        )
 
 
 def _verify_release_gate(payload: dict, label: str) -> None:
@@ -269,7 +345,7 @@ def verify_release(
     _verify_release_gate(report_payload, "Report")
     if red_team_payload is not None:
         _verify_diagnostic_gate(red_team_payload, "Red-team")
-    _verify_dataset_binding(
+    rag_question_source = _verify_dataset_binding(
         rag_payload["run"],
         source_path=release_paths.rag_questions,
         relative_path=RAG_QUESTIONS_PATH,
@@ -278,18 +354,20 @@ def verify_release(
         hash_basis_field="questions_hash_basis",
         schema_field="questions_schema_version",
     )
-    _verify_dataset_binding(
+    _verify_rag_suite_binding(rag_payload, rag_question_source)
+    report_scenario_source = _verify_dataset_binding(
         report_payload["run"],
         source_path=release_paths.report_scenarios,
-        relative_path=REPORT_SCENARIOS_PATH,
+        relative_path=report_scenario_relative_path(selected_version),
         file_field="scenario_file",
         sha_field="scenario_file_sha256",
         hash_basis_field="scenario_hash_basis" if requires_red_team else None,
         schema_field="scenario_schema_version",
     )
+    _verify_scenario_suite_binding(report_payload, report_scenario_source, label="Report")
     if red_team_payload is not None:
         red_team_relative = Path("data_australia") / "rag" / f"report_red_team-v{selected_version}.json"
-        _verify_dataset_binding(
+        red_team_scenario_source = _verify_dataset_binding(
             red_team_payload["run"],
             source_path=release_paths.red_team_scenarios,
             relative_path=red_team_relative,
@@ -298,6 +376,7 @@ def verify_release(
             hash_basis_field="scenario_hash_basis",
             schema_field="scenario_schema_version",
         )
+        _verify_scenario_suite_binding(red_team_payload, red_team_scenario_source, label="Red-team")
         red_team_run = red_team_payload["run"]
         _require(
             red_team_run.get("scenario_suite_kind") == "prompt_injection_red_team",
@@ -314,6 +393,10 @@ def verify_release(
         _require(
             report_payload["run"].get("scenario_suite_kind") == "product_regression",
             "Report artifact does not declare the product regression suite",
+        )
+        _require(
+            report_payload["run"].get("scenario_suite_version") == selected_version,
+            "Product report scenario suite version does not match the release",
         )
 
     current_policy = quality_policy_metadata()

@@ -38,6 +38,7 @@ from src.report_generation_quality import (
     build_report_repair_prompt,
     evaluate_governed_report,
     normalize_generated_narrative,
+    structural_gate_passed,
 )
 from src.report_template import (
     append_evidence_tables,
@@ -50,6 +51,8 @@ from src.report_workflow import (
     validate_report_inputs,
     validate_review_record,
 )
+from src.safety_boundary import evaluate_safety_boundaries
+from src.source_attribution import format_official_attribution, format_rag_attribution
 
 SAMPLE_REPORT = """# Cairns Campus Preparedness Report
 
@@ -751,10 +754,10 @@ def test_repair_prompt_gives_exhaustive_premises_status_rewrite_guidance():
         },
     )
 
-    assert "every assembly point" in prompt
-    assert "safe, open, approved, authorised, available, operational, suitable or" in prompt
-    assert "candidate pending current verification" in prompt
-    assert "including tables, checklists and examples" in prompt
+    assert "PLACE/PREMISES REWRITE" in prompt
+    assert "safe, open, approved, authorised, available, operational, suitable or cleared" in prompt
+    assert "unverified candidate pending current verification" in prompt
+    assert "prose, tables, checklists and examples" in prompt
     assert "The school is available." not in prompt
 
 
@@ -826,7 +829,16 @@ def test_rag_source_attribution_rejects_agency_acronym_without_canonical_label()
     assert attributed == set()
 
 
-def test_rag_source_attribution_requires_exact_label_in_data_sources_section():
+@pytest.mark.parametrize(
+    ("claim", "expected"),
+    [
+        ("Preparedness plans should document responsibilities before fire season.", {"wa_prepare_bushfire"}),
+        ("Preparedness plans need review", set()),
+        ("Brief plan.", set()),
+        ("", set()),
+    ],
+)
+def test_rag_source_attribution_requires_a_substantive_complete_sentence_ending_in_label(claim, expected):
     chunks = [
         {
             "source_id": "wa_prepare_bushfire",
@@ -834,10 +846,27 @@ def test_rag_source_attribution_requires_exact_label_in_data_sources_section():
             "agency": "Department of Fire and Emergency Services Western Australia",
         }
     ]
-    label = "[O1-RAG][source_id=wa_prepare_bushfire] Prepare for a bushfire"
+    label = format_rag_attribution(chunks[0])
+    narrative = f"## Data Sources and Limitations\n{claim} {label}".rstrip()
 
-    assert attributed_rag_source_ids(f"## Data Sources and Limitations\n{label}", chunks) == {"wa_prepare_bushfire"}
-    assert attributed_rag_source_ids(f"## Preparedness Priorities\n{label}", chunks) == set()
+    assert attributed_rag_source_ids(narrative, chunks) == expected
+
+
+def test_rag_source_attribution_rejects_citation_before_more_sentence_text_or_outside_source_section():
+    chunks = [
+        {
+            "source_id": "wa_prepare_bushfire",
+            "title": "Prepare for a bushfire",
+            "agency": "Department of Fire and Emergency Services Western Australia",
+        }
+    ]
+    label = format_rag_attribution(chunks[0])
+    claim = "Preparedness plans should document responsibilities before fire season."
+
+    assert (
+        attributed_rag_source_ids(f"## Data Sources and Limitations\n{claim} {label} More commentary.", chunks) == set()
+    )
+    assert attributed_rag_source_ids(f"## Preparedness Priorities\n{claim} {label}", chunks) == set()
 
 
 def test_rag_source_attribution_handles_missing_source_id_without_crashing():
@@ -862,6 +891,241 @@ Confirm real sources separately.
 """
 
     assert attributed_rag_source_ids(narrative, chunks) == set()
+
+
+@pytest.fixture
+def registered_official_sources():
+    return [
+        {"id": "qfd_qfes", "name": "Queensland Fire Department / QFES"},
+        {"id": "cairns_disaster", "name": "Cairns Regional Council Disaster Information"},
+        {"id": "bom_qld_warnings", "name": "Bureau of Meteorology Queensland Warnings"},
+    ]
+
+
+@pytest.mark.parametrize("list_marker", ["", "- ", "* ", "1. "])
+def test_official_source_gate_accepts_each_registered_label_only_on_its_own_plain_or_list_line(
+    registered_official_sources, list_marker
+):
+    first, second = registered_official_sources[:2]
+    narrative = (
+        "## Data Sources and Limitations\n"
+        f"{list_marker}{format_official_attribution(first)}\n"
+        f"{list_marker}{format_official_attribution(second)}"
+    )
+
+    assert ReportQualityAgent()._check_official_sources(narrative, registered_official_sources)["status"] == "pass"
+
+
+def test_official_source_gate_requires_two_exact_registered_labels_in_source_section(registered_official_sources):
+    first = registered_official_sources[0]
+    narrative = f"## Data Sources and Limitations\n{format_official_attribution(first)}"
+
+    assert ReportQualityAgent()._check_official_sources(narrative, registered_official_sources)["status"] == "fail"
+
+
+@pytest.mark.parametrize(
+    "hidden_lines",
+    [
+        (
+            "This sentence cites [O1][source_id=qfd_qfes] Queensland Fire Department / QFES and "
+            "[O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information."
+        ),
+        (
+            "[qfd]: [O1][source_id=qfd_qfes] Queensland Fire Department / QFES\n"
+            "[council]: [O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information"
+        ),
+        (
+            "<!-- [O1][source_id=qfd_qfes] Queensland Fire Department / QFES -->\n"
+            "<!-- [O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information -->"
+        ),
+        (
+            "<!-- [O1][source_id=qfd_qfes] Queensland Fire Department / QFES\n"
+            "[O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information"
+        ),
+        (
+            "<div>[O1][source_id=qfd_qfes] Queensland Fire Department / QFES</div>\n"
+            "<div>[O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information</div>"
+        ),
+        (
+            "<div>[O1][source_id=qfd_qfes] Queensland Fire Department / QFES\n"
+            "[O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information"
+        ),
+        (
+            "<span hidden>[O1][source_id=qfd_qfes] Queensland Fire Department / QFES</span>\n"
+            '<span style="display:none">[O1][source_id=cairns_disaster] '
+            "Cairns Regional Council Disaster Information</span>"
+        ),
+        (
+            "<template>[O1][source_id=qfd_qfes] Queensland Fire Department / QFES\n"
+            "[O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information"
+        ),
+        (
+            "```text\n[O1][source_id=qfd_qfes] Queensland Fire Department / QFES\n"
+            "[O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information\n```"
+        ),
+        (
+            "`[O1][source_id=qfd_qfes] Queensland Fire Department / QFES`\n"
+            "    [O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information"
+        ),
+    ],
+    ids=[
+        "sentence",
+        "reference-definition",
+        "closed-comment",
+        "unclosed-comment",
+        "closed-html",
+        "unclosed-html",
+        "hidden-html",
+        "unclosed-non-visible-html",
+        "fenced-code",
+        "inline-and-indented-code",
+    ],
+)
+def test_official_source_gate_rejects_labels_that_are_not_visible_standalone_lines(
+    registered_official_sources, hidden_lines
+):
+    narrative = f"## Data Sources and Limitations\n{hidden_lines}"
+
+    assert ReportQualityAgent()._check_official_sources(narrative, registered_official_sources)["status"] == "fail"
+
+
+@pytest.mark.parametrize(
+    "opening_tag",
+    ["<div hidden>", "<div style=display&#58;none>", "<div\n style=display&#58;none>"],
+    ids=["hidden-attribute", "entity-css", "multiline-tag"],
+)
+def test_source_gates_reject_an_entire_source_section_inside_a_hidden_container(
+    registered_official_sources, opening_tag
+):
+    first, second = registered_official_sources[:2]
+    rag_source = {"source_id": "qld-guide", "title": "Queensland Guide"}
+    narrative = (
+        f"{opening_tag}\n"
+        "## Data Sources and Limitations\n"
+        f"- {format_official_attribution(first)}\n"
+        f"- {format_official_attribution(second)}\n"
+        "Preparedness plans should be reviewed before each season. "
+        f"{format_rag_attribution(rag_source)}\n"
+        "</div>"
+    )
+
+    assert ReportQualityAgent()._check_official_sources(narrative, registered_official_sources)["status"] == "fail"
+    assert attributed_rag_source_ids(narrative, [rag_source]) == set()
+
+
+def test_official_source_gate_rejects_unknown_or_fenced_labels():
+    sources = [
+        {"id": "qfd_qfes", "name": "Queensland Fire Department / QFES"},
+        {"id": "cairns_disaster", "name": "Cairns Regional Council Disaster Information"},
+    ]
+    narrative = """## Preparedness Priorities
+```markdown
+## Data Sources and Limitations
+[O1][source_id=qfd_qfes] Queensland Fire Department / QFES
+[O1][source_id=cairns_disaster] Cairns Regional Council Disaster Information
+```
+## Data Sources and Limitations
+[O1][source_id=unknown] Queensland Fire Department / QFES
+[O1][source_id=cairns_disaster] Cairns Regional Council
+"""
+
+    assert ReportQualityAgent()._check_official_sources(narrative, sources)["status"] == "fail"
+
+
+def test_operational_looking_registered_title_is_removed_from_safety_lint_but_ordinary_prose_is_not():
+    source = {"id": "road_status_register", "name": "M1 road is open"}
+    label_only = f"## Data Sources and Limitations\n{format_official_attribution(source)}"
+    label_result = ReportQualityAgent().run(label_only, official_sources=[source])
+    prose_result = ReportQualityAgent().run(
+        f"{label_only}\n## Local Risk Context\nThe M1 road is open.",
+        official_sources=[source],
+    )
+
+    label_safety = next(item for item in label_result["checks"] if item["name"] == "Safety boundary assertions")
+    prose_safety = next(item for item in prose_result["checks"] if item["name"] == "Safety boundary assertions")
+    assert label_safety["status"] == "pass"
+    assert prose_safety["status"] == "fail"
+
+
+def test_safety_qualifier_on_previous_line_does_not_suppress_later_operational_assertion():
+    evaluation = evaluate_safety_boundaries("Do not claim or infer operational road status.\nThe M1 road is open.")
+
+    assert evaluation["passed"] is False
+    assert {item["code"] for item in evaluation["violations"]} == {"road_status_assertion"}
+
+
+@pytest.mark.parametrize(
+    "obfuscated_claim",
+    [
+        "Smith R&#111;ad is open.",
+        "Smith Ro\u200bad is open.",
+        "Smith Ro\ufe0fad is open.",
+        "Smith Ro\u0301ad is open.",
+        "Ｓｍｉｔｈ Ｒｏａｄ ｉｓ ｏｐｅｎ．",
+    ],
+    ids=["html-entity", "zero-width", "variation-selector", "combining-mark", "nfkc-fullwidth"],
+)
+def test_report_quality_safety_lint_normalizes_render_equivalent_operational_claims(obfuscated_claim):
+    result = ReportQualityAgent().run(SAMPLE_REPORT + "\n\n" + obfuscated_claim)
+    check = next(item for item in result["checks"] if item["name"] == "Safety boundary assertions")
+
+    assert check["status"] == "fail"
+
+
+@pytest.mark.parametrize(
+    "model_markup",
+    [
+        "See https://attacker.example/path for details.",
+        "Use [this link](//attacker.example/path) for details.",
+        "Use [this link](//127.0.0.1:8080/admin) for details.",
+        "Use [this link](//[::1]:8080/admin) for details.",
+        "Use [this link](//localhost:8080/admin) for details.",
+        "Use [this link](https&#58;//attacker.example/path) for details.",
+        "Use [this link](ftp://attacker.example/file) for details.",
+        "Use [this link](mailto:attacker@example.test) for details.",
+        "Use [this link](data:text/html,unsafe) for details.",
+        "Use [this link](javascript:alert(1)) for details.",
+        "[external]: relative/or/custom-scheme-target",
+        "<div>Unsafe hidden narrative content.</div>",
+        "<div\n hidden>Unsafe hidden narrative content.</div>",
+        "<!-- hidden narrative -->",
+    ],
+    ids=[
+        "https",
+        "scheme-relative-domain",
+        "scheme-relative-ipv4",
+        "scheme-relative-ipv6",
+        "scheme-relative-localhost",
+        "entity-url",
+        "ftp",
+        "mailto",
+        "data",
+        "javascript",
+        "reference-link",
+        "html",
+        "multiline-html",
+        "html-comment",
+    ],
+)
+def test_report_quality_blocks_model_authored_links_and_raw_html(model_markup):
+    result = ReportQualityAgent().run(SAMPLE_REPORT + "\n\n" + model_markup)
+    failures = {item["name"] for item in result["approval_gate"]["blocking_failures"]}
+
+    assert failures & {"Model-authored URLs", "Model-authored raw HTML"}
+
+
+def test_structural_gate_is_independent_from_safety_and_rag_failures():
+    quality = {
+        "checks": [
+            {"name": "Required sections", "status": "pass"},
+            {"name": "Safety boundary assertions", "status": "fail"},
+            {"name": "RAG source attribution", "status": "fail"},
+        ]
+    }
+
+    assert structural_gate_passed(quality) is True
+    quality["checks"][0]["status"] = "fail"
+    assert structural_gate_passed(quality) is False
 
 
 def test_incomplete_report_body_fails_quality_and_cannot_be_approved():
@@ -988,6 +1252,8 @@ def test_approval_gate_accepts_a_completed_review_when_exact_report_passes():
     Cairns, Queensland is the selected planning area; local conditions must be verified.
     ## Data Sources and Limitations
     Official sources, processed community data, and user context have different confidence levels.
+    [O1][source_id=qfd_qfes] Queensland Fire Department / QFES
+    [O1][source_id=bom_qld_warnings] Bureau of Meteorology Queensland Warnings
     The Bureau of Meteorology, the state fire service, local council and other emergency services
     remain authoritative for current warnings. Processed indicators are planning context rather
     than facts about an individual person. User-provided details are unverified until a responsible
@@ -1036,7 +1302,18 @@ def test_approval_gate_accepts_a_completed_review_when_exact_report_passes():
             quality,
             {
                 "text": report,
-                "analysis": {"data_integrity": {"core_ready": True, "custom_data": False}},
+                "analysis": {
+                    "data": {
+                        "sources": [
+                            {"id": "qfd_qfes", "name": "Queensland Fire Department / QFES"},
+                            {
+                                "id": "bom_qld_warnings",
+                                "name": "Bureau of Meteorology Queensland Warnings",
+                            },
+                        ]
+                    },
+                    "data_integrity": {"core_ready": True, "custom_data": False},
+                },
             },
         )
         is None
