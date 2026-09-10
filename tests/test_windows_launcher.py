@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import subprocess
@@ -11,6 +12,74 @@ from pathlib import Path
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Tests the production PowerShell expression in isolation.")
+@pytest.mark.parametrize(
+    ("provider", "rag_provider", "rag_enabled", "preflight", "needs_ollama", "needs_rag_ollama", "default_model"),
+    [
+        ("deepseek", "fastembed", True, False, False, False, "BAAI/bge-small-en-v1.5"),
+        ("ollama", "fastembed", True, False, True, False, "BAAI/bge-small-en-v1.5"),
+        ("deepseek", "ollama", True, False, True, True, "embeddinggemma"),
+        ("deepseek", "ollama", False, False, False, False, "embeddinggemma"),
+        ("ollama", "ollama", True, True, False, False, "embeddinggemma"),
+    ],
+)
+def test_launcher_only_requires_ollama_for_features_using_ollama(
+    provider, rag_provider, rag_enabled, preflight, needs_ollama, needs_rag_ollama, default_model
+):
+    # Evaluate only the model-selection block and the embedding-pull condition.
+    # Do not execute the launcher, read .env, start services, or download models.
+    path = str(PROJECT_ROOT / "start_app.ps1").replace("'", "''")
+    script = rf"""
+$ErrorActionPreference = 'Stop'
+$ast = [System.Management.Automation.Language.Parser]::ParseFile('{path}', [ref]$null, [ref]$null)
+$provider = '{provider}'
+$testRagProvider = '{rag_provider}'
+$ragEnabled = ${str(rag_enabled).lower()}
+$skipModels = ${str(preflight).lower()}
+$skipRag = ${str(preflight).lower()}
+function Get-DotEnvValue {{
+    param([string]$Name, [string]$DefaultValue)
+    if ($Name -eq 'BUSHFIRE_RAG_EMBED_PROVIDER') {{ return $testRagProvider }}
+    return $DefaultValue
+}}
+$first = $ast.Find({{
+    param($node)
+    $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq '$ragProvider'
+}}, $true)
+$last = $ast.Find({{
+    param($node)
+    $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq '$needsOllama'
+}}, $true)
+if (-not $first -or -not $last) {{ throw 'The embedding provider selection block is missing.' }}
+$selection = $ast.Extent.Text.Substring($first.Extent.StartOffset, $last.Extent.EndOffset - $first.Extent.StartOffset)
+Invoke-Expression $selection
+$pull = $ast.Find({{
+    param($node)
+    $node -is [System.Management.Automation.Language.IfStatementAst] -and
+    $node.Extent.Text.Contains('Downloading the missing RAG embedding model:')
+}}, $true)
+if (-not $pull) {{ throw 'The embedding download guard is missing.' }}
+$allowsPull = Invoke-Expression $pull.Clauses[0].Item1.Extent.Text
+@{{ needs_ollama=$needsOllama; needs_rag_ollama=$needsRagOllama; default_model=$ragModel; allows_pull=$allowsPull }} | ConvertTo-Json -Compress
+"""
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-EncodedCommand", base64.b64encode(script.encode("utf-16-le")).decode()],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=20,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout) == {
+        "needs_ollama": needs_ollama,
+        "needs_rag_ollama": needs_rag_ollama,
+        "default_model": default_model,
+        "allows_pull": needs_rag_ollama and not preflight,
+    }
 
 
 class _FakeOllamaHandler(BaseHTTPRequestHandler):

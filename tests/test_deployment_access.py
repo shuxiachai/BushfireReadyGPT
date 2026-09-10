@@ -217,3 +217,37 @@ def test_admin_and_user_cannot_share_identical_credentials(tmp_path):
     values["BUSHFIRE_ADMIN_PASSWORD"] = PASSWORD
     with pytest.raises(access.DeploymentConfigurationError, match="must be different"):
         access.validate_deployment_settings(values)
+
+
+@pytest.mark.parametrize("hashed_role", ["access", "admin"])
+def test_same_password_in_different_storage_formats_is_rejected_at_preflight(tmp_path, hashed_role):
+    values = _cloud_environment(tmp_path)
+    values["BUSHFIRE_ADMIN_PASSWORD"] = PASSWORD
+    prefix = f"BUSHFIRE_{hashed_role.upper()}_PASSWORD"
+    values[f"{prefix}_HASH"] = access.hash_access_password(values.pop(prefix))
+
+    with pytest.raises(access.DeploymentConfigurationError, match="must be different"):
+        access.validate_deployment_settings(values)
+
+
+def test_separately_salted_hashes_cannot_promote_the_access_password_to_admin(tmp_path, monkeypatch):
+    values = _cloud_environment(tmp_path)
+    values.pop("BUSHFIRE_ACCESS_PASSWORD")
+    values["BUSHFIRE_ACCESS_PASSWORD_HASH"] = access.hash_access_password(PASSWORD)
+    values["BUSHFIRE_ADMIN_PASSWORD_HASH"] = access.hash_access_password(PASSWORD)
+    assert values["BUSHFIRE_ACCESS_PASSWORD_HASH"] != values["BUSHFIRE_ADMIN_PASSWORD_HASH"]
+    # The password cannot be recovered from two independent salted hashes at startup.
+    # The actual candidate must therefore also be checked at the privilege boundary.
+    access.validate_deployment_settings(values)
+    for name, value in values.items():
+        monkeypatch.setenv(name, value)
+    state = {}
+    assert access.authenticate(PASSWORD, state)
+
+    with pytest.raises(access.DeploymentConfigurationError, match="must be different"):
+        access.authenticate(PASSWORD, state, admin=True)
+
+    assert access.is_access_authorized(state)
+    assert not access.is_admin_session(state)
+    assert access._ADMIN_KEY not in state
+    assert PASSWORD not in repr(state)

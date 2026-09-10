@@ -253,6 +253,7 @@ def save_revision_audit(parent_path, payload):
             ) from error
         if child_register_hashes != parent.get("export_register_hashes"):
             raise AuditIntegrityError("A governed revision cannot change its frozen data and licence registers.")
+        _validate_revision_snapshot(parent, payload)
         parent_binding = {
             "report_id": parent_report_id,
             "report_version": parent.get("report_version"),
@@ -307,6 +308,33 @@ def save_revision_audit(parent_path, payload):
             # snapshot; the next access will finish the idempotent claim commit.
             return child_path
         return child_path
+
+
+def _validate_revision_snapshot(parent, payload):
+    """Keep wording revisions bound to the evidence that their parent reviewed.
+
+    This is a new-transaction invariant, not a reinterpretation of historical
+    report-quality policies. Changed planning inputs need a newly analysed report.
+    """
+    inputs = payload.get("inputs", {})
+    analysis = payload.get("analysis")
+    area_selection = payload.get("area_selection")
+    if (
+        not isinstance(inputs, dict)
+        or not isinstance(analysis, dict)
+        or (area_selection is not None and not isinstance(area_selection, dict))
+    ):
+        raise AuditIntegrityError("A governed revision requires complete frozen planning snapshots.")
+    bindings = (
+        (inputs, parent.get("inputs_hash")),
+        (analysis, (parent.get("analysis") or {}).get("analysis_hash")),
+        (area_selection, parent.get("area_selection_hash")),
+    )
+    if any(sha256_json(value) != expected for value, expected in bindings):
+        raise AuditIntegrityError(
+            "A governed revision cannot change its parent's frozen inputs, analysis or selected geography. "
+            "Generate a newly analysed report when those inputs change."
+        )
 
 
 def append_audit_event(previous_path, event_type, payload):
@@ -723,7 +751,7 @@ def _canonical_review_checklist(checklist):
         if not isinstance(item, dict):
             raise AuditIntegrityError("Review checklist contains a malformed item.")
         item_id = item.get("id")
-        if item_id not in expected_ids or item_id in checked:
+        if not isinstance(item_id, str) or item_id not in expected_ids or item_id in checked:
             raise AuditIntegrityError("Review checklist contains an unknown or duplicate item.")
         checked[item_id] = item.get("checked") is True
     return build_review_checklist_snapshot(lambda item_id: checked.get(item_id, False))

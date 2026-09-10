@@ -68,6 +68,37 @@ administrators a different password and require their separate sign-in for
 global diagnostics. Browser sign-in expires after eight hours and after a
 process restart.
 
+Credential independence is checked across plaintext/hash configurations. Two
+independently salted hashes cannot be compared for password equality at startup;
+administrator sign-in therefore also rejects a candidate that matches the access
+credential. Different stored hashes are not proof of different passwords.
+
+### Windows with CPU embeddings
+
+The default double-click path still uses Ollama. If deliberately configuring
+`BUSHFIRE_RAG_EMBED_PROVIDER=fastembed` on Windows, install the optional CPU
+dependencies explicitly:
+
+```powershell
+poetry install --with dev,cloud --no-root
+```
+
+Configure the pinned FastEmbed model/revision/cache settings from
+`.env.cloud.example` for your local paths. If model assets have not been prepared,
+temporarily set `BUSHFIRE_RAG_EMBED_LOCAL_FILES_ONLY=false` and run:
+
+```powershell
+poetry run python scripts/build_rag_index.py --prepare-embedding-only
+```
+
+This explicit step can download model assets. Restore
+`BUSHFIRE_RAG_EMBED_LOCAL_FILES_ONLY=true` before normal startup. The launcher
+checks the existing model files, `identity.json` and dependency versions without
+loading the inference model or downloading anything. A failed CPU preflight stops
+before any Ollama/model or RAG source downloads. Ollama is only needed if it is
+also the selected report provider. A model identity change requires a controlled
+index rebuild and retrieval reevaluation; do not overwrite a frozen release index.
+
 ### Private export delivery
 
 Cloud mode and password-protected local mode use authenticated-session delivery
@@ -440,6 +471,17 @@ This verifies the running repair image, removal of the old media registration,
 and live private-index reuse. It does not establish a new post-fix DeepSeek
 report, authenticated live Blob-download acceptance, or persistence of every
 saved report/audit/trace/quota record; those checks remain separate.
+
+#### Subsequent whole-project audit
+
+The [2026-09-10 project audit](PROJECT_AUDIT_2026-09-10.md) records later fixes
+to review/download synchronization, cloud error redaction, credential
+independence, revision evidence binding, map verification, missing indicators,
+RAG chunk sizing, bounded lock reads and CPU startup preflight. The earlier
+deployment and CI identifiers above certify their named source only, not this
+later audit. Consult the audit record for its own validation and rollout status.
+The frozen private RAG index is deliberately reused; corrected chunk sizing
+requires a separately reviewed build and evaluation before replacing it.
 
 These checks establish real cloud generation and revision for one synthetic
 scenario, not external-user outcomes, all-scenario regression or production

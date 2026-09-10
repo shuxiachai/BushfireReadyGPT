@@ -128,7 +128,7 @@ def validate_deployment_settings(environ: Mapping[str, str] | None = None) -> No
     mode = deployment_mode(values)
     credential = _credential(values)
     admin_credential = _credential(values, admin=True)
-    if admin_credential is not None and admin_credential == credential:
+    if _credentials_share_known_password(values, credential, admin_credential):
         raise DeploymentConfigurationError("Administrator and application access credentials must be different.")
     if mode == "cloud":
         if credential is None:
@@ -143,6 +143,19 @@ def validate_deployment_settings(environ: Mapping[str, str] | None = None) -> No
     from src.model_limits import load_model_limits
 
     load_model_limits(values)
+
+
+def _credentials_share_known_password(values, credential, admin_credential):
+    if credential is None or admin_credential is None:
+        return False
+    if hmac.compare_digest(credential.identity, admin_credential.identity):
+        return True
+    access_password = values.get("BUSHFIRE_ACCESS_PASSWORD", "")
+    admin_password = values.get("BUSHFIRE_ADMIN_PASSWORD", "")
+    return bool(
+        (access_password and admin_credential.matches(access_password))
+        or (admin_password and credential.matches(admin_password))
+    )
 
 
 def _session_valid(state: Mapping, credential: _Credential | None, key: str) -> bool:
@@ -196,6 +209,12 @@ def authenticate(password: str, state: MutableMapping, *, admin: bool = False) -
         raise AccessDeniedError("Sign in to the application first.")
     if credential is None or not credential.matches(password):
         raise AccessDeniedError("The password was not accepted.")
+    if admin:
+        access_credential = _credential(os.environ)
+        # Independently salted hashes cannot be compared without a candidate.
+        # Recheck here so the demo password can never grant elevated access.
+        if access_credential is not None and access_credential.matches(password):
+            raise DeploymentConfigurationError("Administrator and application access credentials must be different.")
     expires_at = time.time() + _SESSION_SECONDS
     token = hmac.new(
         _SESSION_SIGNING_KEY, f"{credential.identity}:{expires_at}:{key}".encode("ascii"), "sha256"

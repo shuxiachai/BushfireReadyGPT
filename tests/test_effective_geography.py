@@ -27,7 +27,7 @@ def _allow_verified_area_selection(monkeypatch):
     monkeypatch.setattr(
         pipeline_module,
         "get_data_artifact_status",
-        lambda _paths: {
+        lambda _paths, *, verify_optional_map: {
             "core_ready": True,
             "optional_map_state": "bundle_verified",
             "integrity_error_code": "",

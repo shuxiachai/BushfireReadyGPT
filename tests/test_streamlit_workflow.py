@@ -369,6 +369,12 @@ def test_approval_creates_append_only_audit_event_and_updates_signoff(isolated_a
         _button(app, "Generate report").click().run(timeout=30)
         creation_path = Path(app.session_state["latest_audit_path"])
         creation_bytes = creation_path.read_bytes()
+        original_report = app.session_state["latest_report"]["text"]
+        report_download_labels = ("Download latest report", "Download Markdown", "Download PDF", "Download DOCX")
+        original_download_urls = {
+            label: next(item.proto.url for item in app.get("download_button") if item.proto.label == label)
+            for label in report_download_labels
+        }
         assert app.session_state["latest_quality"]["approval_gate"]["passed"] is True
 
         for checkbox in [item for item in app.checkbox if str(item.key).startswith("review_check_")]:
@@ -388,6 +394,13 @@ def test_approval_creates_append_only_audit_event_and_updates_signoff(isolated_a
     assert app.session_state["report_status"] == "Approved by organisation"
     assert app.session_state["latest_report"]["text"].count("- [x]") == 5
     assert any("append-only audit event" in success.value for success in app.success)
+    assert original_report.strip() not in [item.value.strip() for item in app.markdown]
+    current_download_urls = {
+        label: next(item.proto.url for item in app.get("download_button") if item.proto.label == label)
+        for label in report_download_labels
+    }
+    for label in report_download_labels:
+        assert current_download_urls[label] != original_download_urls[label], label
 
 
 def test_blocked_approval_does_not_mutate_authoritative_review_state(isolated_app_storage):

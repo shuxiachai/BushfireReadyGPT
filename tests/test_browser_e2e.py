@@ -312,8 +312,17 @@ def _write_official_sources_fixture(server_port):
     return path
 
 
+def _report_download_button(page, label, protected_downloads):
+    if not protected_downloads:
+        return page.get_by_role("button", name=label, exact=True)
+    # The private-delivery component uses a session-local srcdoc, not a media URL.
+    frame = page.locator(f'iframe:visible[srcdoc*="{label}</button>"]').content_frame
+    return frame.get_by_role("button", name=label, exact=True)
+
+
 @pytest.mark.e2e
-def test_browser_report_data_map_and_human_signoff_workflow():
+@pytest.mark.parametrize("protected_downloads", [False, True], ids=["native-local", "authenticated-blob"])
+def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads):
     from playwright.sync_api import expect, sync_playwright
 
     shutil.rmtree(ARTIFACT_DIR, ignore_errors=True)
@@ -331,9 +340,18 @@ def test_browser_report_data_map_and_human_signoff_workflow():
 
     app_port = _available_port()
     app_url = f"http://127.0.0.1:{app_port}"
-    env = os.environ.copy()
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("RAILWAY_", "BUSHFIRE_ACCESS_", "BUSHFIRE_ADMIN_"))
+    }
     env.update(
         {
+            "BUSHFIRE_DEPLOYMENT_MODE": "local",
+            "BUSHFIRE_ACCESS_PASSWORD": "Synthetic-workflow-password-2026" if protected_downloads else "",
+            "BUSHFIRE_ACCESS_PASSWORD_HASH": "",
+            "BUSHFIRE_ADMIN_PASSWORD": "",
+            "BUSHFIRE_ADMIN_PASSWORD_HASH": "",
             "LLM_PROVIDER": "ollama",
             "OLLAMA_BASE_URL": f"http://127.0.0.1:{model_server.server_port}/v1",
             "OLLAMA_MODEL": "e2e-model",
@@ -376,9 +394,15 @@ def test_browser_report_data_map_and_human_signoff_workflow():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             context = browser.new_context(accept_downloads=True)
+            context.tracing.start(screenshots=True, snapshots=True, sources=False)
+            browser_errors = []
             try:
                 page = context.new_page()
+                page.on("pageerror", lambda error: browser_errors.append(str(error)))
                 page.goto(app_url, wait_until="domcontentloaded", timeout=60_000)
+                if protected_downloads:
+                    page.get_by_label("Access password", exact=True).fill("Synthetic-workflow-password-2026")
+                    page.get_by_role("button", name="Sign in", exact=True).click()
                 expect(
                     page.get_by_role(
                         "heading",
@@ -407,7 +431,7 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                 ).to_be_visible()
 
                 with page.expect_download(timeout=30_000) as markdown_download_info:
-                    page.get_by_role("button", name="Download Markdown", exact=True).click()
+                    _report_download_button(page, "Download Markdown", protected_downloads).click()
                 markdown_download = markdown_download_info.value
                 assert markdown_download.suggested_filename == "bushfire_ready_report.md"
                 assert "Cairns Council Bushfire Preparedness Draft" in Path(markdown_download.path()).read_text(
@@ -443,13 +467,32 @@ def test_browser_report_data_map_and_human_signoff_workflow():
                     )
                 ).to_be_visible()
 
+                # Do not interact with any other widget before testing the earlier
+                # sidebar export: a rerun must already have refreshed the signed report.
+                with page.expect_download(timeout=30_000) as signed_sidebar_info:
+                    _report_download_button(page, "Download latest report", protected_downloads).click()
+                signed_sidebar = Path(signed_sidebar_info.value.path()).read_text(encoding="utf-8")
+                assert "Browser E2E Reviewer" in signed_sidebar
+                assert "Reviewed through the automated browser workflow." in signed_sidebar
+                if protected_downloads:
+                    assert signed_sidebar_info.value.url.startswith("blob:")
+
                 with page.expect_download(timeout=30_000) as package_download_info:
-                    page.get_by_role("button", name="Download pilot export package", exact=True).click()
+                    _report_download_button(page, "Download pilot export package", protected_downloads).click()
                 package_download = package_download_info.value
                 with ZipFile(package_download.path()) as package:
                     names = set(package.namelist())
                     audit_payload = json.loads(package.read("governance/audit_record.json"))
                     package_manifest = json.loads(package.read("governance/package_manifest.json"))
+                    packaged_report = package.read(
+                        next(name for name in names if name.startswith("reports/") and name.endswith(".md"))
+                    ).decode("utf-8")
+                assert packaged_report == signed_sidebar
+
+                page.get_by_role("tab", name="Create Report", exact=True).click()
+                with page.expect_download(timeout=30_000) as signed_preview_info:
+                    _report_download_button(page, "Download Markdown", protected_downloads).click()
+                assert Path(signed_preview_info.value.path()).read_text(encoding="utf-8") == signed_sidebar
                 assert "governance/package_manifest.json" in names
                 assert "governance/audit_record.json" in names
                 assert len([name for name in names if name.startswith("governance/audit_chain/")]) == 2
@@ -499,6 +542,10 @@ def test_browser_report_data_map_and_human_signoff_workflow():
             except Exception:
                 if page is not None:
                     page.screenshot(path=str(ARTIFACT_DIR / "failure.png"), full_page=True)
+                (ARTIFACT_DIR / "browser-errors.json").write_text(
+                    json.dumps(browser_errors, indent=2), encoding="utf-8"
+                )
+                context.tracing.stop(path=str(ARTIFACT_DIR / "failure-trace.zip"))
                 raise
             finally:
                 context.close()

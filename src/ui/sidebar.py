@@ -7,6 +7,7 @@ from src.docx_export import create_report_docx
 from src.pdf_export import create_report_pdf
 from src.report_generation_quality import evaluate_governed_report
 from src.ui.artifact_cache import get_report_artifact
+from src.ui.components import safe_diagnostic_detail
 from src.ui.downloads import download_button
 
 
@@ -72,7 +73,7 @@ def render_sidebar(
                 target=st.sidebar,
             )
         except Exception as exc:
-            st.sidebar.warning(f"PDF generation failed: {exc}")
+            st.sidebar.warning(f"PDF generation failed: {safe_diagnostic_detail(exc)}")
         try:
             docx_bytes = get_report_artifact(latest_report, "docx", create_report_docx)
             download_button(
@@ -85,13 +86,13 @@ def render_sidebar(
                 target=st.sidebar,
             )
         except Exception as exc:
-            st.sidebar.warning(f"DOCX generation failed: {exc}")
+            st.sidebar.warning(f"DOCX generation failed: {safe_diagnostic_detail(exc)}")
         save_label = "Save report on server" if is_cloud_deployment() else "Save to chat_history"
         if st.sidebar.button(save_label, width="stretch"):
             try:
                 saved_path = save_latest_report()
             except OSError as exc:
-                st.sidebar.warning(f"The report could not be saved locally: {exc}")
+                st.sidebar.warning(f"The report could not be saved: {safe_diagnostic_detail(exc)}")
             else:
                 if saved_path:
                     display_path = Path(saved_path).name if is_cloud_deployment() else saved_path

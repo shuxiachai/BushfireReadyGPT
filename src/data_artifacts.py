@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 import os
 import re
@@ -11,11 +12,13 @@ import socket
 import tempfile
 import time
 import uuid
+from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import lru_cache
 from http.client import HTTPException
 from pathlib import Path, PurePosixPath
+from threading import RLock
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
@@ -26,6 +29,9 @@ _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _TRANSACTION_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
 _TRANSACTION_LOCK_STALE_SECONDS = 6 * 60 * 60
 BUNDLED_CORE_TRANSACTION_NAME = "abs-bundled-core-refresh"
+_OPTIONAL_MAP_CONTENT_CACHE_SIZE = 8
+_OPTIONAL_MAP_CONTENT_CACHE = OrderedDict()
+_OPTIONAL_MAP_CONTENT_LOCK = RLock()
 
 
 class DataArtifactError(ValueError):
@@ -351,12 +357,17 @@ def build_data_provenance(data_paths, *, include_all_sa2_profile=False):
         "region_mappings",
         "licence_register",
     ]
+    artifact_paths = {attribute: Path(getattr(data_paths, attribute)) for attribute in attributes}
     if include_all_sa2_profile:
-        attributes.append("all_sa2_profile")
+        # Pin the entire selected-map verification bundle, not only its profile.
+        artifact_paths.update(
+            all_sa2_profile=Path(data_paths.all_sa2_profile),
+            all_sa2_boundary=Path(data_paths.all_sa2_boundary),
+            all_sa2_map_bundle=Path(data_paths.all_sa2_boundary).parent / "sa2_map_bundle.json",
+        )
 
     provenance = {}
-    for attribute in attributes:
-        path = Path(getattr(data_paths, attribute))
+    for attribute, path in artifact_paths.items():
         entry = {
             "path": safe_data_path_label(path, data_paths),
             "exists": path.is_file(),
@@ -642,26 +653,30 @@ def _uses_custom_data(data_paths):
     )
 
 
-def _path_cache_signature(path):
+def data_file_cache_signature(path):
+    """Identify file replacement for display caches, not prove content integrity."""
+
     resolved = Path(path).expanduser().resolve()
     try:
         stat = resolved.stat()
     except OSError:
-        return resolved, None, None
-    return resolved, stat.st_mtime_ns, stat.st_size
+        return resolved, None
+    return resolved, (stat.st_mtime_ns, stat.st_size, stat.st_ctime_ns, stat.st_dev, stat.st_ino)
 
 
-def inspect_optional_sa2_map(profile_path, boundary_path, bundle_manifest_path=None):
-    """Classify the national map, caching large-file checks by stable file metadata."""
+def inspect_optional_sa2_map(profile_path, boundary_path, bundle_manifest_path=None, *, verify_content=False):
+    """Classify map availability; report generation must request fresh content checks."""
 
     profile = Path(profile_path).expanduser().resolve()
     boundary = Path(boundary_path).expanduser().resolve()
     metadata = Path(bundle_manifest_path or boundary.parent / "sa2_map_bundle.json").expanduser().resolve()
+    if verify_content:
+        return _inspect_optional_sa2_map_fresh(profile, boundary, metadata)
     return dict(
         _inspect_optional_sa2_map_cached(
-            *_path_cache_signature(profile),
-            *_path_cache_signature(boundary),
-            *_path_cache_signature(metadata),
+            *data_file_cache_signature(profile),
+            *data_file_cache_signature(boundary),
+            *data_file_cache_signature(metadata),
         )
     )
 
@@ -669,15 +684,74 @@ def inspect_optional_sa2_map(profile_path, boundary_path, bundle_manifest_path=N
 @lru_cache(maxsize=8)
 def _inspect_optional_sa2_map_cached(
     profile,
-    _profile_modified_ns,
-    _profile_size,
+    _profile_signature,
     boundary,
-    _boundary_modified_ns,
-    _boundary_size,
+    _boundary_signature,
     metadata,
-    _metadata_modified_ns,
-    _metadata_size,
+    _metadata_signature,
 ):
+    return _inspect_optional_sa2_map_fresh(profile, boundary, metadata)
+
+
+def _optional_map_content_signature(paths):
+    return tuple((path, path.stat().st_size, sha256_file(path)) for path in paths)
+
+
+def _inspect_optional_sa2_map_fresh(profile, boundary, metadata):
+    paths = (profile, boundary, metadata)
+    # Keep concurrent first-time GeoJSON parses from multiplying peak memory.
+    with _OPTIONAL_MAP_CONTENT_LOCK:
+        if not all(path.is_file() for path in paths):
+            result = _inspect_optional_sa2_map_uncached(profile, boundary, metadata)
+            if result["state"] == "bundle_verified":
+                return _invalid_optional_map_result(
+                    "National map files appeared during verification; retry with stable files."
+                )
+            return result
+        try:
+            signature = _optional_map_content_signature(paths)
+            cached = _OPTIONAL_MAP_CONTENT_CACHE.get(signature)
+            result = (
+                dict(cached)
+                if cached is not None
+                else _inspect_optional_sa2_map_uncached(
+                    profile,
+                    boundary,
+                    metadata,
+                    expected_content={path: (size, digest) for path, size, digest in signature},
+                )
+            )
+            if result["state"] == "bundle_verified":
+                if _optional_map_content_signature(paths) != signature:
+                    raise ValueError("National map files changed during content verification; retry with stable files.")
+                _OPTIONAL_MAP_CONTENT_CACHE[signature] = dict(result)
+                _OPTIONAL_MAP_CONTENT_CACHE.move_to_end(signature)
+                while len(_OPTIONAL_MAP_CONTENT_CACHE) > _OPTIONAL_MAP_CONTENT_CACHE_SIZE:
+                    _OPTIONAL_MAP_CONTENT_CACHE.popitem(last=False)
+            return result
+        except (OSError, UnicodeError, ValueError) as error:
+            return _invalid_optional_map_result(error)
+
+
+def _invalid_optional_map_result(error):
+    return {
+        "state": "invalid",
+        "status": "Optional map invalid",
+        "installed": False,
+        "error": str(error),
+    }
+
+
+def _verified_optional_map_text(path, expected_content=None, *, encoding="utf-8"):
+    """Bind parsing to the exact bytes fingerprinted for a content-cache entry."""
+
+    data = path.read_bytes()
+    if expected_content is not None and (len(data), hashlib.sha256(data).hexdigest()) != expected_content[path]:
+        raise ValueError("National map files changed before parsing; retry with stable files.")
+    return data.decode(encoding)
+
+
+def _inspect_optional_sa2_map_uncached(profile, boundary, metadata, *, expected_content=None):
     existing = (profile.is_file(), boundary.is_file())
     if not any(existing):
         return {
@@ -696,8 +770,8 @@ def _inspect_optional_sa2_map_cached(
         }
 
     try:
-        profile_codes = _read_optional_profile_codes(profile)
-        boundary_codes = _read_optional_boundary_codes(boundary)
+        profile_codes = _read_optional_profile_codes(profile, expected_content=expected_content)
+        boundary_codes = _read_optional_boundary_codes(boundary, expected_content=expected_content)
         profile_code_set = set(profile_codes)
         boundary_code_set = set(boundary_codes)
         if profile_code_set != boundary_code_set:
@@ -713,14 +787,10 @@ def _inspect_optional_sa2_map_cached(
             profile_rows=len(profile_codes),
             boundary_features=len(boundary_codes),
             shared_sa2_codes=len(profile_code_set),
+            expected_content=expected_content,
         )
     except (OSError, UnicodeError, csv.Error, json.JSONDecodeError, ValueError) as error:
-        return {
-            "state": "invalid",
-            "status": "Optional map invalid",
-            "installed": False,
-            "error": str(error),
-        }
+        return _invalid_optional_map_result(error)
     return {
         "state": "bundle_verified" if bundle_verified else "present_unverified",
         "status": ("Optional map bundle verified" if bundle_verified else "Optional map present (unverified)"),
@@ -732,8 +802,8 @@ def _inspect_optional_sa2_map_cached(
     }
 
 
-def _read_optional_profile_codes(profile):
-    with open(profile, "r", encoding="utf-8-sig", newline="") as file:
+def _read_optional_profile_codes(profile, *, expected_content=None):
+    with io.StringIO(_verified_optional_map_text(profile, expected_content, encoding="utf-8-sig"), newline="") as file:
         reader = csv.DictReader(file)
         required_columns = {"state_name", "sa4_name", "sa3_name", "sa2_name", "sa2_code"}
         missing_columns = sorted(required_columns - set(reader.fieldnames or []))
@@ -752,8 +822,8 @@ def _read_optional_profile_codes(profile):
     return codes
 
 
-def _read_optional_boundary_codes(boundary):
-    payload = json.loads(boundary.read_text(encoding="utf-8"))
+def _read_optional_boundary_codes(boundary, *, expected_content=None):
+    payload = json.loads(_verified_optional_map_text(boundary, expected_content))
     if not isinstance(payload, dict) or payload.get("type") != "FeatureCollection":
         raise ValueError("National boundary file is not a GeoJSON FeatureCollection.")
     features = payload.get("features")
@@ -801,10 +871,11 @@ def _verify_optional_map_bundle(
     profile_rows,
     boundary_features,
     shared_sa2_codes,
+    expected_content=None,
 ):
     if not metadata.is_file():
         return False
-    bundle = json.loads(metadata.read_text(encoding="utf-8"))
+    bundle = json.loads(_verified_optional_map_text(metadata, expected_content))
     if not isinstance(bundle, dict) or bundle.get("schema_version") != 1:
         raise ValueError("National map bundle manifest is invalid.")
     expected_counts = {
@@ -819,17 +890,19 @@ def _verify_optional_map_bundle(
     if not isinstance(artifacts, dict):
         raise ValueError("National map bundle artifact metadata is missing.")
     for key, path in (("profile", profile), ("boundary", boundary)):
-        _verify_optional_map_artifact(artifacts, key, path)
+        _verify_optional_map_artifact(artifacts, key, path, expected_content=expected_content)
     return True
 
 
-def _verify_optional_map_artifact(artifacts, key, path):
+def _verify_optional_map_artifact(artifacts, key, path, *, expected_content=None):
     item = artifacts.get(key)
     if not isinstance(item, dict):
         raise ValueError(f"National map bundle {key} metadata is missing.")
-    if item.get("size_bytes") != path.stat().st_size:
+    # Fresh validation has already bound parsing to these exact bytes.
+    size, digest = expected_content[path] if expected_content is not None else (path.stat().st_size, sha256_file(path))
+    if item.get("size_bytes") != size:
         raise ValueError(f"National map bundle {key} size does not match.")
-    if item.get("sha256") != sha256_file(path):
+    if item.get("sha256") != digest:
         raise ValueError(f"National map bundle {key} hash does not match.")
 
 
@@ -847,7 +920,7 @@ def _integrity_status(error, *, custom_data):
     return "Bundled data invalid"
 
 
-def get_data_artifact_status(data_paths):
+def get_data_artifact_status(data_paths, *, verify_optional_map=False):
     """Return concise integrity and optional-capability labels for Data Status."""
 
     custom_data = _uses_custom_data(data_paths)
@@ -864,6 +937,7 @@ def get_data_artifact_status(data_paths):
     optional_map = inspect_optional_sa2_map(
         data_paths.all_sa2_profile,
         data_paths.all_sa2_boundary,
+        verify_content=verify_optional_map,
     )
     integrity_status = _integrity_status(error, custom_data=custom_data)
 

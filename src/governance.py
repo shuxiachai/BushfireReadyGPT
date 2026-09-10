@@ -87,7 +87,7 @@ def is_review_checklist_complete(checklist):
         if not isinstance(item, dict):
             return False
         item_id = item.get("id")
-        if item_id in observed:
+        if not isinstance(item_id, str) or item_id in observed:
             return False
         observed[item_id] = item.get("checked") is True
     return set(observed) == expected_ids and all(observed.values())

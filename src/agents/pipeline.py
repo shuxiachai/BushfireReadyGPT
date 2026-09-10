@@ -60,7 +60,7 @@ def run_analysis_pipeline(
             paths,
             include_all_sa2_profile=bool(area_selection),
         )
-        artifact_status = get_data_artifact_status(paths)
+        artifact_status = get_data_artifact_status(paths, verify_optional_map=bool(area_selection))
         span.add_metrics(artifact_core_ready=artifact_status["core_ready"] is True)
         if area_selection and artifact_status["optional_map_state"] != "bundle_verified":
             raise DataArtifactError(

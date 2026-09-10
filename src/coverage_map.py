@@ -4,20 +4,12 @@ from functools import lru_cache
 
 import pydeck as pdk
 
-from src.data_artifacts import inspect_optional_sa2_map
+from src.data_artifacts import data_file_cache_signature, inspect_optional_sa2_map
 from src.data_paths import get_data_paths
 
 
-def _path_signature(path):
-    try:
-        stat = path.stat()
-    except OSError:
-        return path, None, None
-    return path, stat.st_mtime_ns, stat.st_size
-
-
 @lru_cache(maxsize=1)
-def _read_geojson(path, _modified_ns, _size):
+def _read_geojson(path, _signature):
     if not path.exists():
         return None
     try:
@@ -27,7 +19,7 @@ def _read_geojson(path, _modified_ns, _size):
 
 
 @lru_cache(maxsize=16)
-def _read_csv(path, _modified_ns, _size):
+def _read_csv(path, _signature):
     if not path.exists():
         return []
     try:
@@ -39,7 +31,7 @@ def _read_csv(path, _modified_ns, _size):
 
 def load_coverage_geojson(data_paths=None):
     paths = data_paths or get_data_paths()
-    return _read_geojson(*_path_signature(paths.sa2_coverage))
+    return _read_geojson(*data_file_cache_signature(paths.sa2_coverage))
 
 
 def load_all_sa2_geojson(state=None, data_paths=None):
@@ -47,12 +39,12 @@ def load_all_sa2_geojson(state=None, data_paths=None):
     path = _state_geojson_path(state, paths)
     if not path.exists():
         path = paths.all_sa2_boundary
-    return _read_geojson(*_path_signature(path))
+    return _read_geojson(*data_file_cache_signature(path))
 
 
 def load_all_sa2_profiles(data_paths=None):
     paths = data_paths or get_data_paths()
-    return _read_csv(*_path_signature(paths.all_sa2_profile))
+    return _read_csv(*data_file_cache_signature(paths.all_sa2_profile))
 
 
 def has_all_australia_data(data_paths=None):

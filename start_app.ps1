@@ -217,6 +217,29 @@ function Get-RagIndexState {
     return [string]$output[-1].Trim()
 }
 
+function Test-CpuEmbeddingPreflight {
+    param([Parameter(Mandatory = $true)][string]$Python)
+
+    # Existing identity validation reads prepared files and dependency versions;
+    # it never constructs an inference model or starts a download.
+    $check = @'
+import sys
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    from src.rag.embeddings import create_embedding_client
+    from src.rag.settings import RagSettings
+    settings = RagSettings.from_env()
+    if settings.embedding_provider != 'fastembed':
+        raise ValueError('CPU embedding provider was not selected.')
+    create_embedding_client(settings).identity()
+except Exception:
+    sys.exit(1)
+'@
+    & $Python -c $check
+    return $LASTEXITCODE -eq 0
+}
+
 function Open-AppBrowser {
     param([Parameter(Mandatory = $true)][string]$Url)
 
@@ -337,10 +360,23 @@ $ollamaRoot = $ollamaBaseUrl.TrimEnd('/') -replace '/v1$', ''
 $tagsUrl = "$ollamaRoot/api/tags"
 $ragEnabledValue = Get-DotEnvValue -Name "BUSHFIRE_RAG_ENABLED" -DefaultValue "true"
 $ragEnabled = ConvertTo-Boolean -Name "BUSHFIRE_RAG_ENABLED" -Value $ragEnabledValue -DefaultValue $true
-$ragModel = Get-DotEnvValue -Name "BUSHFIRE_RAG_EMBED_MODEL" -DefaultValue "embeddinggemma"
-$needsOllama = (($provider -eq "ollama") -and -not $skipModels) -or ($ragEnabled -and -not $skipRag)
+$ragProvider = (Get-DotEnvValue -Name "BUSHFIRE_RAG_EMBED_PROVIDER" -DefaultValue "ollama").ToLowerInvariant()
+if ($ragProvider -notin @("ollama", "fastembed")) {
+    throw "BUSHFIRE_RAG_EMBED_PROVIDER must be ollama or fastembed."
+}
+$defaultRagModel = if ($ragProvider -eq "ollama") { "embeddinggemma" } else { "BAAI/bge-small-en-v1.5" }
+$ragModel = Get-DotEnvValue -Name "BUSHFIRE_RAG_EMBED_MODEL" -DefaultValue $defaultRagModel
+$needsRagOllama = $ragEnabled -and ($ragProvider -eq "ollama") -and -not $skipRag
+$needsOllama = (($provider -eq "ollama") -and -not $skipModels) -or $needsRagOllama
 $ollama = $null
 $ollamaStatus = $null
+
+if ($ragEnabled -and ($ragProvider -eq "fastembed") -and -not $skipRag) {
+    if (-not (Test-CpuEmbeddingPreflight -Python $virtualPython)) {
+        throw "CPU RAG is not prepared. Install the optional CPU dependencies with 'poetry install --with dev,cloud --no-root', then complete the explicit CPU model preparation step: 'python scripts/build_rag_index.py --prepare-embedding-only'. Set BUSHFIRE_RAG_EMBED_LOCAL_FILES_ONLY=false only for that explicit preparation if the model is missing, then restore true. Check BUSHFIRE_RAG_EMBED_CACHE_DIR and its identity.json. No model or source downloads were started."
+    }
+    Write-Host "The prepared CPU embedding files and dependency versions are valid; no model download was needed."
+}
 
 if ($needsOllama) {
     $ollamaUri = [Uri]$ollamaRoot
@@ -402,7 +438,7 @@ if (-not $skipModels -and $provider -eq "ollama") {
     }
 }
 
-if (-not $skipModels -and -not $skipRag -and $ragEnabled) {
+if (-not $skipModels -and $needsRagOllama) {
     if (-not (Test-OllamaModelAvailable -Status $ollamaStatus -Model $ragModel)) {
         if (-not $ollama) {
             throw "The local Ollama API is running, but the Ollama command is unavailable for model setup. Install Ollama or add it to PATH."
@@ -419,7 +455,7 @@ if (-not $skipRag -and $ragEnabled) {
     $ragState = Get-RagIndexState -Python $virtualPython
     if ($ragState -ne "ready") {
         Write-Host "The RAG index is '$ragState'; building it now..."
-        Invoke-Checked -Command { & $virtualPython scripts\build_rag_index.py --download } -FailureMessage "Could not build the local RAG index. Ensure Ollama and the configured embedding model are available."
+        Invoke-Checked -Command { & $virtualPython scripts\build_rag_index.py --download } -FailureMessage "Could not build the local RAG index. Ensure the configured embedding provider and its model are available."
         $repairPerformed = $true
     } else {
         Write-Host "The RAG index is ready; rebuild skipped."

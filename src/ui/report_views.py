@@ -15,6 +15,7 @@ from src.docx_export import create_report_docx
 from src.input_validation import REPORT_FIELD_LIMITS
 from src.pdf_export import create_report_pdf
 from src.ui.artifact_cache import get_report_artifact
+from src.ui.components import safe_diagnostic_detail
 from src.ui.downloads import download_button
 
 
@@ -194,7 +195,7 @@ def render_latest_report_preview(
                 on_click="ignore",
             )
         except Exception as exc:
-            st.warning(f"PDF generation failed: {exc}")
+            st.warning(f"PDF generation failed: {safe_diagnostic_detail(exc)}")
     with action_cols[2]:
         try:
             docx_bytes = get_report_artifact(latest_report, "docx", create_report_docx)
@@ -207,14 +208,14 @@ def render_latest_report_preview(
                 on_click="ignore",
             )
         except Exception as exc:
-            st.warning(f"DOCX generation failed: {exc}")
+            st.warning(f"DOCX generation failed: {safe_diagnostic_detail(exc)}")
     with action_cols[3]:
         save_label = "Save report on server" if is_cloud_deployment() else "Save to chat_history"
         if st.button(save_label, width="stretch"):
             try:
                 saved_path = save_latest_report()
             except OSError as exc:
-                st.warning(f"The report could not be saved locally: {exc}")
+                st.warning(f"The report could not be saved: {safe_diagnostic_detail(exc)}")
             else:
                 if saved_path:
                     display_path = Path(saved_path).name if is_cloud_deployment() else saved_path

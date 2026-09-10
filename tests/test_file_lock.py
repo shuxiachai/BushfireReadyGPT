@@ -25,6 +25,48 @@ def _old_record(tmp_path, owner):
     return path
 
 
+def test_deeply_nested_corrupt_lock_is_rejected_without_crashing_recovery(tmp_path):
+    path = tmp_path / "corrupt.lock"
+    path.write_text("[" * 1500 + "0" + "]" * 1500, encoding="ascii")
+    assert path.stat().st_size < file_lock.MAX_LOCK_RECORD_BYTES
+    os.utime(path, (time.time() - 600, time.time() - 600))
+
+    previous_limit = sys.getrecursionlimit()
+    try:
+        # Test the standard decoder limit even when another library raised it.
+        sys.setrecursionlimit(1000)
+        assert file_lock.read_lock_owner(path) is None
+        assert file_lock.lock_can_be_reclaimed(path, 300)
+    finally:
+        sys.setrecursionlimit(previous_limit)
+
+
+def test_lock_read_is_bounded_even_if_file_grows_after_stat(tmp_path, monkeypatch):
+    path = tmp_path / "growing.lock"
+    path.write_text('{"pid":42,"token":"owner"}', encoding="ascii")
+    original_open = Path.open
+    read_sizes = []
+
+    class RecordingFile:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, size=-1):
+            read_sizes.append(size)
+            assert 0 < size <= file_lock.MAX_LOCK_RECORD_BYTES + 1
+            return b"x" * size
+
+    monkeypatch.setattr(
+        Path, "open", lambda item, *args, **kw: RecordingFile() if item == path else original_open(item, *args, **kw)
+    )
+
+    assert file_lock.read_lock_owner(path) is None
+    assert read_sizes == [file_lock.MAX_LOCK_RECORD_BYTES + 1]
+
+
 def _incarnation(namespace="pid:[100]", start=100, boot="boot-a"):
     return {"boot_id": boot, "pid_namespace": namespace, "start_ticks": start}
 

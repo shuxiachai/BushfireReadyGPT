@@ -97,8 +97,13 @@ def read_lock_owner(lock_path):
     try:
         if lock_path.stat().st_size > MAX_LOCK_RECORD_BYTES:
             return None
-        payload = json.loads(lock_path.read_text(encoding="ascii"))
-    except (FileNotFoundError, OSError, UnicodeError, json.JSONDecodeError):
+        # The record may grow or be replaced after stat; never read it unbounded.
+        with lock_path.open("rb") as file:
+            raw = file.read(MAX_LOCK_RECORD_BYTES + 1)
+        if len(raw) > MAX_LOCK_RECORD_BYTES:
+            return None
+        payload = json.loads(raw.decode("ascii"))
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError):
         return None
     if (
         not isinstance(payload, dict)

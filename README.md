@@ -44,6 +44,16 @@ See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
 and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).
 The historical release measurements below do not certify this new cloud path.
 
+**2026-09-10 project audit:** subsequent maintenance hardens revision snapshot
+binding, malformed review inputs, independent administrator credentials, bounded
+lock reads, missing community indicators, RAG chunk limits, map integrity checks
+and CPU-provider startup. Saving a review now refreshes previews and downloads
+before confirming success, including password-protected browser exports; cloud
+export errors no longer expose raw internal paths. See the
+[audit findings, regression evidence and remaining limits](docs/PROJECT_AUDIT_2026-09-10.md).
+Existing frozen RAG indexes and historical release artifacts are not rebuilt or
+rewritten by these fixes. New chunking applies to future controlled index builds.
+
 The v0.6.0 release evidence was produced from clean source commit
 [`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7).
 Local validation contains `885` passing tests (`884` non-E2E plus one Chromium
@@ -170,6 +180,12 @@ Every launch checks the local environment before opening the app. Existing Pytho
 dependencies, Ollama models and a valid RAG index are reused; only missing or
 outdated components are installed or rebuilt. The launcher also creates the
 dedicated 8K-context report model and starts Ollama when needed.
+
+If you explicitly select FastEmbed CPU embeddings, the launcher checks the
+prepared CPU model identity and optional dependencies before downloading any
+models or reference sources. It does not start Ollama for CPU retrieval or
+silently install the cloud dependency group. Missing CPU assets require the
+[explicit preparation steps](docs/DEPLOYMENT.md#windows-with-cpu-embeddings).
 
 ### Manual setup
 

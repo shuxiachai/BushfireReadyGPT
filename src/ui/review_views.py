@@ -8,7 +8,7 @@ from src.audit import AuditIntegrityError, capture_current_audit_chain
 from src.evidence_confidence import build_evidence_confidence_rows
 from src.export_package import create_pilot_export_package
 from src.input_validation import REVIEW_FIELD_LIMITS
-from src.ui.components import render_path_line, safe_display_text
+from src.ui.components import render_path_line, safe_diagnostic_detail, safe_display_text
 from src.ui.downloads import download_button
 
 
@@ -427,6 +427,25 @@ def _apply_review_record_to_report_state(review_record):
     st.session_state.review_notes = review_record.get("review_notes", "")
 
 
+def _render_review_update_result():
+    result = st.session_state.pop("_review_update_result", None)
+    if not isinstance(result, dict):
+        return
+    if result.get("persistence_failed"):
+        st.warning(
+            "The review and audit are available in this browser session, but the optional "
+            "session file was not updated. Download the pilot package before closing the app."
+        )
+    if result.get("report_updated"):
+        st.success("Sign-off section updated in the latest report.")
+    else:
+        st.info("Sign-off record saved. Generate a report to attach it to report exports.")
+    if result.get("audit_updated"):
+        st.success("A new append-only audit event was created and linked to the prior event.")
+    elif result.get("had_audit_path"):
+        st.warning("No new audit event was created.")
+
+
 def render_reviewer_approval(
     collect_review_record,
     update_latest_report_signoff,
@@ -435,6 +454,7 @@ def render_reviewer_approval(
     persist_session_state,
 ):
     st.markdown("### Reviewer Approval / Human Sign-off")
+    _render_review_update_result()
     st.markdown(
         """
         <div class="source-note">
@@ -515,19 +535,15 @@ def render_reviewer_approval(
         _apply_review_record_to_report_state(review_record)
         st.session_state.latest_review_record = review_record
         persistence_succeeded = persist_session_state()
-        if persistence_succeeded is False:
-            st.warning(
-                "The review and audit are available in this browser session, but the optional "
-                "session file was not updated. Download the pilot package before closing the app."
-            )
-        if report_updated:
-            st.success("Sign-off section updated in the latest report.")
-        else:
-            st.info("Sign-off record saved. Generate a report to attach it to report exports.")
-        if audit_updated:
-            st.success("A new append-only audit event was created and linked to the prior event.")
-        elif st.session_state.get("latest_audit_path"):
-            st.warning("No new audit event was created.")
+        st.session_state["_review_update_result"] = {
+            "persistence_failed": persistence_succeeded is False,
+            "report_updated": bool(report_updated),
+            "audit_updated": bool(audit_updated),
+            "had_audit_path": bool(st.session_state.get("latest_audit_path")),
+        }
+        # Earlier sidebar/preview/download elements still refer to the old audit
+        # head. Rebuild them before presenting a successful review to the user.
+        st.rerun()
 
 
 def render_pilot_export_package(get_latest_assistant_text, collect_review_record, get_package_context):
@@ -569,4 +585,7 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
         with st.expander("View package manifest", expanded=False):
             st.json(package["manifest"])
     except Exception as exc:
-        st.warning(f"Pilot package generation failed: {exc}")
+        st.warning(
+            "Pilot package generation failed: "
+            + safe_diagnostic_detail(exc, "Check the report's quality and audit status, or contact the project owner.")
+        )

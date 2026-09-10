@@ -226,6 +226,26 @@ def _paragraph_word_groups(text, max_words):
     return groups
 
 
+def _bounded_word_chunks(text, max_words, overlap_words):
+    """Prefer paragraph boundaries while accounting for overlap in the hard limit."""
+
+    current = []
+    for group in _paragraph_word_groups(text, max_words):
+        if current and len(current) + len(group) > max_words:
+            yield current
+            current = current[-overlap_words:] if overlap_words else []
+        # A full-size paragraph still needs splitting after carrying overlap.
+        while len(current) + len(group) > max_words:
+            available = max_words - len(current)
+            current.extend(group[:available])
+            group = group[available:]
+            yield current
+            current = current[-overlap_words:] if overlap_words else []
+        current.extend(group)
+    if current:
+        yield current
+
+
 def chunk_catalog_sources(catalog, *, max_words=420, overlap_words=60):
     if max_words < 50 or overlap_words < 0 or overlap_words >= max_words:
         raise RagError("rag_chunk_config_invalid", "RAG chunk sizes are invalid.")
@@ -233,16 +253,9 @@ def chunk_catalog_sources(catalog, *, max_words=420, overlap_words=60):
     for source in catalog:
         chunk_number = 0
         for unit in _load_units(source):
-            current = []
-            for group in _paragraph_word_groups(unit["text"], max_words):
-                if current and len(current) + len(group) > max_words:
-                    chunk_number += 1
-                    chunks.append(_build_chunk(source, current, chunk_number, unit.get("page")))
-                    current = current[-overlap_words:] if overlap_words else []
-                current.extend(group)
-            if current:
+            for words in _bounded_word_chunks(unit["text"], max_words, overlap_words):
                 chunk_number += 1
-                chunks.append(_build_chunk(source, current, chunk_number, unit.get("page")))
+                chunks.append(_build_chunk(source, words, chunk_number, unit.get("page")))
     if not chunks:
         raise RagError("rag_source_invalid", "The RAG corpus produced no chunks.")
     return chunks

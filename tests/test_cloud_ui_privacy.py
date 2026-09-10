@@ -2,7 +2,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from src.rag.service import _status
-from src.ui import components, data_views
+from src.ui import components, data_views, report_views, review_views, sidebar
 
 
 @pytest.mark.parametrize(
@@ -137,3 +137,46 @@ render_path_line('<script>label</script>', '/data/private-account/<file>.json')
     assert "&lt;script&gt;label&lt;/script&gt;" in html
     assert "<script>" not in html
     assert "private-account" not in html
+
+
+@pytest.mark.parametrize("mode", ["local", "cloud"])
+@pytest.mark.parametrize("view", ["preview", "sidebar", "package"])
+def test_export_and_save_errors_do_not_disclose_host_details(mode, view, monkeypatch):
+    monkeypatch.setenv("BUSHFIRE_DEPLOYMENT_MODE", mode)
+    monkeypatch.delenv("RAILWAY_PROJECT_ID", raising=False)
+    monkeypatch.delenv("RAILWAY_ENVIRONMENT_ID", raising=False)
+
+    def unavailable(*_args, **_kwargs):
+        raise OSError("Could not access /data/private-account/internal-secret-artifact")
+
+    for module in (report_views, sidebar):
+        monkeypatch.setattr(module, "get_report_artifact", unavailable)
+        monkeypatch.setattr(module, "download_button", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(sidebar, "evaluate_governed_report", lambda *_args: {"approval_gate": {"passed": True}})
+    monkeypatch.setattr(review_views, "create_pilot_export_package", unavailable)
+    app = AppTest.from_string(
+        """
+import streamlit as st
+from src.ui.report_views import render_latest_report_preview
+from src.ui.sidebar import render_sidebar
+from src.ui.review_views import render_pilot_export_package
+st.session_state.latest_report = {'quality': {'approval_gate': {'passed': True}}}
+def save():
+    raise OSError('Could not access /data/private-account/internal-secret-artifact')
+"""
+        + {
+            "preview": "render_latest_report_preview(lambda: 'Synthetic report', save, lambda _: True)",
+            "sidebar": "render_sidebar(lambda: None, lambda: 'Synthetic report', save, lambda _: True)",
+            "package": "render_pilot_export_package(lambda: 'Synthetic report', lambda: {}, lambda: {})",
+        }[view]
+    ).run()
+    if view != "package":
+        next(button for button in app.button if button.label.startswith("Save ")).click().run()
+    assert not app.exception
+    warnings = "\n".join(item.value for item in app.warning)
+    assert "failed" in warnings
+    if mode == "cloud":
+        assert "private-account" not in warnings
+        assert "internal-secret-artifact" not in warnings
+    else:
+        assert "private-account" in warnings
