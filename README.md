@@ -35,8 +35,11 @@ the downloaded revision package passed integrity and audit-lineage verification.
 Acceptance exposed an incomplete narrative ending, a near-empty PDF page and
 a download-authorization gap. The follow-up fix adds authenticated-session
 export delivery, explicit model-completion checks with bounded repair, and
-content-preserving PDF pagination. Local browser and artifact regressions pass;
-post-fix live acceptance and restart/recovery checks remain pending.
+content-preserving PDF pagination. The fix is deployed: health is normal, the
+previous public ZIP URL returns 404, and startup reused the same private RAG
+manifest. The repair commit passed 1,297 non-E2E tests plus two Chromium tests
+in CI, with 88.19% Linux coverage. Post-fix real-model generation, authenticated
+live exports and audit/trace/quota recovery acceptance remain pending.
 See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
 and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).
 The historical release measurements below do not certify this new cloud path.

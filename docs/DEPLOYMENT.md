@@ -412,13 +412,39 @@ inspect occupied ports. Both Chromium E2E tests passed: the existing report
 workflow and the new private-download regression (`1293` passes in total across
 these runs). Ruff/format, Bandit, Poetry lock/package checks and the dependency
 vulnerability audit also passed. Historical release verification passed in
-explicit dirty-tree diagnostic mode; clean-tree CI is still required.
-Local checks are not yet evidence that the follow-up image is running on Railway.
+explicit dirty-tree diagnostic mode and subsequently passed again on the clean
+committed tree, without a dirty override.
+
+#### Verified follow-up deployment
+
+Repair source `063968c9ee3165bbffd0dd8b2dc8fd1b38779ab9` was pushed to `main`.
+Railway deployment `3c20b8f1-e11e-46a1-8e95-3e3437717935` reached `SUCCESS` on
+2026-09-10, using image
+`sha256:4bb81ed612e858b5954cfe47c1caf8dc48aad79004992f172aa4ec50fbbcd8f1`.
+The health check returned HTTP 200 (`ok`), and an unauthenticated request to the
+previously observed synthetic ZIP URL now returns 404. Startup recorded
+`container_ready=true`, provider `deepseek`, model `deepseek-v4-flash`, RAG
+`ready`, and the same corpus/index manifest identities recorded above. This
+GitHub-source image does not include the official source bundle: startup reused
+and verified the previously populated `/data` private corpus and index.
+
+Both [cross-platform regression](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34447658197)
+and [Linux Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34447658122)
+passed for that source. Python 3.11, Python 3.13 and Windows each passed `1297`
+non-E2E tests (`3` skips); Linux measured `88.19%` `src` coverage. The separate
+Chromium job passed two E2E tests. Static checks, dependency auditing and clean
+historical release verification also passed. These maintained-source numbers
+do not replace the `v0.6.0` release measurements.
+
+This verifies the running repair image, removal of the old media registration,
+and live private-index reuse. It does not establish a new post-fix DeepSeek
+report, authenticated live Blob-download acceptance, or persistence of every
+saved report/audit/trace/quota record; those checks remain separate.
 
 These checks establish real cloud generation and revision for one synthetic
 scenario, not external-user outcomes, all-scenario regression or production
-readiness. Live restart/recovery has not yet been exercised; do not infer audit,
-trace or quota recovery from a healthy web endpoint.
+readiness. The follow-up deployment establishes private-index reuse only; do not
+infer saved-report, audit, trace or quota recovery from a healthy web endpoint.
 
 The operator subsequently requested retaining all nine local sources for the
 private, non-commercial demonstration. A bounded private snapshot/import path
@@ -453,12 +479,12 @@ artifacts with results from a different model or dirty worktree.
 | Complete Linux image build and startup | CI passed with synthetic corpus; full private Railway deployment SUCCESS and application started |
 | `/data` ownership initialization followed by non-root execution | CI passed, including actual PID 1 UID/GID; live Railway still pending |
 | CPU RAG retrieval evaluation and rejection cases | Local CPU diagnostics recorded separately; CI offline warmup passed |
-| Real DeepSeek generation, revision and governed quality checks | Original synthetic report plus revision exposed an incomplete ending; new-response rejection/repair tested locally, post-fix real model acceptance pending |
-| PDF/DOCX/ZIP exports, including Chinese reviewer names | Original package integrity passed; local fixed PDF visually checked; live fixed export, Word visual render and Chinese reviewer acceptance pending |
-| Authorization on report download requests | Original deployment failed; authenticated-session delivery and anonymous denial pass local regressions, live fix rollout pending |
+| Real DeepSeek generation, revision and governed quality checks | Original synthetic report plus revision exposed an incomplete ending; new-response rejection/repair passes CI and is deployed, post-fix real model acceptance pending |
+| PDF/DOCX/ZIP exports, including Chinese reviewer names | Original package integrity passed; local fixed PDF visually checked and exporter deployed; live fixed export, Word visual render and Chinese reviewer acceptance pending |
+| Authorization on report download requests | Fix deployed; old public ZIP returns 404; authenticated delivery and anonymous denial pass separate-context browser CI; authenticated live export acceptance pending |
 | Two-browser session isolation and separate administrator access | Separate-context private-download E2E passed locally; full live isolation and administrator checks pending |
 | Concurrent-call rejection and persisted daily allowance | Unit tests passed; CI persisted quota passed; live contention pending |
-| Restart with saved audit/trace/quota and reused index generation | CI index/quota/sentinel passed; live audit/trace/restart pending |
+| Restart with saved audit/trace/quota and reused index generation | Live repair deployment reused the same private corpus/index; CI quota/sentinel passed; live saved-report/audit/trace/quota recovery pending |
 | Railway HTTPS, deployment health and browser interaction | Passed for HTTPS, health 200, authenticated generation and revision |
 | External user pilot | Not performed |
 
