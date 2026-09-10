@@ -48,7 +48,7 @@ jobs:
             echo "Unsafe production startup accepted a synthetic test corpus"
             exit 1
           fi
-          rg -F "Synthetic test-only corpus requires BUSHFIRE_CONTAINER_SMOKE=true." "$RUNNER_TEMP/rejected-fixture.log"
+          grep -F "Synthetic test-only corpus requires BUSHFIRE_CONTAINER_SMOKE=true." "$RUNNER_TEMP/rejected-fixture.log"
       - name: Start with a root-owned Railway-style persistent mount
         run: |
           docker volume create bushfire-smoke-data
