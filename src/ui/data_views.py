@@ -10,7 +10,7 @@ from src.data_status import get_community_data_status
 from src.licence_register import get_licence_register, licence_register_csv, licence_register_markdown
 from src.official_status import check_official_sources
 from src.rag.service import inspect_rag_index
-from src.ui.components import render_path_line, safe_display_text
+from src.ui.components import render_path_line, safe_diagnostic_detail, safe_display_text
 
 
 def _get_display_sources(profile=None, data_paths=None):
@@ -138,7 +138,14 @@ def render_official_status_panel():
                 "status": row.get("status", ""),
                 "http": row.get("http_status", ""),
                 "response_ms": row.get("response_ms", ""),
-                "message": row.get("message", ""),
+                "message": (
+                    safe_diagnostic_detail(
+                        row.get("message", ""),
+                        "The reachability check failed. Open the official page directly or retry later.",
+                    )
+                    if row.get("status") == "Check failed"
+                    else row.get("message", "")
+                ),
                 "url": row.get("url", ""),
             }
             for row in rows
@@ -187,9 +194,17 @@ def render_data_status():
         render_path_line("Data manifest", status["manifest_path"])
         st.markdown(f"- **Verified bundled artifacts:** {status['verified_artifact_count']}")
         if status["integrity_error"]:
-            st.markdown(f"- **Integrity detail:** {escape(safe_display_text(status['integrity_error']))}")
+            detail = safe_diagnostic_detail(
+                status["integrity_error"],
+                "Bundled data verification failed. Contact the project owner to restore the data.",
+            )
+            st.markdown(f"- **Integrity detail:** {escape(detail)}")
         if status.get("optional_map_error"):
-            st.markdown(f"- **National map detail:** {escape(safe_display_text(status['optional_map_error']))}")
+            detail = safe_diagnostic_detail(
+                status["optional_map_error"],
+                "The optional national map could not be verified. Contact the project owner to restore it.",
+            )
+            st.markdown(f"- **National map detail:** {escape(detail)}")
         render_path_line("Agent active file", status["active_path"])
         st.markdown(f"- **Active rows:** {status['row_count']}")
         st.markdown(f"- **Declared source period:** {status['source_period']}")
@@ -202,7 +217,7 @@ def render_data_status():
         render_path_line("ABS raw response", status["raw_path"])
         st.markdown(f"- **Raw file updated:** {status['raw_updated_at']}")
         st.markdown(f"- **ABS download record UTC:** {status['downloaded_at_utc']}")
-        st.markdown(f"- **ASGS allocation metadata:** {status['asgs_metadata_path']}")
+        render_path_line("ASGS allocation metadata", status["asgs_metadata_path"])
         st.markdown(f"- **ASGS allocation status:** {'Downloaded' if status['asgs_exists'] else 'Not downloaded'}")
         st.markdown(f"- **ASGS processed file updated:** {status['asgs_updated_at']}")
         st.markdown(f"- **ASGS generation record UTC:** {status['asgs_generated_at_utc']}")
@@ -258,7 +273,12 @@ def render_rag_status():
         st.markdown(f"- **Index manifest SHA-256:** {safe_display_text(status['manifest_sha256'])}")
         st.markdown(f"- **Document snapshot SHA-256:** {safe_display_text(status['documents_sha256'])}")
         if status.get("error"):
-            st.warning(safe_display_text(status["error"]))
+            st.warning(
+                safe_diagnostic_detail(
+                    status["error"],
+                    "The official-reference knowledge service could not be verified. Contact the project owner to restore it.",
+                )
+            )
         st.code(status.get("build_command") or "Index is ready.", language="powershell")
 
 

@@ -4,10 +4,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
     POETRY_NO_INTERACTION=1 POETRY_VIRTUALENVS_CREATE=false
 WORKDIR /app
 RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+ENV VIRTUAL_ENV=/opt/venv PATH="/opt/venv/bin:$PATH"
 RUN python -m pip install poetry==2.3.4
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --only main,cloud --no-root && python -m pip check
+RUN poetry install --only main,cloud --no-root && python -m pip check \
+    && python -c "import dotenv, streamlit, fastembed, qdrant_client"
 
 FROM dependencies AS assets
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \

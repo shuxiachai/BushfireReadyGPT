@@ -108,9 +108,9 @@ remove map assets.
 ## Configure Railway
 
 1. Create a project and connect a service to this repository with the repository
-   root as the build context. Railway supports the root
-   [`Dockerfile`](../Dockerfile); [`railway.toml`](../railway.toml) selects that
-   builder. Leave the service start-command override empty so the image's
+   root as the build context. Explicitly select the Dockerfile builder and root
+   [`Dockerfile`](../Dockerfile) in the service settings or through the Railway
+   API. Leave the service start-command override empty so the image's
    entrypoint runs. [Railway Dockerfile documentation](https://docs.railway.com/builds/dockerfiles)
 2. Attach one persistent volume to this service at `/data`. Set
    `BUSHFIRE_RUNTIME_DIR=/data` and `RAILWAY_RUN_UID=0`. Railway mounts volumes as
@@ -126,9 +126,12 @@ remove map assets.
 4. Keep one replica and one application process. The local Qdrant database and
    in-process concurrency gate are designed for this deployment. Do not scale
    replicas without replacing the embedded storage and shared admission design.
+   Set sleeping/serverless to disabled and the restart policy to `ON_FAILURE`
+   with a maximum of `3` retries in the service settings or API.
 5. Let Railway supply `PORT`; the entrypoint listens on `0.0.0.0` at that port.
-   Keep `/_stcore/health` and the 300-second startup timeout configured by
-   `railway.toml`. [Railway healthcheck documentation](https://docs.railway.com/deployments/healthchecks)
+   Explicitly set the service healthcheck path to `/_stcore/health` and its
+   startup timeout to `300` seconds in the service settings or API.
+   [Railway healthcheck documentation](https://docs.railway.com/deployments/healthchecks)
 6. Deploy, inspect startup output for `container_ready: true`, and generate a
    domain under Settings > Networking > Public Networking. Railway provides
    HTTPS for that domain. Complete the acceptance checks below before inviting
@@ -137,6 +140,16 @@ remove map assets.
 For a smaller Railway build, set `BUSHFIRE_INCLUDE_NATIONAL_MAP=false` before
 rebuilding. The Dockerfile declares this build argument. Resource requirements
 and cold-start duration must be measured on the selected Railway plan.
+
+These settings are managed directly on the Railway service. Legacy
+`railway.toml`/`railway.json` Config as Code is deprecated: new services cannot
+opt in, and existing legacy files stop being read on 2026-12-01. This project
+does not claim an applied Infrastructure as Code definition. If adopting the
+replacement later, import the actual linked environment with
+`railway config pull`, retain `preserve()` for existing secret values, and
+review `railway config plan` before applying any changes. Do not use
+`--include-variables` when exporting a public configuration because it can
+inline non-sealed secrets. [Railway IaC migration documentation](https://docs.railway.com/infrastructure-as-code)
 
 ## Persistence and restart behavior
 
