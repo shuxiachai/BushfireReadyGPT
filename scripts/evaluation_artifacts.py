@@ -280,11 +280,25 @@ def _validate_rag_profile_rows(profile_name, profile, *, required):
         _require(status in {"ready", "no_match", "out_of_scope"}, f"RAG profile {profile_name} row status is invalid")
         retrieved_source_ids = row.get("retrieved_source_ids")
         _require(
-            isinstance(retrieved_source_ids, list) and len(retrieved_source_ids) <= top_k,
+            isinstance(retrieved_source_ids, list)
+            and len(retrieved_source_ids) <= top_k
+            and all(isinstance(source_id, str) and source_id.strip() for source_id in retrieved_source_ids),
             f"RAG profile {profile_name} retrieved source IDs are invalid",
+        )
+        _require(
+            (status == "ready") is bool(retrieved_source_ids),
+            f"RAG profile {profile_name} status is inconsistent with retrieved sources",
         )
         source_rank = _rag_rank(row.get("source_rank"), f"RAG profile {profile_name} source rank", maximum=top_k)
         passage_rank = _rag_rank(row.get("passage_rank"), f"RAG profile {profile_name} passage rank", maximum=top_k)
+        _require(
+            all(rank is None or rank <= len(retrieved_source_ids) for rank in (source_rank, passage_rank)),
+            f"RAG profile {profile_name} rank exceeds the retrieved sources",
+        )
+        _require(
+            passage_rank is None or (source_rank is not None and source_rank <= passage_rank),
+            f"RAG profile {profile_name} passage rank has no corresponding source hit",
+        )
         if answerable:
             _require(type(row.get("source_hit")) is bool, f"RAG profile {profile_name} source hit is invalid")
             _require(type(row.get("passage_hit")) is bool, f"RAG profile {profile_name} passage hit is invalid")

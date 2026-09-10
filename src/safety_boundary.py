@@ -141,6 +141,27 @@ _EVACUATION_DIRECTION_RULE = _SafetyRule(
     ),
 )
 
+# Opt-in admission rules for new model responses and new approval transitions.
+# Do not merge these into the fingerprinted historical governed-report-v6 lint.
+_EVACUATION_PARAPHRASE_RULE = _SafetyRule(
+    code=_EVACUATION_DIRECTION_RULE.code,
+    category=_EVACUATION_DIRECTION_RULE.category,
+    message=_EVACUATION_DIRECTION_RULE.message,
+    patterns=_patterns(
+        # Route selection with an immediate-action or fire-escape purpose is an
+        # operational direction even without the words "leave" or "evacuate".
+        r"\b(?:(?:you|residents|staff|students|households|everyone)\s+"
+        r"(?:should|must|need\s+to|are\s+required\s+to)\s+)?"
+        r"(?:use|take|follow|head|drive|walk|travel|move|go)\s+[^.!?\n]{0,65}\b"
+        r"(?:road|route|highway|street|bridge|track|[MAB]\s?-?\d{1,3})\b[^.!?\n]{0,35}\b"
+        r"(?:now|immediately|at\s+once|right\s+away|to\s+(?:escape|flee)|"
+        r"to\s+get\s+away\s+from\s+(?:the\s+)?(?:bushfire|wildfire|fire|flames))\b",
+        r"\b(?:flee|escape)\s+(?:(?:from\s+)?(?:the\s+)?"
+        r"(?:site|area|property|building|community|home|school)\s+)?"
+        r"(?:now|immediately|at\s+once|right\s+now|right\s+away)\b",
+    ),
+)
+
 _PREMISES_STATUS_RULE = _SafetyRule(
     code="premises_status_assertion",
     category="premises_status",
@@ -463,11 +484,14 @@ def _excerpt(sentence: str, matched_text: str, limit: int = 280) -> str:
 class SafetyBoundaryEvaluator:
     """Find high-confidence safety-boundary violations in English report text."""
 
+    def __init__(self, *, rules=None):
+        self.rules = _RULES if rules is None else rules
+
     def evaluate(self, text: str) -> dict:
         violations = []
         observed = set()
         for sentence in _assertion_units(text):
-            for rule in _RULES:
+            for rule in self.rules:
                 matches = sorted(
                     (match for pattern in rule.patterns for match in pattern.finditer(sentence)),
                     key=lambda match: (match.start(), match.end()),
@@ -517,3 +541,8 @@ def evaluate_safety_boundaries(text: str) -> dict:
     """Evaluate text with the default deterministic safety-boundary rules."""
 
     return SafetyBoundaryEvaluator().evaluate(text)
+
+
+def evaluate_admission_safety(text: str) -> dict:
+    """Additional live-direction guard, separate from historical quality policy."""
+    return SafetyBoundaryEvaluator(rules=(_EVACUATION_PARAPHRASE_RULE,)).evaluate(text)

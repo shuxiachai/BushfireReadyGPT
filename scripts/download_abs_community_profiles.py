@@ -18,6 +18,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.abs_indicators import (  # noqa: E402
+    LANGUAGE_COUNT_FIELD,
+    LANGUAGE_PERCENT_FIELD,
+    OLDER_COUNT_FIELDS,
+    POPULATION_FIELD,
+    derive_abs_indicators,
+    indicator_warnings,
+    nullable_count,
+)
+from src.abs_indicators import (  # noqa: E402
+    support_level as _support_level,
+)
 from src.data_artifacts import (  # noqa: E402
     BUNDLED_CORE_TRANSACTION_NAME,
     atomic_publish_files,
@@ -34,15 +46,6 @@ ABS_LAYER_URL = (
     "ABS_Population_and_people_by_2021_SA2_Nov_2023/FeatureServer/1/query"
 )
 ABS_SA2_BOUNDARY_URL = "https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/SA2/MapServer/0/query"
-POPULATION_FIELD = "erp_p_202022"
-OLDER_COUNT_FIELDS = [
-    "erp_p_152022",
-    "erp_p_162022",
-    "erp_p_172022",
-    "erp_p_182022",
-    "erp_p_192022",
-]
-LANGUAGE_COUNT_FIELD = "census_392021"
 
 
 def resolve_paths(data_dir=None):
@@ -58,9 +61,7 @@ def resolve_paths(data_dir=None):
 
 
 def number(value):
-    if value in {None, ""}:
-        return 0.0
-    return float(value)
+    return nullable_count(value)
 
 
 def load_region_mappings(path=None):
@@ -99,6 +100,7 @@ def build_query_url(regions=None):
         "sa2_name_2021",
         POPULATION_FIELD,
         LANGUAGE_COUNT_FIELD,
+        LANGUAGE_PERCENT_FIELD,
         *OLDER_COUNT_FIELDS,
     ]
     params = {
@@ -198,11 +200,7 @@ def validate_configured_coverage(profile_payload, boundary_payload, regions):
 
 
 def support_level(language_pct):
-    if language_pct >= 20:
-        return "high"
-    if language_pct >= 8:
-        return "medium"
-    return "low"
+    return _support_level(language_pct)
 
 
 def risk_note(location, older_pct, language_pct):
@@ -210,9 +208,9 @@ def risk_note(location, older_pct, language_pct):
         "ABS Data by Region SA2 population data has been aggregated for this prototype row.",
         "This row uses a configured SA2 mapping rather than a simple keyword search.",
     ]
-    if older_pct >= 16:
+    if older_pct is not None and older_pct >= 16:
         notes.append("Older residents should be considered in smoke, heat, transport, and welfare checks.")
-    if language_pct >= 8:
+    if language_pct is not None and language_pct >= 8:
         notes.append("Plain-language and multilingual communication should be considered.")
     if location == "Remote Queensland Community":
         notes.append("Remote communities may need earlier planning for long travel distances and service disruption.")
@@ -229,21 +227,14 @@ def aggregate(features, regions=None):
             for feature in features
             if str(feature["attributes"].get("sa2_name_2021", "")) in configured_names
         ]
-        population = sum(number(row.get(POPULATION_FIELD)) for row in matched)
-        older_count = sum(sum(number(row.get(field)) for field in OLDER_COUNT_FIELDS) for row in matched)
-        language_count = sum(number(row.get(LANGUAGE_COUNT_FIELD)) for row in matched)
-        older_pct = round(older_count / population * 100, 1) if population else ""
-        language_pct = round(language_count / population * 100, 1) if population else ""
+        indicators = derive_abs_indicators(matched, expected_sa2_count=len(configured_names))
         location = region["location"]
         rows.append(
             {
                 "location": location,
                 "state": "Queensland",
-                "population": int(population) if population else "",
-                "older_people_pct": older_pct,
+                **indicators,
                 "no_car_households_pct": "",
-                "language_support_needed": support_level(language_pct) if population else "unknown",
-                "language_other_than_english_pct": language_pct,
                 "matched_sa2_count": len(matched),
                 "matched_sa2_names": "; ".join(sorted(str(row["sa2_name_2021"]) for row in matched)),
                 "geography_type": region.get("geography_type", ""),
@@ -251,7 +242,14 @@ def aggregate(features, regions=None):
                 "mapping_notes": region.get("notes", ""),
                 "source": "ABS Data by Region / Digital Atlas of Australia SA2 population and people layer",
                 "source_years": "2021 Census and 2022 ERP fields",
-                "risk_notes": risk_note(location, older_pct or 0, language_pct or 0),
+                "risk_notes": " ".join(
+                    [
+                        risk_note(
+                            location, indicators["older_people_pct"], indicators["language_other_than_english_pct"]
+                        ),
+                        *indicator_warnings(indicators),
+                    ]
+                ),
             }
         )
     return rows

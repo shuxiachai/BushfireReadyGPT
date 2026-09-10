@@ -48,6 +48,7 @@ from src.input_validation import (
     validate_review_input_budget,
     validate_revision_request_budget,
 )
+from src.model_response import ModelResponseError, validate_operational_directions
 from src.model_runtime import ModelServiceError
 from src.report_generation_quality import (
     ReportGenerationPreconditionError,
@@ -287,6 +288,24 @@ def validate_review_record(review_record, quality=None, report_record=None):
             failures = gate.get("blocking_failures") or []
             suffix = f" ({len(failures)} blocking failure(s))." if failures else "."
             return "Resolve all failed Governed Report Check items before recording organisational approval" + suffix
+        # Recompute from this exact report and frozen analysis, never trust a
+        # session's cached diagnostic. This is a new approval-entry rule, not a
+        # reinterpretation of historical governed-report-v6 audit evidence.
+        try:
+            validate_operational_directions(report_text)
+        except ModelResponseError:
+            return (
+                "Remove operational escape directions before organisational approval. "
+                "This application cannot authorise a live evacuation route or immediate escape instruction."
+            )
+        grounding = evaluate_report_grounding(report_text, analysis)
+        conflicts = [claim for claim in grounding["claims"] if claim.get("snapshot_conflicts")]
+        if conflicts:
+            return (
+                f"Resolve {len(conflicts)} explicit frozen-evidence conflict(s) in Evidence Alignment Review "
+                "before organisational approval. Correct the report or regenerate it from corrected analysis; "
+                "review notes and checklist acknowledgements do not override these conflicts."
+            )
     return None
 
 
@@ -764,6 +783,7 @@ deterministic Evidence Tables and Human Review Sign-off after the revised narrat
                 prompt,
                 analysis,
                 generate_attempt,
+                allow_structural_repair=False,
             )
         except ModelServiceError as error:
             trace.set_outcome("failed", "model_service_error")
@@ -780,6 +800,14 @@ deterministic Evidence Tables and Human Review Sign-off after the revised narrat
             generation_attempts=generation_attempts,
             repair_required=generation_attempts > 1,
         )
+        if _revision_quality.get("approval_gate", {}).get("passed") is not True:
+            trace.set_outcome("failed", "revision_quality_gate_failed")
+            return (
+                None,
+                "The revision did not pass the report quality gate. Your original report is unchanged. "
+                "Try a narrower wording request or regenerate using the form. Automatic context-only "
+                "rewriting is disabled for revisions because it could discard your requested changes.",
+            )
         response, error = _finalize_report_version(
             revised_response,
             analysis,

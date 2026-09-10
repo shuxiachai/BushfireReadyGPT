@@ -10,8 +10,18 @@ def render_runtime_diagnostics():
         "They do not store prompts, report text, retrieved passages, locations, audiences or reviewer identity."
     )
     summary = load_trace_summary()
+    if summary.get("scan_truncated") or summary.get("scan_errors"):
+        st.warning(
+            "Runtime diagnostics cover only the files that could be scanned within the safety limit. "
+            "These rates and recent records are a partial sample, not the complete history."
+        )
+    if summary.get("unread_candidate_files"):
+        st.caption(
+            f"Additional Trace candidates outside this summary: {summary['unread_candidate_files']}. "
+            "Metrics describe the bounded loaded sample only."
+        )
     if not summary["traces"]:
-        st.info("No local runtime Trace has been recorded yet. Generate or revise a report to create one.")
+        st.info("No valid runtime Trace was loaded in this scan. Generate or revise a report to create one.")
         if summary["invalid_files"]:
             st.warning(f"Ignored malformed Trace files: {summary['invalid_files']}")
         return

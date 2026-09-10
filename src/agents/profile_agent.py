@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from src.data_artifacts import load_yaml_mapping
+from src.data_artifacts import DataArtifactError, load_yaml_mapping
 from src.data_paths import get_data_paths
 
 # Canonical short-form aliases for all 8 states/territories.
@@ -125,6 +125,7 @@ class ProfileAgent:
         "South Australia": ["adelaide", "port augusta", "mount gambier"],
         "Tasmania": ["hobart", "launceston", "devonport"],
         "Northern Territory": ["darwin", "alice springs", "katherine"],
+        "Australian Capital Territory": ["canberra"],
     }
 
     def __init__(self, region_mappings_path=None, data_paths=None):
@@ -166,10 +167,25 @@ class ProfileAgent:
         return location_text, "Australia"
 
     def _resolve_explicit_state(self, lower_location):
-        for state, keywords in self._STATE_KEYWORDS.items():
-            if any(self._matches_location_keyword(lower_location, keyword) for keyword in keywords):
-                return state
-        return None
+        states = set()
+        # Only address components or postal suffixes express an explicit state.
+        # A place/street such as Victoria Park or Queensland Road does not.
+        for raw_segment in re.split(r"[,;/|]", lower_location):
+            segment = self._normalise_place(raw_segment)
+            for state in sorted(self._STATE_KEYWORDS, key=len, reverse=True):
+                short = STATE_SHORT[state.lower()]
+                if re.search(
+                    rf"(?:^|\s)(?:{re.escape(state.lower())}|{short})(?:\s+\d{{4}})?(?:\s+australia)?$",
+                    segment,
+                ):
+                    states.add(state)
+                    break
+        if len(states) > 1:
+            raise DataArtifactError(
+                "geography_ambiguous",
+                "The location contains conflicting explicit states or territories; specify one state and retry.",
+            )
+        return next(iter(states), None)
 
     def _matches_location_keyword(self, location, keyword):
         return re.search(rf"(?<![a-z0-9]){re.escape(keyword)}(?![a-z0-9])", location) is not None

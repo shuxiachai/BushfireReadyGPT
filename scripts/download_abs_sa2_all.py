@@ -15,6 +15,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.abs_indicators import (  # noqa: E402
+    LANGUAGE_COUNT_FIELD,
+    LANGUAGE_PERCENT_FIELD,
+    OLDER_COUNT_FIELDS,
+    POPULATION_FIELD,
+    derive_abs_indicators,
+    nullable_count,
+)
+from src.abs_indicators import (  # noqa: E402
+    support_level as _support_level,
+)
 from src.data_artifacts import (  # noqa: E402
     atomic_publish_files,
     download_url_bytes,
@@ -28,9 +39,6 @@ ABS_PROFILE_URL = (
     "ABS_Population_and_people_by_2021_SA2_Nov_2023/FeatureServer/1/query"
 )
 ABS_SA2_BOUNDARY_URL = "https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/SA2/MapServer/0/query"
-POPULATION_FIELD = "erp_p_202022"
-OLDER_COUNT_FIELDS = ["erp_p_152022", "erp_p_162022", "erp_p_172022", "erp_p_182022", "erp_p_192022"]
-LANGUAGE_COUNT_FIELD = "census_392021"
 PAGE_SIZE = 2000
 MAX_PAGES = 100
 
@@ -50,9 +58,7 @@ def resolve_paths(data_dir=None):
 
 
 def number(value):
-    if value in {None, ""}:
-        return 0.0
-    return float(value)
+    return nullable_count(value)
 
 
 def download_paged_json(base_url, params, feature_collection=False):
@@ -110,6 +116,7 @@ def load_official_layers():
         "sa2_name_2021",
         POPULATION_FIELD,
         LANGUAGE_COUNT_FIELD,
+        LANGUAGE_PERCENT_FIELD,
         *OLDER_COUNT_FIELDS,
     ]
     profile = download_paged_json(
@@ -208,11 +215,7 @@ def validate_layers(profile_payload, boundary_payload):
 
 
 def support_level(language_pct):
-    if language_pct >= 20:
-        return "high"
-    if language_pct >= 8:
-        return "medium"
-    return "low"
+    return _support_level(language_pct)
 
 
 def build_profiles(profile_payload, boundary_payload):
@@ -224,11 +227,7 @@ def build_profiles(profile_payload, boundary_payload):
         props = feature["properties"]
         sa2_code = str(props["sa2_code_2021"])
         attrs = profile_by_code[sa2_code]
-        population = number(attrs.get(POPULATION_FIELD))
-        older_count = sum(number(attrs.get(field)) for field in OLDER_COUNT_FIELDS)
-        language_count = number(attrs.get(LANGUAGE_COUNT_FIELD))
-        older_pct = round(older_count / population * 100, 1) if population else ""
-        language_pct = round(language_count / population * 100, 1) if population else ""
+        indicators = derive_abs_indicators([attrs])
         rows.append(
             {
                 "state_name": props["state_name_2021"],
@@ -239,12 +238,7 @@ def build_profiles(profile_payload, boundary_payload):
                 "sa3_code": props["sa3_code_2021"],
                 "sa2_name": props["sa2_name_2021"],
                 "sa2_code": sa2_code,
-                "population": int(population) if population else "",
-                "older_people_count": int(older_count) if older_count else "",
-                "older_people_pct": older_pct,
-                "language_other_than_english_count": int(language_count) if language_count else "",
-                "language_other_than_english_pct": language_pct,
-                "language_support_needed": support_level(language_pct) if population else "unknown",
+                **indicators,
                 "source": "ABS Data by Region / Digital Atlas SA2 population and ASGS 2021 SA2 boundary layers",
                 "source_years": "2021 Census and 2022 ERP fields",
             }
@@ -261,11 +255,16 @@ def enrich_geojson(boundary_payload, rows):
         props["older_people_pct"] = row["older_people_pct"]
         props["language_other_than_english_pct"] = row["language_other_than_english_pct"]
         props["language_support_needed"] = row["language_support_needed"]
+        for key in ("language_other_than_english_count", "indicator_schema", "indicator_evidence"):
+            props[key] = row[key]
         props["mapped_location"] = props["sa4_name_2021"]
         level = row["language_support_needed"]
-        props["fill_color"] = (
-            [180, 61, 31, 85] if level == "high" else [35, 117, 150, 85] if level == "medium" else [46, 125, 50, 75]
-        )
+        props["fill_color"] = {
+            "high": [180, 61, 31, 85],
+            "medium": [35, 117, 150, 85],
+            "low": [46, 125, 50, 75],
+            "unknown": [108, 117, 125, 70],
+        }[level]
         props["line_color"] = [24, 33, 47, 180]
     return boundary_payload
 

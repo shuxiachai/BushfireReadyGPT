@@ -137,6 +137,28 @@ def _valid_rag_artifact():
     }
 
 
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"status": "no_match", "retrieved_source_ids": []},
+        {"status": "out_of_scope"},
+        {"retrieved_source_ids": []},
+        {"retrieved_source_ids": [None]},
+        {"retrieved_source_ids": [" "]},
+        {"source_rank": 2},
+        {"passage_rank": 2},
+        {"source_rank": None, "source_hit": False},
+    ],
+)
+def test_rag_artifact_rejects_impossible_row_evidence(changes):
+    artifact = _valid_rag_artifact()
+    for row in artifact["profiles"]["structured_planning"]["rows"]:
+        if row["answerable"]:
+            row.update(changes)
+    with pytest.raises(ArtifactValidationError):
+        validate_rag_evaluation_artifact(artifact)
+
+
 def _valid_report_artifact():
     row = {
         "id": "one",
@@ -497,6 +519,7 @@ def test_active_rag_release_recomputes_metrics_from_rows():
     row = artifact["profiles"]["structured_planning"]["rows"][0]
     row["passage_rank"] = 2
     row["reciprocal_rank"] = 0.5
+    row["retrieved_source_ids"].append("expected-source")
 
     with pytest.raises(ArtifactValidationError, match="mean_reciprocal_rank"):
         validate_rag_evaluation_artifact(artifact)

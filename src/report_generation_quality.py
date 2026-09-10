@@ -12,7 +12,7 @@ from src.focus_coverage import (
     evaluate_focus_area_coverage,
     evaluate_scenario_coverage,
 )
-from src.model_response import ModelResponseError, validate_narrative_ending
+from src.model_response import ModelResponseError, validate_narrative_ending, validate_operational_directions
 from src.report_template import (
     REPORT_TEMPLATE_SECTIONS,
     append_evidence_tables,
@@ -264,12 +264,15 @@ def generate_narrative_with_repairs(
     generate_attempt,
     *,
     max_repair_attempts=MAX_REPORT_REPAIR_ATTEMPTS,
+    allow_structural_repair=True,
 ):
     """Generate and deterministically repair one governed narrative.
 
     ``generate_attempt`` receives ``(prompt, attempt_number, is_repair)``. Keeping
     provider calls behind this callback lets the application attach tracing while
     evaluations use the exact same repair policy without duplicating the loop.
+    Revisions disable context-only structural repair: that compact prompt cannot
+    preserve a user's edit goal. Protocol retries still reuse the original prompt.
     """
 
     if not callable(generate_attempt):
@@ -285,6 +288,7 @@ def generate_narrative_with_repairs(
             response = generate_attempt(attempt_prompt, attempt_count, attempt_count > 1)
             narrative = _normalise_generation_response(response, analysis)
             validate_narrative_ending(narrative)
+            validate_operational_directions(narrative)
         except ModelResponseError as error:
             if not error.retryable or attempt_count > max_repair_attempts:
                 raise
@@ -299,7 +303,11 @@ def generate_narrative_with_repairs(
             )
             continue
         quality = assess_generated_narrative(narrative, analysis)
-        if quality.get("approval_gate", {}).get("passed") is True or attempt_count > max_repair_attempts:
+        if (
+            quality.get("approval_gate", {}).get("passed") is True
+            or attempt_count > max_repair_attempts
+            or not allow_structural_repair
+        ):
             return narrative, quality, attempt_count
         attempt_prompt = build_report_repair_prompt(original_prompt, narrative, quality, analysis=analysis)
 

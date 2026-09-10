@@ -1,6 +1,8 @@
 """Small cross-platform helpers for PID-owned local file locks."""
 
+import errno
 import json
+import math
 import os
 import sys
 import time
@@ -12,6 +14,7 @@ _WAIT_OBJECT_0 = 0
 _WAIT_TIMEOUT = 258
 _PROC_ROOT = Path("/proc")
 _KERNEL_GUARD = "flock-v1"
+_WINDOWS_KERNEL_GUARD = "windows-byte-lock-v1"
 
 
 class LockGuardTimeout(TimeoutError):
@@ -49,42 +52,74 @@ def make_lock_owner(token, *, kernel_guarded=False):
     if incarnation is not None:
         owner["incarnation"] = incarnation
     if kernel_guarded:
-        owner["kernel_guard"] = _KERNEL_GUARD
+        owner["kernel_guard"] = _kernel_guard_protocol()
     return owner
+
+
+def _kernel_guard_protocol():
+    if sys.platform.startswith("linux"):
+        return _KERNEL_GUARD
+    if os.name == "nt":
+        return _WINDOWS_KERNEL_GUARD
+    return None
 
 
 @contextmanager
 def kernel_lock_guard(lock_path, timeout_seconds):
-    """Keep a Linux kernel lock throughout a record lock's entire critical section.
+    """Hold a stable native lock for recovery and the entire critical section.
 
     The sidecar inode must never be unlinked: a fixed inode serialises recovery
     and ownership across PID namespaces, including overlapping container starts.
     Kernel locks are released on process exit, even after an unclean shutdown.
-    Windows retains the existing PID-owned record protocol.
+    Windows locks byte zero of the same persistent sidecar. Never unlink this
+    file: doing so would let contenders lock different filesystem objects.
     """
 
-    if not sys.platform.startswith("linux"):
+    protocol = _kernel_guard_protocol()
+    if protocol is None:
         yield False
         return
-    import fcntl
+    try:
+        if isinstance(timeout_seconds, bool) or not isinstance(timeout_seconds, (int, float)):
+            raise ValueError
+        timeout_seconds = float(timeout_seconds)
+        if not math.isfinite(timeout_seconds) or timeout_seconds < 0:
+            raise ValueError
+    except (ValueError, OverflowError) as error:
+        raise LockGuardError("The kernel lock timeout must be finite and non-negative.") from error
+    if protocol == _KERNEL_GUARD:
+        import fcntl
+
+        def acquire(descriptor):
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    else:
+        import msvcrt
+
+        def acquire(descriptor):
+            # Windows supports locking ranges beyond EOF; no sidecar rewrite
+            # is needed, including for a newly created empty file.
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
 
     guard_path = Path(str(lock_path) + ".guard")
+    deadline = time.monotonic() + timeout_seconds
     try:
         descriptor = os.open(guard_path, os.O_CREAT | os.O_RDWR, 0o600)
     except OSError as error:
         raise LockGuardError("The kernel lock sidecar could not be opened.") from error
-    deadline = time.monotonic() + timeout_seconds
     try:
         while True:
             try:
-                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquire(descriptor)
                 break
-            except BlockingIOError as error:
-                if time.monotonic() >= deadline:
-                    raise LockGuardTimeout("Timed out waiting for the kernel file lock.") from error
-                time.sleep(0.05)
             except OSError as error:
-                raise LockGuardError("The filesystem could not acquire the kernel file lock.") from error
+                if error.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
+                    raise LockGuardError("The filesystem could not acquire the kernel file lock.") from error
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise LockGuardTimeout("Timed out waiting for the kernel file lock.") from error
+                time.sleep(min(0.05, remaining))
         yield True
     finally:
         os.close(descriptor)
@@ -177,7 +212,11 @@ def lock_can_be_reclaimed(lock_path, stale_seconds, *, is_process_running=proces
 
     lock_path = Path(lock_path)
     owner = read_lock_owner(lock_path)
-    if owner is not None and owner.get("kernel_guard") == _KERNEL_GUARD:
+    if (
+        owner is not None
+        and owner.get("kernel_guard") is not None
+        and owner.get("kernel_guard") == _kernel_guard_protocol()
+    ):
         # A different namespace can still contain a live owner. Only acquiring
         # the same kernel guard proves its critical section has ended.
         return kernel_guarded

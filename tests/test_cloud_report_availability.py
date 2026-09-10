@@ -172,7 +172,7 @@ def test_cloud_rejects_revision_of_verified_but_degraded_frozen_evidence(workflo
 
 
 @pytest.mark.parametrize("status", ["ready", "no_match", "out_of_scope"])
-def test_valid_frozen_revision_does_not_depend_on_current_index(status, workflow, monkeypatch, tmp_path):
+def test_failed_revision_preserves_original_without_context_only_repair(status, workflow, monkeypatch, tmp_path):
     workflow.state.latest_report = _frozen_report(
         _analysis({"status": status, "retrieved_chunks": []}), monkeypatch, tmp_path
     )
@@ -181,10 +181,14 @@ def test_valid_frozen_revision_does_not_depend_on_current_index(status, workflow
         raise AssertionError("A revision must preserve its authenticated frozen evidence instead of retrieving again.")
 
     monkeypatch.setattr(report_workflow, "run_analysis_pipeline", do_not_reretrieve)
+    previous = workflow.state.latest_report
+    before = {path: path.read_bytes() for path in tmp_path.glob("audit_*.json")}
     response, error = report_workflow.revise_current_report("Clarify the draft.", lambda: None)
-    assert response and error is None
-    assert len(workflow.calls) == 3
-    assert workflow.finalizations[0]["approval_gate"]["passed"] is False
+    assert response is None and "original report is unchanged" in error
+    assert len(workflow.calls) == 1
+    assert not workflow.finalizations
+    assert workflow.state.latest_report is previous
+    assert {path: path.read_bytes() for path in tmp_path.glob("audit_*.json")} == before
 
 
 def test_expired_session_is_blocked_before_rag_analysis(workflow, monkeypatch):
@@ -197,6 +201,35 @@ def test_expired_session_is_blocked_before_rag_analysis(workflow, monkeypatch):
     response, error = report_workflow.generate_current_report(lambda: None)
     assert response is None and "Sign in again" in error
     assert workflow.calls == []
+
+
+@pytest.mark.parametrize("operation", ["generate", "revise"])
+def test_escape_paraphrase_is_rejected_before_finalization(operation, workflow, monkeypatch, tmp_path):
+    trace_dir = tmp_path / "traces"
+    monkeypatch.setenv("BUSHFIRE_TRACE_ENABLED", "true")
+    monkeypatch.setenv("BUSHFIRE_TRACE_DIR", str(trace_dir))
+    analysis = _analysis({"status": "ready", "retrieved_chunks": []})
+    monkeypatch.setattr(report_workflow, "run_analysis_pipeline", lambda *args, **kwargs: analysis)
+    previous = _frozen_report(analysis, monkeypatch, tmp_path / "audit")
+    workflow.state.latest_report = previous
+
+    def unsafe_response(prompt):
+        workflow.calls.append(prompt)
+        return "# Preparedness draft\n\nDrive along Smith Road now to escape the flames."
+
+    workflow.state.model_client = SimpleNamespace(generate=unsafe_response)
+    if operation == "generate":
+        response, error = report_workflow.generate_current_report(lambda: None)
+    else:
+        response, error = report_workflow.revise_current_report("Clarify the action plan.", lambda: None)
+    assert response is None and "operational safety" in error
+    assert len(workflow.calls) == 1
+    assert not workflow.finalizations
+    assert workflow.state.latest_report is previous
+    summary = load_trace_summary(trace_dir=trace_dir)
+    assert summary["traces"] == 1 and summary["invalid_files"] == 0
+    assert summary["stage_errors"]["model_response_validation:model_response_unsafe_operational_direction"] == 1
+    assert summary["success_rate"] == 0.0
 
 
 def test_revoked_external_acknowledgement_is_rechecked_before_a_repair(workflow, monkeypatch):

@@ -233,9 +233,16 @@ class OllamaEmbeddingClient:
                     f"{self.base_url}/api/embed",
                     json={"model": self.model, "input": batch},
                     timeout=(5, self.timeout_seconds),
+                    allow_redirects=False,
                 )
+                if 300 <= response.status_code < 400:
+                    raise RagError(
+                        "rag_embedding_unavailable", "The local embedding endpoint returned a forbidden redirect."
+                    )
                 response.raise_for_status()
                 payload = response.json()
+            except RagError:
+                raise
             except (requests.RequestException, ValueError) as error:
                 raise RagError(
                     "rag_embedding_unavailable",

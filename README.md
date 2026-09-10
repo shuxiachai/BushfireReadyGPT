@@ -56,6 +56,20 @@ is deployed on Railway; health and unchanged private-index reuse are verified.
 Existing frozen RAG indexes and historical release artifacts are not rebuilt or
 rewritten by these fixes. New chunking applies to future controlled index builds.
 
+**Follow-up external audit (unreleased):** 13 selected findings now have
+targeted fixes or conservative admission blocks: HTTP redirects, revision-goal
+loss during structural repair, untrusted grounding evidence, address-state
+resolution, nullable and population-basis-aware ABS indicators, Windows lock
+recovery, RAG queue deadlines, approval conflicts, evaluation-row integrity and
+complete review/Trace diagnostics. Legacy ABS language ratios without a verified
+same-population basis now display as unknown; stored datasets are not recomputed.
+New response/approval admission checks do not change the historical v6 policy.
+These changes do not establish a new release or completed cloud acceptance; see the
+[20-finding triage, verification and deferred work](docs/EXTERNAL_AUDIT_TRIAGE_2026-09-10.md).
+Local validation passed 1,664 non-E2E tests plus two isolated Windows startup
+tests and three Chromium scenarios, with 88.83% non-E2E `src` coverage and seven
+skips. This does not establish new cloud, real-model or production acceptance.
+
 The v0.6.0 release evidence was produced from clean source commit
 [`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7).
 Local validation contains `885` passing tests (`884` non-E2E plus one Chromium

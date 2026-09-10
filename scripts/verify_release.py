@@ -308,6 +308,37 @@ def _verify_rag_suite_binding(payload: dict, source: dict) -> None:
             [row.get("id") for row in profile.get("rows") or []] == expected_ids,
             f"RAG profile {profile_name} question IDs do not match the bound source suite",
         )
+        question_by_id = {question["id"]: question for question in questions}
+        for row in profile.get("rows") or []:
+            question = question_by_id[row["id"]]
+            answerable = question.get("answerable", True) is not False
+            _require(
+                row.get("answerable") is answerable,
+                f"RAG profile {profile_name} answerable flag differs from the bound question",
+            )
+            _require(
+                row.get("jurisdiction") == question.get("jurisdiction", "Australia"),
+                f"RAG profile {profile_name} jurisdiction differs from the bound question",
+            )
+            expected_sources = question.get("expected_source_ids") or []
+            retrieved = row.get("retrieved_source_ids") or []
+            expected_rank = (
+                next((i for i, source_id in enumerate(retrieved, 1) if source_id in expected_sources), None)
+                if answerable
+                else None
+            )
+            _require(
+                row.get("source_rank") == expected_rank,
+                f"RAG profile {profile_name} source rank differs from the bound expected sources",
+            )
+            passage_rank = row.get("passage_rank")
+            if passage_rank is not None:
+                _require(
+                    type(passage_rank) is int
+                    and 1 <= passage_rank <= len(retrieved)
+                    and retrieved[passage_rank - 1] in expected_sources,
+                    f"RAG profile {profile_name} passage rank is not bound to an expected source",
+                )
 
 
 def _verify_release_gate(payload: dict, label: str) -> None:

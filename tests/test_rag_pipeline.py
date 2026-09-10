@@ -481,6 +481,8 @@ def test_agent_report_evidence_and_minimal_audit_bind_retrieval_without_raw_text
 
 def test_ollama_embedding_client_validates_batch(monkeypatch):
     class Response:
+        status_code = 200
+
         def raise_for_status(self):
             return None
 

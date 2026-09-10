@@ -308,14 +308,15 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
 
 
 def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
-    revised_report = MOCK_REPORT.replace(
-        "Confirm routes and candidate assembly points",
-        "Confirm accessible routes and two candidate assembly point options",
+    revised_report = QUALITY_PASSING_REPORT.replace(
+        "accessible routes, mobility assistance",
+        "accessible routes and two candidate assembly point options, mobility assistance",
     )
+    assert revised_report != QUALITY_PASSING_REPORT
     with patch(
         "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
-        side_effect=[MOCK_REPORT, MOCK_REPORT, MOCK_REPORT, revised_report, revised_report, revised_report],
+        side_effect=[QUALITY_PASSING_REPORT, revised_report],
     ) as model_call:
         app = _run_app()
         app.text_input(key="form_location").set_value("Hobart, Tasmania")
@@ -336,12 +337,12 @@ def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
 
     second_report = app.session_state["latest_report"]
     assert not app.exception
-    assert model_call.call_count == 6
+    assert model_call.call_count == 2
     assert second_report["version"] == 2
     assert second_report["parent_report_id"] == first_report["id"]
     assert second_report["id"] != first_report["id"]
     assert second_report["audit_path"] != first_report["audit_path"]
-    assert "accessible routes" in second_report["text"]
+    assert "accessible routes and two candidate assembly point options" in second_report["text"]
     assert "## Evidence Tables" in second_report["text"]
     assert "## Human Review Sign-off" in second_report["text"]
     assert second_report["quality"] == app.session_state["latest_quality"]
@@ -352,6 +353,30 @@ def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
     assert not any(value for _, value in checkbox_state), checkbox_state
     second_audit = json.loads(Path(second_report["audit_path"]).read_text(encoding="utf-8"))
     assert second_audit["human_review"]["review_checklist_complete"] is False
+
+
+def test_failed_revision_retains_report_and_shows_actionable_error(isolated_app_storage):
+    with patch(
+        "src.model_runtime.GovernedModelClient.generate",
+        autospec=True,
+        side_effect=[QUALITY_PASSING_REPORT, MOCK_REPORT],
+    ) as model_call:
+        app = _run_app()
+        app.text_input(key="form_location").set_value("Hobart, Tasmania")
+        app.text_input(key="form_audience").set_value("Students and teachers")
+        app.multiselect(key="form_concerns").set_value(
+            ["Evacuation", "Candidate assembly points", "Official information sources"]
+        )
+        _button(app, "Generate report").click().run(timeout=30)
+        previous = dict(app.session_state["latest_report"])
+        audit_bytes = Path(previous["audit_path"]).read_bytes()
+        app.chat_input[0].set_value("Add accessibility detail to the evacuation section.").run(timeout=30)
+
+    assert not app.exception
+    assert model_call.call_count == 2
+    assert app.session_state["latest_report"] == previous
+    assert Path(previous["audit_path"]).read_bytes() == audit_bytes
+    assert any("original report is unchanged" in item.value for item in app.warning)
 
 
 def test_approval_creates_append_only_audit_event_and_updates_signoff(isolated_app_storage):

@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 
+import pytest
+
 from src.runtime_trace import RuntimeTrace
 from src.ui import diagnostic_views
 
@@ -17,7 +19,7 @@ def test_runtime_diagnostics_is_empty_in_an_isolated_test_environment(monkeypatc
     diagnostic_views.render_runtime_diagnostics()
 
     streamlit.info.assert_called_once_with(
-        "No local runtime Trace has been recorded yet. Generate or revise a report to create one."
+        "No valid runtime Trace was loaded in this scan. Generate or revise a report to create one."
     )
     streamlit.warning.assert_not_called()
     streamlit.columns.assert_not_called()
@@ -58,3 +60,14 @@ def test_runtime_diagnostics_reports_malformed_trace_file(tmp_path, monkeypatch)
     streamlit.info.assert_called_once()
     streamlit.warning.assert_called_once_with("Ignored malformed Trace files: 1")
     streamlit.columns.assert_not_called()
+
+
+@pytest.mark.parametrize("field", ["scan_truncated", "scan_errors", "unread_candidate_files"])
+def test_diagnostics_discloses_partial_or_unread_scan(field, monkeypatch):
+    streamlit = _mock_streamlit(monkeypatch)
+    summary = {"traces": 0, "invalid_files": 0, field: 1}
+    monkeypatch.setattr(diagnostic_views, "load_trace_summary", lambda: summary)
+    diagnostic_views.render_runtime_diagnostics()
+    text = " ".join(call.args[0] for method in (streamlit.caption, streamlit.warning) for call in method.call_args_list)
+    assert "sample" in text
+    assert "has been recorded yet" not in streamlit.info.call_args.args[0]

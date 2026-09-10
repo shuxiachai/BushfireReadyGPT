@@ -4,6 +4,7 @@ from functools import lru_cache
 
 import pydeck as pdk
 
+from src.abs_indicators import language_display_fields, summarise_indicator_values, trusted_language_percentage
 from src.data_artifacts import data_file_cache_signature, inspect_optional_sa2_map
 from src.data_paths import get_data_paths
 
@@ -85,8 +86,7 @@ def get_coverage_table(location_filter=None, data_paths=None):
             "location": row.get("location", ""),
             "population": row.get("population", ""),
             "older_people_pct": row.get("older_people_pct", ""),
-            "language_support_needed": row.get("language_support_needed", ""),
-            "language_other_than_english_pct": row.get("language_other_than_english_pct", ""),
+            **language_display_fields(row),
             "matched_sa2_count": row.get("matched_sa2_count", ""),
             "geography_type": row.get("geography_type", ""),
         }
@@ -150,7 +150,8 @@ def build_all_australia_deck(level, area_name, state=None, data_paths=None):
             "SA4: {sa4_name_2021}<br/>"
             "State: {state_name_2021}<br/>"
             "Population: {population}<br/>"
-            "Language support: {language_support_needed}"
+            "Language support proxy: {language_support_needed}<br/>"
+            "Indicator basis: {language_indicator_note}"
         ),
         "style": {"backgroundColor": "#18212f", "color": "white"},
     }
@@ -276,32 +277,27 @@ def _filter_all_geojson(geojson, level, area_name, state=None):
             continue
         if state and properties.get("state_name_2021") != state:
             continue
-        features.append(feature)
+        language = language_display_fields(properties, assume_abs=True)
+        colour = {
+            "high": [180, 61, 31, 85],
+            "medium": [35, 117, 150, 85],
+            "low": [46, 125, 50, 75],
+            "unknown": [108, 117, 125, 70],
+        }[language["language_support_needed"]]
+        features.append({**feature, "properties": {**properties, **language, "fill_color": colour}})
     return {**geojson, "features": features}
 
 
 def _summarize_rows(rows, level, area_name):
-    population = sum(_int_value(row.get("population")) for row in rows)
-    older_count = sum(_int_value(row.get("older_people_count")) for row in rows)
-    language_count = sum(_int_value(row.get("language_other_than_english_count")) for row in rows)
-    older_pct = round(older_count / population * 100, 1) if population else ""
-    language_pct = round(language_count / population * 100, 1) if population else ""
-    support = (
-        "high"
-        if language_pct != "" and language_pct >= 20
-        else "medium"
-        if language_pct != "" and language_pct >= 8
-        else "low"
+    indicators = summarise_indicator_values(
+        [{**row, "official_language_pct": trusted_language_percentage(row)} for row in rows]
     )
     return [
         {
             "selected_level": level,
             "selected_area": area_name,
             "sa2_count": len(rows),
-            "population": population,
-            "older_people_pct": older_pct,
-            "language_other_than_english_pct": language_pct,
-            "language_support_needed": support if population else "unknown",
+            **{key: "" if value is None else value for key, value in indicators.items()},
         }
     ]
 

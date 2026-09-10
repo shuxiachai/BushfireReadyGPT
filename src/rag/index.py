@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import shutil
 import threading
@@ -82,21 +83,46 @@ def _safe_index_target(settings):
     return target
 
 
+def _lock_deadline(timeout_seconds):
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not 0 <= timeout_seconds <= threading.TIMEOUT_MAX
+        or not math.isfinite(timeout_seconds)
+    ):
+        raise RagError("rag_config_invalid", "The RAG lock timeout must be finite, non-negative and supported.")
+    return time.monotonic() + timeout_seconds
+
+
+def _lock_remaining(deadline):
+    return max(0.0, deadline - time.monotonic())
+
+
 @contextmanager
-def index_access_lock(settings):
+def index_access_lock(settings, timeout_seconds=10):
     """Serialise embedded-Qdrant access to one index path within this process."""
 
+    deadline = _lock_deadline(timeout_seconds)
     key = os.path.normcase(str(_safe_index_target(settings)))
-    with _PROCESS_INDEX_LOCKS_GUARD:
+    if not _PROCESS_INDEX_LOCKS_GUARD.acquire(timeout=_lock_remaining(deadline)):
+        raise RagError("rag_index_locked", "Timed out waiting for the RAG index lock.")
+    try:
         lock = _PROCESS_INDEX_LOCKS.setdefault(key, threading.RLock())
-    with lock:
+    finally:
+        _PROCESS_INDEX_LOCKS_GUARD.release()
+    if not lock.acquire(timeout=_lock_remaining(deadline)):
+        raise RagError("rag_index_locked", "Timed out waiting for the RAG index lock.")
+    try:
         yield
+    finally:
+        lock.release()
 
 
 @contextmanager
 def index_file_lock(settings, timeout_seconds=10):
     """Coordinate embedded-index readers and builders across local processes."""
 
+    deadline = _lock_deadline(timeout_seconds)
     target = _safe_index_target(settings)
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -107,8 +133,8 @@ def index_file_lock(settings, timeout_seconds=10):
         ) from error
     lock_path = target.parent / f".{target.name}.lock"
     try:
-        with kernel_lock_guard(lock_path, timeout_seconds) as guarded:
-            with _index_lock_record(lock_path, timeout_seconds, kernel_guarded=guarded):
+        with kernel_lock_guard(lock_path, _lock_remaining(deadline)) as guarded:
+            with _index_lock_record(lock_path, _lock_remaining(deadline), kernel_guarded=guarded):
                 yield
     except LockGuardTimeout as error:
         raise RagError("rag_index_locked", "Timed out waiting for the RAG index lock.") from error
@@ -136,7 +162,7 @@ def _index_lock_record(lock_path, timeout_seconds, *, kernel_guarded):
                 continue
             if time.monotonic() >= deadline:
                 raise RagError("rag_index_locked", "Timed out waiting for the RAG index lock.") from error
-            time.sleep(0.05)
+            time.sleep(min(0.05, _lock_remaining(deadline)))
         except OSError as error:
             raise RagError(
                 "rag_index_lock_failed",
@@ -217,10 +243,11 @@ def _release_index_file_lock(lock_path, owner_token):
 
 @contextmanager
 def index_read_write_lock(settings, timeout_seconds=10):
-    """Acquire index locks in the one supported process-then-file order."""
+    """Acquire process/file locks under one queue-wait budget, not a task timeout."""
 
-    with index_access_lock(settings):
-        with index_file_lock(settings, timeout_seconds=timeout_seconds):
+    deadline = _lock_deadline(timeout_seconds)
+    with index_access_lock(settings, timeout_seconds=_lock_remaining(deadline)):
+        with index_file_lock(settings, timeout_seconds=_lock_remaining(deadline)):
             yield
 
 

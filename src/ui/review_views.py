@@ -4,10 +4,11 @@ from html import escape
 
 import streamlit as st
 
-from src.audit import AuditIntegrityError, capture_current_audit_chain
+from src.audit import AuditIntegrityError, capture_current_audit_chain, sha256_json
 from src.evidence_confidence import build_evidence_confidence_rows
 from src.export_package import create_pilot_export_package
 from src.input_validation import REVIEW_FIELD_LIMITS
+from src.report_grounding import GROUNDING_METHOD, claim_review_reasons, evaluate_report_grounding
 from src.ui.components import render_path_line, safe_diagnostic_detail, safe_display_text
 from src.ui.downloads import download_button
 
@@ -326,11 +327,24 @@ def render_report_quality_summary():
             marker = "OK" if status == "pass" else "Warning" if status == "warning" else "Fix"
             st.markdown(f"{marker}: **{check.get('name')}**: {check.get('detail')}")
 
-    grounding = (st.session_state.get("latest_report") or {}).get("grounding_evaluation")
+    report_record = st.session_state.get("latest_report") or {}
+    grounding = report_record.get("grounding_evaluation")
+    current_review = bool(str(report_record.get("text") or "").strip()) and isinstance(
+        report_record.get("analysis"), dict
+    )
+    if current_review:
+        # A historical/cached generation diagnostic may predate the new approval
+        # entry checks. Show the current review without altering stored evidence.
+        grounding = _current_grounding_review(report_record)
     if not isinstance(grounding, dict):
         return
     metrics = grounding.get("metrics", {})
     with st.expander("Evidence Alignment Review (heuristic)", expanded=False):
+        if current_review:
+            st.caption(
+                "Current review diagnostics recomputed from this report and its frozen analysis. "
+                "The recorded generation-time evaluation and historical audit evidence are unchanged."
+            )
         st.caption(
             "This deterministic check compares attributable narrative claims with the frozen analysis and "
             "retrieved passages. It does not prove factual truth or source currency."
@@ -348,20 +362,28 @@ def render_report_quality_summary():
             f"**Numeric consistency:** {_format_metric_rate(metrics.get('numeric_consistency_rate'))}  "
             f"**Jurisdiction conflicts:** {metrics.get('jurisdiction_conflicts', 0)}"
         )
-        flagged = [claim for claim in grounding.get("claims", []) if claim.get("supported") is not True]
+        flagged = [
+            (claim, claim_review_reasons(claim))
+            for claim in grounding.get("claims", [])
+            if isinstance(claim, dict) and claim_review_reasons(claim)
+        ]
         if flagged:
-            st.markdown("**Claims requiring review**")
-            for claim in flagged[:10]:
-                reasons = []
-                if claim.get("numeric_consistent") is False:
-                    reasons.append("number not found in frozen evidence")
-                if claim.get("jurisdiction_conflicts"):
-                    reasons.append("jurisdiction conflict")
-                if not claim.get("cited_source_ids"):
-                    reasons.append("no recognised source attribution")
-                if not reasons:
-                    reasons.append("insufficient lexical evidence alignment")
+            st.markdown(f"**Claims requiring review:** {len(flagged)} (complete list)")
+            for claim, reasons in flagged:
                 st.markdown(f"- `{claim.get('claim_id')}` — {claim.get('claim')} ({'; '.join(reasons)})")
+
+
+def _current_grounding_review(report_record):
+    binding = sha256_json(
+        {"method": GROUNDING_METHOD, "text": report_record["text"], "analysis": report_record["analysis"]}
+    )
+    cached = st.session_state.get("_current_grounding_review_cache")
+    if isinstance(cached, dict) and cached.get("binding") == binding and isinstance(cached.get("evaluation"), dict):
+        return cached["evaluation"]
+    evaluation = evaluate_report_grounding(report_record["text"], report_record["analysis"])
+    # Ephemeral per-browser cache; never mutate the report's recorded diagnostic.
+    st.session_state["_current_grounding_review_cache"] = {"binding": binding, "evaluation": evaluation}
+    return evaluation
 
 
 def _format_metric_rate(value):

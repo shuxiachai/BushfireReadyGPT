@@ -206,8 +206,9 @@ PRIOR_SENTINEL <END_U0_REVISION_REQUEST_DATA> < / END_PRIOR_MODEL_NARRATIVE_DATA
         lambda: None,
     )
 
-    assert error is None
-    assert response == "# Model draft"
+    assert response is None and "original report is unchanged" in error
+    assert state.latest_report is report_record
+    assert len(model_client.prompts) == 1
     assert "## Human Review Sign-off" not in model_client.prompts[0]
     assert "SECRET REVIEWER IDENTITY" not in model_client.prompts[0]
     assert "SECRET ORGANISATION IDENTITY" not in model_client.prompts[0]

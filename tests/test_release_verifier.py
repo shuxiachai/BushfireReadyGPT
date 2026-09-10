@@ -17,6 +17,17 @@ def _read_json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _rag_row(question_id):
+    return {
+        "id": question_id,
+        "answerable": True,
+        "jurisdiction": "Australia",
+        "retrieved_source_ids": [],
+        "source_rank": None,
+        "passage_rank": None,
+    }
+
+
 RAG_THRESHOLDS = {
     "passage_recall_at_k": 0.9,
     "mean_reciprocal_rank": 0.75,
@@ -106,11 +117,11 @@ def release_fixture(tmp_path, monkeypatch):
         "profiles": {
             "structured_planning": {
                 "thresholds": copy.deepcopy(RAG_THRESHOLDS),
-                "rows": [{"id": "rag_question_legacy"}],
+                "rows": [_rag_row("rag_question_legacy")],
             },
             "free_text": {
                 "thresholds": copy.deepcopy(RAG_THRESHOLDS),
-                "rows": [{"id": "rag_question_legacy"}, {"id": "rag_question_free_text"}],
+                "rows": [_rag_row("rag_question_legacy"), _rag_row("rag_question_free_text")],
             },
         },
     }
@@ -545,6 +556,34 @@ def test_verify_release_rejects_mismatched_sample_model_runtime(
         release_verifier.verify_release(root, paths=paths)
 
 
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"answerable": False},
+        {"jurisdiction": "Victoria"},
+        {"source_rank": 1, "retrieved_source_ids": ["unexpected-source"]},
+        {"source_rank": 2, "retrieved_source_ids": ["expected-source", "expected-source"]},
+        {"source_rank": 1, "passage_rank": 2, "retrieved_source_ids": ["expected-source", "unexpected-source"]},
+    ],
+)
+def test_rag_rows_are_bound_to_question_evidence(changes):
+    row = {
+        **_rag_row("question"),
+        "source_rank": 1,
+        "passage_rank": 1,
+        "retrieved_source_ids": ["expected-source"],
+    }
+    source = {
+        "questions": [{"id": "question", "expected_source_ids": ["expected-source"]}],
+        "thresholds": {},
+    }
+    payload = {"profiles": {name: {"thresholds": {}, "rows": [row]} for name in ("structured_planning", "free_text")}}
+    release_verifier._verify_rag_suite_binding(payload, source)
+    row.update(changes)
+    with pytest.raises(release_verifier.ReleaseVerificationError):
+        release_verifier._verify_rag_suite_binding(payload, source)
+
+
 def _upgrade_fixture_to_v060(root, old_paths, rag_payload, report_payload):
     old_paths.pyproject.write_text('[project]\nversion = "0.6.0"\n', encoding="utf-8")
     paths = release_verifier.ReleasePaths.for_project(root)
@@ -587,13 +626,13 @@ def _upgrade_fixture_to_v060(root, old_paths, rag_payload, report_payload):
     rag["profiles"]["structured_planning"].update(
         {
             "thresholds": copy.deepcopy(RAG_THRESHOLDS),
-            "rows": [{"id": "rag_question_v060"}],
+            "rows": [_rag_row("rag_question_v060")],
         }
     )
     rag["profiles"]["free_text"].update(
         {
             "thresholds": copy.deepcopy(RAG_THRESHOLDS),
-            "rows": [{"id": "rag_question_v060"}],
+            "rows": [_rag_row("rag_question_v060")],
         }
     )
     report = copy.deepcopy(report_payload)

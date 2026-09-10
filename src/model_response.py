@@ -5,7 +5,8 @@ import re
 
 from src.report_template import extract_narrative_body
 from src.runtime_trace import trace_stage
-from src.source_attribution import extract_markdown_section, visible_markdown_text
+from src.safety_boundary import evaluate_admission_safety
+from src.source_attribution import extract_markdown_section, plain_markdown_claim_text, visible_markdown_text
 
 _LOGGER = logging.getLogger(__name__)
 _FAILURES = {
@@ -16,6 +17,10 @@ _FAILURES = {
     "missing": "The model response has no confirmed completion marker; no report was accepted.",
     "invalid": "The model response ended with an unsupported or inconsistent completion protocol.",
     "incomplete_narrative": "The Safety Disclaimer appears unfinished; no report was accepted.",
+    "unsafe_operational_direction": (
+        "The response contains an operational safety assertion or direction. No new report was accepted; "
+        "any existing report is unchanged. Use the app for preparedness planning, not live emergency directions."
+    ),
 }
 
 
@@ -54,3 +59,10 @@ def validate_narrative_ending(narrative):
     disclaimer = extract_markdown_section(visible, "Safety Disclaimer").strip()
     if disclaimer and not re.search(r"[.!?][\s\"'\u2019\u201d)\]*_`]*\Z", disclaimer):
         record_response_admission("incomplete_narrative")
+
+
+def validate_operational_directions(narrative):
+    """New-response/new-approval admission only; never reinterprets archived policy."""
+    visible = plain_markdown_claim_text(visible_markdown_text(extract_narrative_body(narrative)))
+    if not evaluate_admission_safety(visible)["passed"]:
+        record_response_admission("unsafe_operational_direction")

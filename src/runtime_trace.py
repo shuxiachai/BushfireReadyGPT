@@ -6,6 +6,7 @@ import json
 import math
 import os
 import re
+import stat
 import time
 from collections import Counter, defaultdict
 from contextlib import contextmanager
@@ -18,6 +19,8 @@ from src.data_artifacts import atomic_write_json
 from src.runtime_paths import runtime_path
 
 TRACE_SCHEMA = "bushfire-runtime-trace-v1"
+MAX_TRACE_FILE_BYTES = 128 * 1024
+MAX_TRACE_SCAN_ENTRIES = 5000
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TRACE_DIR = PROJECT_ROOT / "chat_history" / "traces"
 _ACTIVE_TRACE = ContextVar("bushfire_active_runtime_trace", default=None)
@@ -75,7 +78,8 @@ _STRING_METRICS = {
     ),
     "model_boundary": re.compile(r"(?:local_loopback|external)\Z"),
     "model_finish_reason": re.compile(
-        r"(?:stop|length|content_filter|tool_calls|function_call|missing|invalid|incomplete_narrative)\Z"
+        r"(?:stop|length|content_filter|tool_calls|function_call|missing|invalid|"
+        r"incomplete_narrative|unsafe_operational_direction)\Z"
     ),
     "report_source": re.compile(r"(?:generated|revised)\Z"),
 }
@@ -230,26 +234,38 @@ def get_active_trace():
 
 
 def load_trace_summary(*, trace_dir=None, limit=200):
-    """Read only schema-valid local traces and return aggregate operational metrics."""
+    """Summarise recent valid traces in a bounded directory sample.
+
+    A truncated scan is not the globally newest set. The returned scan counters
+    explicitly distinguish known unselected files from an unknown remainder.
+    """
 
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 1000:
         raise ValueError("Trace summary limit must be an integer from 1 to 1000.")
     directory = Path(trace_dir).resolve() if trace_dir is not None else _trace_dir()
     if not directory.is_dir():
         return _empty_summary()
+    paths, scan_status, invalid_files = _scan_trace_candidates(directory, limit)
     records = []
-    invalid_files = 0
-    for path in sorted(directory.glob("trace_*.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:limit]:
+    for path in paths:
         try:
-            record = json.loads(path.read_text(encoding="utf-8"))
+            scan_status["files_read"] += 1
+            if path.stat().st_size > MAX_TRACE_FILE_BYTES:
+                raise ValueError("oversized trace")
+            with path.open("rb") as file:
+                raw = file.read(MAX_TRACE_FILE_BYTES + 1)
+            if len(raw) > MAX_TRACE_FILE_BYTES:
+                raise ValueError("oversized trace")
+            record = json.loads(raw.decode("utf-8"))
             if not _valid_trace_record(record):
                 raise ValueError("invalid trace")
             records.append(record)
-        except (OSError, UnicodeError, json.JSONDecodeError, ValueError):
+        except (OSError, UnicodeError, ValueError, RecursionError):
             invalid_files += 1
     if not records:
         summary = _empty_summary()
         summary["invalid_files"] = invalid_files
+        summary.update(scan_status)
         return summary
 
     durations = [float(record["duration_ms"]) for record in records]
@@ -263,6 +279,7 @@ def load_trace_summary(*, trace_dir=None, limit=200):
     successes = sum(1 for record in records if record["status"] == "success")
     return {
         "schema": TRACE_SCHEMA,
+        **scan_status,
         "traces": len(records),
         "invalid_files": invalid_files,
         "success_rate": round(successes / len(records), 4),
@@ -299,7 +316,54 @@ def load_trace_summary(*, trace_dir=None, limit=200):
     }
 
 
+def _scan_trace_candidates(directory, limit):
+    candidates = []
+    scan_status = _empty_scan_status()
+    invalid_files = 0
+    try:
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                if scan_status["scanned_entries"] >= MAX_TRACE_SCAN_ENTRIES:
+                    scan_status["scan_truncated"] = True
+                    break
+                scan_status["scanned_entries"] += 1
+                if not entry.name.startswith("trace_") or not entry.name.endswith(".json"):
+                    continue
+                try:
+                    metadata = entry.stat(follow_symlinks=False)
+                    if not stat.S_ISREG(metadata.st_mode) or getattr(metadata, "st_file_attributes", 0) & getattr(
+                        stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0
+                    ):
+                        raise ValueError("trace is not a regular file")
+                    candidates.append((metadata.st_mtime_ns, entry.name, Path(entry.path)))
+                except (OSError, ValueError):
+                    invalid_files += 1
+                    scan_status["scan_errors"] += 1
+    except OSError:
+        scan_status["scan_errors"] += 1
+        scan_status["scan_truncated"] = True
+    scan_status["candidate_files"] = len(candidates)
+    scan_status["unread_candidate_files"] = max(0, len(candidates) - limit)
+    return [item[2] for item in sorted(candidates, reverse=True)[:limit]], scan_status, invalid_files
+
+
+def _empty_scan_status():
+    return {
+        "scanned_entries": 0,
+        "scan_limit": MAX_TRACE_SCAN_ENTRIES,
+        "scan_truncated": False,
+        "scan_errors": 0,
+        "candidate_files": 0,
+        "files_read": 0,
+        # This count covers discovered files only. When scan_truncated is true,
+        # the number of additional files outside the sample is unknown.
+        "unread_candidate_files": 0,
+    }
+
+
 def _safe_metrics(metrics):
+    if not isinstance(metrics, dict):
+        raise TracePrivacyError("Trace metrics must be an object.")
     result = {}
     for key, value in metrics.items():
         if key in _BOOLEAN_METRICS:
@@ -313,9 +377,9 @@ def _safe_metrics(metrics):
         elif key in _RATE_METRICS:
             if value is None:
                 result[key] = None
-            elif isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            elif isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise TracePrivacyError(f"Trace metric {key} must be a finite rate.")
-            elif not 0 <= float(value) <= 1:
+            elif not 0 <= value <= 1:
                 raise TracePrivacyError(f"Trace metric {key} must be between zero and one.")
             else:
                 result[key] = round(float(value), 4)
@@ -371,54 +435,79 @@ def _valid_trace_record(record):
         "privacy",
     }:
         return False
-    if record.get("operation") not in _OPERATIONS or record.get("status") not in {"success", "failed", "cancelled"}:
-        return False
-    if not re.fullmatch(r"[0-9a-f]{32}", str(record.get("trace_id") or "")):
-        return False
     if (
-        not isinstance(record.get("duration_ms"), (int, float))
-        or not math.isfinite(float(record["duration_ms"]))
-        or float(record["duration_ms"]) < 0
+        not isinstance(record["operation"], str)
+        or record["operation"] not in _OPERATIONS
+        or not isinstance(record["status"], str)
+        or record["status"] not in {"success", "failed", "cancelled"}
     ):
         return False
-    if not isinstance(record.get("metrics"), dict) or not isinstance(record.get("stages"), list):
+    if not isinstance(record["trace_id"], str) or not re.fullmatch(r"[0-9a-f]{32}", record["trace_id"]):
+        return False
+    if not _valid_duration(record["duration_ms"]):
+        return False
+    if not _valid_timestamp(record["started_at_utc"]) or not _valid_timestamp(record["completed_at_utc"]):
+        return False
+    if not isinstance(record["metrics"], dict) or not isinstance(record["stages"], list) or len(record["stages"]) > 50:
         return False
     try:
         if _safe_metrics(record["metrics"]) != record["metrics"]:
             return False
-        if record.get("error_code") is not None and _safe_error_code(record["error_code"]) != record["error_code"]:
+        if not _valid_error_code(record["error_code"]):
             return False
         for stage in record["stages"]:
             if (
                 not isinstance(stage, dict)
                 or set(stage) != {"name", "status", "error_code", "duration_ms", "metrics"}
-                or stage.get("name") not in _STAGES
+                or not isinstance(stage["name"], str)
+                or stage["name"] not in _STAGES
             ):
                 return False
-            if stage.get("status") not in {"success", "error"}:
+            if not isinstance(stage["status"], str) or stage["status"] not in {"success", "error"}:
                 return False
-            if (
-                not isinstance(stage.get("duration_ms"), (int, float))
-                or not math.isfinite(float(stage["duration_ms"]))
-                or float(stage["duration_ms"]) < 0
-            ):
+            if not _valid_duration(stage["duration_ms"]):
                 return False
-            if stage.get("error_code") is not None and _safe_error_code(stage["error_code"]) != stage["error_code"]:
+            if not _valid_error_code(stage["error_code"]):
                 return False
-            if _safe_metrics(stage.get("metrics", {})) != stage.get("metrics", {}):
+            if _safe_metrics(stage["metrics"]) != stage["metrics"]:
                 return False
     except TracePrivacyError:
         return False
     return (
-        record.get("privacy", {}).get("content_stored") is False
+        isinstance(record["privacy"], dict)
+        and record["privacy"].get("content_stored") is False
         and set(record["privacy"]) == {"content_stored", "excluded"}
         and record["privacy"].get("excluded") == _PRIVACY_EXCLUDED
     )
 
 
+def _valid_error_code(value):
+    return value is None or isinstance(value, str) and bool(_STRING_METRICS["error_code"].fullmatch(value))
+
+
+def _valid_duration(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+        return False
+    try:
+        return math.isfinite(float(value))
+    except OverflowError:
+        return False
+
+
+def _valid_timestamp(value):
+    if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", value):
+        return False
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
+
+
 def _empty_summary():
     return {
         "schema": TRACE_SCHEMA,
+        **_empty_scan_status(),
         "traces": 0,
         "invalid_files": 0,
         "success_rate": None,

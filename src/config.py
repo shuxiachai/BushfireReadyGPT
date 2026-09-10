@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import DefaultHttpxClient, OpenAI
 
 load_dotenv()
 
@@ -126,6 +126,9 @@ MODEL_MAX_RETRIES = _positive_number(
 _CLIENT_SAFETY_OPTIONS = {
     "timeout": MODEL_TIMEOUT_SECONDS,
     "max_retries": MODEL_MAX_RETRIES,
+    # Privacy acknowledgement applies to this configured destination, not a
+    # redirect target chosen by the service (including a loopback service).
+    "http_client": DefaultHttpxClient(follow_redirects=False),
 }
 
 if LLM_PROVIDER == "ollama":

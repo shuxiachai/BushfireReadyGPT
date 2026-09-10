@@ -106,7 +106,8 @@ def test_incarnation_checks_never_confuse_another_namespace_with_a_dead_pid(
     assert file_lock.lock_can_be_reclaimed(lock, 300, is_process_running=lambda _pid: True) is expected
 
 
-def test_guarded_record_requires_shared_kernel_guard_even_when_local_pid_is_dead(tmp_path):
+def test_guarded_record_requires_shared_kernel_guard_even_when_local_pid_is_dead(tmp_path, monkeypatch):
+    monkeypatch.setattr(file_lock.sys, "platform", "linux")
     lock = _old_record(
         tmp_path,
         {"pid": 42, "token": "original", "kernel_guard": "flock-v1", "incarnation": _incarnation()},
@@ -116,7 +117,8 @@ def test_guarded_record_requires_shared_kernel_guard_even_when_local_pid_is_dead
     assert file_lock.lock_can_be_reclaimed(lock, 300, kernel_guarded=True)
 
 
-def test_guarded_crash_record_recovers_immediately_despite_pid_reuse(tmp_path):
+def test_guarded_crash_record_recovers_immediately_despite_pid_reuse(tmp_path, monkeypatch):
+    monkeypatch.setattr(file_lock.sys, "platform", "linux")
     lock = tmp_path / "test.lock"
     lock.write_text(
         json.dumps({"pid": os.getpid(), "token": "old-container", "kernel_guard": "flock-v1"}), encoding="ascii"
@@ -125,7 +127,7 @@ def test_guarded_crash_record_recovers_immediately_despite_pid_reuse(tmp_path):
     assert file_lock.lock_can_be_reclaimed(lock, 3600, kernel_guarded=True)
 
 
-@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="requires Linux kernel flock")
+@pytest.mark.skipif(not sys.platform.startswith("linux") and os.name != "nt", reason="requires a native guard")
 def test_kernel_guard_serialises_same_process_independent_descriptors(tmp_path):
     lock_path = tmp_path / "test.lock"
     with file_lock.kernel_lock_guard(lock_path, 0) as guarded:
@@ -138,7 +140,7 @@ def test_kernel_guard_serialises_same_process_independent_descriptors(tmp_path):
         pass
 
 
-@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="requires Linux kernel flock")
+@pytest.mark.skipif(not sys.platform.startswith("linux") and os.name != "nt", reason="requires a native guard")
 def test_real_crashed_process_guard_is_released_and_record_can_be_recovered(tmp_path):
     lock_path = tmp_path / "test.lock"
     script = """
@@ -158,3 +160,27 @@ with kernel_lock_guard(lock_path, 0) as guarded:
     )
     with file_lock.kernel_lock_guard(lock_path, 0) as guarded:
         assert file_lock.lock_can_be_reclaimed(lock_path, 3600, kernel_guarded=guarded)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows native guard protocol")
+def test_windows_guard_does_not_authorise_recovery_of_a_foreign_protocol(tmp_path):
+    lock_path = _old_record(tmp_path, {"pid": 424242, "token": "foreign", "kernel_guard": "flock-v1"})
+    with file_lock.kernel_lock_guard(lock_path, 0) as guarded:
+        assert guarded is True
+        assert not file_lock.lock_can_be_reclaimed(
+            lock_path, 300, kernel_guarded=guarded, is_process_running=lambda _pid: False
+        )
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux") and os.name != "nt", reason="requires a native guard")
+def test_native_guard_releases_after_critical_section_exception_without_removing_sidecar(tmp_path):
+    lock_path = tmp_path / "test.lock"
+    with pytest.raises(RuntimeError, match="simulated body failure"):
+        with file_lock.kernel_lock_guard(lock_path, 0):
+            raise RuntimeError("simulated body failure")
+    guard_path = Path(str(lock_path) + ".guard")
+    before = guard_path.stat()
+    with file_lock.kernel_lock_guard(lock_path, 0):
+        pass
+    after = guard_path.stat()
+    assert (before.st_dev, before.st_ino) == (after.st_dev, after.st_ino)
