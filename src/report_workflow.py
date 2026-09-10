@@ -598,6 +598,8 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
         span.add_metrics(prompt_characters=len(prompt))
 
     def generate_attempt(attempt_prompt, attempt_number, is_repair):
+        # Record before model access so exhausted/failed attempts remain observable.
+        trace.add_metrics(generation_attempts=attempt_number, repair_required=attempt_number > 1)
         with trace_stage(
             "model_repair" if is_repair else "model_generation",
             attempt=attempt_number,
@@ -746,6 +748,8 @@ deterministic Evidence Tables and Human Review Sign-off after the revised narrat
             span.add_metrics(prompt_characters=len(prompt))
 
         def generate_attempt(attempt_prompt, attempt_number, is_repair):
+            # A failed revision must retain the same retry accounting as generation.
+            trace.add_metrics(generation_attempts=attempt_number, repair_required=attempt_number > 1)
             with trace_stage(
                 "model_repair" if is_repair else "model_generation",
                 attempt=attempt_number,

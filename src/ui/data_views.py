@@ -11,6 +11,7 @@ from src.licence_register import get_licence_register, licence_register_csv, lic
 from src.official_status import check_official_sources
 from src.rag.service import inspect_rag_index
 from src.ui.components import render_path_line, safe_diagnostic_detail, safe_display_text
+from src.ui.downloads import download_button
 
 
 def _get_display_sources(profile=None, data_paths=None):
@@ -331,7 +332,7 @@ def render_licence_register():
     rows = payload.get("licence_register", [])
     action_cols = st.columns(2)
     with action_cols[0]:
-        st.download_button(
+        download_button(
             "Download licence CSV",
             data=licence_register_csv(),
             file_name="licence_register.csv",
@@ -340,7 +341,7 @@ def render_licence_register():
             on_click="ignore",
         )
     with action_cols[1]:
-        st.download_button(
+        download_button(
             "Download licence Markdown",
             data=licence_register_markdown(),
             file_name="licence_register.md",

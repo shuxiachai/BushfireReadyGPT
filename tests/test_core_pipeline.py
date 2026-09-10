@@ -461,7 +461,7 @@ def test_wide_export_table_becomes_readable_record_layout():
         assert operators.count(b"q") == operators.count(b"Q")
 
 
-def test_pdf_human_signoff_starts_on_a_dedicated_page():
+def test_pdf_human_signoff_uses_available_space_without_splitting_review_table():
     report = """# Sample report
 
 Preparedness planning content.
@@ -476,8 +476,11 @@ Preparedness planning content.
     pages = [page.extract_text() or "" for page in PdfReader(BytesIO(create_report_pdf(report))).pages]
     signoff_page = next(index for index, text in enumerate(pages) if "Human Review Sign-off" in text)
 
-    assert signoff_page >= 2
-    assert "Human Review Sign-off" not in pages[signoff_page - 1]
+    assert len(pages) == 2  # Separate cover, followed by the short report and complete sign-off.
+    assert signoff_page == 1
+    assert "Preparedness planning content." in pages[signoff_page]
+    assert "Review status" in pages[signoff_page]
+    assert "Draft - human review required" in pages[signoff_page]
 
 
 def test_pilot_export_package_includes_report_formats_and_manifest_boundary(tmp_path, monkeypatch):

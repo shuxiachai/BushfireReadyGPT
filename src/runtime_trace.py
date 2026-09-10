@@ -37,6 +37,7 @@ _STAGES = {
     "prompt_build",
     "model_generation",
     "model_repair",
+    "model_response_validation",
     "grounding_evaluation",
     "governance_finalize",
     "audit_write",
@@ -73,6 +74,9 @@ _STRING_METRICS = {
         r"(?:ready|unavailable|disabled|not_installed|not_built|no_match|out_of_scope|invalid|error|unknown)\Z"
     ),
     "model_boundary": re.compile(r"(?:local_loopback|external)\Z"),
+    "model_finish_reason": re.compile(
+        r"(?:stop|length|content_filter|tool_calls|function_call|missing|invalid|incomplete_narrative)\Z"
+    ),
     "report_source": re.compile(r"(?:generated|revised)\Z"),
 }
 _PRIVACY_EXCLUDED = [

@@ -12,6 +12,7 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
+    KeepTogether,
     PageBreak,
     Paragraph,
     SimpleDocTemplate,
@@ -347,6 +348,71 @@ def _append_record_tables(story, data, styles):
         story.append(Spacer(1, 0.1 * cm))
 
 
+class _HeadingWithTable(KeepTogether):
+    """Keep a table title with its header and first row, not with the entire table."""
+
+    def split(self, available_width, available_height):
+        if getattr(self, "_wrapInfo", None) != (available_width, available_height):
+            self.wrap(available_width, available_height)
+        table = self._content[-1]
+        # KeepTogether.wrap has already measured every row using the active font
+        # and column widths. Let subsequent rows paginate normally.
+        minimum_height = self._H - table._height + sum(table._rowHeights[:2])
+        result = list(self._content)
+        frame = getattr(self, "_frame", None)
+        if minimum_height > available_height and not getattr(frame, "_atTop", False):
+            result.insert(0, self.FrameBreak())
+        return result
+
+
+def _keep_heading_spacing(story):
+    """Blank Markdown lines must not detach a table title from its first rows."""
+    grouped = []
+    index = 0
+    while index < len(story):
+        flowable = story[index]
+        next_index = index + 1
+        if isinstance(flowable, Paragraph) and flowable.style.name in {"BushfireHeading1", "BushfireHeading2"}:
+            while next_index < len(story) and isinstance(story[next_index], Spacer):
+                next_index += 1
+            if next_index < len(story) and isinstance(story[next_index], Table):
+                grouped.append(_HeadingWithTable(story[index : next_index + 1]))
+                index = next_index + 1
+                continue
+        grouped.append(flowable)
+        index += 1
+    return grouped
+
+
+def _group_review_signoff(story):
+    """Keep a normal-sized sign-off together without forcing a mostly empty page.
+
+    ReportLab moves the group only when the remaining frame is too short. If a
+    user supplies a sign-off longer than a full page, KeepTogether can split it
+    normally instead of shrinking or discarding the review information.
+    """
+    grouped = []
+    review = None
+    for flowable in story:
+        is_section = isinstance(flowable, Paragraph) and flowable.style.name in {"BushfireHeading1", "BushfireTitle"}
+        if is_section and review is not None:
+            grouped.append(KeepTogether(review))
+            review = None
+        if (
+            is_section
+            and flowable.style.name == "BushfireHeading1"
+            and flowable.getPlainText() == "Human Review Sign-off"
+        ):
+            review = []
+        if review is None:
+            grouped.append(flowable)
+        else:
+            review.append(flowable)
+    if review is not None:
+        grouped.append(KeepTogether(review))
+    return grouped
+
+
 def _markdown_to_story(markdown_text, styles):
     meta = _extract_meta_from_report(markdown_text)
     story = _build_cover_story(meta, styles)
@@ -385,8 +451,6 @@ def _markdown_to_story(markdown_text, styles):
         elif line.startswith("## "):
             _flush_bullets(story, bullet_items, styles)
             heading = line[3:]
-            if heading == "Human Review Sign-off":
-                story.append(PageBreak())
             story.append(Paragraph(_format_inline_markdown(heading), styles["h1"]))
         elif line.startswith("# "):
             _flush_bullets(story, bullet_items, styles)
@@ -402,7 +466,7 @@ def _markdown_to_story(markdown_text, styles):
         index += 1
 
     _flush_bullets(story, bullet_items, styles)
-    return story
+    return _keep_heading_spacing(_group_review_signoff(story))
 
 
 def _draw_header_footer(canvas, document):

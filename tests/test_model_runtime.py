@@ -13,8 +13,10 @@ def _completion_client(create):
     return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
 
 
-def _stream_chunk(content):
-    return SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=content))])
+def _stream_chunk(content, finish_reason=None):
+    return SimpleNamespace(
+        choices=[SimpleNamespace(delta=SimpleNamespace(content=content), finish_reason=finish_reason)]
+    )
 
 
 def _fail_if_rendered(*args, **kwargs):
@@ -26,7 +28,7 @@ def test_local_streaming_collects_text_without_rendering_raw_tokens(monkeypatch)
 
     def create(**kwargs):
         captured.update(kwargs)
-        return iter([_stream_chunk("unreviewed "), _stream_chunk("model text")])
+        return iter([_stream_chunk("unreviewed "), _stream_chunk("model text", "stop")])
 
     runtime = GovernedModelClient(
         completion_client=_completion_client(create),
@@ -68,7 +70,7 @@ def test_each_generation_is_stateless_and_tool_free():
     def create(**kwargs):
         calls.append(kwargs)
         prompt = kwargs["messages"][-1]["content"]
-        return iter([_stream_chunk(f"response for {prompt}")])
+        return iter([_stream_chunk(f"response for {prompt}", "stop")])
 
     runtime = GovernedModelClient(
         completion_client=_completion_client(create),
@@ -91,7 +93,7 @@ def test_remote_completion_uses_same_stateless_boundary_and_cleans_output():
     def create(**kwargs):
         captured.update(kwargs)
         message = SimpleNamespace(content="Report https://invented.example checklist_complete()\n\n\nFinal section")
-        return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+        return SimpleNamespace(choices=[SimpleNamespace(message=message, finish_reason="stop")])
 
     runtime = GovernedModelClient(
         completion_client=_completion_client(create),
@@ -127,7 +129,7 @@ def test_empty_and_malformed_stream_chunks_are_ignored():
     chunks = [
         SimpleNamespace(choices=[]),
         SimpleNamespace(choices=[SimpleNamespace(delta=None)]),
-        _stream_chunk("usable report"),
+        _stream_chunk("usable report", "stop"),
     ]
     runtime = GovernedModelClient(
         completion_client=_completion_client(lambda **_kwargs: iter(chunks)),
@@ -141,7 +143,7 @@ def test_empty_and_malformed_stream_chunks_are_ignored():
 
 def test_provider_response_without_usable_text_fails_closed():
     runtime = GovernedModelClient(
-        completion_client=_completion_client(lambda **_kwargs: iter([SimpleNamespace(choices=[])])),
+        completion_client=_completion_client(lambda **_kwargs: iter([_stream_chunk("", "stop")])),
         model_name="local-test-model",
         provider="ollama",
         is_local=True,
@@ -275,7 +277,7 @@ def test_stream_total_deadline_includes_close_cleanup():
 def test_stream_cleanup_error_does_not_discard_valid_output(caplog):
     class BrokenCloseStream:
         def __iter__(self):
-            yield _stream_chunk("usable report")
+            yield _stream_chunk("usable report", "stop")
 
         def close(self):
             raise RuntimeError("cleanup failed")

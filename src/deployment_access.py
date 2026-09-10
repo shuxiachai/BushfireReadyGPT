@@ -50,6 +50,13 @@ def is_cloud_deployment() -> bool:
     return deployment_mode() == "cloud"
 
 
+def requires_access_authentication() -> bool:
+    """Return whether private UI artifacts must use authenticated-session delivery."""
+    # Parse even in cloud mode so malformed/ambiguous credentials never select an open path.
+    credential = _credential(os.environ)
+    return deployment_mode() == "cloud" or credential is not None
+
+
 def hash_access_password(password: str) -> str:
     """Create an environment-ready salted PBKDF2 hash without contacting any service."""
     _validate_password_strength(password, "Access password")

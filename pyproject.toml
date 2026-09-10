@@ -8,7 +8,7 @@ requires-python = ">=3.11,<3.14"
 dependencies = [
     "openai>=2.0,<3.0",
     "python-dotenv>=1.0,<2.0",
-    "streamlit>=1.57,<2.0",
+    "streamlit>=1.62,<2.0",
     "requests>=2.31,<3.0",
     "pyyaml>=6.0,<7.0",
     "pydeck>=0.9,<1.0",

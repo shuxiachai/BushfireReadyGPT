@@ -15,6 +15,7 @@ from src.docx_export import create_report_docx
 from src.input_validation import REPORT_FIELD_LIMITS
 from src.pdf_export import create_report_pdf
 from src.ui.artifact_cache import get_report_artifact
+from src.ui.downloads import download_button
 
 
 def render_model_privacy_boundary():
@@ -173,7 +174,7 @@ def render_latest_report_preview(
         return
     action_cols = st.columns(4)
     with action_cols[0]:
-        st.download_button(
+        download_button(
             "Download Markdown",
             data=latest_report,
             file_name="bushfire_ready_report.md",
@@ -184,7 +185,7 @@ def render_latest_report_preview(
     with action_cols[1]:
         try:
             pdf_bytes = get_report_artifact(latest_report, "pdf", create_report_pdf)
-            st.download_button(
+            download_button(
                 "Download PDF",
                 data=pdf_bytes,
                 file_name="bushfire_ready_report.pdf",
@@ -197,7 +198,7 @@ def render_latest_report_preview(
     with action_cols[2]:
         try:
             docx_bytes = get_report_artifact(latest_report, "docx", create_report_docx)
-            st.download_button(
+            download_button(
                 "Download DOCX",
                 data=docx_bytes,
                 file_name="bushfire_ready_report.docx",

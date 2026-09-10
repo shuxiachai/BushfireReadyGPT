@@ -23,6 +23,7 @@ from src.config import (
 )
 from src.deployment_access import DeploymentConfigurationError
 from src.model_limits import ModelAllowanceError, acquire_model_slot
+from src.model_response import ModelResponseError, ModelServiceError, record_response_admission
 
 GOVERNED_MODEL_SYSTEM_PROMPT = """You are the governed report-generation engine for BushfireReadyGPT.
 Process only the current request. Do not retain conversational history, call tools, emit tool-call syntax, or
@@ -31,8 +32,58 @@ the safety, evidence, structure and human-review requirements in the current req
 LOGGER = logging.getLogger(__name__)
 
 
-class ModelServiceError(RuntimeError):
-    """A model-provider failure that is safe to display in the UI."""
+def _single_choice(response):
+    choices = getattr(response, "choices", None)
+    if not isinstance(choices, (list, tuple)) or len(choices) != 1:
+        raise ModelResponseError("invalid")
+    choice = choices[0]
+    index = getattr(choice, "index", 0)
+    if type(index) is not int or index != 0:
+        raise ModelResponseError("invalid")
+    return choice
+
+
+def _require_normal_stop(reason):
+    if reason != "stop":
+        raise ModelResponseError("missing" if reason is None else reason)
+
+
+def _text_only_payload(payload):
+    if getattr(payload, "tool_calls", None):
+        raise ModelResponseError("tool_calls")
+    if getattr(payload, "function_call", None):
+        raise ModelResponseError("function_call")
+    if getattr(payload, "refusal", None):
+        raise ModelResponseError("content_filter")
+    content = getattr(payload, "content", None)
+    if content is not None and not isinstance(content, str):
+        raise ModelResponseError("invalid")
+    return content or ""
+
+
+class _StreamResponse:
+    def __init__(self):
+        self.parts = []
+        self.finished = False
+
+    def add(self, chunk):
+        if getattr(chunk, "choices", None) == []:
+            return  # Usage-only trailers do not contain completion choices.
+        choice = _single_choice(chunk)
+        if self.finished:
+            raise ModelResponseError("invalid")
+        content = _text_only_payload(getattr(choice, "delta", None))
+        reason = getattr(choice, "finish_reason", None)
+        if reason is not None:
+            _require_normal_stop(reason)
+            self.finished = True
+        if content:
+            self.parts.append(content)
+
+    def text(self):
+        if not self.finished:
+            raise ModelResponseError("missing")
+        return "".join(self.parts)
 
 
 def model_service_error_message(error, provider=LLM_PROVIDER, model_name=model):
@@ -183,16 +234,10 @@ class GovernedModelClient:
                 self._close_response_stream(stream_state, close_lock)
                 raise self._deadline_error()
             self._raise_if_stream_deadline_exceeded(started_at, cancelled)
-            parts = []
+            response = _StreamResponse()
             for chunk in response_stream:
                 self._raise_if_stream_deadline_exceeded(started_at, cancelled)
-                choices = getattr(chunk, "choices", None) or []
-                if not choices:
-                    continue
-                delta = getattr(choices[0], "delta", None)
-                content = getattr(delta, "content", None)
-                if isinstance(content, str) and content:
-                    parts.append(content)
+                response.add(chunk)
             self._raise_if_stream_deadline_exceeded(started_at, cancelled)
         except ModelServiceError:
             raise
@@ -200,10 +245,12 @@ class GovernedModelClient:
             raise ModelServiceError(
                 model_service_error_message(error, provider=self.provider, model_name=self.model_name)
             ) from error
+        except Exception as error:
+            raise ModelResponseError("invalid") from error
         finally:
             self._close_response_stream(stream_state, close_lock)
         self._raise_if_stream_deadline_exceeded(started_at, cancelled)
-        return "".join(parts)
+        return response.text()
 
     def _collect_stream(self, messages, request_slot):
         started_at = self._clock()
@@ -262,11 +309,15 @@ class GovernedModelClient:
                 response = self._create_completion(messages, stream=False, request_slot=request_slot)
                 if self._clock() - started_at > self.timeout_seconds:
                     raise self._deadline_error()
-                choices = getattr(response, "choices", None) or []
-                message = getattr(choices[0], "message", None) if choices else None
-                outcome["value"] = getattr(message, "content", None) or ""
-            except Exception as error:
+                choice = _single_choice(response)
+                message = getattr(choice, "message", None)
+                content = _text_only_payload(message)
+                _require_normal_stop(getattr(choice, "finish_reason", None))
+                outcome["value"] = content
+            except ModelServiceError as error:
                 outcome["error"] = error
+            except Exception:
+                outcome["error"] = ModelResponseError("invalid")
             finally:
                 request_slot.release()
                 completed.set()
@@ -295,11 +346,15 @@ class GovernedModelClient:
             request_slot = acquire_model_slot()
         except (ModelAllowanceError, DeploymentConfigurationError) as error:
             raise ModelServiceError(str(error)) from error
-        response_text = (
-            self._collect_stream(messages, request_slot)
-            if self.is_local
-            else self._collect_completion(messages, request_slot)
-        )
+        try:
+            response_text = (
+                self._collect_stream(messages, request_slot)
+                if self.is_local
+                else self._collect_completion(messages, request_slot)
+            )
+        except ModelResponseError as error:
+            record_response_admission(error.reason)
+        record_response_admission("stop")
         cleaned = clean_model_output(response_text)
         if not cleaned:
             raise ModelServiceError("The model returned no usable report text. Retry the request.")

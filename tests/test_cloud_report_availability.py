@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -5,8 +6,10 @@ import pytest
 from src import audit, report_workflow
 from src.agents.official_knowledge_agent import OfficialKnowledgeAgent
 from src.export_register import build_export_register_snapshot
+from src.model_response import ModelResponseError
 from src.rag.errors import RagError
 from src.report_template import append_evidence_tables, append_human_signoff
+from src.runtime_trace import load_trace_summary
 
 
 class _SessionState(dict):
@@ -216,3 +219,55 @@ def test_revoked_external_acknowledgement_is_rechecked_before_a_repair(workflow,
     assert response is None and "browser session" in error
     assert len(workflow.calls) == 1
     assert not workflow.finalizations
+
+
+@pytest.mark.parametrize("operation", ["generate", "revise"])
+@pytest.mark.parametrize(
+    ("failure_reason", "expected_attempts"),
+    [("length", 3), ("incomplete_narrative", 3), ("content_filter", 1)],
+)
+def test_failed_model_attempts_remain_in_generation_and_revision_trace(
+    workflow, monkeypatch, tmp_path, operation, failure_reason, expected_attempts
+):
+    trace_dir = tmp_path / "traces"
+    monkeypatch.setenv("BUSHFIRE_TRACE_ENABLED", "true")
+    monkeypatch.setenv("BUSHFIRE_TRACE_DIR", str(trace_dir))
+    analysis = _analysis({"status": "ready", "retrieved_chunks": []})
+    monkeypatch.setattr(report_workflow, "run_analysis_pipeline", lambda *args, **kwargs: analysis)
+
+    def fail_generation(prompt):
+        workflow.calls.append(prompt)
+        raise ModelResponseError(failure_reason)
+
+    workflow.state.model_client = SimpleNamespace(generate=fail_generation)
+    if operation == "revise":
+        previous = _frozen_report(analysis, monkeypatch, tmp_path / "audit")
+        workflow.state.latest_report = previous
+        response, error = report_workflow.revise_current_report("PRIVATE revision wording", lambda: None)
+        assert workflow.state.latest_report is previous
+    else:
+        response, error = report_workflow.generate_current_report(lambda: None)
+
+    assert response is None and error
+    assert not workflow.finalizations
+    assert len(workflow.calls) == expected_attempts
+    trace_files = list(trace_dir.glob("trace_*.json"))
+    assert len(trace_files) == 1
+    rendered = trace_files[0].read_text(encoding="utf-8")
+    trace = json.loads(rendered)
+    assert trace["status"] == "failed"
+    assert trace["operation"] == f"report.{operation}"
+    assert trace["metrics"]["generation_attempts"] == expected_attempts
+    assert trace["metrics"]["repair_required"] is (expected_attempts > 1)
+    model_stages = [stage for stage in trace["stages"] if stage["name"] in {"model_generation", "model_repair"}]
+    assert [stage["metrics"]["attempt"] for stage in model_stages] == list(range(1, expected_attempts + 1))
+    assert all(stage["error_code"] == f"model_response_{failure_reason}" for stage in model_stages)
+    assert "PRIVATE revision wording" not in rendered
+    assert "Cairns" not in rendered
+    assert "Verified planning context" not in rendered
+
+    summary = load_trace_summary(trace_dir=trace_dir)
+    assert summary["traces"] == 1
+    assert summary["invalid_files"] == 0
+    assert summary["success_rate"] == 0.0
+    assert summary["repair_rate"] == (1.0 if expected_attempts > 1 else 0.0)

@@ -68,6 +68,23 @@ administrators a different password and require their separate sign-in for
 global diagnostics. Browser sign-in expires after eight hours and after a
 process restart.
 
+### Private export delivery
+
+Cloud mode and password-protected local mode use authenticated-session delivery
+for Markdown, PDF, DOCX, ZIP, JSON and text/CSV exports. Before sending export
+bytes, the server revalidates the current session. An inline `srcdoc` iframe
+receives bounded, encoded bytes over that session; its button creates a
+browser-local Blob download. Private exports are not registered with Streamlit's
+unauthenticated `/media/` store. This requires Streamlit 1.62 or later.
+
+Individual private downloads are limited to 8 MiB before Base64 encoding. The
+default local mode without a password retains native Streamlit downloads.
+Already-delivered bytes cannot be revoked by logout, expiry or password changes,
+just as a previously displayed report cannot be recalled. This is not a signed
+download-link service, individual identity system or role-based authorization.
+Restart the existing service when deploying the fix to clear any old public
+media registrations; do not distribute URLs created by the previous deployment.
+
 ## Build and run Docker locally
 
 Start Docker Desktop with its Linux container engine. Create an ignored
@@ -269,27 +286,139 @@ separate monitor; no such monitoring is claimed by this setup.
 
 ## Cloud acceptance record
 
-### 2026-09-10 deployment checks — missing access password, not live
+### 2026-09-10 deployment checks — controlled demo running
 
-Implementation commits through `ed0b80b` were pushed. Railway has a single
-service, a 1 GB `/data` volume and a generated HTTPS domain, but the application
-is **not running**. The original NSW HTTP 403 build blocker is removed: the
-builder no longer requests those pages. Railway successfully built the complete
-image including 2,473 national SA2 map rows. A private nine-source context was
-uploaded for bootstrap; it was superseded by the subsequent GitHub CI-fix
-deployment before initializing the volume. No access-control bypass was attempted.
+The password-protected [Railway demo](https://bushfire-ready-production.up.railway.app)
+is running on a single service with a 1 GB `/data` volume. Deployment
+`2c20b4c0-f527-4c87-9a88-e0eeab140118`, built from source `1570b7d`, reached
+Railway `SUCCESS`; the public health endpoint returned HTTP 200 (`ok`).
+The complete image includes 2,473 national SA2 map rows.
 
-The current startup blocker is an empty rendered `BUSHFIRE_ACCESS_PASSWORD`.
-The service stops before starting Streamlit, as intended. The operator must
-set a valid access password in the service Variables, then the verified private
-bootstrap image must be deployed again. The raw bundle is not yet confirmed
-installed on `/data`; a build/upload is not an active service.
+The earlier missing-password startup blocker is resolved. The operator set a
+valid password and the verified private nine-source context was deployed again.
+No access-control bypass or password-policy relaxation was used. The original
+NSW HTTP 403 build blocker is also removed: builds no longer request the source
+websites. An earlier private upload had been superseded before startup; the
+successful deployment above is the one used for the browser checks below.
+
+Deployment identity:
+
+- Source: `1570b7d2137b7a630bb4f2781f57adb83de60a1d`.
+- Image: `sha256:d72c398a2f216568d972340323e4d699bb680e139567fd3eb0eb2cecec058163`.
+- Private corpus manifest: `c947360236f993d2984fafed0bb46b8e7020335ee4ef4bd65dc4375e8d23fcc2` (nine sources).
+- Report model: `deepseek-v4-flash`; retrieval uses the fixed-revision, 384-dimensional
+  BGE-small FastEmbed CPU profile described in [CPU RAG validation](CLOUD_RAG_VALIDATION.md).
+- The browser evidence trail and independently verified export bind index
+  `f1d4587e0a0f3648190febac62be8ef358961a27701ab2efb292c6b79b677c45`
+  and retrieval method `dense_bm25_rrf_v1`.
 
 A separate synthetic DeepSeek API connectivity request succeeded (18 total
 tokens; configured `deepseek-v4-flash`, response model alias `deepseek-flash`).
 This checks the credential and provider connection only; it is not a governed
 report-generation or revision acceptance test. No reference documents were sent
 by that connectivity request.
+
+In an authenticated Chrome session, the application generated a **synthetic
+technical acceptance** report for Cairns Council preparedness. The form used
+`Synthetic deployment acceptance` as the organisation, not a real Council
+request. The user-facing external-model acknowledgement was enabled before
+generation; planning context and retrieved references were sent to DeepSeek.
+
+- Version 1: `02e8913aacee4197a6a1444a0e7a7715`; four local RAG passages were
+  retrieved and the governed quality gate passed.
+- Version 2: `3509d4a7aa97405392412481702fcdab`; one request to clarify roles and
+  communication responsibilities completed and the governed quality gate passed.
+  The visible export manifest binds its parent lineage to version 1 above.
+- Both versions remain `Draft - human review required`; no human approval or
+  reviewer identity was supplied.
+- A new tab in the same Chrome browser required sign-in while the original
+  authenticated session retained its report. This is a new-session login check,
+  **not** independent-browser, multi-tenant or administrator-access validation.
+- The version 2 ZIP was retrieved locally from the current download request after
+  a rerun; an earlier observed temporary media URL had expired. Its SHA256 is
+  `90bfaa737b1fc37a97f8bcbe4a69e006dd3cf08b006f0eaca05791405bb94f5e`.
+  `verify_sample_package` verified 12 entries, all 11 artifact hashes, readable
+  Markdown/PDF/DOCX, the current quality-policy binding and the parent audit chain.
+  The PDF has 14 pages and the DOCX has 136 paragraphs. Additional comparison with
+  the included version 1 audit confirmed unchanged `inputs_hash`,
+  `area_selection_hash`, `analysis` and `export_register_hashes`.
+- All 14 PDF pages were visually inspected: page 13 contains only a two-line
+  source note and is otherwise nearly empty. No clipping, overlapping text or
+  broken tables was observed on the other pages. DOCX structure checks passed,
+  but its visual render could not run because the bundled environment lacks
+  LibreOffice; Word layout is not certified.
+- The existing report was also saved through the application's **Save report on
+  server** action, which reported success. Saving and downloading did not make
+  another model request or change the report's content/approval. This does not
+  establish that the saved file survives a deployment restart.
+
+#### Original issues found during this acceptance
+
+1. **Download authorization gap in the original deployment.** An HTTP request
+   without the application login or cookies retrieved the current synthetic ZIP
+   with status 200. Streamlit's media route does not apply the application's
+   shared-password gate. The login page protects UI execution, not possession of
+   a media URL. Do not publish these links or place sensitive reports in this
+   demo. Private export delivery must require authorization; an opaque file ID
+   is not access control. No third-party data was
+   accessed or links enumerated during this check.
+2. **The governed gate missed an incomplete narrative ending.** In the downloaded
+   Markdown, section 15 ends mid-sentence with `pending current`, immediately
+   before the deterministic Evidence Tables. The same ending appears in the
+   PDF, so this is not a PDF or transfer truncation. That application version
+   discarded the provider's `finish_reason`; the export cannot establish whether
+   this particular response hit its token limit. Preserve this synthetic bad
+   case, record completion status and reject/repair incomplete model responses.
+   Passing the current 19/19 checks does not establish narrative completeness.
+3. **PDF pagination needs refinement.** Avoid stranding a two-line source note
+   on page 13 before the separate sign-off page. Keep this original downloaded
+   package unchanged as evidence and retest a separately generated export after
+   an exporter fix.
+
+#### Follow-up fixes and local verification
+
+The original ZIP, PDF and narrative remain unchanged as failure evidence. These
+fixes do not retrospectively approve that report or change the historical
+`governed-report-v6` policy fingerprint:
+
+- **Private exports:** all application download entry points now use the shared
+  delivery component described above. Seventy focused tests cover access expiry,
+  password rotation, malformed configuration, forged sessions, content escaping,
+  size limits and native local fallback. A real Chromium test uses two separate
+  browser contexts, checks all six report/data formats byte for byte, and confirms
+  anonymous requests to the corresponding synthetic media URLs return 404.
+  No protected bytes are registered in the public media store.
+- **New-response admission:** both streaming and non-streaming model responses
+  require an explicit normal `stop`. Length truncation, filtering, tools, missing
+  termination and inconsistent protocols cannot become a report. Length failures
+  and obvious unfinished Safety Disclaimer prose can request a concise complete
+  rewrite, sharing the existing maximum of three total attempts with structural
+  repair; there is no token-budget increase or reuse of partial text. Trace
+  records allowlisted completion reasons, not provider response text. This is an
+  admission check for new generation/revision, not proof of semantic completeness
+  or a rewrite of historical export policy.
+- **PDF:** normal-sized Human Review Sign-off content stays together when space
+  permits without an unconditional page break. Table titles stay with the header
+  and first row, while long tables still paginate. A separate local Windows-font
+  re-export of the original narrative has 14 pages, all visually reviewed, with
+  all 311 source text units retained, the near-empty page removed, and the entire
+  final sign-off together. Original incomplete prose was deliberately preserved.
+  Font metrics can change page counts in Linux. DOCX visual review remains pending.
+
+Local final regression: `1289` non-E2E tests passed with `9` platform/permission
+skips and `87.84%` measured `src` coverage. Two Windows launcher tests passed
+separately in a normal-permission run because the sandbox cannot reliably
+inspect occupied ports. Both Chromium E2E tests passed: the existing report
+workflow and the new private-download regression (`1293` passes in total across
+these runs). Ruff/format, Bandit, Poetry lock/package checks and the dependency
+vulnerability audit also passed. Historical release verification passed in
+explicit dirty-tree diagnostic mode; clean-tree CI is still required.
+Local checks are not yet evidence that the follow-up image is running on Railway.
+
+These checks establish real cloud generation and revision for one synthetic
+scenario, not external-user outcomes, all-scenario regression or production
+readiness. Live restart/recovery has not yet been exercised; do not infer audit,
+trace or quota recovery from a healthy web endpoint.
 
 The operator subsequently requested retaining all nine local sources for the
 private, non-commercial demonstration. A bounded private snapshot/import path
@@ -315,24 +444,25 @@ Windows job (`3` skips), with `87.92%` Linux `src` coverage, plus one Chromium
 E2E. Counts differ from the earlier local snapshot because the last three
 container regressions and Linux-capable link tests were included.
 
-Record the source commit, image digest, deployment date, model name, CPU model
-identity and RAG manifest for this run. Do not replace historical release
+Keep the source commit, image digest, deployment date, model name, CPU model
+identity and RAG manifest bound to each acceptance run. Do not replace historical release
 artifacts with results from a different model or dirty worktree.
 
 | Check | Current cloud status |
 | --- | --- |
-| Complete Linux image build and startup | CI passed with synthetic corpus; full Railway build passed, app blocked on password |
+| Complete Linux image build and startup | CI passed with synthetic corpus; full private Railway deployment SUCCESS and application started |
 | `/data` ownership initialization followed by non-root execution | CI passed, including actual PID 1 UID/GID; live Railway still pending |
 | CPU RAG retrieval evaluation and rejection cases | Local CPU diagnostics recorded separately; CI offline warmup passed |
-| Real DeepSeek generation, revision and governed quality checks | Pending |
-| PDF/DOCX/ZIP exports, including Chinese reviewer names | Chinese PDF CI passed; live multi-format acceptance pending |
-| Two-browser session isolation and separate administrator access | Pending |
+| Real DeepSeek generation, revision and governed quality checks | Original synthetic report plus revision exposed an incomplete ending; new-response rejection/repair tested locally, post-fix real model acceptance pending |
+| PDF/DOCX/ZIP exports, including Chinese reviewer names | Original package integrity passed; local fixed PDF visually checked; live fixed export, Word visual render and Chinese reviewer acceptance pending |
+| Authorization on report download requests | Original deployment failed; authenticated-session delivery and anonymous denial pass local regressions, live fix rollout pending |
+| Two-browser session isolation and separate administrator access | Separate-context private-download E2E passed locally; full live isolation and administrator checks pending |
 | Concurrent-call rejection and persisted daily allowance | Unit tests passed; CI persisted quota passed; live contention pending |
 | Restart with saved audit/trace/quota and reused index generation | CI index/quota/sentinel passed; live audit/trace/restart pending |
-| Railway HTTPS, deployment health and browser interaction | Pending |
+| Railway HTTPS, deployment health and browser interaction | Passed for HTTPS, health 200, authenticated generation and revision |
 | External user pilot | Not performed |
 
-These entries are a verification record to complete, not a statement that this
-deployment or a new release has already succeeded. See the existing
+The controlled demo is deployed, but the remaining acceptance items are still
+open and no new version has been released. See the existing
 [evaluation guide](evaluation_and_observability.md) and [RAG design](rag.md) for
 the distinctions between retrieval metrics, report governance and user evidence.

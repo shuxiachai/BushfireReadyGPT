@@ -9,6 +9,7 @@ from src.app_catalog import (
     DEMO_SCENARIO_PACK,
     PROJECT_MATURITY_ASSESSMENT,
 )
+from src.ui.downloads import download_button
 
 PILOT_DOCUMENTS = [
     {
@@ -264,7 +265,7 @@ def render_pilot_document_library():
 
             action_cols = st.columns([1, 3])
             with action_cols[0]:
-                st.download_button(
+                download_button(
                     "Download Markdown",
                     data=content,
                     file_name=Path(doc["path"]).name,

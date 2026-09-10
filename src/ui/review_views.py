@@ -9,6 +9,7 @@ from src.evidence_confidence import build_evidence_confidence_rows
 from src.export_package import create_pilot_export_package
 from src.input_validation import REVIEW_FIELD_LIMITS
 from src.ui.components import render_path_line, safe_display_text
+from src.ui.downloads import download_button
 
 
 def resolve_evidence_snapshot(latest_report, latest_analysis, current_area_selection):
@@ -404,7 +405,7 @@ def render_human_review_checklist(review_checklist, verify_report_record_snapsho
             else:
                 try:
                     audit_bytes = capture_current_audit_chain(audit_path)[-1]["bytes"]
-                    st.download_button(
+                    download_button(
                         "Download audit JSON",
                         data=audit_bytes,
                         file_name=os.path.basename(audit_path),
@@ -557,7 +558,7 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
             register_snapshot=report_record.get("export_register_snapshot"),
             analysis=report_record.get("analysis"),
         )
-        st.download_button(
+        download_button(
             "Download pilot export package",
             data=package["content"],
             file_name=package["filename"],

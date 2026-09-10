@@ -7,6 +7,7 @@ from src.docx_export import create_report_docx
 from src.pdf_export import create_report_pdf
 from src.report_generation_quality import evaluate_governed_report
 from src.ui.artifact_cache import get_report_artifact
+from src.ui.downloads import download_button
 
 
 def render_sidebar(
@@ -50,35 +51,38 @@ def render_sidebar(
                 "This report is a quality-blocked draft. Downloads remain available for human remediation, "
                 "but the report cannot be approved or packaged as a governed Pilot ZIP."
             )
-        st.sidebar.download_button(
+        download_button(
             "Download latest report",
             data=latest_report,
             file_name="bushfire_ready_report.md",
             mime="text/markdown",
             width="stretch",
             on_click="ignore",
+            target=st.sidebar,
         )
         try:
             pdf_bytes = get_report_artifact(latest_report, "pdf", create_report_pdf)
-            st.sidebar.download_button(
+            download_button(
                 "Download PDF report",
                 data=pdf_bytes,
                 file_name="bushfire_ready_report.pdf",
                 mime="application/pdf",
                 width="stretch",
                 on_click="ignore",
+                target=st.sidebar,
             )
         except Exception as exc:
             st.sidebar.warning(f"PDF generation failed: {exc}")
         try:
             docx_bytes = get_report_artifact(latest_report, "docx", create_report_docx)
-            st.sidebar.download_button(
+            download_button(
                 "Download DOCX report",
                 data=docx_bytes,
                 file_name="bushfire_ready_report.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 width="stretch",
                 on_click="ignore",
+                target=st.sidebar,
             )
         except Exception as exc:
             st.sidebar.warning(f"DOCX generation failed: {exc}")

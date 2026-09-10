@@ -24,7 +24,7 @@ def cloud_limits(monkeypatch, tmp_path):
 
 
 def _completion(text="report"):
-    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=text))])
+    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=text), finish_reason="stop")])
 
 
 class _Client:

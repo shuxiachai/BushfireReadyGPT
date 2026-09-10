@@ -15,7 +15,7 @@ BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It 
 
 The default installation runs locally through Ollama. An optional password-protected Docker / Railway demo uses DeepSeek for narrative generation and a local CPU RAG index inside the container. Both expose the same eight-role deterministic Python evidence pipeline, ABS / ASGS-derived context, human review and audit records. The eight named roles are component boundaries, not eight autonomous LLM agents; only report narrative generation and revision call the configured model.
 
-**中文简介：** 本项目是一个面向澳洲山火应急准备场景的本地治理型报告生成系统原型。系统通过 8 个命名的确定性 Python 组件完成结构化分析与证据编排，仅在报告叙事生成和修订阶段调用本地 Ollama；这些角色不是 8 个自主大模型 Agent。项目支持澳洲地区数据上下文、混合 RAG、质量门禁、人工复核以及 Markdown / PDF / DOCX 导出，适用于学习展示、作品集和受控试点讨论，不用于真实火情判断、撤离命令或生命安全决策。
+**中文简介：** 本项目是一个面向澳洲山火应急准备场景的本地优先治理型报告生成系统原型。系统通过 8 个命名的确定性 Python 组件完成结构化分析与证据编排，仅在报告叙事生成和修订阶段调用配置的模型，本地默认 Ollama，受控云端演示使用 DeepSeek；这些角色不是 8 个自主大模型 Agent。项目支持澳洲地区数据上下文、混合 RAG、质量门禁、人工复核以及 Markdown / PDF / DOCX 导出，适用于学习展示、作品集和受控试点讨论，不用于真实火情判断、撤离命令或生命安全决策。
 
 This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT](https://github.com/project-araia/WildfireGPT) / MARSHA project. Original United States wildfire data, experiments and inactive tools are treated as local legacy reference material only; the active application is now positioned around Australian bushfire preparedness. See [UPSTREAM.md](UPSTREAM.md) for provenance and modification notes.
 
@@ -29,6 +29,14 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 RAG, verified private corpus import, fixed-revision CPU embeddings, shared access
 control and persistent daily model-call limits are implemented. Official source
 bytes do not enter the public repository; public image CI uses synthetic text.
+The controlled Railway demo is running. One synthetic Cairns Council report and
+one revision passed the governed quality gate and remain unreviewed drafts;
+the downloaded revision package passed integrity and audit-lineage verification.
+Acceptance exposed an incomplete narrative ending, a near-empty PDF page and
+a download-authorization gap. The follow-up fix adds authenticated-session
+export delivery, explicit model-completion checks with bounded repair, and
+content-preserving PDF pagination. Local browser and artifact regressions pass;
+post-fix live acceptance and restart/recovery checks remain pending.
 See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
 and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).
 The historical release measurements below do not certify this new cloud path.

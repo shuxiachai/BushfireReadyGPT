@@ -12,6 +12,7 @@ from src.focus_coverage import (
     evaluate_focus_area_coverage,
     evaluate_scenario_coverage,
 )
+from src.model_response import ModelResponseError, validate_narrative_ending
 from src.report_template import (
     REPORT_TEMPLATE_SECTIONS,
     append_evidence_tables,
@@ -278,17 +279,29 @@ def generate_narrative_with_repairs(
 
     _validate_generation_source_contract(analysis)
 
-    attempt_count = 1
-    narrative = _normalise_generation_response(generate_attempt(original_prompt, attempt_count, False), analysis)
-    quality = assess_generated_narrative(narrative, analysis)
-    for _ in range(max_repair_attempts):
-        if quality.get("approval_gate", {}).get("passed") is True:
-            break
-        repair_prompt = build_report_repair_prompt(original_prompt, narrative, quality, analysis=analysis)
-        attempt_count += 1
-        narrative = _normalise_generation_response(generate_attempt(repair_prompt, attempt_count, True), analysis)
+    attempt_prompt = original_prompt
+    for attempt_count in range(1, max_repair_attempts + 2):
+        try:
+            response = generate_attempt(attempt_prompt, attempt_count, attempt_count > 1)
+            narrative = _normalise_generation_response(response, analysis)
+            validate_narrative_ending(narrative)
+        except ModelResponseError as error:
+            if not error.retryable or attempt_count > max_repair_attempts:
+                raise
+            # Do not reuse partial/filtered content or expand the token budget.
+            # All protocol and structural repairs share the same attempt ceiling.
+            attempt_prompt = (
+                original_prompt
+                + "\n\nThe previous attempt did not complete the report. Rewrite the entire report, not a continuation. "
+                "Aim near the lower end of the requested word range: one concise paragraph per section and compact "
+                "lists. Reserve enough space to finish every required section and the final Safety Disclaimer with "
+                "a complete sentence. Preserve all evidence, citation, draft and safety requirements."
+            )
+            continue
         quality = assess_generated_narrative(narrative, analysis)
-    return narrative, quality, attempt_count
+        if quality.get("approval_gate", {}).get("passed") is True or attempt_count > max_repair_attempts:
+            return narrative, quality, attempt_count
+        attempt_prompt = build_report_repair_prompt(original_prompt, narrative, quality, analysis=analysis)
 
 
 def evaluate_governed_report(report_text, analysis):
