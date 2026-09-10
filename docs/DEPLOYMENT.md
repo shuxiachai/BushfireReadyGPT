@@ -207,6 +207,31 @@ separate monitor; no such monitoring is claimed by this setup.
 
 ## Cloud acceptance record
 
+### 2026-09-10 deployment attempt — blocked, not live
+
+Implementation commits `31e20e6` and `c431d31` were pushed. Railway has a
+single service, a 1 GB `/data` volume and a generated HTTPS domain, but the
+application is **not running**. Both GitHub Actions and Railway confirmed CPU
+model preparation works after fixing the image virtual environment. The next
+build step fails because the NSW source host returns HTTP 403 to cloud builders.
+No access-control bypass was attempted.
+
+Do not publish the existing nine raw source files as a workaround. The current
+catalogue marks only the two QLD sources, SA and ACT as `open_with_attribution`;
+the other five require permission/review or have non-commercial restrictions.
+Even the four open sources require attributed body-text preparation that excludes
+logos, third-party material and other licence exceptions. Selecting a narrower
+cloud corpus or reviewing open replacements is a pending scope decision. The
+existing local corpus was neither deleted nor redistributed.
+
+Local checks including the UI privacy patch: `1039` non-E2E tests passed,
+`3` platform-specific skips, `87.38%` measured coverage, plus one Chromium E2E.
+Two subsequent Windows-CI fixture fixes isolate the launcher's model environment
+and synchronize in-flight timeout tests; their focused regressions passed.
+Linux Python 3.11/3.13 and Chromium CI passed on `c431d31`; the Windows CI result
+is awaiting a rerun of those fixture fixes. Dependency auditing found no known vulnerabilities at this run.
+These are implementation checks, not successful cloud-model acceptance.
+
 Record the source commit, image digest, deployment date, model name, CPU model
 identity and RAG manifest for this run. Do not replace historical release
 artifacts with results from a different model or dirty worktree.

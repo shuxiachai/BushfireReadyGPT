@@ -42,6 +42,21 @@ def _count(database):
         return sum(row[0] for row in connection.execute("SELECT calls FROM daily_calls"))
 
 
+@pytest.fixture
+def prepared_usage_counter(cloud_limits):
+    # Keep filesystem/schema creation outside tests of an already-running provider's timeout.
+    with closing(sqlite3.connect(cloud_limits)) as connection, connection:
+        connection.execute("CREATE TABLE daily_calls (day TEXT PRIMARY KEY, calls INTEGER NOT NULL)")
+    return cloud_limits
+
+
+def _wait_until_model_idle():
+    deadline = time.monotonic() + 5
+    while model_limits._ACTIVE_REQUESTS and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert model_limits._ACTIVE_REQUESTS == 0
+
+
 def test_cloud_defaults_are_conservative_and_local_limits_are_optional(tmp_path):
     cloud = model_limits.load_model_limits({"BUSHFIRE_DEPLOYMENT_MODE": "cloud", "BUSHFIRE_RUNTIME_DIR": str(tmp_path)})
     assert (cloud.concurrency, cloud.daily_calls) == (1, 100)
@@ -89,65 +104,66 @@ def test_actual_sdk_http_retries_are_disabled_and_failed_attempts_count(cloud_li
         sdk.close()
 
 
-def test_timeout_keeps_global_slot_until_provider_really_finishes(cloud_limits):
+def test_timeout_keeps_global_slot_until_provider_really_finishes(prepared_usage_counter):
     started, release, finished = threading.Event(), threading.Event(), threading.Event()
 
     def blocked_create(**_):
         started.set()
         try:
-            assert release.wait(2)
+            assert release.wait(30)
             return _completion("late response")
         finally:
             finished.set()
 
-    first = GovernedModelClient(completion_client=_Client(blocked_create), is_local=False, timeout_seconds=0.04)
+    first = GovernedModelClient(completion_client=_Client(blocked_create), is_local=False, timeout_seconds=5)
     next_client = GovernedModelClient(completion_client=_Client(lambda **_: _completion()), is_local=False)
-    begin = time.monotonic()
-    try:
-        with pytest.raises(ModelServiceError, match="total deadline"):
-            first.generate("first browser")
-        assert time.monotonic() - begin < 0.5
-        assert started.is_set() and not finished.is_set()
-        with pytest.raises(ModelServiceError, match="shared model service is busy"):
-            next_client.generate("new browser while first request is still in flight")
-        assert _count(cloud_limits) == 1
-    finally:
-        release.set()
-        assert finished.wait(1)
-    deadline = time.monotonic() + 1
-    while model_limits._ACTIVE_REQUESTS and time.monotonic() < deadline:
-        time.sleep(0.005)
+    with ThreadPoolExecutor(max_workers=1) as caller:
+        response = caller.submit(first.generate, "first browser")
+        try:
+            assert started.wait(10), "The provider must start before testing its in-flight timeout."
+            with pytest.raises(ModelServiceError, match="total deadline"):
+                response.result(timeout=15)
+            assert not finished.is_set()
+            with pytest.raises(ModelServiceError, match="shared model service is busy"):
+                next_client.generate("new browser while first request is still in flight")
+            assert _count(prepared_usage_counter) == 1
+        finally:
+            release.set()
+            if started.is_set():
+                assert finished.wait(5)
+    _wait_until_model_idle()
     assert next_client.generate("after the first request has finished") == "report"
-    assert _count(cloud_limits) == 2
+    assert _count(prepared_usage_counter) == 2
 
 
-def test_stream_timeout_also_retains_slot_until_iterator_finishes(cloud_limits):
+def test_stream_timeout_also_retains_slot_until_iterator_finishes(prepared_usage_counter):
     started, release, finished = threading.Event(), threading.Event(), threading.Event()
 
     def blocked_stream():
         started.set()
         try:
-            assert release.wait(2)
+            assert release.wait(30)
             yield SimpleNamespace(choices=[])
         finally:
             finished.set()
 
     runtime = GovernedModelClient(
-        completion_client=_Client(lambda **_: blocked_stream()), is_local=True, timeout_seconds=0.04
+        completion_client=_Client(lambda **_: blocked_stream()), is_local=True, timeout_seconds=5
     )
-    try:
-        with pytest.raises(ModelServiceError, match="total deadline"):
-            runtime.generate("streaming request")
-        assert started.is_set()
-        with pytest.raises(model_limits.ModelAllowanceError, match="busy"):
-            model_limits.acquire_model_slot()
-    finally:
-        release.set()
-        assert finished.wait(1)
-    deadline = time.monotonic() + 1
-    while model_limits._ACTIVE_REQUESTS and time.monotonic() < deadline:
-        time.sleep(0.005)
-    assert model_limits._ACTIVE_REQUESTS == 0
+    with ThreadPoolExecutor(max_workers=1) as caller:
+        response = caller.submit(runtime.generate, "streaming request")
+        try:
+            assert started.wait(10), "The iterator must start before testing its in-flight timeout."
+            with pytest.raises(ModelServiceError, match="total deadline"):
+                response.result(timeout=15)
+            assert not finished.is_set()
+            with pytest.raises(model_limits.ModelAllowanceError, match="busy"):
+                model_limits.acquire_model_slot()
+        finally:
+            release.set()
+            if started.is_set():
+                assert finished.wait(5)
+    _wait_until_model_idle()
 
 
 def test_concurrent_reservations_cannot_overrun_daily_allowance(cloud_limits, monkeypatch):
