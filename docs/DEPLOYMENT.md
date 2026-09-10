@@ -269,30 +269,51 @@ separate monitor; no such monitoring is claimed by this setup.
 
 ## Cloud acceptance record
 
-### 2026-09-10 deployment attempt — blocked, not live
+### 2026-09-10 deployment checks — missing access password, not live
 
-Implementation commits `31e20e6` and `c431d31` were pushed. Railway has a
-single service, a 1 GB `/data` volume and a generated HTTPS domain, but the
-application is **not running**. Both GitHub Actions and Railway confirmed CPU
-model preparation works after fixing the image virtual environment. The next
-build step fails because the NSW source host returns HTTP 403 to cloud builders.
-No access-control bypass was attempted.
+Implementation commits through `ed0b80b` were pushed. Railway has a single
+service, a 1 GB `/data` volume and a generated HTTPS domain, but the application
+is **not running**. The original NSW HTTP 403 build blocker is removed: the
+builder no longer requests those pages. Railway successfully built the complete
+image including 2,473 national SA2 map rows. A private nine-source context was
+uploaded for bootstrap; it was superseded by the subsequent GitHub CI-fix
+deployment before initializing the volume. No access-control bypass was attempted.
+
+The current startup blocker is an empty rendered `BUSHFIRE_ACCESS_PASSWORD`.
+The service stops before starting Streamlit, as intended. The operator must
+set a valid access password in the service Variables, then the verified private
+bootstrap image must be deployed again. The raw bundle is not yet confirmed
+installed on `/data`; a build/upload is not an active service.
+
+A separate synthetic DeepSeek API connectivity request succeeded (18 total
+tokens; configured `deepseek-v4-flash`, response model alias `deepseek-flash`).
+This checks the credential and provider connection only; it is not a governed
+report-generation or revision acceptance test. No reference documents were sent
+by that connectivity request.
 
 The operator subsequently requested retaining all nine local sources for the
 private, non-commercial demonstration. A bounded private snapshot/import path
 now replaces build-time source website requests; source licences are unchanged,
 and the public CI uses original synthetic text instead of the official corpus.
-The private import and actual deployment still require the checks below; this
-implementation is not a finding that all sources permit every cloud use.
+The private deployment still requires the checks below; this implementation is
+not a finding that all sources permit every cloud use.
 
 Local private-import checks: `1145` non-E2E tests passed, `9` platform/link
 permission skips, `87.56%` measured coverage. The nine-source bundle also passed
 real offline CPU index construction and reuse without the image bundle; the
 index manifest timestamp was unchanged. Ruff/format and Bandit checks passed.
 The Windows CPU-default fixture now clears both model and semantic-threshold
-values left by the launcher. New Linux image, Windows and Chromium CI checks
-remain pending for this commit. These are implementation checks, not successful
-cloud-model acceptance.
+values left by the launcher. The
+[Linux Docker smoke workflow](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34439156457)
+and [Linux 3.11/3.13, Windows and Chromium regression workflow](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34439156441)
+passed on `ed0b80b`. The image smoke proves synthetic-corpus startup, actual
+PID 1 UID/GID 10001 after a root-owned mount, offline retrieval, Chinese PDF text,
+and quota/index persistence across a restart. It deliberately makes no model
+API calls and does not substitute for private production-corpus evaluation.
+That committed regression run passed `1154` non-E2E tests on each Linux and
+Windows job (`3` skips), with `87.92%` Linux `src` coverage, plus one Chromium
+E2E. Counts differ from the earlier local snapshot because the last three
+container regressions and Linux-capable link tests were included.
 
 Record the source commit, image digest, deployment date, model name, CPU model
 identity and RAG manifest for this run. Do not replace historical release
@@ -300,14 +321,14 @@ artifacts with results from a different model or dirty worktree.
 
 | Check | Current cloud status |
 | --- | --- |
-| Complete Linux image build and startup | Pending |
-| `/data` ownership initialization followed by non-root execution | Pending |
-| CPU RAG retrieval evaluation and rejection cases | Pending |
+| Complete Linux image build and startup | CI passed with synthetic corpus; full Railway build passed, app blocked on password |
+| `/data` ownership initialization followed by non-root execution | CI passed, including actual PID 1 UID/GID; live Railway still pending |
+| CPU RAG retrieval evaluation and rejection cases | Local CPU diagnostics recorded separately; CI offline warmup passed |
 | Real DeepSeek generation, revision and governed quality checks | Pending |
-| PDF/DOCX/ZIP exports, including Chinese reviewer names | Pending |
+| PDF/DOCX/ZIP exports, including Chinese reviewer names | Chinese PDF CI passed; live multi-format acceptance pending |
 | Two-browser session isolation and separate administrator access | Pending |
-| Concurrent-call rejection and persisted daily allowance | Pending |
-| Restart with saved audit/trace/quota and reused index generation | Pending |
+| Concurrent-call rejection and persisted daily allowance | Unit tests passed; CI persisted quota passed; live contention pending |
+| Restart with saved audit/trace/quota and reused index generation | CI index/quota/sentinel passed; live audit/trace/restart pending |
 | Railway HTTPS, deployment health and browser interaction | Pending |
 | External user pilot | Not performed |
 
