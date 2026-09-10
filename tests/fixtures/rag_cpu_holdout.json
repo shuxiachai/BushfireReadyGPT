@@ -1,0 +1,23 @@
+{
+  "schema_version": 3,
+  "purpose": "Additional author-written free-text diagnostic, created after fixing the CPU score threshold at 0.70. These questions were not used to choose that threshold and do not constitute external user validation.",
+  "thresholds": {"passage_recall_at_k": 0.9, "mean_reciprocal_rank": 0.75, "unanswerable_accuracy": 0.8},
+  "questions": [
+    {"id": "cpu_holdout_gutters", "query": "We live in Queensland. Which rooftop and gutter debris should be cleared before the bushfire season?", "jurisdiction": "Queensland", "category": "property", "expected_source_ids": ["qld_prepare_home"], "expected_terms": ["rooftops", "gutters"]},
+    {"id": "cpu_holdout_door", "query": "For a Queensland house, what seals can reduce the gaps around doorframes?", "jurisdiction": "Queensland", "category": "property", "expected_source_ids": ["qld_prepare_home"], "expected_terms": ["draught seals", "doorframe"]},
+    {"id": "cpu_holdout_pets", "query": "In a Queensland household evacuation plan, what arrangements are needed when pets cannot accompany us?", "jurisdiction": "Queensland", "category": "animals", "expected_source_ids": ["qld_evacuation_plan"], "expected_terms": ["prepare your pets", "cannot take them"]},
+    {"id": "cpu_holdout_council", "query": "Which local authority can explain the warning systems and nominated evacuation routes in Queensland?", "jurisdiction": "Queensland", "category": "evacuation", "expected_source_ids": ["qld_evacuation_plan"], "expected_terms": ["local council", "nominated evacuation routes"]},
+    {"id": "cpu_holdout_inhaler_dose", "query": "What salbutamol dosage should I give a child with wheezing after smoke exposure?", "jurisdiction": "Australia", "category": "medical", "answerable": false},
+    {"id": "cpu_holdout_insurance_appeal", "query": "How can I appeal an insurance payout decision for a house destroyed in a bushfire?", "jurisdiction": "Australia", "category": "legal", "answerable": false},
+    {"id": "cpu_holdout_roof_price", "query": "What is the average contractor price to replace a tiled roof in Brisbane?", "jurisdiction": "Queensland", "category": "out_of_domain", "answerable": false},
+    {"id": "cpu_holdout_school_enrolment", "query": "Which documents must parents submit to enrol a child at a Tasmanian public school?", "jurisdiction": "Tasmania", "category": "out_of_domain", "answerable": false},
+    {"id": "cpu_holdout_pet_dosage", "query": "What veterinary sedative dosage should a dog receive before a long car journey?", "jurisdiction": "Australia", "category": "medical", "answerable": false},
+    {"id": "cpu_holdout_tax_rebate", "query": "Can I claim an income tax rebate for buying emergency supplies for my household?", "jurisdiction": "Australia", "category": "finance", "answerable": false},
+    {"id": "cpu_holdout_generator_repair", "query": "How do I rewire a petrol generator alternator after an electrical short?", "jurisdiction": "Australia", "category": "out_of_domain", "answerable": false},
+    {"id": "cpu_holdout_asbestos_disposal", "query": "Which licence and disposal fees apply to removing asbestos roof sheets in Queensland?", "jurisdiction": "Queensland", "category": "legal", "answerable": false},
+    {"id": "cpu_holdout_purchase_contract", "query": "Draft a binding purchase contract for a rural property with a water tank and access road.", "jurisdiction": "Australia", "category": "legal", "answerable": false},
+    {"id": "cpu_holdout_flood_hydrology", "query": "Calculate the annual flood exceedance probability for a creek using rainfall gauge measurements.", "jurisdiction": "Australia", "category": "out_of_domain", "answerable": false},
+    {"id": "cpu_holdout_pension_eligibility", "query": "Does an Australian household qualify for age pension payments after selling its home?", "jurisdiction": "Australia", "category": "finance", "answerable": false},
+    {"id": "cpu_holdout_negligence", "query": "Can a council be sued for negligence after a bushfire damages private property?", "jurisdiction": "Australia", "category": "legal", "answerable": false}
+  ]
+}

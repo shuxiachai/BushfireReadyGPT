@@ -26,6 +26,7 @@ from scripts.evaluation_artifacts import (  # noqa: E402
     sha256_file,
     validate_rag_evaluation_artifact,
 )
+from src.rag.embeddings import create_embedding_client  # noqa: E402
 from src.rag.service import RagService  # noqa: E402
 
 PRODUCTION_PROFILE = "structured_planning"
@@ -44,17 +45,20 @@ def build_run_metadata(payload, questions_path, service, embedding_identity=None
 
     index = rag_index_provenance(service.settings)
     settings = service.settings
-    embedding = (
-        dict(embedding_identity)
-        if isinstance(embedding_identity, dict)
-        else ollama_model_identity(
+    provider = getattr(settings, "embedding_provider", "ollama")
+    if isinstance(embedding_identity, dict):
+        embedding = dict(embedding_identity)
+    elif provider == "fastembed":
+        identity = create_embedding_client(settings).identity()
+        embedding = {"name": identity["model"], "digest": identity["digest"], "digest_status": "resolved"}
+    else:
+        embedding = ollama_model_identity(
             getattr(settings, "embedding_base_url", ""),
             getattr(settings, "embedding_model", ""),
         )
-    )
     embedding.update(
         {
-            "provider": "ollama",
+            "provider": provider,
             "dimension": index.get("embedding_dimension"),
         }
     )
@@ -68,7 +72,9 @@ def build_run_metadata(payload, questions_path, service, embedding_identity=None
         "rag_index": index,
         "embedding_model": embedding,
         "model_identity_observation": (
-            "ollama_tag_checked_at_retrieval_call_boundaries; "
+            "pinned_local_model_files_hashed_and_checked_at_retrieval_boundaries"
+            if provider == "fastembed"
+            else "ollama_tag_checked_at_retrieval_call_boundaries; "
             "an in-flight tag swap entirely inside one embedding HTTP call is not observable"
         ),
     }
@@ -137,7 +143,7 @@ def _in_memory_run_metadata(payload, service):
         "git": {"commit": None, "working_tree_dirty": None, "collection_status": "not_collected"},
         "rag_index": {"status": "not_collected"},
         "embedding_model": {
-            "provider": "ollama",
+            "provider": getattr(settings, "embedding_provider", "ollama"),
             "name": getattr(settings, "embedding_model", ""),
             "digest": None,
             "digest_status": "not_collected",

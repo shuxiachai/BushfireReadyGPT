@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import re
 import threading
 import time
@@ -20,6 +21,8 @@ from src.config import (
     client,
     model,
 )
+from src.deployment_access import DeploymentConfigurationError
+from src.model_limits import ModelAllowanceError, acquire_model_slot
 
 GOVERNED_MODEL_SYSTEM_PROMPT = """You are the governed report-generation engine for BushfireReadyGPT.
 Process only the current request. Do not retain conversational history, call tools, emit tool-call syntax, or
@@ -111,10 +114,10 @@ class GovernedModelClient:
         self.is_local = is_local
         self.timeout_seconds = float(timeout_seconds)
         self._clock = clock
-        if self.timeout_seconds <= 0:
-            raise ValueError("timeout_seconds must be greater than zero.")
+        if not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be finite and greater than zero.")
 
-    def _create_completion(self, messages, *, stream):
+    def _create_completion(self, messages, *, stream, request_slot):
         kwargs = {
             "model": self.model_name,
             "messages": messages,
@@ -125,8 +128,21 @@ class GovernedModelClient:
         }
         if self.is_local:
             kwargs["seed"] = MODEL_SEED
+        if self.provider.lower() == "deepseek":
+            # The governed report contract budgets final text; V4 otherwise enables thinking by default.
+            kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
         try:
-            return self._completion_client.chat.completions.create(**kwargs)
+            completion_client = self._completion_client
+            if request_slot.limits.enabled:
+                configure = getattr(completion_client, "with_options", None)
+                if not callable(configure):
+                    raise ModelServiceError("The model client cannot enforce the configured request allowance.")
+                # One reserved call must mean one HTTP attempt. Structural repairs reserve separately.
+                completion_client = configure(max_retries=0)
+            request_slot.consume_call()
+            return completion_client.chat.completions.create(**kwargs)
+        except ModelAllowanceError as error:
+            raise ModelServiceError(str(error)) from error
         except (APIConnectionError, APITimeoutError, APIStatusError, httpx.HTTPError) as error:
             raise ModelServiceError(
                 model_service_error_message(error, provider=self.provider, model_name=self.model_name)
@@ -147,17 +163,19 @@ class GovernedModelClient:
             response_stream = stream_state.get("response")
             if response_stream is None or stream_state.get("closed"):
                 return
-            stream_state["closed"] = True
             close = getattr(response_stream, "close", None)
             if callable(close):
                 try:
                     close()
                 except Exception as error:  # pragma: no cover - provider cleanup is implementation-specific
                     LOGGER.debug("Model stream cleanup failed (%s).", type(error).__name__)
+                    # Closing while an iterator is executing can fail. Let the worker retry in its finally block.
+                    return
+            stream_state["closed"] = True
 
-    def _consume_stream(self, messages, *, started_at, cancelled, stream_state, close_lock):
+    def _consume_stream(self, messages, *, started_at, cancelled, stream_state, close_lock, request_slot):
         try:
-            response_stream = self._create_completion(messages, stream=True)
+            response_stream = self._create_completion(messages, stream=True, request_slot=request_slot)
             with close_lock:
                 stream_state["response"] = response_stream
                 cancelled_before_iteration = cancelled.is_set()
@@ -187,7 +205,7 @@ class GovernedModelClient:
         self._raise_if_stream_deadline_exceeded(started_at, cancelled)
         return "".join(parts)
 
-    def _collect_stream(self, messages):
+    def _collect_stream(self, messages, request_slot):
         started_at = self._clock()
         wall_deadline = time.monotonic() + self.timeout_seconds
         cancelled = threading.Event()
@@ -204,14 +222,20 @@ class GovernedModelClient:
                     cancelled=cancelled,
                     stream_state=stream_state,
                     close_lock=close_lock,
+                    request_slot=request_slot,
                 )
             except Exception as error:
                 outcome["error"] = error
             finally:
+                request_slot.release()
                 completed.set()
 
         worker = threading.Thread(target=consume, name="governed-model-stream", daemon=True)
-        worker.start()
+        try:
+            worker.start()
+        except Exception:
+            request_slot.release()
+            raise
         remaining = max(0.0, wall_deadline - time.monotonic())
         if not completed.wait(remaining):
             cancelled.set()
@@ -226,6 +250,39 @@ class GovernedModelClient:
             raise outcome["error"]
         return outcome.get("value", "")
 
+    def _collect_completion(self, messages, request_slot):
+        """Bound elapsed time, including SDK retries, without releasing a still-running worker."""
+        started_at = self._clock()
+        wall_deadline = time.monotonic() + self.timeout_seconds
+        completed = threading.Event()
+        outcome = {}
+
+        def consume():
+            try:
+                response = self._create_completion(messages, stream=False, request_slot=request_slot)
+                if self._clock() - started_at > self.timeout_seconds:
+                    raise self._deadline_error()
+                choices = getattr(response, "choices", None) or []
+                message = getattr(choices[0], "message", None) if choices else None
+                outcome["value"] = getattr(message, "content", None) or ""
+            except Exception as error:
+                outcome["error"] = error
+            finally:
+                request_slot.release()
+                completed.set()
+
+        worker = threading.Thread(target=consume, name="governed-model-completion", daemon=True)
+        try:
+            worker.start()
+        except Exception:
+            request_slot.release()
+            raise
+        if not completed.wait(max(0.0, wall_deadline - time.monotonic())):
+            raise self._deadline_error()
+        if "error" in outcome:
+            raise outcome["error"]
+        return outcome.get("value", "")
+
     def generate(self, prompt):
         prompt_text = str(prompt or "").strip()
         if not prompt_text:
@@ -234,13 +291,15 @@ class GovernedModelClient:
             {"role": "system", "content": GOVERNED_MODEL_SYSTEM_PROMPT},
             {"role": "user", "content": prompt_text},
         ]
-        if self.is_local:
-            response_text = self._collect_stream(messages)
-        else:
-            response = self._create_completion(messages, stream=False)
-            choices = getattr(response, "choices", None) or []
-            message = getattr(choices[0], "message", None) if choices else None
-            response_text = getattr(message, "content", None) or ""
+        try:
+            request_slot = acquire_model_slot()
+        except (ModelAllowanceError, DeploymentConfigurationError) as error:
+            raise ModelServiceError(str(error)) from error
+        response_text = (
+            self._collect_stream(messages, request_slot)
+            if self.is_local
+            else self._collect_completion(messages, request_slot)
+        )
         cleaned = clean_model_output(response_text)
         if not cleaned:
             raise ModelServiceError("The model returned no usable report text. Retry the request.")

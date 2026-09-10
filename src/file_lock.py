@@ -2,12 +2,92 @@
 
 import json
 import os
+import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 MAX_LOCK_RECORD_BYTES = 4096
 _WAIT_OBJECT_0 = 0
 _WAIT_TIMEOUT = 258
+_PROC_ROOT = Path("/proc")
+_KERNEL_GUARD = "flock-v1"
+
+
+class LockGuardTimeout(TimeoutError):
+    """The kernel guard is still held by another critical section."""
+
+
+class LockGuardError(OSError):
+    """The filesystem cannot provide the required kernel guard."""
+
+
+def _linux_process_incarnation(pid):
+    """Identify a Linux process without reading command lines or environment."""
+
+    if not sys.platform.startswith("linux"):
+        return None
+    try:
+        boot_id = (_PROC_ROOT / "sys/kernel/random/boot_id").read_text(encoding="ascii").strip()
+        namespace = os.readlink(_PROC_ROOT / str(pid) / "ns/pid")
+        stat = (_PROC_ROOT / str(pid) / "stat").read_text(encoding="ascii")
+        # comm (field 2) may itself contain spaces and closing parentheses.
+        fields = stat.rsplit(")", 1)[1].split()
+        start_ticks = int(fields[19])  # starttime is field 22; fields starts at 3.
+    except (OSError, UnicodeError, ValueError, IndexError):
+        return None
+    if not boot_id or not namespace or start_ticks < 0:
+        return None
+    return {"boot_id": boot_id, "pid_namespace": namespace, "start_ticks": start_ticks}
+
+
+def make_lock_owner(token, *, kernel_guarded=False):
+    """Create a backwards-readable owner with optional Linux incarnation proof."""
+
+    owner = {"pid": os.getpid(), "token": token}
+    incarnation = _linux_process_incarnation(owner["pid"])
+    if incarnation is not None:
+        owner["incarnation"] = incarnation
+    if kernel_guarded:
+        owner["kernel_guard"] = _KERNEL_GUARD
+    return owner
+
+
+@contextmanager
+def kernel_lock_guard(lock_path, timeout_seconds):
+    """Keep a Linux kernel lock throughout a record lock's entire critical section.
+
+    The sidecar inode must never be unlinked: a fixed inode serialises recovery
+    and ownership across PID namespaces, including overlapping container starts.
+    Kernel locks are released on process exit, even after an unclean shutdown.
+    Windows retains the existing PID-owned record protocol.
+    """
+
+    if not sys.platform.startswith("linux"):
+        yield False
+        return
+    import fcntl
+
+    guard_path = Path(str(lock_path) + ".guard")
+    try:
+        descriptor = os.open(guard_path, os.O_CREAT | os.O_RDWR, 0o600)
+    except OSError as error:
+        raise LockGuardError("The kernel lock sidecar could not be opened.") from error
+    deadline = time.monotonic() + timeout_seconds
+    try:
+        while True:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError as error:
+                if time.monotonic() >= deadline:
+                    raise LockGuardTimeout("Timed out waiting for the kernel file lock.") from error
+                time.sleep(0.05)
+            except OSError as error:
+                raise LockGuardError("The filesystem could not acquire the kernel file lock.") from error
+        yield True
+    finally:
+        os.close(descriptor)
 
 
 def read_lock_owner(lock_path):
@@ -28,7 +108,11 @@ def read_lock_owner(lock_path):
         or not payload["token"]
     ):
         return None
-    return {"pid": payload["pid"], "token": payload["token"]}
+    owner = {"pid": payload["pid"], "token": payload["token"]}
+    for field in ("incarnation", "kernel_guard"):
+        if field in payload:
+            owner[field] = payload[field]
+    return owner
 
 
 def process_is_running(pid):
@@ -77,20 +161,56 @@ def _windows_wait_result_is_running(wait_result):
     return True
 
 
-def lock_can_be_reclaimed(lock_path, stale_seconds, *, is_process_running=process_is_running):
+def lock_can_be_reclaimed(lock_path, stale_seconds, *, is_process_running=process_is_running, kernel_guarded=False):
     """Allow recovery only after the initialisation window has safely elapsed.
 
-    A valid record is reclaimable only when its PID is confirmed dead. An invalid
-    record can represent the tiny create-before-write window, so it is retained
-    until it is older than the configured stale threshold.
+    A held kernel guard proves a prior guarded owner released its critical
+    section, independent of PID reuse and container PID namespaces. Unguarded
+    records require the original conservative age and process checks. Unknown
+    namespaces must never be checked against an unrelated local process ID.
     """
 
     lock_path = Path(lock_path)
+    owner = read_lock_owner(lock_path)
+    if owner is not None and owner.get("kernel_guard") == _KERNEL_GUARD:
+        # A different namespace can still contain a live owner. Only acquiring
+        # the same kernel guard proves its critical section has ended.
+        return kernel_guarded
+    if owner is not None and "kernel_guard" in owner:
+        return False
     try:
         old_enough = time.time() - lock_path.stat().st_mtime > stale_seconds
     except OSError:
         return False
     if not old_enough:
         return False
-    owner = read_lock_owner(lock_path)
-    return owner is None or not is_process_running(owner["pid"])
+    if owner is None:
+        return True
+    if "incarnation" not in owner:
+        return not is_process_running(owner["pid"])
+    return _incarnation_confirmed_dead(owner, is_process_running)
+
+
+def _incarnation_confirmed_dead(owner, is_process_running):
+    recorded = owner["incarnation"]
+    current = _linux_process_incarnation(os.getpid())
+    if (
+        not isinstance(recorded, dict)
+        or not isinstance(recorded.get("boot_id"), str)
+        or not recorded.get("boot_id")
+        or not isinstance(recorded.get("pid_namespace"), str)
+        or not recorded.get("pid_namespace")
+        or type(recorded.get("start_ticks")) is not int
+        or recorded["start_ticks"] < 0
+        or current is None
+    ):
+        return False
+    if recorded["boot_id"] != current["boot_id"]:
+        # Without the shared guard, a different host may still own this volume.
+        return False
+    if recorded["pid_namespace"] != current["pid_namespace"]:
+        return False
+    observed = _linux_process_incarnation(owner["pid"])
+    if observed is not None:
+        return observed != recorded
+    return not is_process_running(owner["pid"])

@@ -1,9 +1,11 @@
 import streamlit as st
 
+from src.deployment_access import is_cloud_deployment
+
 
 def render_header():
-    st.markdown(
-        """
+    runtime_label = "Cloud demo" if is_cloud_deployment() else "Local Ollama"
+    hero = """
         <section class="app-hero">
             <div class="app-kicker">Australian Bushfire Preparedness Intelligence</div>
             <h1 class="app-title">BushfireReadyGPT Preparedness Planning Workspace</h1>
@@ -14,7 +16,7 @@ def render_header():
             </p>
             <div class="hero-signal-row">
                 <span>Government-pilot MVP</span>
-                <span>Local Ollama</span>
+                <span>__RUNTIME_LABEL__</span>
                 <span>ABS / ASGS evidence</span>
                 <span>Human review required</span>
             </div>
@@ -49,6 +51,8 @@ def render_header():
                 </div>
             </div>
         </section>
-        """,
+        """
+    st.markdown(
+        hero.replace("__RUNTIME_LABEL__", runtime_label),
         unsafe_allow_html=True,
     )

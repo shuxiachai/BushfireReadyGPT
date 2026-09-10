@@ -11,16 +11,26 @@ from datetime import datetime, timezone
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from src.data_artifacts import atomic_write_bytes, atomic_write_json, sha256_file
-from src.file_lock import lock_can_be_reclaimed, process_is_running, read_lock_owner
+from src.file_lock import (
+    LockGuardError,
+    LockGuardTimeout,
+    kernel_lock_guard,
+    lock_can_be_reclaimed,
+    make_lock_owner,
+    process_is_running,
+    read_lock_owner,
+)
 from src.rag.corpus import (
     chunk_catalog_sources,
     load_source_catalog,
     source_artifact_records,
 )
+from src.rag.embeddings import create_embedding_client, validate_embedding_identity
 from src.rag.errors import RagError
 from src.rag.qdrant import load_qdrant
 
 RAG_INDEX_SCHEMA = "bushfire-rag-index-v2"
+RAG_CPU_INDEX_SCHEMA = "bushfire-rag-index-v3"
 RAG_CHUNKER_VERSION = "paragraph-word-window-v1"
 
 _PROCESS_INDEX_LOCKS = {}
@@ -96,6 +106,18 @@ def index_file_lock(settings, timeout_seconds=10):
             "The RAG index lock directory could not be prepared.",
         ) from error
     lock_path = target.parent / f".{target.name}.lock"
+    try:
+        with kernel_lock_guard(lock_path, timeout_seconds) as guarded:
+            with _index_lock_record(lock_path, timeout_seconds, kernel_guarded=guarded):
+                yield
+    except LockGuardTimeout as error:
+        raise RagError("rag_index_locked", "Timed out waiting for the RAG index lock.") from error
+    except LockGuardError as error:
+        raise RagError("rag_index_lock_failed", "The RAG index kernel lock could not be acquired.") from error
+
+
+@contextmanager
+def _index_lock_record(lock_path, timeout_seconds, *, kernel_guarded):
     deadline = time.monotonic() + timeout_seconds
     descriptor = None
     owner_token = uuid4().hex
@@ -103,7 +125,7 @@ def index_file_lock(settings, timeout_seconds=10):
         try:
             descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError as error:
-            if _index_lock_can_be_reclaimed(lock_path):
+            if _index_lock_can_be_reclaimed(lock_path, kernel_guarded=kernel_guarded):
                 try:
                     lock_path.unlink(missing_ok=True)
                 except OSError as unlink_error:
@@ -123,7 +145,7 @@ def index_file_lock(settings, timeout_seconds=10):
     try:
         try:
             payload = json.dumps(
-                {"pid": os.getpid(), "token": owner_token},
+                make_lock_owner(owner_token, kernel_guarded=kernel_guarded),
                 sort_keys=True,
                 separators=(",", ":"),
             ).encode("ascii")
@@ -171,11 +193,12 @@ def _process_is_running(pid):
     return process_is_running(pid)
 
 
-def _index_lock_can_be_reclaimed(lock_path):
+def _index_lock_can_be_reclaimed(lock_path, *, kernel_guarded=False):
     return lock_can_be_reclaimed(
         lock_path,
         _STALE_INDEX_LOCK_SECONDS,
         is_process_running=_process_is_running,
+        kernel_guarded=kernel_guarded,
     )
 
 
@@ -297,10 +320,12 @@ def _snapshot_build_sources(settings, staging):
     return snapshot_catalog, catalog_sha256, source_records
 
 
-def build_rag_index(settings, embedder, *, max_words=420, overlap_words=60):
+def build_rag_index(settings, embedder=None, *, max_words=420, overlap_words=60):
     """Build a complete Qdrant local index in staging, then publish it atomically."""
 
     target = _safe_index_target(settings)
+    embedder = embedder or create_embedding_client(settings)
+    identity = embedder.identity() if settings.embedding_provider == "fastembed" else None
     QdrantClient, models = load_qdrant()
 
     with index_read_write_lock(settings):
@@ -322,6 +347,15 @@ def build_rag_index(settings, embedder, *, max_words=420, overlap_words=60):
             if len(dimensions) != 1:
                 raise RagError("rag_embedding_invalid", "RAG embedding vectors have inconsistent dimensions.")
             dimension = dimensions.pop()
+            if identity is not None and (
+                dimension != identity.get("dimension")
+                or identity.get("model") != settings.embedding_model
+                or identity.get("provider") != settings.embedding_provider
+                or embedder.identity() != identity
+            ):
+                raise RagError(
+                    "rag_embedding_invalid", "The CPU embedding identity or dimensions changed while building."
+                )
 
             if _source_generation_changed(settings, catalog_sha256, source_records):
                 raise RagError(
@@ -361,7 +395,12 @@ def build_rag_index(settings, embedder, *, max_words=420, overlap_words=60):
             atomic_write_bytes(documents_path, _serialise_documents(chunks))
             manifest = _manifest_with_hash(
                 {
-                    "schema": RAG_INDEX_SCHEMA,
+                    "schema": RAG_CPU_INDEX_SCHEMA if identity is not None else RAG_INDEX_SCHEMA,
+                    **(
+                        {"embedding_provider": "fastembed", "embedding_identity": identity}
+                        if identity is not None
+                        else {}
+                    ),
                     "built_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "collection_name": settings.collection_name,
                     "embedding_model": settings.embedding_model,
@@ -392,6 +431,7 @@ def build_rag_index(settings, embedder, *, max_words=420, overlap_words=60):
                 }
             )
             atomic_write_json(staging / "manifest.json", manifest)
+            validate_embedding_identity(settings, manifest, embedder)
             if _source_generation_changed(settings, catalog_sha256, source_records):
                 raise RagError(
                     "rag_source_changed",
@@ -425,14 +465,17 @@ def _load_and_validate_index(settings):
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise RagError("rag_index_invalid", "The RAG index manifest is unreadable or invalid.") from error
-    if not isinstance(manifest, dict) or manifest.get("schema") != RAG_INDEX_SCHEMA:
+    if not isinstance(manifest, dict) or manifest.get("schema") not in {RAG_INDEX_SCHEMA, RAG_CPU_INDEX_SCHEMA}:
         raise RagError("rag_index_invalid", "The RAG index manifest schema is invalid.")
+    if (manifest["schema"] == RAG_CPU_INDEX_SCHEMA) != (manifest.get("embedding_provider") == "fastembed"):
+        raise RagError("rag_index_invalid", "The RAG index embedding schema and provider are inconsistent.")
     supplied_hash = manifest.get("manifest_sha256")
     hash_input = {key: value for key, value in manifest.items() if key != "manifest_sha256"}
     if supplied_hash != _canonical_sha256(hash_input):
         raise RagError("rag_index_invalid", "The RAG index manifest hash does not match.")
     if manifest.get("embedding_model") != settings.embedding_model:
         raise RagError("rag_index_stale", "The RAG index was built with a different embedding model.")
+    validate_embedding_identity(settings, manifest)
     if manifest.get("collection_name") != settings.collection_name:
         raise RagError("rag_index_invalid", "The RAG index collection name does not match configuration.")
     if not (target / "qdrant").is_dir():

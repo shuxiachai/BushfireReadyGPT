@@ -15,6 +15,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.data_artifacts import atomic_write_json
+from src.runtime_paths import runtime_path
 
 TRACE_SCHEMA = "bushfire-runtime-trace-v1"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -342,7 +343,11 @@ def _trace_enabled():
 
 def _trace_dir():
     configured = os.environ.get("BUSHFIRE_TRACE_DIR", "").strip()
-    return Path(configured).expanduser().resolve() if configured else DEFAULT_TRACE_DIR.resolve()
+    if configured:
+        return Path(configured).expanduser().resolve()
+    if os.environ.get("BUSHFIRE_RUNTIME_DIR", "").strip():
+        return runtime_path("traces")
+    return DEFAULT_TRACE_DIR.resolve()
 
 
 def _valid_trace_record(record):

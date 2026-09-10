@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 import streamlit as st
 
@@ -9,6 +10,7 @@ from src.config import (
     MODEL_ENDPOINT_DISPLAY,
     MODEL_ENDPOINT_IS_LOCAL,
 )
+from src.deployment_access import is_cloud_deployment
 from src.docx_export import create_report_docx
 from src.input_validation import REPORT_FIELD_LIMITS
 from src.pdf_export import create_report_pdf
@@ -206,13 +208,15 @@ def render_latest_report_preview(
         except Exception as exc:
             st.warning(f"DOCX generation failed: {exc}")
     with action_cols[3]:
-        if st.button("Save to chat_history", width="stretch"):
+        save_label = "Save report on server" if is_cloud_deployment() else "Save to chat_history"
+        if st.button(save_label, width="stretch"):
             try:
                 saved_path = save_latest_report()
             except OSError as exc:
                 st.warning(f"The report could not be saved locally: {exc}")
             else:
                 if saved_path:
-                    st.success(f"Saved: {saved_path}")
+                    display_path = Path(saved_path).name if is_cloud_deployment() else saved_path
+                    st.success(f"Saved: {display_path}")
     with st.container(border=True):
         st.markdown(latest_report)

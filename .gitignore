@@ -3,6 +3,8 @@ data/
 data_australia/raw/
 data_australia/rag/raw/
 data_australia/rag/index/
+data_australia/rag/cpu-index-validation/
+.env.cloud
 data_australia/rag/.*.lock
 data_australia/rag/.*.backup
 data_australia/rag/.*.stage

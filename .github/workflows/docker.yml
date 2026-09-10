@@ -1,0 +1,59 @@
+name: Docker cloud smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Build CPU RAG image (small map fixture)
+        run: docker build --build-arg BUSHFIRE_INCLUDE_NATIONAL_MAP=false -t bushfire-cloud:test .
+      - name: Check secret-free context and fail-closed startup
+        run: |
+          docker run --rm --entrypoint sh bushfire-cloud:test -c 'test ! -e /app/.env && test ! -e /app/.git && test ! -e /app/output && test ! -e /app/chat_history'
+          if docker run --rm bushfire-cloud:test --check-only; then
+            echo "Unsafe startup accepted missing credentials"
+            exit 1
+          fi
+      - name: Start with a root-owned Railway-style persistent mount
+        run: |
+          docker volume create bushfire-smoke-data
+          docker run -d --name bushfire-smoke --user 0:0 -p 8501:8501 \
+            --mount source=bushfire-smoke-data,target=/data \
+            -e DEEPSEEK_API_KEY=ci-placeholder-no-api-calls \
+            -e BUSHFIRE_ACCESS_PASSWORD=ci-only-Disposable-Access-2026 \
+            -e BUSHFIRE_CONTAINER_SMOKE=true bushfire-cloud:test
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:8501/_stcore/health; then exit 0; fi
+            sleep 2
+          done
+          docker logs bushfire-smoke
+          exit 1
+      - name: Verify offline retrieval, Chinese export and persistent allowance
+        run: docker exec --user 10001:10001 bushfire-smoke python scripts/smoke_container.py --phase first
+      - name: Restart without overwriting evidence or resetting quotas
+        run: |
+          docker restart bushfire-smoke
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:8501/_stcore/health; then break; fi
+            sleep 2
+          done
+          curl --fail http://127.0.0.1:8501/_stcore/health
+          docker exec --user 10001:10001 bushfire-smoke python scripts/smoke_container.py --phase restart
+      - name: Show diagnostics
+        if: always()
+        run: docker logs bushfire-smoke 2>/dev/null || true

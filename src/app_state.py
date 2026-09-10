@@ -5,6 +5,7 @@ from uuid import uuid4
 import streamlit as st
 
 from src.data_artifacts import atomic_write_text
+from src.runtime_paths import runtime_path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -76,7 +77,7 @@ def save_latest_report():
     report = get_latest_assistant_text()
     if not report:
         return None
-    output_dir = PROJECT_ROOT / "chat_history"
+    output_dir = runtime_path(project_root=PROJECT_ROOT)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     path = output_dir / f"bushfire_report_{timestamp}_{uuid4().hex[:8]}.md"
     atomic_write_text(path, report)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from uuid import NAMESPACE_URL, uuid5
 
-from src.rag.embeddings import OllamaEmbeddingClient
+from src.rag.embeddings import create_embedding_client
 from src.rag.errors import RagError
 from src.rag.index import (
     index_read_write_lock,
@@ -120,6 +120,8 @@ def _ready_index_status(manifest):
         **_status("ready", "RAG index verified"),
         "index_schema": manifest["schema"],
         "embedding_model": manifest["embedding_model"],
+        "embedding_provider": manifest.get("embedding_provider", "ollama"),
+        "embedding_identity": manifest.get("embedding_identity"),
         "embedding_dimension": manifest["embedding_dimension"],
         "source_count": manifest["source_count"],
         "chunk_count": manifest["chunk_count"],
@@ -174,12 +176,7 @@ def _status(state, label, **extra):
 class RagService:
     def __init__(self, settings=None, *, data_paths=None, embedder=None):
         self.settings = settings or RagSettings.from_env(data_paths=data_paths)
-        self.embedder = embedder or OllamaEmbeddingClient(
-            self.settings.embedding_base_url,
-            self.settings.embedding_model,
-            timeout_seconds=self.settings.embedding_timeout_seconds,
-            batch_size=self.settings.embedding_batch_size,
-        )
+        self.embedder = embedder or create_embedding_client(self.settings)
 
     def retrieve(self, query, *, jurisdiction=None, top_k=None, trusted_planning_scope=False):
         query_text = " ".join(str(query or "").split()).strip()
@@ -253,6 +250,10 @@ class RagService:
                         candidate_k=candidate_k,
                     )
                     vectors = self.embedder.embed([query_text])
+                    if len(vectors) != 1 or len(vectors[0]) != manifest["embedding_dimension"]:
+                        raise RagError(
+                            "rag_embedding_invalid", "The query embedding dimension does not match the RAG index."
+                        )
                     dense_results = self._query_index(
                         vectors[0],
                         jurisdiction=jurisdiction,
@@ -324,6 +325,7 @@ class RagService:
             ],
             "retrieval_configuration": retrieval_configuration,
             "embedding_model": status["embedding_model"],
+            "embedding_provider": status["embedding_provider"],
             "index_manifest_sha256": status["manifest_sha256"],
             "index_built_at_utc": status["built_at_utc"],
             "retrieved_chunks": results,

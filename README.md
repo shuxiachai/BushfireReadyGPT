@@ -13,7 +13,7 @@
 
 BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It helps councils, schools and community resilience teams generate structured draft preparedness reports from a selected location, audience, scenario and planning focus.
 
-The project runs locally through Ollama, exposes an eight-role deterministic Python evidence pipeline, uses ABS / ASGS-derived Australian data context, and exports reviewable reports with human sign-off and audit records. The eight named roles are component boundaries, not eight autonomous LLM agents; only report narrative generation and revision call the local model.
+The default installation runs locally through Ollama. An optional password-protected Docker / Railway demo uses DeepSeek for narrative generation and a local CPU RAG index inside the container. Both expose the same eight-role deterministic Python evidence pipeline, ABS / ASGS-derived context, human review and audit records. The eight named roles are component boundaries, not eight autonomous LLM agents; only report narrative generation and revision call the configured model.
 
 **中文简介：** 本项目是一个面向澳洲山火应急准备场景的本地治理型报告生成系统原型。系统通过 8 个命名的确定性 Python 组件完成结构化分析与证据编排，仅在报告叙事生成和修订阶段调用本地 Ollama；这些角色不是 8 个自主大模型 Agent。项目支持澳洲地区数据上下文、混合 RAG、质量门禁、人工复核以及 Markdown / PDF / DOCX 导出，适用于学习展示、作品集和受控试点讨论，不用于真实火情判断、撤离命令或生命安全决策。
 
@@ -24,6 +24,12 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 **Stage:** Governed portfolio MVP / controlled-pilot prototype
 
 **Current release:** `v0.6.0`
+
+**Unreleased cloud deployment work:** Docker / Railway startup, versioned persistent
+RAG, fixed-revision CPU embeddings, shared access control and persistent daily
+model-call limits are implemented. See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
+and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).
+The historical release measurements below do not certify this new cloud path.
 
 The v0.6.0 release evidence was produced from clean source commit
 [`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7).
@@ -135,6 +141,10 @@ It is a preparedness planning and draft reporting tool. In an emergency, follow 
 
 ## Quick Start
 
+For the password-protected cloud option, use [Docker / Railway deployment](docs/DEPLOYMENT.md).
+The Windows launcher below remains the local Ollama installation path and does
+not install Docker or cloud-only embedding dependencies.
+
 On Windows, install [Python 3.11-3.13](https://www.python.org/downloads/windows/)
 and [Ollama](https://ollama.com/download/windows), then use the single launcher in
 the project folder:
@@ -213,10 +223,15 @@ is retained as historical evidence. These are local regression measurements,
 not production-accuracy claims.
 
 Raw RAG downloads, the verified document snapshot and Qdrant files stay local and are ignored by Git. The app
-still works if the optional index is absent, stale or disabled with
+still works in **local mode** if the optional index is absent, stale or disabled with
 `BUSHFIRE_RAG_ENABLED=false`; in that case no retrieved passage is sent to the
 report model. See [docs/rag.md](docs/rag.md) for the data contract, integrity
 checks, evaluation method and safety boundary.
+
+Cloud mode requires a verified CPU RAG seed and fails closed on index or embedding
+infrastructure errors. Valid no-match results remain explicitly labelled; they
+are not treated as evidence. Its model/index identities and metrics are separate
+from the Ollama release benchmark.
 
 The project launcher starts the local Ollama service automatically when needed. To run or troubleshoot Ollama manually, open a separate PowerShell terminal and run:
 
@@ -583,11 +598,14 @@ backend or retention-controlled production monitor.
 
 ## Deployment Boundary
 
-The supplied launcher is a single-user local profile. It deliberately binds only
-to loopback and does not provide authentication, TLS termination, rate limiting,
-multi-user tenancy, a database, central logging, backups or a retention service.
-A shared or internet-facing deployment requires those controls plus a privacy,
-security, incident-response and data-licensing review.
+The supplied Windows launcher remains a single-user loopback profile. The
+optional Docker / Railway profile adds shared-password access, a separate
+administrator gate, persistent SQLite model-call quotas, a one-request
+concurrency gate and a persistent `/data` volume. Railway supplies public HTTPS.
+See [deployment and acceptance status](docs/DEPLOYMENT.md). This controlled demo
+still lacks per-user identity/tenancy, distributed workers, managed backups,
+externally anchored audit retention and continuous monitoring. It is not a
+production emergency system; privacy, security and licence review remain necessary.
 
 ## Git And Repository Hygiene
 

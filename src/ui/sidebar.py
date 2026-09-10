@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import streamlit as st
 
+from src.deployment_access import is_cloud_deployment
 from src.docx_export import create_report_docx
 from src.pdf_export import create_report_pdf
 from src.report_generation_quality import evaluate_governed_report
@@ -79,14 +82,16 @@ def render_sidebar(
             )
         except Exception as exc:
             st.sidebar.warning(f"DOCX generation failed: {exc}")
-        if st.sidebar.button("Save to chat_history", width="stretch"):
+        save_label = "Save report on server" if is_cloud_deployment() else "Save to chat_history"
+        if st.sidebar.button(save_label, width="stretch"):
             try:
                 saved_path = save_latest_report()
             except OSError as exc:
                 st.sidebar.warning(f"The report could not be saved locally: {exc}")
             else:
                 if saved_path:
-                    st.sidebar.success(f"Saved: {saved_path}")
+                    display_path = Path(saved_path).name if is_cloud_deployment() else saved_path
+                    st.sidebar.success(f"Saved: {display_path}")
     st.sidebar.markdown("### Safety Boundary")
     st.sidebar.caption(
         "This app does not provide live fire conditions, fire bans, evacuation orders or life-safety decisions. "

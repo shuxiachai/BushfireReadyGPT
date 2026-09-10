@@ -1,4 +1,5 @@
 import ipaddress
+import math
 import os
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -58,7 +59,7 @@ def _positive_number(name, default, *, integer=False, allow_zero=False):
     except ValueError as error:
         raise RuntimeError(f"{name} must be a valid {'integer' if integer else 'number'}.") from error
     minimum_ok = value >= 0 if allow_zero else value > 0
-    if not minimum_ok:
+    if not minimum_ok or (not integer and not math.isfinite(value)):
         qualifier = "zero or greater" if allow_zero else "greater than zero"
         raise RuntimeError(f"{name} must be {qualifier}.")
     return value
@@ -156,7 +157,7 @@ elif LLM_PROVIDER == "deepseek":
         api_key=os.environ["DEEPSEEK_API_KEY"],
         **_CLIENT_SAFETY_OPTIONS,
     )
-    model = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
+    model = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash")
 else:
     raise RuntimeError(f"Unsupported LLM_PROVIDER: {LLM_PROVIDER}")
 

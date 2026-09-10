@@ -15,7 +15,15 @@ from src.export_register import (
     canonical_export_register_snapshot,
     export_register_snapshot_hashes,
 )
-from src.file_lock import lock_can_be_reclaimed, process_is_running, read_lock_owner
+from src.file_lock import (
+    LockGuardError,
+    LockGuardTimeout,
+    kernel_lock_guard,
+    lock_can_be_reclaimed,
+    make_lock_owner,
+    process_is_running,
+    read_lock_owner,
+)
 from src.governance import (
     APPROVED_STATUS,
     DRAFT_STATUS,
@@ -36,9 +44,11 @@ from src.report_generation_quality import (
     is_readable_quality_policy_binding,
 )
 from src.report_template import build_human_signoff, remove_human_signoff
+from src.runtime_paths import runtime_path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 AUDIT_DIR = PROJECT_ROOT / "chat_history" / "audit"
+_DEFAULT_AUDIT_DIR = AUDIT_DIR
 AUDIT_SCHEMA = "government-pilot-v4"
 AUDIT_LOCK_STALE_SECONDS = 5 * 60
 PACKAGE_CONTEXT_FIELDS = (
@@ -1026,7 +1036,11 @@ def _write_event(event, report_id, audit_dir=None):
 
 def _audit_dir():
     configured = os.environ.get("BUSHFIRE_AUDIT_DIR", "").strip()
-    return Path(configured).expanduser().resolve() if configured else Path(AUDIT_DIR).resolve()
+    if configured:
+        return Path(configured).expanduser().resolve()
+    if AUDIT_DIR != _DEFAULT_AUDIT_DIR:
+        return Path(AUDIT_DIR).resolve()
+    return runtime_path("audit").resolve()
 
 
 def _head_path(audit_dir, report_id):
@@ -1386,6 +1400,18 @@ def _report_lock(audit_dir, report_id, timeout_seconds=5.0):
     audit_dir = Path(audit_dir)
     audit_dir.mkdir(parents=True, exist_ok=True)
     lock_path = audit_dir / f".lock_{_slugify(report_id)}.lock"
+    try:
+        with kernel_lock_guard(lock_path, timeout_seconds) as guarded:
+            with _report_lock_record(lock_path, timeout_seconds, kernel_guarded=guarded):
+                yield
+    except LockGuardTimeout as error:
+        raise AuditIntegrityError("Timed out waiting for the report audit lock.") from error
+    except LockGuardError as error:
+        raise AuditIntegrityError("The report audit kernel lock could not be acquired.") from error
+
+
+@contextmanager
+def _report_lock_record(lock_path, timeout_seconds, *, kernel_guarded):
     deadline = time.monotonic() + timeout_seconds
     descriptor = None
     owner_token = uuid4().hex
@@ -1393,7 +1419,7 @@ def _report_lock(audit_dir, report_id, timeout_seconds=5.0):
         try:
             descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError as error:
-            if _report_lock_can_be_reclaimed(lock_path):
+            if _report_lock_can_be_reclaimed(lock_path, kernel_guarded=kernel_guarded):
                 try:
                     lock_path.unlink(missing_ok=True)
                 except OSError as unlink_error:
@@ -1405,7 +1431,7 @@ def _report_lock(audit_dir, report_id, timeout_seconds=5.0):
     try:
         try:
             payload = json.dumps(
-                {"pid": os.getpid(), "token": owner_token},
+                make_lock_owner(owner_token, kernel_guarded=kernel_guarded),
                 sort_keys=True,
                 separators=(",", ":"),
             ).encode("ascii")
@@ -1449,11 +1475,12 @@ def _process_is_running(pid):
     return process_is_running(pid)
 
 
-def _report_lock_can_be_reclaimed(lock_path):
+def _report_lock_can_be_reclaimed(lock_path, *, kernel_guarded=False):
     return lock_can_be_reclaimed(
         lock_path,
         AUDIT_LOCK_STALE_SECONDS,
         is_process_running=_process_is_running,
+        kernel_guarded=kernel_guarded,
     )
 
 

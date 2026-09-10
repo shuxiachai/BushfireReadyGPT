@@ -15,6 +15,7 @@ from src.app_state import (
     save_latest_report,
 )
 from src.coverage_map import is_area_selection_available
+from src.deployment_access import is_cloud_deployment, render_access_gate, render_admin_access
 from src.governance import HUMAN_REVIEW_CHECKLIST
 from src.input_validation import REVISION_REQUEST_MAX_CHARS
 from src.report_workflow import (
@@ -255,10 +256,13 @@ def render_workspace_tabs():
 
     with readiness_tab:
         render_maturity_assessment()
-        render_runtime_diagnostics()
+        if not is_cloud_deployment() or render_admin_access():
+            render_runtime_diagnostics()
 
 
 apply_theme()
+if not render_access_gate():
+    st.stop()
 initialize_state()
 if st.session_state.get("pending_approval_reset"):
     st.session_state.approval_status = "Draft - human review required"

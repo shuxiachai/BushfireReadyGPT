@@ -2,6 +2,15 @@
 
 ## System Architecture
 
+The default local path below is preserved. The optional [cloud deployment](DEPLOYMENT.md)
+adds a password gate before application state/data access, a separate administrator
+gate for runtime diagnostics, DeepSeek narrative calls with per-session privacy
+acknowledgement, and local FastEmbed CPU embeddings. One Streamlit process owns
+the shared concurrency limit; SQLite stores daily actual model-call counts on
+the `/data` volume. Audit records, traces and content-versioned RAG snapshots
+persist there too. This is a single-instance controlled demo, not multi-tenant
+authentication or distributed task execution. See [CPU validation limitations](CLOUD_RAG_VALIDATION.md).
+
 ```mermaid
 flowchart LR
     User[User in browser] --> UI[Streamlit UI<br/>src/wildfireChat.py]

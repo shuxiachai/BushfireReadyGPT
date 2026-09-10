@@ -180,6 +180,14 @@ def rag_index_provenance(settings) -> dict:
         "corpus_sha256": manifest.get("corpus_sha256"),
         "documents_sha256": (manifest.get("documents_artifact") or {}).get("sha256"),
         "embedding_dimension": manifest.get("embedding_dimension"),
+        **(
+            {
+                "embedding_provider": manifest["embedding_provider"],
+                "embedding_identity": manifest["embedding_identity"],
+            }
+            if manifest.get("embedding_provider") == "fastembed"
+            else {}
+        ),
         "source_count": manifest.get("source_count"),
         "chunk_count": manifest.get("chunk_count"),
         "built_at_utc": manifest.get("built_at_utc"),
@@ -362,6 +370,11 @@ def _validate_release_provenance(run, model_field):
     _require(isinstance(model, dict), f"release {model_field} provenance is required")
     _require(model.get("digest_status") == "resolved", f"release {model_field} digest was not resolved")
     _require(_SHA256.fullmatch(str(model.get("digest") or "")) is not None, f"release {model_field} digest is invalid")
+    if model_field == "embedding_model" and model.get("provider") == "fastembed":
+        identity = run.get("rag_index", {}).get("embedding_identity") or {}
+        _require(
+            identity.get("digest") == model.get("digest"), "release CPU embedding model and index identities differ"
+        )
 
 
 def _validate_index_provenance(index: dict) -> None:
@@ -370,6 +383,18 @@ def _validate_index_provenance(index: dict) -> None:
         return
     for field in ("manifest_sha256", "catalog_sha256", "corpus_sha256", "documents_sha256"):
         _require(_SHA256.fullmatch(str(index.get(field) or "")) is not None, f"RAG index {field} is invalid")
+    if index.get("schema") == "bushfire-rag-index-v3":
+        identity = index.get("embedding_identity")
+        _require(isinstance(identity, dict), "CPU RAG index embedding identity is missing")
+        _require(
+            index.get("embedding_provider") == identity.get("provider") == "fastembed", "CPU RAG provider is invalid"
+        )
+        _require(identity.get("dimension") == index.get("embedding_dimension"), "CPU RAG embedding dimension differs")
+        _require(
+            canonical_sha256({key: value for key, value in identity.items() if key != "digest"})
+            == identity.get("digest"),
+            "CPU RAG embedding identity digest is invalid",
+        )
 
 
 def _validate_model_digest(metadata: dict, label: str) -> None:

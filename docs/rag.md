@@ -2,6 +2,14 @@
 
 ## Why it exists
 
+The local Ollama workflow remains the default. Docker / Railway uses the optional
+FastEmbed CPU backend with a pinned BGE-small model snapshot and a separate v3
+index identity. See [CPU RAG validation](CLOUD_RAG_VALIDATION.md) for configuration,
+calibration results and the held-out false-abstention limitation, and
+[deployment](DEPLOYMENT.md) for read-only model assets and versioned volume seeds.
+Cloud mode stops generation on RAG infrastructure errors instead of silently
+using the local application's optional no-RAG fallback.
+
 The RAG subsystem demonstrates a conventional, explainable retrieval pipeline
 without weakening the project's safety boundary. It retrieves small passages
 from static Australian government preparedness material before report

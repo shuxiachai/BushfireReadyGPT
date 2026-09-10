@@ -159,3 +159,55 @@ with audit._report_lock(audit_dir, "real-process", timeout_seconds=2):
         raise error
     assert process.returncode == 0, stderr
     assert not lock_path.exists()
+
+
+def test_audit_directory_uses_runtime_root_with_explicit_override_precedence(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit, "AUDIT_DIR", audit._DEFAULT_AUDIT_DIR)
+    monkeypatch.setenv("BUSHFIRE_RUNTIME_DIR", str(tmp_path / "runtime"))
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    assert audit._audit_dir() == (tmp_path / "runtime" / "audit").resolve()
+
+    monkeypatch.setenv("BUSHFIRE_AUDIT_DIR", str(tmp_path / "explicit"))
+    assert audit._audit_dir() == (tmp_path / "explicit").resolve()
+
+
+def test_audit_directory_keeps_test_override_compatible(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path / "overridden")
+    monkeypatch.setenv("BUSHFIRE_RUNTIME_DIR", str(tmp_path / "runtime"))
+    monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
+    assert audit._audit_dir() == (tmp_path / "overridden").resolve()
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="requires Linux kernel flock")
+def test_audit_recovers_fresh_lock_after_process_crash_without_waiting_for_staleness(tmp_path):
+    script = """
+import os, sys
+from src import audit
+with audit._report_lock(sys.argv[1], 'crashed-report', timeout_seconds=0):
+    os._exit(0)
+"""
+    subprocess.run(
+        [sys.executable, "-c", script, str(tmp_path)],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        timeout=10,
+    )
+    lock_path = _lock_path(tmp_path, "crashed-report")
+    previous = json.loads(lock_path.read_text(encoding="ascii"))
+    assert previous["kernel_guard"] == "flock-v1"
+    # Simulate the PID 1 reuse seen on restart; the shared guard remains the
+    # authority because the old namespace may no longer be visible locally.
+    previous["pid"] = os.getpid()
+    lock_path.write_text(json.dumps(previous), encoding="ascii")
+
+    with audit._report_lock(tmp_path, "crashed-report", timeout_seconds=0):
+        replacement = json.loads(lock_path.read_text(encoding="ascii"))
+        assert replacement["token"] != previous["token"]
+    assert not lock_path.exists()
+
+
+def test_audit_lock_does_not_relabel_timeout_from_critical_section(tmp_path):
+    with pytest.raises(TimeoutError, match="report operation failed"):
+        with audit._report_lock(tmp_path, "body-error", timeout_seconds=0):
+            raise TimeoutError("report operation failed")
+    assert not _lock_path(tmp_path, "body-error").exists()

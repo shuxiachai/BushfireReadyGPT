@@ -40,15 +40,25 @@ COMPACT_TABLE_CELL_CHARACTER_LIMIT = 600
 
 def _register_pdf_font():
     font_candidates = [
+        os.environ.get("BUSHFIRE_PDF_FONT_PATH", "").strip(),
         r"C:\Windows\Fonts\simhei.ttf",
         r"C:\Windows\Fonts\msyh.ttc",
         r"C:\Windows\Fonts\simsun.ttc",
         r"C:\Windows\Fonts\NotoSansSC-VF.ttf",
+        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansSC-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansSC-VF.ttf",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     ]
     for font_path in font_candidates:
-        if os.path.exists(font_path):
+        if font_path and os.path.isfile(font_path):
             try:
                 pdfmetrics.registerFont(TTFont(FONT_NAME, font_path))
+                pdfmetrics.registerFontFamily(
+                    FONT_NAME, normal=FONT_NAME, bold=FONT_NAME, italic=FONT_NAME, boldItalic=FONT_NAME
+                )
                 return FONT_NAME
             except Exception as error:
                 LOGGER.debug("Could not register PDF font %s: %s", font_path, error)

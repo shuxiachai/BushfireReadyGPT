@@ -97,11 +97,18 @@ class RagSettings:
     lexical_coverage_threshold: float = 0.61
     semantic_score_threshold: float = 0.45
     semantic_coverage_threshold: float = 0.2
+    embedding_provider: str = "ollama"
+    embedding_cache_dir: Path | None = None
+    embedding_threads: int = 2
+    embedding_local_files_only: bool = True
 
     @classmethod
     def from_env(cls, data_paths=None):
         paths = data_paths or get_data_paths()
         rag_dir = Path(paths.rag_dir).resolve()
+        provider = os.environ.get("BUSHFIRE_RAG_EMBED_PROVIDER", "ollama").strip().lower()
+        if provider not in {"ollama", "fastembed"}:
+            raise RagError("rag_config_invalid", "BUSHFIRE_RAG_EMBED_PROVIDER must be ollama or fastembed.")
         base_url = (
             os.environ.get(
                 "BUSHFIRE_RAG_EMBED_BASE_URL",
@@ -112,10 +119,19 @@ class RagSettings:
         )
         if base_url.endswith("/v1"):
             base_url = base_url[:-3].rstrip("/")
-        _loopback_url(base_url)
-        model = os.environ.get("BUSHFIRE_RAG_EMBED_MODEL", "embeddinggemma").strip()
+        if provider == "ollama":
+            _loopback_url(base_url)
+        default_model = "embeddinggemma" if provider == "ollama" else "BAAI/bge-small-en-v1.5"
+        model = os.environ.get("BUSHFIRE_RAG_EMBED_MODEL", default_model).strip()
         if not model or any(char.isspace() for char in model):
             raise RagError("rag_config_invalid", "BUSHFIRE_RAG_EMBED_MODEL must be one model name.")
+        if provider == "fastembed" and model != "BAAI/bge-small-en-v1.5":
+            raise RagError(
+                "rag_config_invalid", "The CPU embedding provider currently supports BAAI/bge-small-en-v1.5."
+            )
+        cache_dir = Path(os.environ.get("BUSHFIRE_RAG_EMBED_CACHE_DIR", "").strip() or rag_dir / "models").expanduser()
+        if not cache_dir.is_absolute():
+            cache_dir = Path(paths.project_root) / cache_dir
         return cls(
             rag_dir=rag_dir,
             sources_path=Path(paths.rag_sources).resolve(),
@@ -125,6 +141,10 @@ class RagSettings:
             embedding_model=model,
             embedding_timeout_seconds=_positive_int("BUSHFIRE_RAG_EMBED_TIMEOUT_SECONDS", 60),
             embedding_batch_size=_positive_int("BUSHFIRE_RAG_EMBED_BATCH_SIZE", 16),
+            embedding_provider=provider,
+            embedding_cache_dir=cache_dir.resolve(),
+            embedding_threads=_positive_int("BUSHFIRE_RAG_EMBED_THREADS", 2),
+            embedding_local_files_only=_boolean("BUSHFIRE_RAG_EMBED_LOCAL_FILES_ONLY", True),
             top_k=_positive_int("BUSHFIRE_RAG_TOP_K", 8),
             score_threshold=_score("BUSHFIRE_RAG_SCORE_THRESHOLD", 0.35),
             enabled=_boolean("BUSHFIRE_RAG_ENABLED", True),
@@ -138,7 +158,8 @@ class RagSettings:
             ),
             semantic_score_threshold=_unit_interval(
                 "BUSHFIRE_RAG_SEMANTIC_SCORE_THRESHOLD",
-                0.45,
+                # BGE cosine scores are not calibrated like embeddinggemma scores.
+                0.70 if provider == "fastembed" else 0.45,
             ),
             semantic_coverage_threshold=_unit_interval(
                 "BUSHFIRE_RAG_SEMANTIC_COVERAGE_THRESHOLD",

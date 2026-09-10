@@ -27,6 +27,7 @@ from src.config import (
     model,
 )
 from src.data_artifacts import DataArtifactError
+from src.deployment_access import DeploymentConfigurationError, is_access_authorized, is_cloud_deployment
 from src.export_register import (
     ExportRegisterSnapshotError,
     build_export_register_snapshot,
@@ -125,6 +126,11 @@ def validate_report_inputs(inputs):
 def validate_model_privacy_boundary():
     """Fail closed before model requests that may leave the local computer."""
 
+    try:
+        if not is_access_authorized(st.session_state):
+            return "Your access session has expired. Sign in again before generating or revising a report."
+    except DeploymentConfigurationError as error:
+        return str(error)
     if MODEL_ENDPOINT_IS_LOCAL:
         return None
     if not EXTERNAL_MODEL_ALLOWED:
@@ -161,7 +167,28 @@ def collect_model_audit_metadata():
 def _call_governed_model(prompt):
     """Run one stateless, tool-free model request."""
 
+    privacy_error = validate_model_privacy_boundary()
+    if privacy_error:
+        raise ModelServiceError(privacy_error)
     return st.session_state.model_client.generate(prompt)
+
+
+def _cloud_rag_availability_error(analysis):
+    """Distinguish a valid retrieval abstention from unavailable cloud infrastructure."""
+    try:
+        if not is_cloud_deployment():
+            return None
+    except DeploymentConfigurationError:
+        return "The application deployment configuration is unavailable. Contact the project owner before retrying."
+    knowledge = analysis.get("knowledge") if isinstance(analysis, dict) else None
+    status = knowledge.get("status") if isinstance(knowledge, dict) else None
+    if isinstance(status, str) and status in {"ready", "no_match", "out_of_scope"}:
+        return None
+    return (
+        "Report generation is paused because the official-reference knowledge service is unavailable or could not "
+        "verify its index. No report-model request was sent. Contact the project owner to restore the knowledge "
+        "service, then regenerate the report."
+    )
 
 
 def collect_review_record(for_new_version=False, from_approval_form=False):
@@ -552,6 +579,9 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
             "configured artifact, and retry.",
             error.code,
         )
+    knowledge_error = _cloud_rag_availability_error(analysis)
+    if knowledge_error:
+        return None, knowledge_error, "cloud_rag_unavailable"
     with trace_stage("prompt_build") as span:
         governance_context = build_governance_context()
         prompt = build_report_prompt(
@@ -660,6 +690,10 @@ def revise_current_report(edit_request, persist_session_state):
             "This report no longer matches its frozen audit snapshot. "
             "Regenerate it before requesting a governed revision."
         )
+
+    knowledge_error = _cloud_rag_availability_error(analysis)
+    if knowledge_error:
+        return None, knowledge_error
 
     model_safe_current_text = neutralise_prompt_control_markers(
         fold_known_attribution_labels(
