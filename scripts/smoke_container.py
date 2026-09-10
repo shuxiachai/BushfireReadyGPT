@@ -32,6 +32,14 @@ def main():
         raise RuntimeError("Smoke checks require BUSHFIRE_CONTAINER_SMOKE=true and a disposable volume.")
     if os.getuid() == 0:
         raise RuntimeError("The application smoke checks must run as the non-root worker.")
+    process_status = Path("/proc/1/status").read_text(encoding="utf-8")
+    process_ids = {
+        line.split(":", 1)[0]: line.split(":", 1)[1].split()
+        for line in process_status.splitlines()
+        if line.startswith(("Uid:", "Gid:"))
+    }
+    if process_ids != {"Uid": ["10001"] * 4, "Gid": ["10001"] * 4}:
+        raise RuntimeError("The actual web process did not drop its root UID and GID.")
     ready = prepare_runtime()
     manifest = Path(os.environ["BUSHFIRE_RAG_INDEX_DIR"]) / "manifest.json"
     identity = {"manifest_sha256": ready["rag"]["manifest_sha256"], "mtime_ns": manifest.stat().st_mtime_ns}

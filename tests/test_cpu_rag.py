@@ -21,6 +21,7 @@ def cpu_settings(tmp_path, monkeypatch):
     monkeypatch.setenv("BUSHFIRE_RAG_EMBED_PROVIDER", "fastembed")
     monkeypatch.setenv("BUSHFIRE_RAG_ENABLED", "true")
     monkeypatch.delenv("BUSHFIRE_RAG_EMBED_MODEL", raising=False)
+    monkeypatch.delenv("BUSHFIRE_RAG_SEMANTIC_SCORE_THRESHOLD", raising=False)
     monkeypatch.setattr(embeddings, "version", lambda name: "test-runtime-1")
     settings = RagSettings.from_env(DataPaths.from_env(tmp_path))
     settings.raw_dir.mkdir(parents=True)
@@ -74,6 +75,7 @@ def test_cpu_default_is_offline_and_ollama_is_still_default(tmp_path, monkeypatc
     monkeypatch.delenv("BUSHFIRE_RAG_EMBED_PROVIDER", raising=False)
     # Windows launcher preflight may have populated the local Ollama model setting.
     monkeypatch.delenv("BUSHFIRE_RAG_EMBED_MODEL", raising=False)
+    monkeypatch.delenv("BUSHFIRE_RAG_SEMANTIC_SCORE_THRESHOLD", raising=False)
     assert RagSettings.from_env(DataPaths.from_env(tmp_path)).embedding_provider == "ollama"
     monkeypatch.setenv("BUSHFIRE_RAG_EMBED_PROVIDER", "fastembed")
     monkeypatch.setenv("BUSHFIRE_RAG_EMBED_BASE_URL", "https://unused.example")

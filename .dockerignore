@@ -20,6 +20,12 @@
 !examples/**
 !.streamlit/
 !.streamlit/config.toml
+!deployment_corpus/
+!deployment_corpus/.keep
+!deployment_corpus/bundle-manifest.json
+!deployment_corpus/sources.yml
+!deployment_corpus/raw/
+!deployment_corpus/raw/**
 **/__pycache__/
 **/*.pyc
 **/.env*

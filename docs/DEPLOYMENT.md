@@ -34,6 +34,8 @@ application access password before starting the container.
 | `BUSHFIRE_ADMIN_PASSWORD` | Optional, different administrator credential |
 | `BUSHFIRE_DEPLOYMENT_MODE` | `cloud` |
 | `BUSHFIRE_RUNTIME_DIR` | `/data`, backed by a persistent volume |
+| `BUSHFIRE_RAG_CORPUS_SHA256` | Verified corpus `manifest_sha256`, printed by the preparation script |
+| `BUSHFIRE_RAG_CORPUS_BUNDLE` | `/opt/bushfire/corpus`, used only when that corpus is absent from the volume |
 | `RAILWAY_RUN_UID` | `0` on Railway; the entrypoint subsequently drops privileges |
 | `BUSHFIRE_ALLOW_EXTERNAL_MODEL` | `true`, plus each session's separate acknowledgement |
 | `BUSHFIRE_MODEL_MAX_CONCURRENT` | `1` |
@@ -73,13 +75,37 @@ Start Docker Desktop with its Linux container engine. Create an ignored
 editor. Keep that file out of screenshots, logs and Git; the Docker build-context
 allowlist also excludes environment files and workstation session data.
 
-Run these commands from the repository root:
+First prepare a snapshot of the locally verified catalogue and raw files. This
+does not download sources, change their licences or upload anything:
+
+```console
+poetry run python scripts/prepare_private_corpus.py --acknowledge-source-terms --output output/private-corpus
+```
+
+The script requires the local RAG index to pass full integrity validation. It
+records catalogue/source hashes and the observed local file modification times;
+those times are **not HTTP retrieval receipts**. Put the printed
+`manifest_sha256` in `BUSHFIRE_RAG_CORPUS_SHA256` in `.env.cloud` or Railway.
+An existing output directory is rejected, not overwritten.
+
+The acknowledgement records the operator's private, non-commercial research
+intent; it grants no copyright permission. Public availability does not mean a
+source is copyright-free. Preserve the original catalogue licence fields and
+check each source's terms, including third-party exceptions, before external
+processing or sharing. The five non-open sources in the current catalogue
+remain restricted or require permission/review. A password or private cloud
+does not automatically resolve those restrictions. Do not publish original
+source bytes, the private deployment archive or its image in a public registry.
+
+For local Docker, mount that verified bundle read-only at `/opt/bushfire/corpus`
+as well as the persistent `/data` volume. Replace `/absolute/path/private-corpus`
+with its actual host path:
 
 ```console
 docker build -t bushfire-ready:cloud .
 docker volume create bushfire-ready-data
-docker run --rm --env-file .env.cloud --mount source=bushfire-ready-data,target=/data bushfire-ready:cloud --check-only
-docker run --name bushfire-ready-cloud --env-file .env.cloud --mount source=bushfire-ready-data,target=/data -p 127.0.0.1:8501:8501 bushfire-ready:cloud
+docker run --rm --env-file .env.cloud --mount source=bushfire-ready-data,target=/data --mount type=bind,source=/absolute/path/private-corpus,target=/opt/bushfire/corpus,readonly bushfire-ready:cloud --check-only
+docker run --name bushfire-ready-cloud --env-file .env.cloud --mount source=bushfire-ready-data,target=/data --mount type=bind,source=/absolute/path/private-corpus,target=/opt/bushfire/corpus,readonly -p 127.0.0.1:8501:8501 bushfire-ready:cloud
 ```
 
 Open [the local application](http://127.0.0.1:8501) once startup checks succeed.
@@ -89,10 +115,14 @@ the entrypoint changes only the runtime directory's ownership and drops groups,
 GID and UID before loading the application. Setting `RAILWAY_RUN_UID` inside a
 local Docker env file alone does not change Docker's selected user.
 
-The build downloads the pinned CPU embedding assets and declared official
-preparedness sources, then builds the index. These network downloads happen at
-build time. Runtime inference uses prepared model files under
-`/opt/bushfire/models`; it does not require local Ollama or a runtime model download.
+The build downloads the pinned CPU embedding assets, but never requests the
+preparedness source websites. First startup validates the supplied private
+bundle, builds its index offline on the volume, validates the result and
+publishes the completed generation atomically. Subsequent startup validates and
+reuses it. Runtime inference uses prepared model files under
+`/opt/bushfire/models`; it does not require Ollama or a runtime model download.
+The public repository/image contains only a corpus placeholder. Without an
+imported generation or a valid private bundle it cannot start the cloud app.
 
 The optional national map is included by default. A smaller build can omit it:
 
@@ -132,10 +162,38 @@ remove map assets.
    Explicitly set the service healthcheck path to `/_stcore/health` and its
    startup timeout to `300` seconds in the service settings or API.
    [Railway healthcheck documentation](https://docs.railway.com/deployments/healthchecks)
-6. Deploy, inspect startup output for `container_ready: true`, and generate a
+6. Bootstrap the private corpus using the isolated CLI context described below.
+   Inspect startup output for `container_ready: true`, and generate a
    domain under Settings > Networking > Public Networking. Railway provides
    HTTPS for that domain. Complete the acceptance checks below before inviting
    reviewers. [Railway public networking documentation](https://docs.railway.com/networking/public-networking)
+
+### First private deployment
+
+Commit the code intended for deployment before preparing the upload. The
+context script reads only allowlisted **HEAD blobs**, not arbitrary working-tree
+files. It adds only the verified corpus and writes an explicit deployment
+manifest; `.env`, Git metadata, personal documents, local reports and untracked
+files are not copied.
+
+```console
+poetry run python scripts/prepare_railway_context.py --corpus output/private-corpus --output output/railway-private-context
+railway up output/railway-private-context --path-as-root --no-gitignore --project YOUR_PROJECT_ID --environment YOUR_ENVIRONMENT_ID --service YOUR_SERVICE_ID --detach
+```
+
+Use `--no-gitignore` **only with this inspected isolated context**, never with
+the repository root. It is necessary because the private bundle is intentionally
+Git-ignored. This upload goes to the selected private Railway project, not to
+GitHub. Keep Railway project access restricted. The initial private build image
+contains the original source bytes; do not export or publish it.
+
+The Railway CLI volume-file commands require an active deployment, so they
+cannot seed a never-started service. The private first image solves that
+bootstrap dependency. Once the verified corpus/index is on `/data`, later
+GitHub deployments can use the public placeholder image with the same expected
+corpus hash. A changed corpus or CPU model requires an explicitly reviewed new
+generation; the service never silently downloads or overwrites it. Keep a
+protected backup of the bundle for disaster recovery.
 
 For a smaller Railway build, set `BUSHFIRE_INCLUDE_NATIONAL_MAP=false` before
 rebuilding. The Dockerfile declares this build argument. Resource requirements
@@ -158,15 +216,19 @@ inline non-sealed secrets. [Railway IaC migration documentation](https://docs.ra
 | `/data/audit/` | Append-only governed-report audit records and lock sidecars |
 | `/data/traces/` | Privacy-minimised runtime status, duration and count metrics |
 | `/data/model-usage.sqlite3` | Shared daily model-call accounting |
-| `/data/rag/<manifest_sha256>/raw/` | Official-source bytes bound to that index generation |
-| `/data/rag/<manifest_sha256>/index/` | Validated document snapshot and embedded Qdrant index |
+| `/data/private-rag/<corpus_manifest_sha256>/sources.yml` | Original catalogue, including licence restrictions |
+| `/data/private-rag/<corpus_manifest_sha256>/raw/` | Source bytes bound to the verified private bundle |
+| `/data/private-rag/<corpus_manifest_sha256>/index/` | Validated document snapshot and embedded Qdrant index |
 | `/data/` | Reports explicitly saved using the server-save action |
 
-At startup, a new image seed is copied into a temporary directory on the
-volume, validated, then published under its manifest hash. Existing generations
-are preserved and reused; a corrupted existing generation fails validation
-instead of being silently overwritten. Build-time locks are excluded from the
-copy. Model assets and bundled geographic datasets remain in the image.
+At startup, the private bundle is installed and indexed in a temporary directory
+on the volume, validated, then published under its canonical bundle manifest
+hash. Existing generations are preserved and reused; a corrupted existing
+generation fails validation instead of being silently overwritten. Bundle
+validation alone does not validate vectors: startup separately checks the full
+index and CPU model binding. Model assets and bundled geographic datasets remain
+in the image. The older baked-seed helper remains supported for explicit legacy
+configurations, but the default Docker build no longer creates a web-fetched seed.
 
 Linux audit and RAG operations hold kernel `flock` guards across their critical
 sections. The stable `.guard` files must remain in place; do not delete them
@@ -216,21 +278,21 @@ model preparation works after fixing the image virtual environment. The next
 build step fails because the NSW source host returns HTTP 403 to cloud builders.
 No access-control bypass was attempted.
 
-Do not publish the existing nine raw source files as a workaround. The current
-catalogue marks only the two QLD sources, SA and ACT as `open_with_attribution`;
-the other five require permission/review or have non-commercial restrictions.
-Even the four open sources require attributed body-text preparation that excludes
-logos, third-party material and other licence exceptions. Selecting a narrower
-cloud corpus or reviewing open replacements is a pending scope decision. The
-existing local corpus was neither deleted nor redistributed.
+The operator subsequently requested retaining all nine local sources for the
+private, non-commercial demonstration. A bounded private snapshot/import path
+now replaces build-time source website requests; source licences are unchanged,
+and the public CI uses original synthetic text instead of the official corpus.
+The private import and actual deployment still require the checks below; this
+implementation is not a finding that all sources permit every cloud use.
 
-Local checks including the UI privacy patch: `1039` non-E2E tests passed,
-`3` platform-specific skips, `87.38%` measured coverage, plus one Chromium E2E.
-Two subsequent Windows-CI fixture fixes isolate the launcher's model environment
-and synchronize in-flight timeout tests; their focused regressions passed.
-Linux Python 3.11/3.13 and Chromium CI passed on `c431d31`; the Windows CI result
-is awaiting a rerun of those fixture fixes. Dependency auditing found no known vulnerabilities at this run.
-These are implementation checks, not successful cloud-model acceptance.
+Local private-import checks: `1145` non-E2E tests passed, `9` platform/link
+permission skips, `87.56%` measured coverage. The nine-source bundle also passed
+real offline CPU index construction and reuse without the image bundle; the
+index manifest timestamp was unchanged. Ruff/format and Bandit checks passed.
+The Windows CPU-default fixture now clears both model and semantic-threshold
+values left by the launcher. New Linux image, Windows and Chromium CI checks
+remain pending for this commit. These are implementation checks, not successful
+cloud-model acceptance.
 
 Record the source commit, image digest, deployment date, model name, CPU model
 identity and RAG manifest for this run. Do not replace historical release

@@ -29,11 +29,33 @@ jobs:
             echo "Unsafe startup accepted missing credentials"
             exit 1
           fi
+      - name: Prepare self-authored test corpus (no official-source redistribution)
+        run: |
+          mkdir -p "$RUNNER_TEMP/corpus-parent"
+          chmod 777 "$RUNNER_TEMP/corpus-parent"
+          docker run --rm --entrypoint python \
+            --mount type=bind,source="$RUNNER_TEMP/corpus-parent",target=/fixtures \
+            bushfire-cloud:test scripts/prepare_private_corpus.py \
+            --test-fixture --output /fixtures/corpus > "$RUNNER_TEMP/corpus-result.json"
+          export BUSHFIRE_RAG_CORPUS_SHA256="$(jq -r '.manifest_sha256' "$RUNNER_TEMP/corpus-result.json")"
+          echo "BUSHFIRE_RAG_CORPUS_SHA256=$BUSHFIRE_RAG_CORPUS_SHA256" >> "$GITHUB_ENV"
+          if docker run --rm \
+            --mount type=bind,source="$RUNNER_TEMP/corpus-parent/corpus",target=/opt/bushfire/corpus,readonly \
+            -e BUSHFIRE_RAG_CORPUS_SHA256 \
+            -e DEEPSEEK_API_KEY=ci-placeholder-no-api-calls \
+            -e BUSHFIRE_ACCESS_PASSWORD=ci-only-Disposable-Access-2026 \
+            bushfire-cloud:test --check-only > "$RUNNER_TEMP/rejected-fixture.log" 2>&1; then
+            echo "Unsafe production startup accepted a synthetic test corpus"
+            exit 1
+          fi
+          rg -F "Synthetic test-only corpus requires BUSHFIRE_CONTAINER_SMOKE=true." "$RUNNER_TEMP/rejected-fixture.log"
       - name: Start with a root-owned Railway-style persistent mount
         run: |
           docker volume create bushfire-smoke-data
           docker run -d --name bushfire-smoke --user 0:0 -p 8501:8501 \
-            --mount source=bushfire-smoke-data,target=/data \
+            --mount type=volume,source=bushfire-smoke-data,target=/data,volume-nocopy \
+            --mount type=bind,source="$RUNNER_TEMP/corpus-parent/corpus",target=/opt/bushfire/corpus,readonly \
+            -e BUSHFIRE_RAG_CORPUS_SHA256 \
             -e DEEPSEEK_API_KEY=ci-placeholder-no-api-calls \
             -e BUSHFIRE_ACCESS_PASSWORD=ci-only-Disposable-Access-2026 \
             -e BUSHFIRE_CONTAINER_SMOKE=true bushfire-cloud:test

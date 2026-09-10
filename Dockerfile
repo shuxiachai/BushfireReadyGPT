@@ -20,10 +20,10 @@ ENV BUSHFIRE_RAG_EMBED_PROVIDER=fastembed \
     BUSHFIRE_RAG_EMBED_MODEL=BAAI/bge-small-en-v1.5 \
     BUSHFIRE_RAG_EMBED_CACHE_DIR=/opt/bushfire/models \
     BUSHFIRE_RAG_EMBED_THREADS=2 \
-    BUSHFIRE_RAG_DIR=/opt/bushfire/seed/rag \
     BUSHFIRE_RAG_SOURCES_PATH=/app/data_australia/rag/sources.yml
 RUN BUSHFIRE_RAG_EMBED_LOCAL_FILES_ONLY=false python scripts/build_rag_index.py --prepare-embedding-only
-RUN python scripts/build_rag_index.py --download
+# Source websites are not queried by cloud builders. A verified private corpus
+# is imported and indexed once on the persistent volume at application startup.
 # The national map is optional locally but included in the complete cloud demo.
 # Raw downloads stay in this build stage; only processed data reaches the app image.
 ARG BUSHFIRE_INCLUDE_NATIONAL_MAP=true
@@ -38,7 +38,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONUTF8=1 \
     BUSHFIRE_RAG_EMBED_MODEL=BAAI/bge-small-en-v1.5 \
     BUSHFIRE_RAG_EMBED_CACHE_DIR=/opt/bushfire/models \
     BUSHFIRE_RAG_EMBED_THREADS=2 BUSHFIRE_RAG_EMBED_LOCAL_FILES_ONLY=true \
-    BUSHFIRE_RAG_SEED_DIR=/opt/bushfire/seed/rag \
+    BUSHFIRE_RAG_CORPUS_BUNDLE=/opt/bushfire/corpus \
     BUSHFIRE_PDF_FONT_PATH=/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc \
     LLM_PROVIDER=deepseek DEEPSEEK_MODEL=deepseek-v4-flash \
     BUSHFIRE_MODEL_MAX_RETRIES=0 BUSHFIRE_MODEL_TIMEOUT_SECONDS=120 \
@@ -52,6 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY --from=dependencies /opt/venv /opt/venv
 COPY --from=assets /opt/bushfire /opt/bushfire
+COPY deployment_corpus/ /opt/bushfire/corpus/
 COPY --from=assets /app/data_australia/processed ./data_australia/processed
 COPY data_australia ./data_australia
 COPY src ./src

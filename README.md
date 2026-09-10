@@ -26,8 +26,10 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 **Current release:** `v0.6.0`
 
 **Unreleased cloud deployment work:** Docker / Railway startup, versioned persistent
-RAG, fixed-revision CPU embeddings, shared access control and persistent daily
-model-call limits are implemented. See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
+RAG, verified private corpus import, fixed-revision CPU embeddings, shared access
+control and persistent daily model-call limits are implemented. Official source
+bytes do not enter the public repository; public image CI uses synthetic text.
+See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
 and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).
 The historical release measurements below do not certify this new cloud path.
 
@@ -228,7 +230,7 @@ still works in **local mode** if the optional index is absent, stale or disabled
 report model. See [docs/rag.md](docs/rag.md) for the data contract, integrity
 checks, evaluation method and safety boundary.
 
-Cloud mode requires a verified CPU RAG seed and fails closed on index or embedding
+Cloud mode requires a verified private corpus and CPU RAG index and fails closed on index or embedding
 infrastructure errors. Valid no-match results remain explicitly labelled; they
 are not treated as evidence. Its model/index identities and metrics are separate
 from the Ollama release benchmark.
