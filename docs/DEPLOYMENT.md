@@ -483,6 +483,12 @@ later audit. Consult the audit record for its own validation and rollout status.
 The frozen private RAG index is deliberately reused; corrected chunk sizing
 requires a separately reviewed build and evaluation before replacing it.
 
+Audit repair source `efe8c843a85b415ebabb4565cb040197a0ac0210` subsequently
+deployed successfully as `d82e415d-76bd-4f4d-a99a-16e8f442e4b2` on 2026-09-10.
+Its health endpoint returned 200 (`ok`) and startup confirmed the unchanged
+private corpus/index identities. See the audit record for image identity and
+source-specific regression results. This adds no post-audit real-model acceptance.
+
 These checks establish real cloud generation and revision for one synthetic
 scenario, not external-user outcomes, all-scenario regression or production
 readiness. The follow-up deployment establishes private-index reuse only; do not

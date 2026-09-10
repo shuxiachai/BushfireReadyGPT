@@ -29,7 +29,7 @@
 | Windows 真实启动入口 | 2 passed；在正常权限下单独运行，避开沙箱端口检查限制 |
 | Chromium 浏览器回归 | 最终 3 passed，43.17 秒：普通下载/签审、口令保护 Blob 下载/签审、双会话鉴权隔离 |
 | 静态与依赖检查 | Ruff、Bandit、Poetry 锁文件、已安装依赖一致性通过；`pip-audit` 未发现已知漏洞 |
-| 历史发布证据 | `v0.5.0`、`v0.6.0` 离线 dirty-tree 诊断通过；干净提交核验另行执行，不将诊断模式冒充干净树验证 |
+| 历史发布证据 | `v0.5.0`、`v0.6.0` 在修复提交的干净工作树上离线核验通过，无 dirty override；旧策略指纹不变 |
 
 非 E2E 的 5 项未选测试是上述 2 项独立启动测试和 3 项浏览器测试；合计 1,382 个独立用例通过，重复运行不重复计数。9 项跳过与平台/符号链接权限有关，不计为通过。
 
@@ -49,6 +49,35 @@
 | 第二次相同内容 | 0.255 秒 | 0.522 秒 | 本阶段每 5 ms 采样，观测到的最高工作集 35.52 MiB |
 
 两次均通过结构与哈希校验，前后来源指纹一致。第二次的采样值不是操作系统精确峰值，也不能与不可重置的生命周期峰值混淆。首次新地图仍完整解析 JSON，约 921 MiB 的开销尚未消除；小内存部署仍需单独做冷启动/地图容量测试。这不是流式低内存解析实现，也不是 Railway 性能测量。
+
+## 上线记录
+
+修复源提交的 [Tests](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34451126942)
+与 [Docker cloud smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34451126999)
+均成功，5 个 job 全部通过：
+
+| 远端检查 | 该次运行的结果 |
+| --- | --- |
+| Linux / Python 3.11 | 1,375 passed、13 skipped；覆盖率 88.55% |
+| Linux / Python 3.13 | 1,375 passed、13 skipped；覆盖率 88.56% |
+| Windows / Python 3.13 | 1,385 passed、3 skipped；本 job 不采集覆盖率 |
+| Chromium | 3 passed；两类签审下载与双会话鉴权回归 |
+| Linux Docker | 首次启动/重启 smoke 通过，UID 10001、合成资料检索、中文导出和持久配额检查通过 |
+
+各非 E2E job 单独排除 3 项浏览器测试，未将跳过用例计为通过。静态检查、依赖审计及干净 Git 历史发布核验也通过。Windows 本地与 CI 的通过/跳过差异来自运行环境和符号链接权限，不能混合覆盖率口径。
+
+修复源提交 [`efe8c84`](https://github.com/shuxiachai/BushfireReadyGPT/commit/efe8c843a85b415ebabb4565cb040197a0ac0210)
+已推送 `main`。Railway 部署 `d82e415d-76bd-4f4d-a99a-16e8f442e4b2`
+于 2026-09-10 达到 `SUCCESS`，镜像为
+`sha256:e1c7e5a373b43c0f5f938b6d3833bc5f4c27c5499d62d926f2692786cb37eb17`。
+公开健康接口返回 HTTP 200（`ok`），启动记录为 `container_ready=true`、DeepSeek、RAG `ready`。
+
+此次复用原有持久卷，未重建索引；内容身份保持：
+
+- Corpus manifest：`c947360236f993d2984fafed0bb46b8e7020335ee4ef4bd65dc4375e8d23fcc2`。
+- RAG manifest：`f1d4587e0a0f3648190febac62be8ef358961a27701ab2efb292c6b79b677c45`。
+
+健康和索引复用不证明真实模型正文质量，也不证明所有审计、Trace、配额及保存报告的完整恢复。本次未新增真实模型调用，真实生成/签审/导出验收仍为独立后续工作。
 
 ## 保留边界与后续工作
 

@@ -51,6 +51,8 @@ and CPU-provider startup. Saving a review now refreshes previews and downloads
 before confirming success, including password-protected browser exports; cloud
 export errors no longer expose raw internal paths. See the
 [audit findings, regression evidence and remaining limits](docs/PROJECT_AUDIT_2026-09-10.md).
+Audit repair source `efe8c84` passed Linux, Windows, Chromium and Docker CI and
+is deployed on Railway; health and unchanged private-index reuse are verified.
 Existing frozen RAG indexes and historical release artifacts are not rebuilt or
 rewritten by these fixes. New chunking applies to future controlled index builds.
 
