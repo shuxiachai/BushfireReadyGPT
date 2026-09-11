@@ -1,0 +1,1318 @@
+{
+  "artifact_schema": "rag-form-context-diagnostic-v1",
+  "suite_schema": "rag-form-context-suite-v1",
+  "suite_sha256": "d7806a2a9a44a5622d621b2de6e3715572ff461bf012642cb1fd453c68a83936",
+  "prompt_stage": "initial_generation",
+  "prompt_boundary": "governed_model_client_user_message_after_strip",
+  "matching_rule": "case_insensitive_literal_phrases_in_one_expected_source_chunk; visible_requires_raw_match",
+  "release_gate": {
+    "active": false,
+    "passed": null
+  },
+  "run": {
+    "started_at_utc": "2026-09-11T07:17:38+00:00",
+    "questions_file": "data_australia/rag/form_evaluation_v1.json",
+    "questions_sha256": "29b22bd350c1068f0de394db64c0867f79e9e368f603d90c7ac4eb5da267e1b1",
+    "questions_hash_basis": "exact_file_bytes",
+    "questions_schema_version": 1,
+    "git": {
+      "commit": "65e23519fb760200c6ff5e0b317586e05cd3f763",
+      "working_tree_dirty": false,
+      "collection_status": "collected"
+    },
+    "rag_index": {
+      "status": "verified",
+      "schema": "bushfire-rag-index-v3",
+      "manifest_sha256": "065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39",
+      "catalog_sha256": "49e48740d72b06a672962226496108c26221231a235428e1c6c66795e260c5f1",
+      "corpus_sha256": "02cba70434724c2829851bd382d57b3ff5c8c8dbd2d0043defdcfa1426083fd8",
+      "documents_sha256": "1b21fe597f79c86797a5045b5f5098af482cae2d133161ede476fe85d4288bcc",
+      "embedding_dimension": 384,
+      "embedding_provider": "fastembed",
+      "embedding_identity": {
+        "provider": "fastembed",
+        "model": "BAAI/bge-small-en-v1.5",
+        "dimension": 384,
+        "repository": "Qdrant/bge-small-en-v1.5-onnx-Q",
+        "revision": "52398278842ec682c6f32300af41344b1c0b0bb2",
+        "encoding": "fastembed-raw-text-v1",
+        "runtime": {
+          "fastembed": "0.8.0",
+          "onnxruntime": "1.29.0"
+        },
+        "files": [
+          {
+            "path": "config.json",
+            "size_bytes": 706,
+            "sha256": "13582bcf2effc85b7bf3d3f5532e686bc1c9ce86bb009d10f0ec33cbe92299dd"
+          },
+          {
+            "path": "model_optimized.onnx",
+            "size_bytes": 66465124,
+            "sha256": "51f1bd0addd6e859e42c2c8021a5e5461385bb676a649f4b269aa445449f2431"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "size_bytes": 695,
+            "sha256": "5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a"
+          },
+          {
+            "path": "tokenizer.json",
+            "size_bytes": 711396,
+            "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size_bytes": 1242,
+            "sha256": "0b29c7bfc889e53b36d9dd3e686dd4300f6525110eaa98c76a5dafceb2029f53"
+          },
+          {
+            "path": "vocab.txt",
+            "size_bytes": 231508,
+            "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+          }
+        ],
+        "digest": "c53c5f9494de9802b39f3a6693a1840400178a368117e63e402b047acc1bda51"
+      },
+      "source_count": 9,
+      "chunk_count": 28,
+      "built_at_utc": "2026-09-10T03:39:02+00:00"
+    },
+    "embedding_model": {
+      "name": "BAAI/bge-small-en-v1.5",
+      "digest": "c53c5f9494de9802b39f3a6693a1840400178a368117e63e402b047acc1bda51",
+      "digest_status": "resolved",
+      "provider": "fastembed",
+      "dimension": 384
+    },
+    "model_identity_observation": "pinned_local_model_files_hashed_and_checked_at_retrieval_boundaries",
+    "provenance_stability": {
+      "checked": true,
+      "stable": true,
+      "drift_fields": []
+    },
+    "completed_at_utc": "2026-09-11T07:17:45+00:00"
+  },
+  "rows": [
+    {
+      "id": "tas_school_7day",
+      "form_sha256": "33d314ecdf3a04de19a038cc1ea3cb47709b6c00c6b7fbd81d21b268a93d5d68",
+      "query": {
+        "schema": "official-form-query-v1",
+        "sha256": "92b767591ef820e4578d16f09da2a0fa837d1329747cc1dab87e6e0992ea6f51",
+        "components_sha256": "f21c3adf509bb326540e5fd3809542f01d4a94ec1d0b95161fdae996412aea6a"
+      },
+      "profile": {
+        "state": "Tasmania",
+        "locality": "Hobart, Tasmania",
+        "setting_type": "campus",
+        "scenario_id": "school_preparedness",
+        "timeframe_id": "seven_day",
+        "focus_ids": [
+          "evacuation",
+          "candidate_assembly_points",
+          "first_aid"
+        ]
+      },
+      "status": "ready",
+      "retrieval_configuration": {
+        "query_scope": "structured_planning",
+        "top_k": 8,
+        "candidate_k": 32,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.7,
+          "semantic_coverage_threshold": 0.2
+        },
+        "effective_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.35,
+          "semantic_score_threshold": 0.35,
+          "semantic_coverage_threshold": 0.1
+        }
+      },
+      "index_manifest_sha256": "065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39",
+      "data_provenance_sha256": "1d7c42402027a9213482cc9c8d1ba7c8c6e8ecfe05506fe7dfe48c5d4a72a117",
+      "initial_prompt": {
+        "sha256": "7879ba2ae8f3a19cbe8f6b285fbe5693cbe8622bda063c2109c7869f74cf27b3",
+        "characters": 21275,
+        "context_start": 3549,
+        "context_end": 8186
+      },
+      "assembly": {
+        "schema": "rag-context-assembly-v1",
+        "length_unit": "unicode_code_points",
+        "max_characters": 8000,
+        "max_chunk_characters": 2200,
+        "context_characters": 4637,
+        "context_sha256": "8db30a428f18bbba775ea31a357437aa203c06b64f41d1e47621e99d1dfbe87d",
+        "retrieved_count": 2,
+        "included_count": 2,
+        "chunks": [
+          {
+            "retrieved_rank": 1,
+            "source_id": "tas_community_protection_plan",
+            "chunk_id": "c05ae179d0ae0fe4917d0de777158087b0b832b0eb83f05e06b11a9728224b52",
+            "declared_chunk_sha256": "85e86a01e188992ef4c245e6ebc70d2ce5a42abbba71fce68b6c318fb7944a1f",
+            "raw_text_sha256": "85e86a01e188992ef4c245e6ebc70d2ce5a42abbba71fce68b6c318fb7944a1f",
+            "raw_characters": 2833,
+            "sanitised_text_sha256": "4f666128a92511c61bf3bc73e7691a704ddcfa276c3c3e5620a87df32d0a24b9",
+            "sanitised_characters": 2883,
+            "included": true,
+            "reason": "per_chunk_character_budget",
+            "visible_start": 0,
+            "visible_end": 2200,
+            "visible_text_sha256": "e4924aaf266e63342ba6982e4e6b9a9c364eb8c2ec7c94b9a5fd6e73a13a7f4c",
+            "context_start": 1102,
+            "context_end": 3302
+          },
+          {
+            "retrieved_rank": 2,
+            "source_id": "tas_community_protection_plan",
+            "chunk_id": "e7e6a92db70e254d5022087f017531f85f9667fcc82c7735e22417c540e6bf24",
+            "declared_chunk_sha256": "8506b8cb23201b81014c4b910cb6289f8845e57bc8e0d952cce8b8c4ab46f015",
+            "raw_text_sha256": "8506b8cb23201b81014c4b910cb6289f8845e57bc8e0d952cce8b8c4ab46f015",
+            "raw_characters": 967,
+            "sanitised_text_sha256": "9ff9a8c91af5ff5375adc405a8317bab34aa5188828d233495a42d2f9b27f12b",
+            "sanitised_characters": 992,
+            "included": true,
+            "reason": "complete",
+            "visible_start": 0,
+            "visible_end": 992,
+            "visible_text_sha256": "9ff9a8c91af5ff5375adc405a8317bab34aa5188828d233495a42d2f9b27f12b",
+            "context_start": 3614,
+            "context_end": 4606
+          }
+        ]
+      },
+      "targets": [
+        {
+          "id": "tas_not_centres",
+          "focus_id": "candidate_assembly_points",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    2255,
+                    2277
+                  ],
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    2281,
+                    2295
+                  ],
+                  "visible_span": null
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 2,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1,
+            2
+          ],
+          "retrieved_passage_ranks": [
+            1
+          ],
+          "visible_passage_ranks": []
+        },
+        {
+          "id": "tas_evacuation_amenities",
+          "focus_id": "evacuation",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 2,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    536,
+                    550
+                  ],
+                  "visible_span": [
+                    561,
+                    575
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    555,
+                    572
+                  ],
+                  "visible_span": [
+                    580,
+                    597
+                  ]
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1,
+            2
+          ],
+          "retrieved_passage_ranks": [
+            2
+          ],
+          "visible_passage_ranks": [
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qld_council_month",
+      "form_sha256": "ae198c68f090ee5fd6fb6ae0f744f043914b1358fe5446fc747e8e05eba20045",
+      "query": {
+        "schema": "official-form-query-v1",
+        "sha256": "4ed6ad8624fe2245772bb52f5ba7671a0084abc30d210acbcc3e8a48bc3b4432",
+        "components_sha256": "f7e9508a5b38f2c770b9774a2d24f6e33dee8d1c5a906bc4850c74fa4f60040d"
+      },
+      "profile": {
+        "state": "Queensland",
+        "locality": "Cairns",
+        "setting_type": "community",
+        "scenario_id": "council_community_preparedness",
+        "timeframe_id": "this_month",
+        "focus_ids": [
+          "evacuation",
+          "communications",
+          "human_review"
+        ]
+      },
+      "status": "ready",
+      "retrieval_configuration": {
+        "query_scope": "structured_planning",
+        "top_k": 8,
+        "candidate_k": 32,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.7,
+          "semantic_coverage_threshold": 0.2
+        },
+        "effective_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.35,
+          "semantic_score_threshold": 0.35,
+          "semantic_coverage_threshold": 0.1
+        }
+      },
+      "index_manifest_sha256": "065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39",
+      "data_provenance_sha256": "1d7c42402027a9213482cc9c8d1ba7c8c6e8ecfe05506fe7dfe48c5d4a72a117",
+      "initial_prompt": {
+        "sha256": "f87766959875af902256809b22abd088b2961777c8f9cef82d1c6b5ec11acfc2",
+        "characters": 26490,
+        "context_start": 5735,
+        "context_end": 12716
+      },
+      "assembly": {
+        "schema": "rag-context-assembly-v1",
+        "length_unit": "unicode_code_points",
+        "max_characters": 8000,
+        "max_chunk_characters": 2200,
+        "context_characters": 6981,
+        "context_sha256": "3f191c1187a143e4d0fa29ce4ded56a4047c11381eced2ce00ac77983ae405cd",
+        "retrieved_count": 4,
+        "included_count": 3,
+        "chunks": [
+          {
+            "retrieved_rank": 1,
+            "source_id": "qld_evacuation_plan",
+            "chunk_id": "495b7c0a88d224b6a04982cd4475bf17aa475dd2a44df48be0319819954678fe",
+            "declared_chunk_sha256": "dc916532fb552b0bf225c8d36dbe98aa3d9c6f7e508a7572492f6a60fc7f6fe8",
+            "raw_text_sha256": "dc916532fb552b0bf225c8d36dbe98aa3d9c6f7e508a7572492f6a60fc7f6fe8",
+            "raw_characters": 1850,
+            "sanitised_text_sha256": "dc916532fb552b0bf225c8d36dbe98aa3d9c6f7e508a7572492f6a60fc7f6fe8",
+            "sanitised_characters": 1850,
+            "included": true,
+            "reason": "complete",
+            "visible_start": 0,
+            "visible_end": 1850,
+            "visible_text_sha256": "dc916532fb552b0bf225c8d36dbe98aa3d9c6f7e508a7572492f6a60fc7f6fe8",
+            "context_start": 1102,
+            "context_end": 2952
+          },
+          {
+            "retrieved_rank": 2,
+            "source_id": "qld_prepare_home",
+            "chunk_id": "226aafebd8bcfcea29e4ea89856c14f9acc7c887035fd39cae5098a9c9cce2d9",
+            "declared_chunk_sha256": "e2350ba9894f2287ad45dabc6597b4ceb65a5a6cb935ccf65d3cdbbecddd1429",
+            "raw_text_sha256": "e2350ba9894f2287ad45dabc6597b4ceb65a5a6cb935ccf65d3cdbbecddd1429",
+            "raw_characters": 2564,
+            "sanitised_text_sha256": "e2350ba9894f2287ad45dabc6597b4ceb65a5a6cb935ccf65d3cdbbecddd1429",
+            "sanitised_characters": 2564,
+            "included": true,
+            "reason": "per_chunk_character_budget",
+            "visible_start": 0,
+            "visible_end": 2200,
+            "visible_text_sha256": "802340ecf8f2178ddafbc09b212531af2052b6bdb83825092c4d677689b689c3",
+            "context_start": 3264,
+            "context_end": 5464
+          },
+          {
+            "retrieved_rank": 3,
+            "source_id": "qld_prepare_home",
+            "chunk_id": "8042899a685a8b8e45bbd9c24de4a6c6c23bd1e4304a83a0a2f1ef3e15aa4033",
+            "declared_chunk_sha256": "cddc1c8cf24d8debd6bd06b5846bb04143e2ee3c43049e5096612d31c746fe38",
+            "raw_text_sha256": "cddc1c8cf24d8debd6bd06b5846bb04143e2ee3c43049e5096612d31c746fe38",
+            "raw_characters": 1170,
+            "sanitised_text_sha256": "cddc1c8cf24d8debd6bd06b5846bb04143e2ee3c43049e5096612d31c746fe38",
+            "sanitised_characters": 1170,
+            "included": true,
+            "reason": "complete",
+            "visible_start": 0,
+            "visible_end": 1170,
+            "visible_text_sha256": "cddc1c8cf24d8debd6bd06b5846bb04143e2ee3c43049e5096612d31c746fe38",
+            "context_start": 5780,
+            "context_end": 6950
+          },
+          {
+            "retrieved_rank": 4,
+            "source_id": "qld_prepare_home",
+            "chunk_id": "c4a6ada5757d6a87b8f29767af61e93129e65cc6a43548e797d4411175eca394",
+            "declared_chunk_sha256": "bbe2108cb7b9469e6797a69306f7ec49f30df3b362a84f4321601b97344b989b",
+            "raw_text_sha256": "bbe2108cb7b9469e6797a69306f7ec49f30df3b362a84f4321601b97344b989b",
+            "raw_characters": 2495,
+            "sanitised_text_sha256": "bbe2108cb7b9469e6797a69306f7ec49f30df3b362a84f4321601b97344b989b",
+            "sanitised_characters": 2495,
+            "included": false,
+            "reason": "total_character_budget",
+            "visible_start": null,
+            "visible_end": null,
+            "visible_text_sha256": null,
+            "context_start": null,
+            "context_end": null
+          }
+        ]
+      },
+      "targets": [
+        {
+          "id": "qld_local_routes",
+          "focus_id": "evacuation",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    280,
+                    293
+                  ],
+                  "visible_span": [
+                    280,
+                    293
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    426,
+                    453
+                  ],
+                  "visible_span": [
+                    426,
+                    453
+                  ]
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1
+          ],
+          "retrieved_passage_ranks": [
+            1
+          ],
+          "visible_passage_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "qld_support_agencies",
+          "focus_id": "communications",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    562,
+                    578
+                  ],
+                  "visible_span": [
+                    562,
+                    578
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    643,
+                    660
+                  ],
+                  "visible_span": [
+                    643,
+                    660
+                  ]
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1
+          ],
+          "retrieved_passage_ranks": [
+            1
+          ],
+          "visible_passage_ranks": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nt_workshop_season",
+      "form_sha256": "fdcca7d4025eefc235aca6daa98bb873ffc8525989a2597d8220f1c956640ca1",
+      "query": {
+        "schema": "official-form-query-v1",
+        "sha256": "438827a99f4eac17bdf0c7d591379606f914897191efc194eadc7cb0469b4db7",
+        "components_sha256": "1c8795129d49bafe321fefae152f07d87d4c3d198ca0d94f1de2e237c4497efa"
+      },
+      "profile": {
+        "state": "Northern Territory",
+        "locality": "Darwin, Northern Territory",
+        "setting_type": "community",
+        "scenario_id": "community_workshop",
+        "timeframe_id": "before_next_season",
+        "focus_ids": [
+          "communications",
+          "official_sources",
+          "power_continuity"
+        ]
+      },
+      "status": "no_match",
+      "retrieval_configuration": {
+        "query_scope": "structured_planning",
+        "top_k": 8,
+        "candidate_k": 32,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.7,
+          "semantic_coverage_threshold": 0.2
+        },
+        "effective_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.35,
+          "semantic_score_threshold": 0.35,
+          "semantic_coverage_threshold": 0.1
+        }
+      },
+      "index_manifest_sha256": "065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39",
+      "data_provenance_sha256": "1d7c42402027a9213482cc9c8d1ba7c8c6e8ecfe05506fe7dfe48c5d4a72a117",
+      "initial_prompt": {
+        "sha256": "7964ec2bb01aaa75c76080abde89cd972275f7e4da9ecb5705bf75550cfa732b",
+        "characters": 16547,
+        "context_start": 3495,
+        "context_end": 3565
+      },
+      "assembly": {
+        "schema": "rag-context-assembly-v1",
+        "length_unit": "unicode_code_points",
+        "max_characters": 8000,
+        "max_chunk_characters": 2200,
+        "context_characters": 70,
+        "context_sha256": "33de843bdfb895d87c9cf11888acfa015e662a490c3f6cbe86bc1aeabe722509",
+        "retrieved_count": 0,
+        "included_count": 0,
+        "chunks": []
+      },
+      "targets": [
+        {
+          "id": "nt_alert_channels",
+          "focus_id": "communications",
+          "witnesses": [],
+          "retrieved_source_ranks": [],
+          "retrieved_passage_ranks": [],
+          "visible_passage_ranks": []
+        },
+        {
+          "id": "nt_three_alerts",
+          "focus_id": "official_sources",
+          "witnesses": [],
+          "retrieved_source_ranks": [],
+          "retrieved_passage_ranks": [],
+          "visible_passage_ranks": []
+        }
+      ]
+    },
+    {
+      "id": "nsw_household_7day",
+      "form_sha256": "b2669fa9899b57857e806a50d07850392b38561b3c7e29bbeee3b742aebfb3df",
+      "query": {
+        "schema": "official-form-query-v1",
+        "sha256": "484745cc06b9b79208e8b612228a437600df05088551277c5e3b3204daf6a99c",
+        "components_sha256": "0be3f23acc84d9401362a5b88b5200fca662be314cab89edb489439d3c233996"
+      },
+      "profile": {
+        "state": "New South Wales",
+        "locality": "Sydney, New South Wales",
+        "setting_type": "household",
+        "scenario_id": "household_preparedness",
+        "timeframe_id": "seven_day",
+        "focus_ids": [
+          "evacuation",
+          "communications",
+          "roles"
+        ]
+      },
+      "status": "ready",
+      "retrieval_configuration": {
+        "query_scope": "structured_planning",
+        "top_k": 8,
+        "candidate_k": 32,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.7,
+          "semantic_coverage_threshold": 0.2
+        },
+        "effective_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.35,
+          "semantic_score_threshold": 0.35,
+          "semantic_coverage_threshold": 0.1
+        }
+      },
+      "index_manifest_sha256": "065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39",
+      "data_provenance_sha256": "1d7c42402027a9213482cc9c8d1ba7c8c6e8ecfe05506fe7dfe48c5d4a72a117",
+      "initial_prompt": {
+        "sha256": "43c5a70c3599fd779998ec2a68811da68264c3bbb23ad75a47fb06bff3d996c2",
+        "characters": 19372,
+        "context_start": 3483,
+        "context_end": 6245
+      },
+      "assembly": {
+        "schema": "rag-context-assembly-v1",
+        "length_unit": "unicode_code_points",
+        "max_characters": 8000,
+        "max_chunk_characters": 2200,
+        "context_characters": 2762,
+        "context_sha256": "d83f18b73ff36ca757669bd82bc8e6acc5ebdacbe84c1fa375296885efbd38d3",
+        "retrieved_count": 1,
+        "included_count": 1,
+        "chunks": [
+          {
+            "retrieved_rank": 1,
+            "source_id": "nsw_bush_fire_survival_plan",
+            "chunk_id": "74e8456863cc5c697240064e4f1f95d561d0d18e81628de48a2c6725cad1e5da",
+            "declared_chunk_sha256": "3c14aa6d5e0717236858491304c3f91142543dcafdbc6888c4f2128f52636352",
+            "raw_text_sha256": "3c14aa6d5e0717236858491304c3f91142543dcafdbc6888c4f2128f52636352",
+            "raw_characters": 1603,
+            "sanitised_text_sha256": "5bcba82734fe7b77f9f2a34f79ad248e3622f5fb971e8b4fd8574563f0b4cfc1",
+            "sanitised_characters": 1629,
+            "included": true,
+            "reason": "complete",
+            "visible_start": 0,
+            "visible_end": 1629,
+            "visible_text_sha256": "5bcba82734fe7b77f9f2a34f79ad248e3622f5fb971e8b4fd8574563f0b4cfc1",
+            "context_start": 1102,
+            "context_end": 2731
+          }
+        ]
+      },
+      "targets": [
+        {
+          "id": "nsw_four_steps",
+          "focus_id": "evacuation",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    411,
+                    428
+                  ],
+                  "visible_span": [
+                    437,
+                    454
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    288,
+                    295
+                  ],
+                  "visible_span": [
+                    314,
+                    321
+                  ]
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1
+          ],
+          "retrieved_passage_ranks": [
+            1
+          ],
+          "visible_passage_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "nsw_keep_informed",
+          "focus_id": "communications",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    1317,
+                    1343
+                  ],
+                  "visible_span": [
+                    1343,
+                    1369
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    1384,
+                    1399
+                  ],
+                  "visible_span": [
+                    1410,
+                    1425
+                  ]
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1
+          ],
+          "retrieved_passage_ranks": [
+            1
+          ],
+          "visible_passage_ranks": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vic_care_month",
+      "form_sha256": "c2ae141b0e3e5f646b8d2527d56dd275bab2c243d5b5d2f2f0d0c14f28c28fa5",
+      "query": {
+        "schema": "official-form-query-v1",
+        "sha256": "1b0e8343ae22fbc795b2187c0b141015907ee8dedee957977e89478b4f829499",
+        "components_sha256": "7de6db5292aa4c40f92325288038a25fd3ab43a0456e568edd1d2f639fa5ec44"
+      },
+      "profile": {
+        "state": "Victoria",
+        "locality": "Melbourne, Victoria",
+        "setting_type": "aged_care",
+        "scenario_id": "aged_care_preparedness",
+        "timeframe_id": "this_month",
+        "focus_ids": [
+          "evacuation",
+          "communications",
+          "smoke_health"
+        ]
+      },
+      "status": "ready",
+      "retrieval_configuration": {
+        "query_scope": "structured_planning",
+        "top_k": 8,
+        "candidate_k": 32,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.7,
+          "semantic_coverage_threshold": 0.2
+        },
+        "effective_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.35,
+          "semantic_score_threshold": 0.35,
+          "semantic_coverage_threshold": 0.1
+        }
+      },
+      "index_manifest_sha256": "065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39",
+      "data_provenance_sha256": "1d7c42402027a9213482cc9c8d1ba7c8c6e8ecfe05506fe7dfe48c5d4a72a117",
+      "initial_prompt": {
+        "sha256": "74413850056cbcb3d200fef2ad27c58750ae8213b697d46f31af0e1082ab3ed5",
+        "characters": 24209,
+        "context_start": 3958,
+        "context_end": 11114
+      },
+      "assembly": {
+        "schema": "rag-context-assembly-v1",
+        "length_unit": "unicode_code_points",
+        "max_characters": 8000,
+        "max_chunk_characters": 2200,
+        "context_characters": 7156,
+        "context_sha256": "a9a59c3a3bf03197a1326f0ba7ed164310b4736cb0c25035fe57a662f84ba2a3",
+        "retrieved_count": 3,
+        "included_count": 3,
+        "chunks": [
+          {
+            "retrieved_rank": 1,
+            "source_id": "vic_your_bushfire_plan",
+            "chunk_id": "e115806894745c55ed363e3ccc81a956e0b71afa4652df9679c2247f5986c0d0",
+            "declared_chunk_sha256": "668b5f8b02299937462afbf2123f407b6bc68bed6473905140b1d10282224bc2",
+            "raw_text_sha256": "668b5f8b02299937462afbf2123f407b6bc68bed6473905140b1d10282224bc2",
+            "raw_characters": 2259,
+            "sanitised_text_sha256": "668b5f8b02299937462afbf2123f407b6bc68bed6473905140b1d10282224bc2",
+            "sanitised_characters": 2259,
+            "included": true,
+            "reason": "per_chunk_character_budget",
+            "visible_start": 0,
+            "visible_end": 2200,
+            "visible_text_sha256": "2d92695d91917a819dc390bfc15b61f642a877dd6b4382ce08272de011b872c9",
+            "context_start": 1102,
+            "context_end": 3302
+          },
+          {
+            "retrieved_rank": 2,
+            "source_id": "vic_your_bushfire_plan",
+            "chunk_id": "8b7b2a62db4a5921b33788b1f082e5b256c9419ef3239e0c7e603191bac63ed0",
+            "declared_chunk_sha256": "5a8b0917d5f89d705f4a372c542fe344e520be40efcb51e9ca9ba7b7c49cb1c1",
+            "raw_text_sha256": "5a8b0917d5f89d705f4a372c542fe344e520be40efcb51e9ca9ba7b7c49cb1c1",
+            "raw_characters": 2226,
+            "sanitised_text_sha256": "5a8b0917d5f89d705f4a372c542fe344e520be40efcb51e9ca9ba7b7c49cb1c1",
+            "sanitised_characters": 2226,
+            "included": true,
+            "reason": "per_chunk_character_budget",
+            "visible_start": 0,
+            "visible_end": 2200,
+            "visible_text_sha256": "4d50a146800ffe3b61dc6521d35ecd4bead1521b56788fad63d84306c9575640",
+            "context_start": 3614,
+            "context_end": 5814
+          },
+          {
+            "retrieved_rank": 3,
+            "source_id": "vic_your_bushfire_plan",
+            "chunk_id": "e777996c9b78eacbea921c90721c25d601125063f055afdf9d70e2d2fe7a0885",
+            "declared_chunk_sha256": "95d216bab2826a8372e259c08be0c44ed195c832760dc1cdd9bcdedfd722f07d",
+            "raw_text_sha256": "95d216bab2826a8372e259c08be0c44ed195c832760dc1cdd9bcdedfd722f07d",
+            "raw_characters": 999,
+            "sanitised_text_sha256": "95d216bab2826a8372e259c08be0c44ed195c832760dc1cdd9bcdedfd722f07d",
+            "sanitised_characters": 999,
+            "included": true,
+            "reason": "complete",
+            "visible_start": 0,
+            "visible_end": 999,
+            "visible_text_sha256": "95d216bab2826a8372e259c08be0c44ed195c832760dc1cdd9bcdedfd722f07d",
+            "context_start": 6126,
+            "context_end": 7125
+          }
+        ]
+      },
+      "targets": [
+        {
+          "id": "vic_care_support",
+          "focus_id": "evacuation",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    855,
+                    871
+                  ],
+                  "visible_span": [
+                    855,
+                    871
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    941,
+                    951
+                  ],
+                  "visible_span": [
+                    941,
+                    951
+                  ]
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 2,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 3,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1,
+            2,
+            3
+          ],
+          "retrieved_passage_ranks": [
+            1
+          ],
+          "visible_passage_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "vic_share_plan",
+          "focus_id": "communications",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 2,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 3,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    450,
+                    480
+                  ],
+                  "visible_span": [
+                    450,
+                    480
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    414,
+                    431
+                  ],
+                  "visible_span": [
+                    414,
+                    431
+                  ]
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1,
+            2,
+            3
+          ],
+          "retrieved_passage_ranks": [
+            3
+          ],
+          "visible_passage_ranks": [
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "act_farm_long_term",
+      "form_sha256": "91dca286d297ac6ddf07b2af977f202ae1c43ecfce82e50c0a1a75876625bec0",
+      "query": {
+        "schema": "official-form-query-v1",
+        "sha256": "ac695716095d007e64085a2302fe8393cc6b8f7934431e4f7d1d7b1cfdefd3ac",
+        "components_sha256": "e9c0f4945b450b5f6a919a00f5a6c666bfd4b397e43b4b27a681153637b5a3c4"
+      },
+      "profile": {
+        "state": "Australian Capital Territory",
+        "locality": "Canberra, Australian Capital Territory",
+        "setting_type": "farm",
+        "scenario_id": "farm_land_management",
+        "timeframe_id": "long_term_resilience",
+        "focus_ids": [
+          "road_access",
+          "official_sources",
+          "power_continuity",
+          "communications"
+        ]
+      },
+      "status": "ready",
+      "retrieval_configuration": {
+        "query_scope": "structured_planning",
+        "top_k": 8,
+        "candidate_k": 32,
+        "candidate_multiplier": 4,
+        "dense_weight": 0.65,
+        "lexical_weight": 0.35,
+        "max_chunks_per_source": 3,
+        "configured_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.61,
+          "semantic_score_threshold": 0.7,
+          "semantic_coverage_threshold": 0.2
+        },
+        "effective_thresholds": {
+          "dense_score_threshold": 0.35,
+          "lexical_coverage_threshold": 0.35,
+          "semantic_score_threshold": 0.35,
+          "semantic_coverage_threshold": 0.1
+        }
+      },
+      "index_manifest_sha256": "065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39",
+      "data_provenance_sha256": "1d7c42402027a9213482cc9c8d1ba7c8c6e8ecfe05506fe7dfe48c5d4a72a117",
+      "initial_prompt": {
+        "sha256": "a8027e7561bb6e749bf22dc44ffd7a0226b0bef8d9ca5b82294b996d431050ea",
+        "characters": 21753,
+        "context_start": 3224,
+        "context_end": 8773
+      },
+      "assembly": {
+        "schema": "rag-context-assembly-v1",
+        "length_unit": "unicode_code_points",
+        "max_characters": 8000,
+        "max_chunk_characters": 2200,
+        "context_characters": 5549,
+        "context_sha256": "6738b69fdb560853de6e1d9b1cdc27e1630168996ffb688b35e3799d1aff76ae",
+        "retrieved_count": 3,
+        "included_count": 2,
+        "chunks": [
+          {
+            "retrieved_rank": 1,
+            "source_id": "act_bushfire_readiness",
+            "chunk_id": "4f9ee50992258c8e084006054a089cb0bf4cd7ebe27283a674c61282e88fa9d5",
+            "declared_chunk_sha256": "d6a63f516cf3cb19d40a45129324a01fe0374f6730186c9bbcbbd7304786a6d2",
+            "raw_text_sha256": "d6a63f516cf3cb19d40a45129324a01fe0374f6730186c9bbcbbd7304786a6d2",
+            "raw_characters": 1922,
+            "sanitised_text_sha256": "fcd9f39f69f83782368bcf96a3551001e1aa925d07054055bb9c7c9f8815f08a",
+            "sanitised_characters": 1921,
+            "included": true,
+            "reason": "complete",
+            "visible_start": 0,
+            "visible_end": 1921,
+            "visible_text_sha256": "fcd9f39f69f83782368bcf96a3551001e1aa925d07054055bb9c7c9f8815f08a",
+            "context_start": 1103,
+            "context_end": 3024
+          },
+          {
+            "retrieved_rank": 2,
+            "source_id": "act_bushfire_readiness",
+            "chunk_id": "93b2f456e48c5724ecab7e69187e029ca78fe07d2b9b1ad1b7b9be85c47f04c6",
+            "declared_chunk_sha256": "7e5685fd6571c48796082a1a7f0dd989267599dce9fdbc19a1b89ef62b2c285a",
+            "raw_text_sha256": "7e5685fd6571c48796082a1a7f0dd989267599dce9fdbc19a1b89ef62b2c285a",
+            "raw_characters": 2177,
+            "sanitised_text_sha256": "7e5685fd6571c48796082a1a7f0dd989267599dce9fdbc19a1b89ef62b2c285a",
+            "sanitised_characters": 2177,
+            "included": true,
+            "reason": "complete",
+            "visible_start": 0,
+            "visible_end": 2177,
+            "visible_text_sha256": "7e5685fd6571c48796082a1a7f0dd989267599dce9fdbc19a1b89ef62b2c285a",
+            "context_start": 3341,
+            "context_end": 5518
+          },
+          {
+            "retrieved_rank": 3,
+            "source_id": "act_bushfire_readiness",
+            "chunk_id": "a3e88f42eadd24b1bab77b73dac9f74f05796b10fad377eb78735a478ae40bb6",
+            "declared_chunk_sha256": "904c3e889b1f10fa8fb9359991b132c06c19786235348e98889f356b2c7a1aff",
+            "raw_text_sha256": "904c3e889b1f10fa8fb9359991b132c06c19786235348e98889f356b2c7a1aff",
+            "raw_characters": 2321,
+            "sanitised_text_sha256": "904c3e889b1f10fa8fb9359991b132c06c19786235348e98889f356b2c7a1aff",
+            "sanitised_characters": 2321,
+            "included": false,
+            "reason": "total_character_budget",
+            "visible_start": null,
+            "visible_end": null,
+            "visible_text_sha256": null,
+            "context_start": null,
+            "context_end": null
+          }
+        ]
+      },
+      "targets": [
+        {
+          "id": "act_farm_firewise_map",
+          "focus_id": "road_access",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 2,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    1709,
+                    1724
+                  ],
+                  "visible_span": [
+                    1709,
+                    1724
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    1726,
+                    1748
+                  ],
+                  "visible_span": [
+                    1726,
+                    1748
+                  ]
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 3,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1,
+            2,
+            3
+          ],
+          "retrieved_passage_ranks": [
+            2
+          ],
+          "visible_passage_ranks": [
+            2
+          ]
+        },
+        {
+          "id": "act_bushfire_season",
+          "focus_id": "official_sources",
+          "witnesses": [
+            {
+              "retrieved_rank": 1,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": [
+                    1090,
+                    1099
+                  ],
+                  "visible_span": [
+                    1089,
+                    1098
+                  ]
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": [
+                    1123,
+                    1131
+                  ],
+                  "visible_span": [
+                    1122,
+                    1130
+                  ]
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 2,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            },
+            {
+              "retrieved_rank": 3,
+              "terms": [
+                {
+                  "term_index": 0,
+                  "raw_span": null,
+                  "visible_span": null
+                },
+                {
+                  "term_index": 1,
+                  "raw_span": null,
+                  "visible_span": null
+                }
+              ]
+            }
+          ],
+          "retrieved_source_ranks": [
+            1,
+            2,
+            3
+          ],
+          "retrieved_passage_ranks": [
+            1
+          ],
+          "visible_passage_ranks": [
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "case_count": 6,
+    "target_count": 12,
+    "retrieved_source_hit_count": 10,
+    "retrieved_source_hit_rate": 0.833333,
+    "retrieved_passage_hit_count": 10,
+    "retrieved_passage_hit_rate": 0.833333,
+    "visible_passage_hit_count": 9,
+    "visible_passage_hit_rate": 0.75,
+    "retrieved_passage_hit_but_not_visible_count": 1,
+    "selected_focus_count": 19,
+    "assessed_focus_count": 12,
+    "unassessed_focus_count": 7,
+    "fully_visible_assessed_focus_count": 9,
+    "fully_visible_assessed_focus_rate": 0.75,
+    "all_targets_visible_case_count": 4,
+    "retrieved_chunk_count": 13,
+    "visible_chunk_count": 11,
+    "per_chunk_truncated_count": 4,
+    "total_budget_dropped_count": 2
+  }
+}

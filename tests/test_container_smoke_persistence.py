@@ -59,6 +59,28 @@ def fixture_volume(tmp_path, monkeypatch):
 
     monkeypatch.setattr(smoke, "prepare_runtime", prepare)
 
+    # These host-side tests exercise persistence, not the image's font packages.
+    # Ubuntu unit runners do not install its CJK font. Real PDF generation and
+    # Chinese extraction remain unmocked in both Docker lifecycle smoke phases.
+    pdf_probe = {
+        "text": "Reviewer: 测试审核员\n学校防火准备。",
+        "generated": [],
+        "read_calls": 0,
+    }
+    synthetic_pdf = b"synthetic-pdf-probe-for-persistence-tests"
+
+    def create_pdf(markdown):
+        pdf_probe["generated"].append(markdown)
+        return synthetic_pdf
+
+    def read_pdf(stream):
+        assert stream.read() == synthetic_pdf
+        pdf_probe["read_calls"] += 1
+        return SimpleNamespace(pages=[SimpleNamespace(extract_text=lambda: pdf_probe["text"])])
+
+    monkeypatch.setattr(smoke, "create_report_pdf", create_pdf)
+    monkeypatch.setattr(smoke, "PdfReader", read_pdf)
+
     def run(phase):
         monkeypatch.setattr(sys, "argv", ["smoke_container.py", "--phase", phase])
         smoke.main()
@@ -71,6 +93,7 @@ def fixture_volume(tmp_path, monkeypatch):
         ready=ready,
         process=process,
         prepares=prepares,
+        pdf_probe=pdf_probe,
         run=run,
     )
 
@@ -105,6 +128,30 @@ def test_first_and_restart_verify_real_audit_trace_and_quota_without_rewriting_o
     outputs = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     assert [output["actual_restart_verified"] for output in outputs] == [False, True]
     assert all(output["audit_events"] == 2 and output["trace_records"] == 1 for output in outputs)
+    assert fixture_volume.pdf_probe["read_calls"] == 2
+
+
+def test_main_accepts_both_required_chinese_pdf_text_fragments(fixture_volume):
+    fixture_volume.run("first")
+    assert fixture_volume.pdf_probe["read_calls"] == 1
+    assert fixture_volume.pdf_probe["generated"] == [
+        "# Container export check\n\n**Reviewer: 测试审核员**\n\n学校防火准备。"
+    ]
+    expected = smoke._load_expectations(fixture_volume.sentinel)
+    assert smoke._read_quota(expected["quota"]["day"]) == 1
+
+
+@pytest.mark.parametrize("extracted", ["", "测试审核员", "学校防火准备。"], ids=["neither", "reviewer", "body"])
+def test_main_rejects_missing_chinese_pdf_text_before_persistence_writes(fixture_volume, extracted):
+    fixture_volume.pdf_probe["text"] = extracted
+    with pytest.raises(RuntimeError, match="cannot export readable Chinese reviewer text"):
+        fixture_volume.run("first")
+    assert fixture_volume.pdf_probe["read_calls"] == 1
+    assert len(fixture_volume.pdf_probe["generated"]) == 1
+    assert not fixture_volume.sentinel.exists()
+    assert not (fixture_volume.volume / "model-usage.sqlite3").exists()
+    assert not (fixture_volume.volume / "audit").exists()
+    assert not (fixture_volume.volume / "traces").exists()
 
 
 def test_old_evidence_is_readable_by_an_independent_python_process(fixture_volume):
