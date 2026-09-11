@@ -8,8 +8,8 @@ individual user identity, role-based access control or production multitenancy.
 
 The existing `v0.6.0` release artifacts are historical local-model evidence.
 They do not validate the new CPU embedding model, DeepSeek reports or Railway
-deployment. The cloud acceptance record at the end of this document remains
-pending until those checks are actually performed. No external user pilot has
+deployment. The cloud acceptance record at the end of this document distinguishes
+completed synthetic checks from remaining verification. No external user pilot has
 been completed.
 
 The Windows double-click workflow is unchanged: use
@@ -317,6 +317,20 @@ separate monitor; no such monitoring is claimed by this setup.
 
 ## Cloud acceptance record
 
+### 2026-09-11 follow-up — synthetic lifecycle checked, file/restart checks incomplete
+
+The [September 11 follow-up](AUDIT_FOLLOWUP_2026-09-11.md) records one real
+DeepSeek generation and one wording revision on deployed `d847dbd`, a clearly
+synthetic `Reviewed draft` sign-off with Chinese text, a 19/19 deterministic
+quality check, parent lineage in the manifest, explicit server save, and a new
+unauthenticated session restricted to the sign-in page. The corrected unknown
+community indicators were visible in the generated report. This is not an
+external user pilot, a full file-content/visual verification, or a test of the
+subsequent maintenance deployment. The in-app browser did not return a completed
+download; PDF/DOCX visual checks and saved audit/trace/quota readback after restart
+remain incomplete. The dated records below are historical and are not rewritten
+as evidence for this new run.
+
 ### 2026-09-10 deployment checks — controlled demo running
 
 The password-protected [Railway demo](https://bushfire-ready-production.up.railway.app)
@@ -527,7 +541,7 @@ artifacts with results from a different model or dirty worktree.
 | Complete Linux image build and startup | CI passed with synthetic corpus; full private Railway deployment SUCCESS and application started |
 | `/data` ownership initialization followed by non-root execution | CI passed, including actual PID 1 UID/GID; live Railway still pending |
 | CPU RAG retrieval evaluation and rejection cases | Local CPU diagnostics recorded separately; CI offline warmup passed |
-| Real DeepSeek generation, revision and governed quality checks | Original synthetic report plus revision exposed an incomplete ending; new-response rejection/repair passes CI and is deployed, post-fix real model acceptance pending |
+| Real DeepSeek generation, revision and governed quality checks | September 11 synthetic generation plus wording revision on d847dbd passed the 19/19 deterministic check; file/visual/restart boundaries are recorded in the follow-up above |
 | PDF/DOCX/ZIP exports, including Chinese reviewer names | Original package integrity passed; local fixed PDF visually checked and exporter deployed; live fixed export, Word visual render and Chinese reviewer acceptance pending |
 | Authorization on report download requests | Fix deployed; old public ZIP returns 404; authenticated delivery and anonymous denial pass separate-context browser CI; authenticated live export acceptance pending |
 | Two-browser session isolation and separate administrator access | Separate-context private-download E2E passed locally; full live isolation and administrator checks pending |

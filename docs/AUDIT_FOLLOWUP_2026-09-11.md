@@ -157,3 +157,5 @@ Windows、Python 3.13.9；未调用真实报告模型、未下载资料或重建
 包含全部新增代码的最终非 E2E 全量运行：**1,866 passed、7 skipped、5 deselected；src 覆盖率 89.28%，167.53 秒**。另行通过的 2 个 Windows 启动测试和 3 个 Chromium E2E 计入后共 1,871 个独立用例；它们此前已通过，最后的 validator/百分比展示改动后未再跑这 5 项。Ruff lint/format、Bandit、pip check、diff 检查再次通过。
 
 历史 `v0.5.0` / `v0.6.0` 发布包已在干净 `03f1bf1` 上离线核验成功，`verified_offline=true`、`dirty_override_used=false`。它只证明旧证据包仍能正确核验，不把它们的旧生成内容宣称为此次修正后的样例。
+
+推送前还发现 Windows Git 自动换行会改变新诊断 JSON 的提交字节，因此对 `docs/diagnostics/*.json` 禁止换行转换，对表单题集固定 LF。4 个独立临时仓库检出测试覆盖 autocrlf true/false 及 CRLF 编辑副本，确认诊断 SHA 不变、题集始终 LF。这 4 项在上述全量之后单独运行；本轮共验证 1,875 个独立用例，不把不同时间的重复运行累加。已核对暂存诊断 blob 与原始运行产物的 SHA 完全一致。
