@@ -1,6 +1,6 @@
 # CPU RAG validation for cloud deployment
 
-The CPU embedding implementation has been exercised locally with the existing corpus. The production-style structured query profile passes its configured thresholds. Free-text retrieval passes the original calibrated question set but misses one of four answerable questions in an additional diagnostic. These are development diagnostics, not a cloud deployment acceptance result or release evidence.
+The CPU embedding implementation has been exercised locally with the existing corpus. The structured retrieval-configuration profile passes its configured thresholds, but those historical runs sent question-set text rather than complete application forms. Free-text retrieval passes the original calibrated question set but misses one of four answerable questions in an additional diagnostic. These are development diagnostics, not a cloud deployment acceptance result or release evidence.
 
 ## Model and corpus identity
 
@@ -23,7 +23,7 @@ The runs below were performed on Windows on 2026-09-10. They used local CPU infe
 | Corpus SHA256 | `02cba70434724c2829851bd382d57b3ff5c8c8dbd2d0043defdcfa1426083fd8` |
 | Document snapshot SHA256 | `1b21fe597f79c86797a5045b5f5098af482cae2d133161ede476fe85d4288bcc` |
 
-The model identity digest covers provider, model, dimension, repository revision, encoding mode, runtime versions, and the size/SHA256 of six inference files: ONNX weights, model configuration, tokenizer, tokenizer configuration, special-token mapping, and vocabulary. It is not just a hash of the model name. The v3 index records this identity and checks it during construction and retrieval. Changed model bytes or an incompatible dimension invalidate the index. The old Ollama v2 index remains separately usable.
+The model identity digest covers provider, model, dimension, repository revision, encoding mode, runtime versions, and the size/SHA256 of six inference files: ONNX weights, model configuration, tokenizer, tokenizer configuration, special-token mapping, and vocabulary. It is not just a hash of the model name. The v3 index records this identity and checks it during construction and retrieval. Changed model bytes or an incompatible dimension invalidate the index. The September 11 maintenance adds separate Ollama v4 identity binding; old Ollama v2 bytes remain historical evidence, not a runtime index with a retrospectively proven build digest. See [Ollama migration and form-context diagnostics](AUDIT_FOLLOWUP_2026-09-11.md).
 
 The model is downloaded only by explicit preparation. Runtime construction uses the prepared directory with `local_files_only=True` and reuses one model instance per process. A local smoke check produced two 384-dimensional vectors in approximately 0.842 seconds including initial loading; a subsequent call took approximately 0.046 seconds. These timings are observations on the development machine, not Railway performance estimates.
 
@@ -40,7 +40,7 @@ Reusing the Ollama free-text semantic threshold of 0.45 with BGE produced only 5
 
 Both profiles passed the existing thresholds: passage Recall@k at least 0.90, MRR at least 0.75, and negative abstention at least 0.80. The free-text configuration trades some recall for rejection of irrelevant questions.
 
-Top-k is the number of passages requested. Top-1 accuracy measures how often the first retrieved passage matches the expected passage; reporting it does not mean the application retrieves only one passage. The two profiles also use different answerability thresholds and negative-question populations, so their percentages are not interchangeable. Structured planning uses its established form-derived query rules, including the effective semantic threshold of 0.35; its 100% abstention covers five in-scope profile negatives, not all sixteen free-text negatives.
+Top-k is the number of passages requested. Top-1 accuracy measures how often the first retrieved passage matches the expected passage; reporting it does not mean the application retrieves only one passage. The two profiles also use different answerability thresholds and negative-question populations, so their percentages are not interchangeable. The historical structured-planning evaluator used the trusted-scope retrieval configuration, including the effective semantic threshold of 0.35, but did not construct its queries from real forms. Its 100% abstention covers five in-scope profile negatives, not all sixteen free-text negatives. Neither historical profile measures relevance after passage/context truncation in the final report prompt.
 
 The calibrated run used warmup. Observed mean / p95 retrieval latency was 83.55 / 95.69 ms for structured planning and 86.05 / 98.97 ms for free text. These include local retrieval processing and are not report-generation latency.
 

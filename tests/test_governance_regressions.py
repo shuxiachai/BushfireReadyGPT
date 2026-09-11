@@ -289,17 +289,25 @@ def test_audit_append_rejects_a_stale_parent(tmp_path, monkeypatch):
     monkeypatch.delenv("BUSHFIRE_AUDIT_DIR", raising=False)
     monkeypatch.setattr(audit, "AUDIT_DIR", tmp_path)
     first_path = _save_audit({"report_id": "linear-chain", "report_version": 1, "report_text": "Report"})
-    audit.append_audit_event(
+    committed_path = audit.append_audit_event(
         first_path,
         "review.recorded",
         _needs_revision_event("linear-chain"),
     )
 
+    # Repeating the exact committed transition is now idempotent. A different
+    # request against that old parent must still be rejected, never forked.
+    assert (
+        audit.append_audit_event(first_path, "review.recorded", _needs_revision_event("linear-chain")) == committed_path
+    )
+    changed = _needs_revision_event("linear-chain")
+    changed["human_review"]["review_notes"] = "A different review request"
+
     with pytest.raises(audit.AuditIntegrityError, match="no longer the current report head"):
         audit.append_audit_event(
             first_path,
             "review.recorded",
-            _needs_revision_event("linear-chain"),
+            changed,
         )
 
 

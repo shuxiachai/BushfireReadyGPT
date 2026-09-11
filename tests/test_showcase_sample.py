@@ -1,6 +1,101 @@
+import json
+from io import BytesIO
+from zipfile import ZipFile
+
 import pytest
 
 from scripts import build_showcase_sample
+
+
+@pytest.mark.parametrize("name", build_showcase_sample._OUTPUT_NAMES)
+def test_showcase_preserves_existing_evidence_before_model_call(tmp_path, monkeypatch, name):
+    original = b"frozen historical evidence"
+    existing = tmp_path / name
+    existing.write_bytes(original)
+    monkeypatch.setattr(build_showcase_sample, "LLM_PROVIDER", "ollama")
+    monkeypatch.setattr(build_showcase_sample, "MODEL_ENDPOINT_IS_LOCAL", True)
+
+    def forbidden_generation(_scenario):
+        pytest.fail("An occupied destination must fail before invoking a model")
+
+    monkeypatch.setattr(build_showcase_sample, "run_scenario_with_artifacts", forbidden_generation)
+    with pytest.raises(FileExistsError, match="new --output-dir"):
+        build_showcase_sample.build_showcase_sample(tmp_path)
+
+    assert existing.read_bytes() == original
+    assert list(tmp_path.iterdir()) == [existing]
+
+
+def test_showcase_allows_readme_but_rejects_partial_sample(tmp_path):
+    (tmp_path / "README.md").write_text("New unreleased sample", encoding="utf-8")
+    build_showcase_sample._require_unused_outputs(tmp_path)
+    (tmp_path / build_showcase_sample._OUTPUT_NAMES[0]).touch()
+    with pytest.raises(FileExistsError, match="never overwritten"):
+        build_showcase_sample._require_unused_outputs(tmp_path)
+
+
+def _mock_sample_generation(monkeypatch, *, sensitive=False, before_export=None):
+    quality = {"approval_gate": {"passed": True}}
+    analysis = {
+        "knowledge": {
+            "status": "ready",
+            "retrieved_chunks": [{"chunk_id": "fixture"}],
+            "index_manifest_sha256": "a" * 64,
+        }
+    }
+    row = {
+        "governed_gate_passed": True,
+        "rag_behavior_passed": True,
+        "knowledge_status": "ready",
+        "retrieved_chunks": 1,
+    }
+    archive_bytes = BytesIO()
+    with ZipFile(archive_bytes, "w") as archive:
+        for suffix in (".md", ".pdf", ".docx"):
+            archive.writestr(f"reports/synthetic{suffix}", b"synthetic export fixture")
+        audit_record = {"sensitive_payload": {"fixture": True}} if sensitive else {}
+        archive.writestr("governance/audit_record.json", json.dumps(audit_record))
+
+    def export(*args, **kwargs):
+        if before_export is not None:
+            before_export()
+        return {"content": archive_bytes.getvalue()}
+
+    monkeypatch.setattr(build_showcase_sample, "LLM_PROVIDER", "ollama")
+    monkeypatch.setattr(build_showcase_sample, "MODEL_ENDPOINT_IS_LOCAL", True)
+    monkeypatch.setattr(
+        build_showcase_sample,
+        "run_scenario_with_artifacts",
+        lambda _: {"row": row, "analysis": analysis, "report": "Synthetic draft"},
+    )
+    monkeypatch.setattr(build_showcase_sample, "evaluate_governed_report", lambda *args: quality)
+    monkeypatch.setattr(build_showcase_sample, "evaluate_report_grounding", lambda *args: {})
+    monkeypatch.setattr(build_showcase_sample, "build_export_register_snapshot", lambda: {})
+    monkeypatch.setattr(build_showcase_sample, "save_report_audit", lambda _: "unused-test-audit.json")
+    monkeypatch.setattr(build_showcase_sample, "create_pilot_export_package", export)
+
+
+def test_showcase_validates_privacy_before_writing_any_files(tmp_path, monkeypatch):
+    _mock_sample_generation(monkeypatch, sensitive=True)
+    with pytest.raises(RuntimeError, match="sensitive audit payload"):
+        build_showcase_sample.build_showcase_sample(tmp_path)
+    assert not any(tmp_path.iterdir())
+
+
+def test_showcase_preserves_output_created_during_generation(tmp_path, monkeypatch):
+    existing = tmp_path / build_showcase_sample._OUTPUT_NAMES[-1]
+    _mock_sample_generation(monkeypatch, before_export=lambda: existing.write_bytes(b"other evidence"))
+    with pytest.raises(FileExistsError, match="never overwritten"):
+        build_showcase_sample.build_showcase_sample(tmp_path)
+    assert existing.read_bytes() == b"other evidence"
+    assert list(tmp_path.iterdir()) == [existing]
+
+
+def test_showcase_writes_new_outputs_without_replacing_previous_evidence(tmp_path, monkeypatch):
+    _mock_sample_generation(monkeypatch)
+    result = build_showcase_sample.build_showcase_sample(tmp_path)
+    assert set(result["files"]) == set(build_showcase_sample._OUTPUT_NAMES)
+    assert {path.name for path in tmp_path.iterdir()} == set(build_showcase_sample._OUTPUT_NAMES)
 
 
 def test_showcase_rejects_external_model_before_generation(tmp_path, monkeypatch):

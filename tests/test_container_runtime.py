@@ -11,10 +11,12 @@ from src import container_runtime as runtime
 from src.deployment_access import DeploymentConfigurationError
 from src.rag.index import build_rag_index
 from src.rag.settings import RagSettings
+from tests.rag_fakes import identity_client, ollama_identity
 
 
 @pytest.fixture(autouse=True)
 def _clean_container_configuration(monkeypatch, tmp_path):
+    monkeypatch.setattr("src.rag.index.create_embedding_client", identity_client)
     for name in list(os.environ):
         if name.startswith(("BUSHFIRE_", "RAILWAY_")) or name == "PORT":
             monkeypatch.delenv(name)
@@ -59,7 +61,10 @@ def _seed(tmp_path, *, label="first"):
     sources = tmp_path / "sources.yml"
     sources.write_text(json.dumps(catalog), encoding="utf-8")
     settings = replace(RagSettings.from_env(), rag_dir=seed, raw_dir=seed / "raw", index_dir=seed / "index")
-    embedder = SimpleNamespace(embed=lambda texts: [[1.0, 0.0] for _text in texts])
+    embedder = SimpleNamespace(
+        embed=lambda texts, **_kwargs: [[1.0, 0.0] for _text in texts],
+        identity=lambda: ollama_identity(settings.embedding_model),
+    )
     manifest = build_rag_index(settings, embedder)
     return seed, manifest["manifest_sha256"]
 

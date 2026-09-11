@@ -88,6 +88,9 @@ def test_report_client_keeps_normal_configured_requests(monkeypatch, model_confi
 
 @pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
 def test_embedding_client_never_follows_redirects(monkeypatch, status):
+    from tests.rag_fakes import ollama_identity
+
+    monkeypatch.setattr(OllamaEmbeddingClient, "identity", lambda self: ollama_identity(self.model))
     seen = []
 
     def transport(_adapter, request, **_kwargs):

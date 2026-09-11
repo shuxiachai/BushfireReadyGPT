@@ -11,17 +11,22 @@ from src import corpus_bundle as bundles
 from src.rag.errors import RagError
 from src.rag.index import build_rag_index
 from src.rag.settings import RagSettings
+from tests.rag_fakes import identity_client, ollama_identity
 
 
 class _Embedding:
     model = "synthetic-test-vector"
 
-    def embed(self, texts):
+    def identity(self):
+        return ollama_identity(self.model)
+
+    def embed(self, texts, *, expected_identity=None):
         return [[1.0, 0.0] for _ in texts]
 
 
 @pytest.fixture
-def indexed(tmp_path):
+def indexed(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.rag.index.create_embedding_client", identity_client)
     root = tmp_path / "original-rag"
     bundles.create_test_corpus_bundle(root)
     catalog = yaml.safe_load((root / "sources.yml").read_bytes())

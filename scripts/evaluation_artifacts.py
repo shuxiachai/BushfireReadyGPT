@@ -185,7 +185,8 @@ def rag_index_provenance(settings) -> dict:
                 "embedding_provider": manifest["embedding_provider"],
                 "embedding_identity": manifest["embedding_identity"],
             }
-            if manifest.get("embedding_provider") == "fastembed"
+            if manifest.get("embedding_provider") in {"fastembed", "ollama"}
+            and isinstance(manifest.get("embedding_identity"), dict)
             else {}
         ),
         "source_count": manifest.get("source_count"),
@@ -389,6 +390,14 @@ def _validate_release_provenance(run, model_field):
         _require(
             identity.get("digest") == model.get("digest"), "release CPU embedding model and index identities differ"
         )
+    if model_field == "embedding_model" and run.get("rag_index", {}).get("schema") == "bushfire-rag-index-v4":
+        identity = run["rag_index"].get("embedding_identity") or {}
+        _require(
+            model.get("provider", "ollama") == "ollama"
+            and identity.get("digest") == model.get("digest")
+            and identity.get("model") == model.get("name"),
+            "release Ollama embedding model and build-time index identities differ",
+        )
 
 
 def _validate_index_provenance(index: dict) -> None:
@@ -408,6 +417,36 @@ def _validate_index_provenance(index: dict) -> None:
             canonical_sha256({key: value for key, value in identity.items() if key != "digest"})
             == identity.get("digest"),
             "CPU RAG embedding identity digest is invalid",
+        )
+    if index.get("schema") == "bushfire-rag-index-v4":
+        identity = index.get("embedding_identity")
+        _require(isinstance(identity, dict), "Ollama RAG build-time model identity is missing")
+        _require(
+            set(identity) == {"provider", "model", "resolved_model", "digest", "encoding", "dimension"},
+            "Ollama RAG identity fields are invalid",
+        )
+        _require(
+            index.get("embedding_provider") == identity.get("provider") == "ollama",
+            "Ollama RAG provider is invalid",
+        )
+        model = identity.get("model")
+        _require(
+            isinstance(model, str) and bool(model) and not any(char.isspace() for char in model),
+            "Ollama RAG model name is invalid",
+        )
+        resolved = model if ":" in model.rsplit("/", 1)[-1] else f"{model}:latest"
+        _require(identity.get("resolved_model") == resolved, "Ollama RAG model tag is inconsistent")
+        _require(identity.get("encoding") == "ollama-api-embed-v1", "Ollama RAG encoding is invalid")
+        _require(
+            isinstance(identity.get("digest"), str) and _SHA256.fullmatch(identity["digest"]) is not None,
+            "Ollama RAG build-time model digest is invalid",
+        )
+        _require(
+            type(identity.get("dimension")) is int
+            and identity["dimension"] > 0
+            and type(index.get("embedding_dimension")) is int
+            and identity["dimension"] == index["embedding_dimension"],
+            "Ollama RAG embedding dimension differs",
         )
 
 

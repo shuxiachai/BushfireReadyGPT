@@ -4,6 +4,19 @@ This folder contains static example outputs for people reviewing the project wit
 
 The examples are intended for demonstration and portfolio review. They are not live emergency advice and must not be used as operational bushfire instructions.
 
+The versioned examples below are frozen evidence for their named releases, not
+regenerated examples of the maintained `main` branch. In particular, the
+September 10 population-basis correction is not retroactively applied to their
+language-ratio text. A current report treats unsupported legacy ratios as
+unknown. Preserve the old outputs for comparison; do not reuse their figures as
+current validated indicators.
+
+`scripts/build_showcase_sample.py` refuses to overwrite any existing sample
+output, before calling the model and again at publication. For a new diagnostic
+use a fresh `--output-dir output/showcase-<run-id>`; a completed sample is not a
+formal release until its source, model/index identity, evaluations and export
+checks are recorded. See the [follow-up status](../docs/AUDIT_FOLLOWUP_2026-09-11.md).
+
 Available examples:
 
 - `v0.6.0/` - the current Cairns Council Markdown, PDF and DOCX reports plus the verified `pilot-export-v4` package.

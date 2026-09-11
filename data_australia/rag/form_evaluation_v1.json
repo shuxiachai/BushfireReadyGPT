@@ -1,0 +1,97 @@
+{
+  "schema": "rag-form-context-suite-v1",
+  "schema_version": 1,
+  "description": "Six synthetic application forms, all six UI scenarios and four timeframes. Short phrase anchors are reused from the committed question suite, not independent human relevance labels. Selected focuses without a target are reported as unassessed. This diagnostic is not a release gate or a safety evaluation.",
+  "cases": [
+    {
+      "id": "tas_school_7day",
+      "form": {
+        "location": "Hobart, Tasmania",
+        "audience": "School staff, students and carers",
+        "scenario": "School bushfire preparedness",
+        "concerns": ["Evacuation", "Candidate assembly points", "First aid training"],
+        "timeframe": "7-day action plan",
+        "extra_context": "Synthetic diagnostic. Candidate assembly arrangements have not been approved."
+      },
+      "targets": [
+        {"id": "tas_not_centres", "focus_id": "candidate_assembly_points", "expected_source_ids": ["tas_community_protection_plan"], "expected_terms": ["not evacuation centres", "assembly areas"]},
+        {"id": "tas_evacuation_amenities", "focus_id": "evacuation", "expected_source_ids": ["tas_community_protection_plan"], "expected_terms": ["drinking water", "toilet facilities"]}
+      ]
+    },
+    {
+      "id": "qld_council_month",
+      "form": {
+        "location": "Cairns, Queensland",
+        "audience": "Council resilience officers and local service partners",
+        "scenario": "Council community preparedness",
+        "concerns": ["Evacuation", "Communication channels", "Human review and approval"],
+        "timeframe": "This-month preparedness plan",
+        "extra_context": "Synthetic diagnostic. Plan a process for confirming local warning channels and assistance contacts."
+      },
+      "targets": [
+        {"id": "qld_local_routes", "focus_id": "evacuation", "expected_source_ids": ["qld_evacuation_plan"], "expected_terms": ["local council", "nominated evacuation routes"]},
+        {"id": "qld_support_agencies", "focus_id": "communications", "expected_source_ids": ["qld_evacuation_plan"], "expected_terms": ["support agencies", "help is available"]}
+      ]
+    },
+    {
+      "id": "nt_workshop_season",
+      "form": {
+        "location": "Darwin, Northern Territory",
+        "audience": "Community workshop participants and volunteers",
+        "scenario": "Community workshop material",
+        "concerns": ["Communication channels", "Official information sources", "Power / communications outage"],
+        "timeframe": "Before the next bushfire season",
+        "extra_context": "Synthetic diagnostic. Explain static warning-channel terminology, not current warnings."
+      },
+      "targets": [
+        {"id": "nt_alert_channels", "focus_id": "communications", "expected_source_ids": ["nt_bushfire_safety"], "expected_terms": ["facebook page", "Fire Incident Map"]},
+        {"id": "nt_three_alerts", "focus_id": "official_sources", "expected_source_ids": ["nt_bushfire_safety"], "expected_terms": ["three types", "bushfire alerts"]}
+      ]
+    },
+    {
+      "id": "nsw_household_7day",
+      "form": {
+        "location": "Sydney, New South Wales",
+        "audience": "Household members and neighbours",
+        "scenario": "Household bushfire preparedness",
+        "concerns": ["Evacuation", "Communication channels", "Roles and responsibilities"],
+        "timeframe": "7-day action plan",
+        "extra_context": "Synthetic diagnostic. Discuss preparedness responsibilities and information contacts as a household."
+      },
+      "targets": [
+        {"id": "nsw_four_steps", "focus_id": "evacuation", "expected_source_ids": ["nsw_bush_fire_survival_plan"], "expected_terms": ["four simple steps", "discuss"]},
+        {"id": "nsw_keep_informed", "focus_id": "communications", "expected_source_ids": ["nsw_bush_fire_survival_plan"], "expected_terms": ["numbers, websites and apps", "stay up to date"]}
+      ]
+    },
+    {
+      "id": "vic_care_month",
+      "form": {
+        "location": "Melbourne, Victoria",
+        "audience": "Care facility staff, residents and families",
+        "scenario": "Aged care / care facility preparedness",
+        "concerns": ["Evacuation", "Communication channels", "Smoke and health risk"],
+        "timeframe": "This-month preparedness plan",
+        "extra_context": "Synthetic diagnostic. Responsible staff must verify support needs and care arrangements."
+      },
+      "targets": [
+        {"id": "vic_care_support", "focus_id": "evacuation", "expected_source_ids": ["vic_your_bushfire_plan"], "expected_terms": ["care and support", "never wait"]},
+        {"id": "vic_share_plan", "focus_id": "communications", "expected_source_ids": ["vic_your_bushfire_plan"], "expected_terms": ["family, friends and neighbours", "share the details"]}
+      ]
+    },
+    {
+      "id": "act_farm_long_term",
+      "form": {
+        "location": "Canberra, Australian Capital Territory",
+        "audience": "Farm managers and neighbouring landholders",
+        "scenario": "Farm / land management preparedness",
+        "concerns": ["Road disruption", "Official information sources", "Power / communications outage"],
+        "timeframe": "Long-term community resilience planning",
+        "extra_context": "Synthetic diagnostic. Record property access and seasonal planning considerations for local verification."
+      },
+      "targets": [
+        {"id": "act_farm_firewise_map", "focus_id": "road_access", "expected_source_ids": ["act_bushfire_readiness"], "expected_terms": ["property access", "asset protection zones"]},
+        {"id": "act_bushfire_season", "focus_id": "official_sources", "expected_source_ids": ["act_bushfire_readiness"], "expected_terms": ["1 October", "31 March"]}
+      ]
+    }
+  ]
+}

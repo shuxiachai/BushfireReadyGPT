@@ -70,6 +70,17 @@ Local validation passed 1,664 non-E2E tests plus two isolated Windows startup
 tests and three Chromium scenarios, with 88.83% non-E2E `src` coverage and seven
 skips. This does not establish new cloud, real-model or production acceptance.
 
+**September 11 follow-up (unreleased):** the remaining engineering work separates
+real-form/model-visible RAG diagnostics from historical retrieval scores, binds
+new Ollama indexes to observed model digests, and hardens audit retry/read budgets.
+Sample generation refuses to overwrite previous evidence. See the
+[implementation, migration, verification and cloud-acceptance boundaries](docs/AUDIT_FOLLOWUP_2026-09-11.md).
+Historical samples and benchmark numbers below remain release-specific; they
+are not reruns of the maintained source or corrected ABS language indicators.
+Existing local Ollama v2 indexes require an explicit new-directory migration
+before RAG startup; they are no longer silently trusted or overwritten. The
+current cloud CPU v3 index does not need this migration.
+
 The v0.6.0 release evidence was produced from clean source commit
 [`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7).
 Local validation contains `885` passing tests (`884` non-E2E plus one Chromium

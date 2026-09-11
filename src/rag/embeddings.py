@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import threading
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -16,6 +17,7 @@ FASTEMBED_MODEL = "BAAI/bge-small-en-v1.5"
 FASTEMBED_REPOSITORY = "Qdrant/bge-small-en-v1.5-onnx-Q"
 FASTEMBED_REVISION = "52398278842ec682c6f32300af41344b1c0b0bb2"
 FASTEMBED_DIMENSION = 384
+OLLAMA_IDENTITY_ENCODING = "ollama-api-embed-v1"
 _MODEL_FILES = (
     "config.json",
     "model_optimized.onnx",
@@ -95,15 +97,73 @@ def prepare_embedding_model(settings):
         ) from error
 
 
+def observe_embedding_identity(settings, embedder=None):
+    """Read a fresh provider identity; injected clients implement the same contract."""
+    client = embedder or create_embedding_client(settings)
+    identity_method = getattr(client, "identity", None)
+    if not callable(identity_method):
+        raise RagError("rag_embedding_invalid", "The embedding client must provide a verifiable model identity.")
+    identity = identity_method()
+    if settings.embedding_provider == "ollama":
+        validate_ollama_identity(identity, model=settings.embedding_model)
+    return identity
+
+
+def validate_ollama_identity(identity, *, model, dimension=None):
+    """Validate metadata shape without making network calls or inventing a digest."""
+    keys = {"provider", "model", "resolved_model", "digest", "encoding"}
+    if dimension is not None:
+        keys.add("dimension")
+    if (
+        not isinstance(identity, dict)
+        or set(identity) != keys
+        or identity.get("provider") != "ollama"
+        or identity.get("model") != model
+        or identity.get("resolved_model") != _ollama_model_tag(model)
+        or identity.get("encoding") != OLLAMA_IDENTITY_ENCODING
+        or not isinstance(identity.get("digest"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", identity["digest"]) is None
+        or dimension is not None
+        and (
+            type(dimension) is not int
+            or dimension < 1
+            or type(identity.get("dimension")) is not int
+            or identity["dimension"] != dimension
+        )
+    ):
+        raise RagError("rag_embedding_invalid", "The Ollama embedding model identity is missing or invalid.")
+
+
+def embed_with_identity(settings, embedder, texts, identity):
+    """Bind Ollama's batch observations to the caller's build/index identity."""
+    if settings.embedding_provider == "ollama":
+        expected = {key: value for key, value in identity.items() if key != "dimension"}
+        validate_ollama_identity(expected, model=settings.embedding_model)
+        return embedder.embed(texts, expected_identity=expected)
+    return embedder.embed(texts)
+
+
 def validate_embedding_identity(settings, manifest, embedder=None):
-    """Validate current model bytes against the identity bound into a CPU index."""
+    """Compare a fresh provider identity with the model bound into an index."""
     provider = manifest.get("embedding_provider", "ollama")
     if provider != settings.embedding_provider:
         raise RagError("rag_index_stale", "The RAG index was built with a different embedding provider.")
-    if provider != "fastembed":
+    if provider == "ollama":
+        expected = manifest.get("embedding_identity")
+        if expected is None:
+            raise RagError(
+                "rag_index_migration_required",
+                "This legacy Ollama index has no build-time model digest. Preserve it as historical evidence, "
+                "build a new index with --new-index-dir, then explicitly select BUSHFIRE_RAG_INDEX_DIR.",
+            )
+        validate_ollama_identity(
+            expected, model=settings.embedding_model, dimension=manifest.get("embedding_dimension")
+        )
+        actual = observe_embedding_identity(settings, embedder)
+        if actual != {key: value for key, value in expected.items() if key != "dimension"}:
+            raise RagError("rag_index_stale", "The Ollama embedding model digest changed; rebuild the RAG index.")
         return
-    client = embedder or create_embedding_client(settings)
-    identity = client.identity()
+    identity = observe_embedding_identity(settings, embedder)
     if (
         identity != manifest.get("embedding_identity")
         or identity.get("dimension") != manifest.get("embedding_dimension")
@@ -221,13 +281,65 @@ class OllamaEmbeddingClient:
         self.timeout_seconds = timeout_seconds
         self.batch_size = batch_size
 
-    def embed(self, texts):
+    def identity(self):
+        """Observe the current local tag digest; do not cache mutable model tags.
+
+        Ollama exposes a digest via /api/tags, not /api/embed. Boundary checks
+        detect observed drift, not an unobserved A-to-B-to-A change inside HTTP.
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/api/tags", timeout=(5, self.timeout_seconds), allow_redirects=False
+            )
+            if 300 <= response.status_code < 400:
+                raise RagError("rag_embedding_unavailable", "The local model identity endpoint redirected.")
+            response.raise_for_status()
+            payload = response.json()
+        except RagError:
+            raise
+        except (requests.RequestException, ValueError) as error:
+            raise RagError("rag_embedding_unavailable", "The local Ollama model identity is unavailable.") from error
+        models = payload.get("models") if isinstance(payload, dict) else None
+        if not isinstance(models, list):
+            raise RagError("rag_embedding_invalid", "Ollama returned an invalid model identity response.")
+        tag = _ollama_model_tag(self.model)
+        digests = set()
+        for item in models:
+            if not isinstance(item, dict):
+                continue
+            names = [item.get("name"), item.get("model")]
+            if not any(isinstance(name, str) and _ollama_model_tag(name) == tag for name in names):
+                continue
+            digest = item.get("digest")
+            if not isinstance(digest, str) or not re.fullmatch(r"(?:sha256:)?[0-9a-fA-F]{64}", digest):
+                raise RagError("rag_embedding_invalid", "Ollama returned an invalid model digest.")
+            digests.add(digest.lower().removeprefix("sha256:"))
+        if len(digests) != 1:
+            raise RagError(
+                "rag_embedding_unavailable", "The configured Ollama embedding model has no unambiguous digest."
+            )
+        return {
+            "provider": "ollama",
+            "model": self.model,
+            "resolved_model": tag,
+            "digest": digests.pop(),
+            "encoding": OLLAMA_IDENTITY_ENCODING,
+        }
+
+    def embed(self, texts, *, expected_identity=None):
         values = [str(text or "").strip() for text in texts]
         if not values or any(not value for value in values):
             raise RagError("rag_embedding_invalid", "Embedding input must contain non-empty text.")
         result = []
+        identity = self.identity()
+        if expected_identity is not None and identity != expected_identity:
+            raise RagError(
+                "rag_embedding_changed", "The Ollama embedding model no longer matches the bound index identity."
+            )
         for index in range(0, len(values), self.batch_size):
             batch = values[index : index + self.batch_size]
+            if index and self.identity() != identity:
+                raise RagError("rag_embedding_changed", "The Ollama embedding model changed between batches.")
             try:
                 response = requests.post(
                     f"{self.base_url}/api/embed",
@@ -249,6 +361,11 @@ class OllamaEmbeddingClient:
                     f"The local Ollama embedding model '{self.model}' is unavailable.",
                 ) from error
             embeddings = payload.get("embeddings") if isinstance(payload, dict) else None
+            response_model = payload.get("model") if isinstance(payload, dict) else None
+            if not isinstance(response_model, str) or _ollama_model_tag(response_model) != identity["resolved_model"]:
+                raise RagError("rag_embedding_invalid", "Ollama returned embeddings from an unexpected model.")
+            if self.identity() != identity:
+                raise RagError("rag_embedding_changed", "The Ollama embedding model changed during inference.")
             if not isinstance(embeddings, list) or len(embeddings) != len(batch):
                 raise RagError("rag_embedding_invalid", "Ollama returned an invalid embedding batch.")
             for vector in embeddings:
@@ -264,3 +381,9 @@ class OllamaEmbeddingClient:
         if len(dimensions) != 1:
             raise RagError("rag_embedding_invalid", "Ollama returned inconsistent embedding dimensions.")
         return result
+
+
+def _ollama_model_tag(model):
+    # A registry hostname may include a port; only the final path component has
+    # a model tag. An omitted tag is Ollama's explicit latest alias.
+    return model if ":" in model.rsplit("/", 1)[-1] else f"{model}:latest"

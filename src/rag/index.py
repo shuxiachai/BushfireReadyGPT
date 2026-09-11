@@ -26,12 +26,18 @@ from src.rag.corpus import (
     load_source_catalog,
     source_artifact_records,
 )
-from src.rag.embeddings import create_embedding_client, validate_embedding_identity
+from src.rag.embeddings import (
+    create_embedding_client,
+    embed_with_identity,
+    observe_embedding_identity,
+    validate_embedding_identity,
+)
 from src.rag.errors import RagError
 from src.rag.qdrant import load_qdrant
 
 RAG_INDEX_SCHEMA = "bushfire-rag-index-v2"
 RAG_CPU_INDEX_SCHEMA = "bushfire-rag-index-v3"
+RAG_OLLAMA_INDEX_SCHEMA = "bushfire-rag-index-v4"
 RAG_CHUNKER_VERSION = "paragraph-word-window-v1"
 
 _PROCESS_INDEX_LOCKS = {}
@@ -347,16 +353,38 @@ def _snapshot_build_sources(settings, staging):
     return snapshot_catalog, catalog_sha256, source_records
 
 
-def build_rag_index(settings, embedder=None, *, max_words=420, overlap_words=60):
+def validate_index_build_target(settings, *, require_new=False):
+    """Read-only preflight before downloads; builders repeat it under the index lock."""
+    target = _safe_index_target(settings)
+    if require_new and (target.exists() or (target.parent / f".{target.name}.backup").exists()):
+        raise RagError("rag_config_invalid", "The requested new index directory already exists; it was not replaced.")
+    # Legacy vectors cannot be retroactively attributed to today's digest.
+    # Even an explicit build preserves that evidence; migrate to a new path.
+    for previous in (target, target.parent / f".{target.name}.backup"):
+        previous_manifest = previous / "manifest.json"
+        if previous_manifest.is_file():
+            try:
+                prior = json.loads(previous_manifest.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, ValueError):
+                prior = None
+            if isinstance(prior, dict) and prior.get("schema") == RAG_INDEX_SCHEMA:
+                raise RagError(
+                    "rag_index_migration_required",
+                    "The legacy v2 index is preserved. Use --new-index-dir with a new sibling directory, "
+                    "then explicitly select BUSHFIRE_RAG_INDEX_DIR after validation.",
+                )
+
+
+def build_rag_index(settings, embedder=None, *, max_words=420, overlap_words=60, require_new=False):
     """Build a complete Qdrant local index in staging, then publish it atomically."""
 
     target = _safe_index_target(settings)
-    embedder = embedder or create_embedding_client(settings)
-    identity = embedder.identity() if settings.embedding_provider == "fastembed" else None
     QdrantClient, models = load_qdrant()
-
     with index_read_write_lock(settings):
+        validate_index_build_target(settings, require_new=require_new)
         _recover_index_publish(target)
+        embedder = embedder or create_embedding_client(settings)
+        identity = observe_embedding_identity(settings, embedder)
         staging = target.parent / f".{target.name}.{uuid4().hex}.stage"
         staging.mkdir(parents=True)
         client = None
@@ -367,22 +395,22 @@ def build_rag_index(settings, embedder=None, *, max_words=420, overlap_words=60)
                 max_words=max_words,
                 overlap_words=overlap_words,
             )
-            vectors = embedder.embed([chunk["text"] for chunk in chunks])
+            vectors = embed_with_identity(settings, embedder, [chunk["text"] for chunk in chunks], identity)
             if len(vectors) != len(chunks) or not vectors:
                 raise RagError("rag_embedding_invalid", "The embedding result does not match the RAG chunks.")
             dimensions = {len(vector) for vector in vectors}
             if len(dimensions) != 1:
                 raise RagError("rag_embedding_invalid", "RAG embedding vectors have inconsistent dimensions.")
             dimension = dimensions.pop()
-            if identity is not None and (
-                dimension != identity.get("dimension")
+            if (
+                (settings.embedding_provider == "fastembed" and dimension != identity.get("dimension"))
                 or identity.get("model") != settings.embedding_model
                 or identity.get("provider") != settings.embedding_provider
-                or embedder.identity() != identity
+                or observe_embedding_identity(settings, embedder) != identity
             ):
-                raise RagError(
-                    "rag_embedding_invalid", "The CPU embedding identity or dimensions changed while building."
-                )
+                raise RagError("rag_embedding_invalid", "The embedding identity or dimensions changed while building.")
+            if settings.embedding_provider == "ollama":
+                identity = {**identity, "dimension": dimension}
 
             if _source_generation_changed(settings, catalog_sha256, source_records):
                 raise RagError(
@@ -422,12 +450,11 @@ def build_rag_index(settings, embedder=None, *, max_words=420, overlap_words=60)
             atomic_write_bytes(documents_path, _serialise_documents(chunks))
             manifest = _manifest_with_hash(
                 {
-                    "schema": RAG_CPU_INDEX_SCHEMA if identity is not None else RAG_INDEX_SCHEMA,
-                    **(
-                        {"embedding_provider": "fastembed", "embedding_identity": identity}
-                        if identity is not None
-                        else {}
+                    "schema": (
+                        RAG_CPU_INDEX_SCHEMA if settings.embedding_provider == "fastembed" else RAG_OLLAMA_INDEX_SCHEMA
                     ),
+                    "embedding_provider": settings.embedding_provider,
+                    "embedding_identity": identity,
                     "built_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "collection_name": settings.collection_name,
                     "embedding_model": settings.embedding_model,
@@ -468,7 +495,8 @@ def build_rag_index(settings, embedder=None, *, max_words=420, overlap_words=60)
                 staging,
                 target,
                 validate_published=lambda: (
-                    not _source_generation_changed(
+                    validate_embedding_identity(settings, manifest, embedder) is None
+                    and not _source_generation_changed(
                         settings,
                         catalog_sha256,
                         source_records,
@@ -483,7 +511,7 @@ def build_rag_index(settings, embedder=None, *, max_words=420, overlap_words=60)
     return manifest
 
 
-def _load_and_validate_index(settings):
+def _load_and_validate_index(settings, embedder=None, *, historical=False):
     target = _safe_index_target(settings)
     manifest_path = target / "manifest.json"
     if not manifest_path.is_file():
@@ -492,17 +520,37 @@ def _load_and_validate_index(settings):
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise RagError("rag_index_invalid", "The RAG index manifest is unreadable or invalid.") from error
-    if not isinstance(manifest, dict) or manifest.get("schema") not in {RAG_INDEX_SCHEMA, RAG_CPU_INDEX_SCHEMA}:
+    if not isinstance(manifest, dict) or manifest.get("schema") not in {
+        RAG_INDEX_SCHEMA,
+        RAG_CPU_INDEX_SCHEMA,
+        RAG_OLLAMA_INDEX_SCHEMA,
+    }:
         raise RagError("rag_index_invalid", "The RAG index manifest schema is invalid.")
     if (manifest["schema"] == RAG_CPU_INDEX_SCHEMA) != (manifest.get("embedding_provider") == "fastembed"):
         raise RagError("rag_index_invalid", "The RAG index embedding schema and provider are inconsistent.")
+    if manifest["schema"] == RAG_OLLAMA_INDEX_SCHEMA and manifest.get("embedding_provider") != "ollama":
+        raise RagError("rag_index_invalid", "The digest-bound Ollama index provider is invalid.")
     supplied_hash = manifest.get("manifest_sha256")
     hash_input = {key: value for key, value in manifest.items() if key != "manifest_sha256"}
     if supplied_hash != _canonical_sha256(hash_input):
         raise RagError("rag_index_invalid", "The RAG index manifest hash does not match.")
     if manifest.get("embedding_model") != settings.embedding_model:
         raise RagError("rag_index_stale", "The RAG index was built with a different embedding model.")
-    validate_embedding_identity(settings, manifest)
+    if manifest["schema"] == RAG_INDEX_SCHEMA:
+        if manifest.get("embedding_provider", "ollama") != "ollama":
+            raise RagError("rag_index_invalid", "The legacy RAG index provider is invalid.")
+        if manifest.get("embedding_identity") is not None:
+            raise RagError("rag_index_invalid", "A legacy index cannot acquire a retrospective model identity.")
+        if not historical:
+            raise RagError(
+                "rag_index_migration_required",
+                "This legacy Ollama index has no build-time model digest. Preserve it as historical evidence, "
+                "build a new index with --new-index-dir, then explicitly select BUSHFIRE_RAG_INDEX_DIR.",
+            )
+        if settings.embedding_provider != "ollama":
+            raise RagError("rag_index_stale", "The RAG index was built with a different embedding provider.")
+    else:
+        validate_embedding_identity(settings, manifest, embedder or create_embedding_client(settings))
     if manifest.get("collection_name") != settings.collection_name:
         raise RagError("rag_index_invalid", "The RAG index collection name does not match configuration.")
     if not (target / "qdrant").is_dir():
@@ -548,11 +596,15 @@ def _load_and_validate_index(settings):
     return manifest
 
 
-def load_and_validate_index(settings):
-    """Validate an index and normalise malformed-filesystem failures to ``RagError``."""
+def load_and_validate_index(settings, embedder=None, *, historical=False):
+    """Validate an index; historical=True only permits read-only v2 evidence checks.
+
+    That opt-in does not claim the old model digest is known or authorise query
+    use. Runtime callers must keep the default so legacy vectors fail closed.
+    """
 
     try:
-        return _load_and_validate_index(settings)
+        return _load_and_validate_index(settings, embedder, historical=historical)
     except RagError:
         raise
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:

@@ -45,12 +45,16 @@ poetry run python scripts\evaluate_rag.py --warmup --output output\rag-retrieval
 ```
 
 The default command evaluates two explicit profiles. `structured_planning`
-matches report generation by enabling the trusted planning scope and using the
+matches the report retrieval configuration by enabling the trusted planning scope and using the
 runtime `BUSHFIRE_RAG_TOP_K` value (8 by default); this profile controls the
 process exit code and release gate. `free_text` keeps the stricter answerability
 thresholds and runs at Top-5 as a diagnostic. The JSON records each profile's
 query scope, Top-K, candidate limit, configured thresholds and effective
 thresholds. This makes any structured-planning threshold relaxation visible.
+These historical profiles query question-set text: they do not exercise the
+complete form-to-query path or measure evidence remaining after prompt clipping.
+The separate [form-context diagnostic](AUDIT_FOLLOWUP_2026-09-11.md) addresses
+those boundaries without rewriting old benchmark rows or scores.
 An active release artifact also includes every per-question result row for every
 profile. The offline validator rejects missing or duplicate IDs and recomputes
 question counts, source and passage recall, MRR, Top-1, abstention and
@@ -118,8 +122,9 @@ retained as historical summary evidence; it does not satisfy the current
 full-row release contract.
 
 The returned source IDs, titles, hashes and ranks are application-bound
-retrieval provenance. They show which frozen passages entered the application
-context; they are not claim-level citation accuracy, semantic entailment or
+retrieval provenance. They show which frozen passages retrieval returned, not
+whether the relevant text survived clipping into the model prompt. They are not
+claim-level citation accuracy, semantic entailment or
 proof that a generated statement is factually correct. The separate lexical
 grounding review remains diagnostic, and a human reviewer must verify any
 externally used claim against the current official source.

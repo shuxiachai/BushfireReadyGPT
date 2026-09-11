@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 from src.rag.corpus import download_catalog_sources, load_source_catalog  # noqa: E402
 from src.rag.embeddings import create_embedding_client, prepare_embedding_model  # noqa: E402
 from src.rag.errors import RagError  # noqa: E402
-from src.rag.index import build_rag_index  # noqa: E402
+from src.rag.index import build_rag_index, validate_index_build_target  # noqa: E402
 from src.rag.settings import RagSettings  # noqa: E402
 
 
@@ -28,6 +29,11 @@ def main():
     parser.add_argument("--refresh", action="store_true", help="Re-download every declared source before indexing.")
     parser.add_argument("--max-words", type=int, default=420)
     parser.add_argument("--overlap-words", type=int, default=60)
+    parser.add_argument(
+        "--new-index-dir",
+        type=Path,
+        help="Build into a new sibling directory (relative to the RAG root); preserve the existing index and do not switch runtime configuration.",
+    )
     parser.add_argument(
         "--prepare-embedding-model",
         action="store_true",
@@ -42,6 +48,16 @@ def main():
 
     try:
         settings = RagSettings.from_env()
+        if args.new_index_dir is not None:
+            selected = args.new_index_dir.expanduser()
+            selected = (selected if selected.is_absolute() else settings.rag_dir / selected).resolve()
+            if selected.parent != settings.index_dir.parent or selected.exists():
+                raise RagError(
+                    "rag_config_invalid", "--new-index-dir must name a non-existing sibling of the current index."
+                )
+            settings = replace(settings, index_dir=selected)
+        if not args.prepare_embedding_only:
+            validate_index_build_target(settings, require_new=args.new_index_dir is not None)
         if args.prepare_embedding_model or args.prepare_embedding_only:
             identity = prepare_embedding_model(settings)
             if args.prepare_embedding_only:
@@ -56,6 +72,7 @@ def main():
             embedder,
             max_words=args.max_words,
             overlap_words=args.overlap_words,
+            require_new=args.new_index_dir is not None,
         )
     except RagError as error:
         print(f"RAG index build failed [{error.code}]: {error}", file=sys.stderr)
@@ -70,6 +87,10 @@ def main():
                 "embedding_model": manifest["embedding_model"],
                 "embedding_provider": manifest.get("embedding_provider", "ollama"),
                 "embedding_dimension": manifest["embedding_dimension"],
+                "embedding_identity": manifest.get("embedding_identity"),
+                "index_dir": str(settings.index_dir),
+                "runtime_switch_required": args.new_index_dir is not None,
+                "runtime_index_setting": "BUSHFIRE_RAG_INDEX_DIR",
                 "manifest_sha256": manifest["manifest_sha256"],
             },
             indent=2,

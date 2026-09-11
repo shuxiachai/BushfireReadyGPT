@@ -2,10 +2,14 @@
 
 import hashlib
 import json
+import math
 import os
+import stat
 import time
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timezone
+from functools import wraps
 from pathlib import Path
 from uuid import uuid4
 
@@ -51,6 +55,19 @@ AUDIT_DIR = PROJECT_ROOT / "chat_history" / "audit"
 _DEFAULT_AUDIT_DIR = AUDIT_DIR
 AUDIT_SCHEMA = "government-pilot-v4"
 AUDIT_LOCK_STALE_SECONDS = 5 * 60
+# Conservative local-prototype ceilings, not retention or distributed-storage
+# guarantees. The 2048-event cap preserves supported >1000-event iterative
+# chains. One outer operation shares the byte/scan budgets across nested reads;
+# exceeding any ceiling requires operator review, never deletion or truncation.
+MAX_AUDIT_FILE_BYTES = 2 * 1024 * 1024
+MAX_AUDIT_METADATA_BYTES = 64 * 1024
+MAX_AUDIT_OPERATION_BYTES = 64 * 1024 * 1024
+MAX_AUDIT_SCAN_ENTRIES = 10_000
+MAX_AUDIT_CHAIN_EVENTS = 2048
+MAX_AUDIT_LINEAGE_DEPTH = 64
+MAX_AUDIT_JSON_DEPTH = 64
+MAX_AUDIT_JSON_NODES = 100_000
+_ACTIVE_READ_BUDGET = ContextVar("bushfire_audit_read_budget", default=None)
 PACKAGE_CONTEXT_FIELDS = (
     "pilot_mode",
     "organisation_name",
@@ -95,12 +112,110 @@ class AuditIntegrityError(RuntimeError):
     """Raised when an audit event or its hash chain cannot be verified."""
 
 
+def _bounded_audit_reads(function):
+    """Share one I/O budget across nested discovery, verification and capture."""
+
+    @wraps(function)
+    def bounded(*args, **kwargs):
+        if _ACTIVE_READ_BUDGET.get() is not None:
+            return function(*args, **kwargs)
+        token = _ACTIVE_READ_BUDGET.set({"bytes": 0, "entries": 0})
+        try:
+            return function(*args, **kwargs)
+        finally:
+            _ACTIVE_READ_BUDGET.reset(token)
+
+    return bounded
+
+
+def _validate_json_shape(value):
+    # Iterator frames keep auxiliary memory proportional to depth, not width.
+    stack = [(iter((value,)), 0)]
+    nodes = 0
+    while stack:
+        children, depth = stack[-1]
+        try:
+            item = next(children)
+        except StopIteration:
+            stack.pop()
+            continue
+        nodes += 1
+        if nodes > MAX_AUDIT_JSON_NODES or depth > MAX_AUDIT_JSON_DEPTH:
+            raise AuditIntegrityError("Audit JSON exceeds the nesting or structure safety limit.")
+        if isinstance(item, dict):
+            if any(not isinstance(key, str) for key in item):
+                raise AuditIntegrityError("Audit JSON object keys must be strings.")
+            stack.append((iter(item.values()), depth + 1))
+        elif isinstance(item, list):
+            stack.append((iter(item), depth + 1))
+        elif isinstance(item, float) and not math.isfinite(item):
+            raise AuditIntegrityError("Audit JSON contains a non-finite number.")
+        elif item is not None and not isinstance(item, (str, int, float, bool)):
+            raise AuditIntegrityError("Audit JSON contains an unsupported value type.")
+
+
+@_bounded_audit_reads
+def _read_audit_json(path, *, metadata=False):
+    """Return the exact bounded bytes and their decoded, shape-checked value."""
+
+    path = Path(path)
+    limit = MAX_AUDIT_METADATA_BYTES if metadata else MAX_AUDIT_FILE_BYTES
+    budget = _ACTIVE_READ_BUDGET.get()
+    remaining = MAX_AUDIT_OPERATION_BYTES - (budget["bytes"] if budget is not None else 0)
+    try:
+        info = path.lstat()
+        if not stat.S_ISREG(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(
+            stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0
+        ):
+            raise AuditIntegrityError("Audit storage must contain regular files, not links or special files.")
+        if info.st_size > limit:
+            raise AuditIntegrityError("Audit file exceeds the single-file safety limit; operator review is required.")
+        if info.st_size > remaining:
+            raise AuditIntegrityError(
+                "Audit operation exceeds the cumulative read safety limit; operator review is required."
+            )
+        with path.open("rb") as file:
+            raw = file.read(min(limit, remaining) + 1)
+        if budget is not None:
+            budget["bytes"] += len(raw)
+        if len(raw) > limit or len(raw) > remaining:
+            raise AuditIntegrityError("Audit file growth exceeds the read safety limit; operator review is required.")
+        value = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, ValueError, RecursionError) as error:
+        raise AuditIntegrityError("Audit storage is unreadable or malformed; operator review is required.") from error
+    _validate_json_shape(value)
+    return raw, value
+
+
+@_bounded_audit_reads
+def _audit_event_paths(directory):
+    paths = []
+    budget = _ACTIVE_READ_BUDGET.get()
+    entries_seen = 0
+    try:
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                entries_seen += 1
+                if budget is not None:
+                    budget["entries"] += 1
+                if (budget["entries"] if budget is not None else entries_seen) > MAX_AUDIT_SCAN_ENTRIES:
+                    raise AuditIntegrityError(
+                        "Audit discovery exceeds the directory-entry safety limit; operator review is required."
+                    )
+                if entry.name.startswith("audit_") and entry.name.endswith(".json"):
+                    paths.append(Path(entry.path))
+    except OSError as error:
+        raise AuditIntegrityError("Audit discovery could not inspect the complete directory.") from error
+    return paths
+
+
 def save_report_audit(payload):
     """Create the append-only first event for a report version."""
 
     return _save_report_audit(payload, allow_parent=False)
 
 
+@_bounded_audit_reads
 def _save_report_audit(payload, *, allow_parent):
     """Write one report root; only the revision transaction may bind a parent."""
 
@@ -213,6 +328,7 @@ def _save_report_audit(payload, *, allow_parent):
         return new_path
 
 
+@_bounded_audit_reads
 def save_revision_audit(parent_path, payload):
     """Create one child report while atomically claiming the verified parent head."""
 
@@ -337,6 +453,7 @@ def _validate_revision_snapshot(parent, payload):
         )
 
 
+@_bounded_audit_reads
 def append_audit_event(previous_path, event_type, payload):
     """Append a verified event without modifying any existing audit file."""
 
@@ -368,12 +485,15 @@ def append_audit_event(previous_path, event_type, payload):
         if recovered is not None:
             recovered_record, recovered_path, _was_recovered = recovered
             if (
-                _was_recovered
-                and recovered_path != previous_path
+                recovered_path != previous_path
+                and recovered_record.get("previous_audit_id") == previous.get("audit_id")
+                and recovered_record.get("previous_record_hash") == previous.get("record_hash")
+                and recovered_record.get("previous_audit_file") == previous_path.name
                 and _event_matches_retry(
                     recovered_record,
                     normalized_payload,
                     event_type,
+                    previous,
                 )
             ):
                 return str(recovered_path)
@@ -474,6 +594,7 @@ def append_quality_reassessment(previous_path, payload):
     return append_audit_event(previous_path, "quality.reassessed", payload)
 
 
+@_bounded_audit_reads
 def load_and_verify_audit(path, verify_chain=True, _seen=None):
     """Load an audit event and verify its hash and, by default, its local chain."""
 
@@ -487,6 +608,8 @@ def load_and_verify_audit(path, verify_chain=True, _seen=None):
     current_path = audit_path
     current = record
     while current.get("previous_audit_file"):
+        if len(chain) >= MAX_AUDIT_CHAIN_EVENTS:
+            raise AuditIntegrityError("Audit chain exceeds the event-count safety limit; operator review is required.")
         if current_path in seen:
             raise AuditIntegrityError("Audit event chain contains a cycle.")
         seen.add(current_path)
@@ -520,15 +643,14 @@ def load_and_verify_audit(path, verify_chain=True, _seen=None):
     return record
 
 
+@_bounded_audit_reads
 def _load_and_validate_audit_record(audit_path):
-    try:
-        record = json.loads(Path(audit_path).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as error:
-        raise AuditIntegrityError(f"Audit event could not be read: {audit_path}") from error
+    _raw, record = _read_audit_json(audit_path)
     validate_audit_record(record)
     return record
 
 
+@_bounded_audit_reads
 def get_audit_chain_paths(latest_path):
     """Return verified audit paths from the creation event to the latest event."""
 
@@ -538,6 +660,8 @@ def get_audit_chain_paths(latest_path):
     newest_to_oldest = []
     seen = set()
     while True:
+        if len(newest_to_oldest) >= MAX_AUDIT_CHAIN_EVENTS:
+            raise AuditIntegrityError("Audit chain exceeds the event-count safety limit; operator review is required.")
         if current in seen:
             raise AuditIntegrityError("Audit event chain contains a cycle.")
         seen.add(current)
@@ -565,6 +689,7 @@ def capture_audit_chain_at_event(latest_path):
     return _capture_authoritative_audit_chain(latest_path, require_current=False)
 
 
+@_bounded_audit_reads
 def capture_parent_lineage(child_record, immediate_parent_path):
     """Capture and verify every ancestor chain bound by a revision event."""
 
@@ -581,6 +706,10 @@ def capture_parent_lineage(child_record, immediate_parent_path):
     seen = set()
     next_path = Path(immediate_parent_path).resolve()
     while binding:
+        if len(levels) >= MAX_AUDIT_LINEAGE_DEPTH:
+            raise AuditIntegrityError(
+                "Audit lineage exceeds the ancestor-count safety limit; operator review is required."
+            )
         audit_id = str(binding.get("audit_id") or "")
         if not audit_id or audit_id in seen:
             raise AuditIntegrityError("Revision lineage contains a missing or cyclic audit ID.")
@@ -596,6 +725,7 @@ def capture_parent_lineage(child_record, immediate_parent_path):
     return levels
 
 
+@_bounded_audit_reads
 def _capture_authoritative_audit_chain(latest_path, *, require_current):
     latest_path = Path(latest_path).resolve()
     if latest_path.parent != _audit_dir():
@@ -611,11 +741,7 @@ def _capture_authoritative_audit_chain(latest_path, *, require_current):
         captured = []
         previous = None
         for path in paths:
-            try:
-                payload_bytes = path.read_bytes()
-                record = json.loads(payload_bytes.decode("utf-8"))
-            except (OSError, UnicodeError, json.JSONDecodeError) as error:
-                raise AuditIntegrityError(f"Audit event changed or became unreadable: {path}") from error
+            payload_bytes, record = _read_audit_json(path)
             validate_audit_record(record)
             if previous is not None and (
                 record.get("previous_audit_id") != previous.get("audit_id")
@@ -629,11 +755,14 @@ def _capture_authoritative_audit_chain(latest_path, *, require_current):
         return captured
 
 
+@_bounded_audit_reads
 def _historical_chain_paths(latest_path):
     current = Path(latest_path).resolve()
     newest_to_oldest = []
     seen = set()
     while True:
+        if len(newest_to_oldest) >= MAX_AUDIT_CHAIN_EVENTS:
+            raise AuditIntegrityError("Audit chain exceeds the event-count safety limit; operator review is required.")
         if current in seen:
             raise AuditIntegrityError("Audit event chain contains a cycle.")
         seen.add(current)
@@ -662,13 +791,11 @@ def _parent_binding_for_record(record):
     }
 
 
+@_bounded_audit_reads
 def _find_bound_audit_event(binding):
     matches = []
-    for candidate in _audit_dir().glob("audit_*.json"):
-        try:
-            record = load_and_verify_audit(candidate, verify_chain=False)
-        except AuditIntegrityError:
-            continue
+    for candidate in _audit_event_paths(_audit_dir()):
+        record = _load_and_validate_audit_record(candidate)
         if _parent_binding_for_record(record) == binding:
             matches.append(candidate.resolve())
     if len(matches) != 1:
@@ -760,6 +887,14 @@ def _canonical_review_checklist(checklist):
 def validate_audit_record(record):
     """Validate one in-memory v4 audit record and return it unchanged."""
 
+    _validate_json_shape(record)
+    try:
+        return _validate_audit_record_fields(record)
+    except (TypeError, ValueError, AttributeError, RecursionError, OverflowError) as error:
+        raise AuditIntegrityError("Audit event contains malformed field types or bindings.") from error
+
+
+def _validate_audit_record_fields(record):
     if not isinstance(record, dict) or record.get("audit_schema") != AUDIT_SCHEMA:
         raise AuditIntegrityError(
             "Audit event schema is missing, legacy, or unsupported; regenerate the governed report."
@@ -794,6 +929,10 @@ def validate_audit_record(record):
     quality = record.get("quality")
     if not isinstance(quality, dict):
         raise AuditIntegrityError("Audit event has no deterministic governed-report quality result.")
+    if not isinstance(quality.get("approval_gate"), dict) or not isinstance(
+        quality["approval_gate"].get("passed"), bool
+    ):
+        raise AuditIntegrityError("Audit event has a malformed quality approval gate.")
     quality_policy_version = record.get("quality_policy_version")
     quality_embedded_policy = quality.get("quality_policy_version")
     quality_policy_fingerprint = record.get("quality_policy_fingerprint")
@@ -818,19 +957,32 @@ def validate_audit_record(record):
         or any(not _is_sha256(register_hashes.get(path)) for path in REGISTER_SNAPSHOT_FILES)
     ):
         raise AuditIntegrityError("Audit event has an invalid frozen data/licence register binding.")
-    if not str(record.get("audit_id") or "").strip():
+    if not isinstance(record.get("audit_id"), str) or not record["audit_id"].strip():
         raise AuditIntegrityError("Audit event has no audit ID.")
-    if not str(record.get("event_type") or "").strip():
+    if not isinstance(record.get("event_type"), str) or record["event_type"] not in {
+        "report.created",
+        "review.recorded",
+        "quality.reassessed",
+    }:
         raise AuditIntegrityError("Audit event has no event type.")
     _validate_quality_reassessment_record(record)
-    if not str(record.get("report_id") or "").strip():
+    if not isinstance(record.get("report_id"), str) or not record["report_id"].strip():
         raise AuditIntegrityError("Audit event has no report ID.")
     if not _is_positive_report_version(record.get("report_version")):
         raise AuditIntegrityError("Audit event report version must be a positive integer.")
     if record.get("report_status") not in REPORT_STATUSES:
         raise AuditIntegrityError("Audit event contains an unknown report status.")
     _validate_parent_binding(record)
+    _validate_chain_field_types(record)
     return record
+
+
+def _validate_chain_field_types(record):
+    for field in ("previous_audit_id", "previous_audit_file", "parent_report_id"):
+        if record.get(field) is not None and not isinstance(record[field], str):
+            raise AuditIntegrityError("Audit event contains malformed predecessor or parent fields.")
+    if record.get("previous_record_hash") is not None and not _is_sha256(record["previous_record_hash"]):
+        raise AuditIntegrityError("Audit event has an invalid previous hash.")
 
 
 def _validate_quality_reassessment_record(record):
@@ -998,6 +1150,16 @@ def _validated_append_context(previous, payload):
         raise AuditIntegrityError("A review audit event must include its complete analysis snapshot.")
     if sha256_json(analysis) != previous.get("analysis", {}).get("analysis_hash"):
         raise AuditIntegrityError("Review analysis does not match the report's bound analysis snapshot.")
+    for field, default, binding in (
+        ("inputs", {}, "inputs_hash"),
+        ("area_selection", None, "area_selection_hash"),
+    ):
+        if field in payload and (
+            payload[field] is not None
+            and not isinstance(payload[field], dict)
+            or sha256_json(payload[field] if payload[field] is not None else default) != previous.get(binding)
+        ):
+            raise AuditIntegrityError("Review inputs or geography do not match the bound report snapshot.")
 
     review = payload.get("human_review")
     review = review if isinstance(review, dict) else {}
@@ -1081,13 +1243,11 @@ def _revision_claim_path(audit_dir, parent_record):
     return Path(audit_dir) / f".revision_{report_id}_v{report_version}.json"
 
 
+@_bounded_audit_reads
 def _recover_revision_claim(claim_path, audit_dir, parent_binding):
     """Finish an interrupted claim, or release a stale claim with no child."""
 
-    try:
-        claim = json.loads(Path(claim_path).read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise AuditIntegrityError("Revision claim is unreadable or malformed.") from error
+    _raw, claim = _read_audit_json(claim_path, metadata=True)
     claim_parent = claim.get("parent") if isinstance(claim, dict) else None
     if (
         not isinstance(claim_parent, dict)
@@ -1102,17 +1262,15 @@ def _recover_revision_claim(claim_path, audit_dir, parent_binding):
         raise AuditIntegrityError("Revision claim has an unknown state.")
 
     candidates = []
-    for candidate in Path(audit_dir).glob("audit_*.json"):
-        try:
-            record = load_and_verify_audit(candidate)
-        except AuditIntegrityError:
-            continue
+    for candidate in _audit_event_paths(audit_dir):
+        record = _load_and_validate_audit_record(candidate)
         if record.get("event_type") == "report.created" and record.get("parent_audit_binding") == claim_parent:
             candidates.append((candidate.resolve(), record))
     if len(candidates) > 1:
         raise AuditIntegrityError("Revision recovery found multiple children for one parent report version.")
     if candidates:
         child_path, child = candidates[0]
+        load_and_verify_audit(child_path)
         _commit_revision_claim(claim_path, claim_parent, child, child_path)
         return child_path
 
@@ -1196,27 +1354,54 @@ def _commit_revision_claim(claim_path, parent_binding, child, child_path):
     )
 
 
-def _event_matches_retry(record, normalized_payload, event_type):
+def _event_matches_retry(record, normalized_payload, event_type, previous):
+    if record.get("source_payload_hash") != sha256_json(normalized_payload):
+        return False
     try:
         review = canonical_review_record(normalized_payload.get("human_review"))
         context = canonical_package_context(normalized_payload.get("package_context"))
+        context_hashes = _validated_append_context(previous, normalized_payload)
         report_text = str(normalized_payload.get("report_text") or "")
+        _validate_exact_human_signoff(report_text, review)
         quality = _validated_report_quality(report_text, normalized_payload)
     except (AuditIntegrityError, TypeError, ValueError):
         return False
+    payload_report_id = normalized_payload.get("report_id")
+    expected_report_id = previous.get("report_id") if payload_report_id is None else payload_report_id
     return (
         record.get("event_type") == event_type
-        and str(record.get("report_id")) == str(normalized_payload.get("report_id"))
-        and record.get("report_version") == normalized_payload.get("report_version")
+        and str(record.get("report_id")) == str(expected_report_id)
+        and record.get("report_version") == normalized_payload.get("report_version", previous.get("report_version"))
         and record.get("report_status") == normalized_payload.get("report_status")
-        and record.get("report_content", {}).get("sha256") == sha256_text(report_text)
+        and record.get("report_content") == _content_fingerprint(report_text)
         and record.get("governed_body_hash") == sha256_text(remove_human_signoff(report_text))
         and record.get("review_record_hash") == review_record_hash(review)
+        and record.get("human_review") == _minimal_review(review)
         and record.get("package_context_hash") == package_context_hash(context)
         and record.get("quality") == quality
+        and record.get("inputs_hash") == previous.get("inputs_hash")
+        and record.get("area_selection_hash") == previous.get("area_selection_hash")
+        and record.get("analysis", {}).get("analysis_hash") == sha256_json(normalized_payload["analysis"])
+        and record.get("export_register_hashes") == previous.get("export_register_hashes")
+        and record.get("grounding_evaluation_hash") == previous.get("grounding_evaluation_hash")
+        and all(record.get(key) == value for key, value in context_hashes.items())
+        and all(
+            record.get(key) == previous.get(key)
+            for key in (
+                "inputs",
+                "analysis",
+                "parent_report_id",
+                "parent_audit_binding",
+                "model_provider",
+                "model_name",
+                "model_endpoint_boundary",
+                "external_model_acknowledged_at",
+            )
+        )
     )
 
 
+@_bounded_audit_reads
 def _recover_unique_report_head(audit_dir, report_id):
     """Recover a unique linear audit tip and reject orphaned or forked graphs."""
 
@@ -1252,21 +1437,16 @@ def _recover_unique_report_head(audit_dir, report_id):
     return tip, tip_path, recovered
 
 
+@_bounded_audit_reads
 def _load_report_audit_events(audit_dir, report_id):
-    slug_marker = f"_{_slugify(report_id)}_"
     events = []
-    for candidate in audit_dir.glob("audit_*.json"):
-        try:
-            raw_record = json.loads(candidate.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, json.JSONDecodeError) as error:
-            if slug_marker in candidate.name:
-                raise AuditIntegrityError(
-                    f"Audit graph contains an unreadable event for report {report_id}."
-                ) from error
+    for candidate in _audit_event_paths(audit_dir):
+        # File names are not authoritative: a renamed fork must not disappear.
+        raw_record = _load_and_validate_audit_record(candidate)
+        if raw_record["report_id"] != report_id:
             continue
-        if not isinstance(raw_record, dict) or str(raw_record.get("report_id")) != report_id:
-            continue
-        validate_audit_record(raw_record)
+        if len(events) >= MAX_AUDIT_CHAIN_EVENTS:
+            raise AuditIntegrityError("Audit graph exceeds the event-count safety limit; operator review is required.")
         events.append((candidate.resolve(), raw_record))
     return events
 
@@ -1326,9 +1506,23 @@ def _walk_report_audit_graph(root_path, root, successors, event_count):
 
 def _read_audit_head(head_path):
     try:
-        return json.loads(head_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
+        Path(head_path).lstat()
+    except FileNotFoundError:
         return None
+    except OSError as error:
+        raise AuditIntegrityError("Audit head cannot be inspected; operator review is required.") from error
+    _raw, head = _read_audit_json(head_path, metadata=True)
+    if (
+        not isinstance(head, dict)
+        or set(head) != {"report_id", "report_version", "audit_id", "record_hash", "audit_file"}
+        or not isinstance(head.get("report_id"), str)
+        or not isinstance(head.get("audit_id"), str)
+        or not isinstance(head.get("audit_file"), str)
+        or not _is_positive_report_version(head.get("report_version"))
+        or not _is_sha256(head.get("record_hash"))
+    ):
+        raise AuditIntegrityError("Audit head contains malformed fields; operator review is required.")
+    return head
 
 
 def _write_head(audit_dir, record, event_path):
@@ -1406,12 +1600,9 @@ def _best_effort_unlink(path):
 
 def _assert_current_head(audit_dir, record, event_path):
     head_path = _head_path(audit_dir, record.get("report_id"))
-    try:
-        head = json.loads(head_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise AuditIntegrityError(
-            "Audit head is missing or unreadable; refusing a potentially forked append."
-        ) from error
+    head = _read_audit_head(head_path)
+    if head is None:
+        raise AuditIntegrityError("Audit head is missing or unreadable; refusing a potentially forked append.")
     expected = {
         "report_id": record.get("report_id"),
         "report_version": record.get("report_version"),

@@ -157,7 +157,9 @@ def test_cpu_index_rejects_other_model_files_even_with_valid_manifest_hash(cpu_s
 
 def test_cpu_query_dimension_mismatch_is_reported_without_qdrant_query(cpu_settings, fake_model):
     build_rag_index(cpu_settings)
-    bad_embedder = SimpleNamespace(embed=lambda _texts: [[1.0, 0.0]])
+    bad_embedder = SimpleNamespace(
+        embed=lambda _texts: [[1.0, 0.0]], identity=embeddings.create_embedding_client(cpu_settings).identity
+    )
     result = RagService(cpu_settings, embedder=bad_embedder).retrieve("Queensland household preparedness")
     assert result["status"] == "unavailable"
     assert result["error_code"] == "rag_embedding_invalid"

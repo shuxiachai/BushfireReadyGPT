@@ -17,10 +17,19 @@ from src.rag.errors import RagError
 from src.rag.index import build_rag_index, index_file_lock
 from src.rag.service import RagService, format_retrieved_context, inspect_rag_index
 from src.rag.settings import RagSettings
+from tests.rag_fakes import identity_client, ollama_identity
+
+
+@pytest.fixture(autouse=True)
+def synthetic_index_identity(monkeypatch):
+    monkeypatch.setattr(index_module, "create_embedding_client", identity_client)
 
 
 class KeywordEmbedder:
-    def embed(self, texts):
+    def identity(self):
+        return ollama_identity()
+
+    def embed(self, texts, *, expected_identity=None):
         vectors = []
         for text in texts:
             lowered = str(text).lower()
@@ -250,7 +259,7 @@ def test_build_aborts_if_a_source_changes_during_embedding_without_publishing(tm
     original_manifest_bytes = manifest_path.read_bytes()
 
     class MutatingEmbedder(KeywordEmbedder):
-        def embed(self, texts):
+        def embed(self, texts, *, expected_identity=None):
             vectors = super().embed(texts)
             source_path.write_text("CHANGED WHILE EMBEDDING " * 80, encoding="utf-8")
             return vectors
@@ -310,14 +319,14 @@ def test_query_waits_for_same_process_index_build(tmp_path):
     query_embedding_called = threading.Event()
 
     class BlockingBuildEmbedder(KeywordEmbedder):
-        def embed(self, texts):
+        def embed(self, texts, *, expected_identity=None):
             build_entered.set()
             if not release_build.wait(timeout=10):
                 raise AssertionError("test did not release the blocked index build")
             return super().embed(texts)
 
     class ObservedQueryEmbedder(KeywordEmbedder):
-        def embed(self, texts):
+        def embed(self, texts, *, expected_identity=None):
             query_embedding_called.set()
             return super().embed(texts)
 
@@ -481,10 +490,10 @@ def test_retrieve_performs_exactly_two_full_index_validations(tmp_path, monkeypa
     original_validate = service_module.load_and_validate_index
     validation_calls = 0
 
-    def counted_validate(active_settings):
+    def counted_validate(active_settings, **kwargs):
         nonlocal validation_calls
         validation_calls += 1
-        return original_validate(active_settings)
+        return original_validate(active_settings, **kwargs)
 
     monkeypatch.setattr(service_module, "load_and_validate_index", counted_validate)
 

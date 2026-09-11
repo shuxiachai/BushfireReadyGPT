@@ -1,6 +1,30 @@
 from src.rag.errors import RagError
 from src.rag.service import RagService
 
+OFFICIAL_QUERY_SCHEMA = "official-form-query-v1"
+
+
+def build_official_query(profile, scenario, concerns, timeframe):
+    """One query contract shared by the application and form-based diagnostics."""
+
+    setting = profile.get("setting_type") or "community"
+    state = profile.get("state") or "Australia"
+    locality = profile.get("locality") or ""
+    concern_text = ", ".join(concerns or []) or "general bushfire preparedness"
+    query = (
+        f"Official static bushfire preparedness guidance for {state} {locality}. "
+        f"Scenario: {scenario}. Setting: {setting}. Focus: {concern_text}. "
+        f"Planning timeframe: {timeframe}."
+    )
+    return query, {
+        "state": state,
+        "locality": locality,
+        "setting_type": setting,
+        "scenario": scenario,
+        "concerns": list(concerns or []),
+        "timeframe": timeframe,
+    }
+
 
 class OfficialKnowledgeAgent:
     """Retrieve static official preparedness passages from the verified local RAG index."""
@@ -10,15 +34,8 @@ class OfficialKnowledgeAgent:
         self.service = service
 
     def run(self, profile, scenario, concerns, timeframe):
-        setting = profile.get("setting_type") or "community"
-        state = profile.get("state") or "Australia"
-        locality = profile.get("locality") or ""
-        concern_text = ", ".join(concerns or []) or "general bushfire preparedness"
-        query = (
-            f"Official static bushfire preparedness guidance for {state} {locality}. "
-            f"Scenario: {scenario}. Setting: {setting}. Focus: {concern_text}. "
-            f"Planning timeframe: {timeframe}."
-        )
+        query, components = build_official_query(profile, scenario, concerns, timeframe)
+        state = components["state"]
         try:
             service = self.service or RagService(data_paths=self.data_paths)
             result = service.retrieve(
@@ -41,12 +58,5 @@ class OfficialKnowledgeAgent:
                     "The deterministic source register and existing planning rules remain available.",
                 ],
             }
-        result["query_components"] = {
-            "state": state,
-            "locality": locality,
-            "setting_type": setting,
-            "scenario": scenario,
-            "concerns": list(concerns or []),
-            "timeframe": timeframe,
-        }
+        result["query_components"] = components
         return result

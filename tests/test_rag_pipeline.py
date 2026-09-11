@@ -17,6 +17,12 @@ from src.rag.service import RagService, format_retrieved_context, inspect_rag_in
 from src.rag.settings import RagSettings
 from src.report_template import build_evidence_tables
 from src.source_attribution import format_rag_citation_token
+from tests.rag_fakes import identity_client, ollama_identity
+
+
+@pytest.fixture(autouse=True)
+def synthetic_index_identity(monkeypatch):
+    monkeypatch.setattr("src.rag.index.create_embedding_client", identity_client)
 
 
 class KeywordEmbedder:
@@ -25,7 +31,10 @@ class KeywordEmbedder:
     def __init__(self):
         self.calls = 0
 
-    def embed(self, texts):
+    def identity(self):
+        return ollama_identity(self.model)
+
+    def embed(self, texts, *, expected_identity=None):
         self.calls += 1
         vectors = []
         for text in texts:
@@ -296,7 +305,7 @@ def test_qdrant_index_retrieves_and_filters_by_jurisdiction(tmp_path):
         jurisdiction="Queensland",
     )
 
-    assert manifest["schema"] == "bushfire-rag-index-v2"
+    assert manifest["schema"] == "bushfire-rag-index-v4"
     assert manifest["documents_artifact"]["sha256"]
     assert load_and_validate_index(settings)["manifest_sha256"] == manifest["manifest_sha256"]
     assert inspect_rag_index(settings)["state"] == "ready"
@@ -487,9 +496,10 @@ def test_ollama_embedding_client_validates_batch(monkeypatch):
             return None
 
         def json(self):
-            return {"embeddings": [[0.6, 0.8], [1.0, 0.0]]}
+            return {"model": "embeddinggemma", "embeddings": [[0.6, 0.8], [1.0, 0.0]]}
 
     monkeypatch.setattr("src.rag.embeddings.requests.post", lambda *_args, **_kwargs: Response())
+    monkeypatch.setattr(OllamaEmbeddingClient, "identity", lambda self: ollama_identity(self.model))
     vectors = OllamaEmbeddingClient(
         "http://127.0.0.1:11434",
         "embeddinggemma",

@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import uuid4
@@ -35,10 +36,28 @@ from src.report_template import append_human_signoff  # noqa: E402
 DEFAULT_OUTPUT_DIR = resolve_release_directory(PROJECT_ROOT)[1]
 DEFAULT_EXAMPLE = "Cairns Council pilot"
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_OUTPUT_NAMES = (
+    "cairns-council-report.md",
+    "cairns-council-report.pdf",
+    "cairns-council-report.docx",
+    "cairns-council-pilot-package.zip",
+)
 
 
 def _sha256(payload):
     return hashlib.sha256(payload).hexdigest()
+
+
+def _require_unused_outputs(output_dir):
+    """Never replace historical evidence, including after a failed partial build."""
+
+    for name in _OUTPUT_NAMES:
+        path = output_dir / name
+        if path.exists() or path.is_symlink():
+            raise FileExistsError(
+                f"Showcase output already exists: {path.name}. "
+                "Choose a new --output-dir or --release-dir; existing evidence is never overwritten."
+            )
 
 
 def _scenario_from_example(example_name):
@@ -108,6 +127,7 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
         raise ValueError(f"Unknown showcase example: {example_name}")
     _require_local_ollama_runtime()
     output_dir = Path(output_dir if output_dir is not None else resolve_release_directory(PROJECT_ROOT)[1]).resolve()
+    _require_unused_outputs(output_dir)
     example = EXAMPLE_CASES[example_name]
     scenario = _scenario_from_example(example_name)
     artifacts = run_scenario_with_artifacts(scenario)
@@ -204,14 +224,12 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
             else:
                 os.environ["BUSHFIRE_AUDIT_INCLUDE_SENSITIVE_CONTENT"] = previous_sensitive_audit
 
-    output_dir.mkdir(parents=True, exist_ok=True)
     markdown_path = output_dir / "cairns-council-report.md"
     pdf_path = output_dir / "cairns-council-report.pdf"
     docx_path = output_dir / "cairns-council-report.docx"
     package_path = output_dir / "cairns-council-pilot-package.zip"
-    package_path.write_bytes(package["content"])
-
-    with ZipFile(package_path) as archive:
+    # Validate the in-memory package before publishing any sample files.
+    with ZipFile(BytesIO(package["content"])) as archive:
         report_paths = {
             suffix: next(name for name in archive.namelist() if name.startswith("reports/") and name.endswith(suffix))
             for suffix in (".md", ".pdf", ".docx")
@@ -221,11 +239,19 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
             ".pdf": pdf_path,
             ".docx": docx_path,
         }
-        for suffix, path in report_outputs.items():
-            path.write_bytes(archive.read(report_paths[suffix]))
+        output_bytes = {path: archive.read(report_paths[suffix]) for suffix, path in report_outputs.items()}
         audit_record = json.loads(archive.read("governance/audit_record.json"))
         if "sensitive_payload" in audit_record or audit_record.get("privacy", {}).get("contains_full_report_text"):
             raise RuntimeError("The showcase package contains a sensitive audit payload and cannot be committed.")
+
+    output_bytes[package_path] = package["content"]
+    _require_unused_outputs(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for path, content in output_bytes.items():
+        # Exclusive creation also protects against a competing writer after preflight.
+        # A failed partial build is retained and cannot be silently overwritten on retry.
+        with path.open("xb") as stream:
+            stream.write(content)
 
     return {
         "example": example_name,

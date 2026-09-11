@@ -51,6 +51,7 @@ def run_analysis_pipeline(
     extra_context,
     area_selection=None,
     data_paths=None,
+    knowledge_service=None,
 ):
     """Run the deterministic Australia-focused multi-agent analysis pipeline."""
 
@@ -92,7 +93,12 @@ def run_analysis_pipeline(
             area_selection=area_selection,
         )
     with trace_stage("official_knowledge_agent") as span:
-        knowledge_result = OfficialKnowledgeAgent(data_paths=paths).run(
+        knowledge_agent = (
+            OfficialKnowledgeAgent(data_paths=paths)
+            if knowledge_service is None
+            else OfficialKnowledgeAgent(data_paths=paths, service=knowledge_service)
+        )
+        knowledge_result = knowledge_agent.run(
             profile,
             scenario,
             concerns,
