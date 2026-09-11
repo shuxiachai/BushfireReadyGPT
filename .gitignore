@@ -3,11 +3,13 @@ data/
 data_australia/raw/
 data_australia/rag/raw/
 data_australia/rag/index/
+data_australia/rag/index-*/
 data_australia/rag/cpu-index-validation/
 .env.cloud
 /deployment_corpus/*
 !/deployment_corpus/.keep
 data_australia/rag/.*.lock
+data_australia/rag/.*.lock.guard
 data_australia/rag/.*.backup
 data_australia/rag/.*.stage
 data_australia/processed/sa2_boundaries_all.geojson
