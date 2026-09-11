@@ -128,7 +128,7 @@ def test_authenticated_delivery_is_inline_and_never_public_media(
     assert _Document(document).payload == PRIVATE_TEXT.encode("utf-8")
     assert "/media/" not in document
     assert PRIVATE_TEXT not in document
-    assert renderer.iframe.call_args.kwargs == {"height": 64, "width": "stretch", "tab_index": 0}
+    assert renderer.iframe.call_args.kwargs == {"height": "content", "width": "stretch", "tab_index": 0}
     assert forbid_media_registration == []
 
 
@@ -256,7 +256,7 @@ def test_hostile_label_and_filename_cannot_escape_markup_or_executable_script():
     assert not any(tag == "img" for tag, _ in parsed.elements)
     button = next(attrs for tag, attrs in parsed.elements if tag == "button")
     assert button["data-filename"] == filename
-    assert set(button) == {"id", "type", "data-filename", "data-mime"}
+    assert set(button) == {"id", "type", "data-filename", "data-mime", "aria-describedby"}
     assert not any("attack()" in row["body"] for row in parsed.scripts)
     assert parsed.payload == b"safe"
     assert "default-src 'none'" in document
@@ -328,6 +328,20 @@ def test_size_limit_counts_utf8_bytes_and_allows_exact_boundary(monkeypatch):
     for payload in ("学学学", "123456789", b"123456789"):
         with pytest.raises(ValueError, match="limit"):
             downloads._private_download_html("Download", payload, "report.txt", "text/plain")
+
+
+def test_feedback_is_accessible_and_keeps_the_existing_private_delivery_boundary():
+    document = _Document(downloads._private_download_html("Download", PRIVATE_TEXT, "report.md", "text/markdown"))
+    elements = {attrs.get("id"): attrs for _tag, attrs in document.elements if attrs.get("id")}
+    assert elements["download"]["aria-describedby"] == "download-status"
+    assert elements["download-status"]["role"] == "status"
+    assert elements["download-status"]["aria-live"] == "polite"
+    assert elements["download-status"]["aria-atomic"] == "true"
+    assert document.payload == PRIVATE_TEXT.encode("utf-8")
+    csp = next(attrs["content"] for tag, attrs in document.elements if tag == "meta" and "http-equiv" in attrs)
+    assert "default-src 'none'" in csp
+    assert "script-src 'unsafe-inline'" in csp
+    assert "connect-src" not in csp
 
 
 def test_authenticated_oversized_or_callback_exports_deliver_nothing(tmp_path, monkeypatch):

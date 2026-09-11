@@ -180,3 +180,40 @@ def save():
         assert "internal-secret-artifact" not in warnings
     else:
         assert "private-account" in warnings
+
+
+@pytest.mark.parametrize("mode", ["local", "cloud"])
+@pytest.mark.parametrize("view", ["preview", "sidebar"])
+def test_server_save_explains_markdown_retention_without_promising_workspace_restore(mode, view, monkeypatch):
+    monkeypatch.setenv("BUSHFIRE_DEPLOYMENT_MODE", mode)
+    monkeypatch.delenv("RAILWAY_PROJECT_ID", raising=False)
+    monkeypatch.delenv("RAILWAY_ENVIRONMENT_ID", raising=False)
+    for module in (report_views, sidebar):
+        monkeypatch.setattr(module, "get_report_artifact", lambda *_args: b"synthetic")
+        monkeypatch.setattr(module, "download_button", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(sidebar, "evaluate_governed_report", lambda *_args: {"approval_gate": {"passed": True}})
+    app = AppTest.from_string(
+        """
+import streamlit as st
+from src.ui.report_views import render_latest_report_preview
+from src.ui.sidebar import render_sidebar
+st.session_state.latest_report = {'quality': {'approval_gate': {'passed': True}}}
+def save():
+    return '/data/private-account/bushfire_report_synthetic.md'
+"""
+        + {
+            "preview": "render_latest_report_preview(lambda: 'Synthetic report', save, lambda _: True)",
+            "sidebar": "render_sidebar(lambda: None, lambda: 'Synthetic report', save, lambda _: True)",
+        }[view]
+    ).run()
+    next(button for button in app.button if button.label.startswith("Save ")).click().run()
+    assert not app.exception
+    messages = "\n".join(item.value for item in app.success)
+    if mode == "cloud":
+        assert "Saved Markdown on server: bushfire_report_synthetic.md" in messages
+        assert "does not restore your browser session or review/sign-off workspace" in messages
+        assert "Audit records are retained separately" in messages
+        assert "Download your exports before closing this session" in messages
+        assert "private-account" not in messages
+    else:
+        assert messages == "Saved: /data/private-account/bushfire_report_synthetic.md"

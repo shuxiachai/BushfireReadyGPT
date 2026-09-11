@@ -65,26 +65,46 @@ button {{box-sizing:border-box;width:100%;min-height:44px;padding:8px 10px;
 border:1px solid #51677b;border-radius:8px;background:#0e1c27;color:#fafafa;
 font:inherit;font-size:14px;cursor:pointer;white-space:normal}}
 button:hover {{border-color:#ff7844}} button:focus-visible {{outline:2px solid #ff7844;outline-offset:-3px}}
+#download-status {{margin:6px 0 0;color:#b7c8d7;font-size:12px;line-height:1.4}}
+#download-status:empty {{margin:0}}
 </style></head><body>
 <button id="download" type="button" data-filename="{html.escape(file_name, quote=True)}"
-data-mime="{mime}">{html.escape(label)}</button>
+data-mime="{mime}" aria-describedby="download-status">{html.escape(label)}</button>
+<p id="download-status" role="status" aria-live="polite" aria-atomic="true"></p>
 <script id="payload" type="application/octet-stream">{encoded}</script>
 <script>
 "use strict";
 const downloadButton = document.getElementById("download");
+const downloadStatus = document.getElementById("download-status");
 downloadButton.addEventListener("click", () => {{
-    const binary = atob(document.getElementById("payload").textContent);
-    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-    const blob = new Blob([bytes], {{type: downloadButton.dataset.mime}});
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = downloadButton.dataset.filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    // Give the browser time to acquire the Blob before releasing the URL.
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    downloadStatus.textContent = "";
+    let objectUrl = null;
+    let link = null;
+    try {{
+        if (typeof Blob !== "function" || typeof URL.createObjectURL !== "function" ||
+                typeof URL.revokeObjectURL !== "function") {{
+            throw new Error("Browser-local downloads are unavailable.");
+        }}
+        const binary = atob(document.getElementById("payload").textContent);
+        const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+        const blob = new Blob([bytes], {{type: downloadButton.dataset.mime}});
+        objectUrl = URL.createObjectURL(blob);
+        link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = downloadButton.dataset.filename;
+        document.body.appendChild(link);
+        link.click();
+        // A click cannot confirm that browser policy allowed the file to be saved.
+        downloadStatus.textContent = "Download requested. Check your browser's downloads. " +
+            "If no file appears, retry in Chrome or Edge. Keep this session open until you have the file.";
+    }} catch {{
+        downloadStatus.textContent = "Download could not be started. Check your browser's download settings, " +
+            "then retry in Chrome or Edge. Keep this session open.";
+    }} finally {{
+        if (link) link.remove();
+        // Give the browser time to acquire the Blob before releasing the URL.
+        if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    }}
 }});
 </script></body></html>"""
 
@@ -116,4 +136,5 @@ def download_button(
         raise ValueError("Private downloads cannot execute server callbacks.")
     document = _private_download_html(label, data, file_name, mime)
     # A raw HTML string uses inline srcdoc. Passing a Path would create a media URL.
-    return renderer.iframe(document, height=64, width=width, tab_index=0)
+    # Content sizing keeps the accessible failure/status message visible on narrow screens.
+    return renderer.iframe(document, height="content", width=width, tab_index=0)

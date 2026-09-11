@@ -546,7 +546,7 @@ artifacts with results from a different model or dirty worktree.
 | Authorization on report download requests | Fix deployed; old public ZIP returns 404; authenticated delivery and anonymous denial pass separate-context browser CI; authenticated live export acceptance pending |
 | Two-browser session isolation and separate administrator access | Separate-context private-download E2E passed locally; full live isolation and administrator checks pending |
 | Concurrent-call rejection and persisted daily allowance | Unit tests passed; CI persisted quota passed; live contention pending |
-| Restart with saved audit/trace/quota and reused index generation | Live repair deployment reused the same private corpus/index; CI quota/sentinel passed; live saved-report/audit/trace/quota recovery pending |
+| Restart with saved audit/trace/quota and reused index generation | September 11 authorized readback verified saved Markdown, three linked audit events and two Traces after deployment; original private index reused; live SQLite quota readback remains unverified |
 | Railway HTTPS, deployment health and browser interaction | Passed for HTTPS, health 200, authenticated generation and revision |
 | External user pilot | Not performed |
 
@@ -554,3 +554,10 @@ The controlled demo is deployed, but the remaining acceptance items are still
 open and no new version has been released. See the existing
 [evaluation guide](evaluation_and_observability.md) and [RAG design](rag.md) for
 the distinctions between retrieval metrics, report governance and user evidence.
+
+The [September 11 launch follow-up](LAUNCH_READINESS_2026-09-11.md) supersedes
+earlier pending statements about the specific synthetic report/audit/Trace
+readback. It also records context-budget warnings, private-download failure
+feedback and stronger disposable-container restart checks. Server saving stores
+Markdown, not a restorable browser/review workspace. Local re-exports are not
+original cloud-downloaded files, and the Word visual check is still open.

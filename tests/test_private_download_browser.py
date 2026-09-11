@@ -98,6 +98,19 @@ def test_private_downloads_are_browser_local_and_session_isolated(tmp_path):
                         destination = tmp_path / filename
                         download.save_as(destination)
                         assert destination.read_bytes() == PAYLOAD
+                        status = frame.get_by_role("status")
+                        expect(status).to_contain_text("Download requested.")
+                        expect(status).to_contain_text("If no file appears, retry in Chrome or Edge.")
+                        expect(status).not_to_contain_text("saved")
+                        expect(status).to_be_visible()
+                        # Streamlit's content-sized iframe must grow with the feedback;
+                        # a fixed 64px frame would clip the narrow-column message.
+                        status_bounds = status.bounding_box()
+                        iframe_bounds = page.locator("iframe").nth(index).bounding_box()
+                        assert status_bounds and iframe_bounds
+                        assert status_bounds["y"] + status_bounds["height"] <= (
+                            iframe_bounds["y"] + iframe_bounds["height"] + 1
+                        )
                         # Knowing the exact synthetic bytes/filename must not produce
                         # a retrievable file in Streamlit's unauthenticated media store.
                         file_id = _calculate_file_id(PAYLOAD, mime, filename)

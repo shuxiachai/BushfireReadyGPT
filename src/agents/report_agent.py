@@ -1,6 +1,7 @@
 import json
 
-from src.rag.service import format_retrieved_context
+from src.evidence_formatting import format_evidence_value
+from src.rag.service import assemble_retrieved_context, summarise_context_assembly
 from src.source_attribution import format_official_citation_token
 
 
@@ -19,6 +20,8 @@ class ReportAgent:
     ):
         community_result = community_result or {}
         knowledge_result = knowledge_result or {}
+        rag_assembly = assemble_retrieved_context(knowledge_result)
+        rag_summary = summarise_context_assembly(rag_assembly)
         profile_lines = [
             f"- State / territory inference: {profile['state']}",
             f"- Scenario type: {profile['setting_type']}",
@@ -63,8 +66,9 @@ class ReportAgent:
             f"- Retrieval mode: {knowledge_result.get('retrieval_mode') or 'Not available'}",
             f"- Dense/BM25 weights: {knowledge_result.get('dense_weight', 'N/A')} / "
             f"{knowledge_result.get('lexical_weight', 'N/A')}",
-            f"- Retrieved passage count: {len(knowledge_result.get('retrieved_chunks', []))}",
-            format_retrieved_context(knowledge_result),
+            f"- Retrieved passage count: {rag_summary['retrieved_chunks']}",
+            *self._format_rag_context_coverage(rag_summary),
+            rag_assembly["context"],
             "",
             "Planner Agent:",
             *[f"- {item}" for item in plan_result.get("planning_priorities", [])],
@@ -86,6 +90,33 @@ class ReportAgent:
         lines.extend(f"- {item}" for item in risk_context.get("assumptions", []))
         return "\n".join(lines)
 
+    @staticmethod
+    def _format_rag_context_coverage(summary):
+        lines = [
+            "- Initial RAG context assembly (budget use, not semantic completeness): "
+            f"{summary['included_chunks']}/{summary['retrieved_chunks']} retrieved chunks included; "
+            f"{summary['truncated_chunks']} truncated; {summary['omitted_chunks']} omitted. "
+            f"RAG block: {summary['context_characters']}/{summary['max_context_characters']} characters "
+            "including framing and attribution instructions."
+        ]
+        if not summary["included_chunks"]:
+            lines.append(
+                "- RAG evidence completeness: no retrieved text is present in this initial context; "
+                "source-register entries do not substitute for retrieved supporting passages."
+            )
+        elif summary["incomplete"]:
+            lines.append(
+                "- RAG evidence completeness: partial. Character budgets truncate or omit passage text. "
+                "Unseen qualifications, negations and exceptions remain unknown; these excerpts do not "
+                "establish complete-document support. Full-source human review remains necessary."
+            )
+        else:
+            lines.append(
+                "- RAG evidence completeness: the selected passages fit this initial context budget; "
+                "this does not establish coverage of the full source documents or support for every claim."
+            )
+        return lines
+
     def _format_community_result(self, community_result):
         lines = []
         matched_location = community_result.get("matched_location")
@@ -98,15 +129,16 @@ class ReportAgent:
         if indicators:
             lines.extend(
                 [
-                    f"- Population: {indicators.get('population')}",
-                    f"- Older people percentage: {indicators.get('older_people_pct')}%",
-                    f"- No-car households percentage: {indicators.get('no_car_households_pct')}%",
-                    f"- Language support need: {indicators.get('language_support_needed')}",
+                    f"- Population: {format_evidence_value(indicators.get('population'))}",
+                    f"- Older people percentage: {format_evidence_value(indicators.get('older_people_pct'), '%')}",
+                    f"- No-car households percentage: {format_evidence_value(indicators.get('no_car_households_pct'), '%')}",
+                    f"- Language support need: {format_evidence_value(indicators.get('language_support_needed'))}",
                 ]
             )
-            if indicators.get("language_other_than_english_pct"):
+            if "language_other_than_english_pct" in indicators:
                 lines.append(
-                    f"- Language other than English at home: {indicators.get('language_other_than_english_pct')}%"
+                    "- Language other than English at home: "
+                    + format_evidence_value(indicators.get("language_other_than_english_pct"), "%")
                 )
             if indicators.get("geography_type"):
                 lines.append(f"- Geography mapping: {indicators.get('geography_type')}")

@@ -562,3 +562,21 @@ def format_retrieved_context(
     return assemble_retrieved_context(
         knowledge_result, max_characters=max_characters, max_chunk_characters=max_chunk_characters
     )["context"]
+
+
+def summarise_context_assembly(assembly):
+    """Describe budget use, not semantic completeness, without assembling again."""
+    manifest = assembly["manifest"]
+    entries = manifest["chunks"]
+    truncated = sum(entry["reason"] == "per_chunk_character_budget" for entry in entries)
+    omitted = sum(not entry["included"] for entry in entries)
+    return {
+        "retrieved_chunks": manifest["retrieved_count"],
+        "included_chunks": manifest["included_count"],
+        "truncated_chunks": truncated,
+        "omitted_chunks": omitted,
+        "context_characters": manifest["context_characters"],
+        "max_context_characters": manifest["max_characters"],
+        "max_chunk_characters": manifest["max_chunk_characters"],
+        "incomplete": bool(truncated or omitted),
+    }

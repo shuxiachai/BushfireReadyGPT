@@ -1,4 +1,3 @@
-import math
 import os
 from datetime import date
 from html import escape
@@ -7,8 +6,10 @@ import streamlit as st
 
 from src.audit import AuditIntegrityError, capture_current_audit_chain, sha256_json
 from src.evidence_confidence import build_evidence_confidence_rows
+from src.evidence_formatting import format_evidence_value as _community_evidence_value
 from src.export_package import create_pilot_export_package
 from src.input_validation import REVIEW_FIELD_LIMITS
+from src.rag.service import assemble_retrieved_context, summarise_context_assembly
 from src.report_grounding import GROUNDING_METHOD, claim_review_reasons, evaluate_report_grounding
 from src.ui.components import render_path_line, safe_diagnostic_detail, safe_display_text
 from src.ui.downloads import download_button
@@ -168,9 +169,27 @@ def _render_retrieved_knowledge(knowledge_result):
     ]
     for label, value in fields:
         st.markdown(f"- **{label}:** {value}")
+    summary = summarise_context_assembly(assemble_retrieved_context(knowledge_result))
+    st.caption(
+        "Current-rule initial-context assembly preview only. It does not establish what a historical report, "
+        "repair or revision call received."
+    )
+    st.markdown(
+        f"- **Initial-context preview:** {summary['retrieved_chunks']} retrieved; "
+        f"{summary['included_chunks']} included; {summary['truncated_chunks']} truncated; "
+        f"{summary['omitted_chunks']} omitted.\n"
+        f"- **RAG block character budget:** {summary['context_characters']}/{summary['max_context_characters']} "
+        f"(including framing); per-chunk prefix cap {summary['max_chunk_characters']}."
+    )
+    st.caption("These counts describe budget use, not semantic completeness or coverage of the full source documents.")
+    if summary["incomplete"]:
+        st.warning(
+            "The preview contains truncated or omitted passages. Unseen qualifications, negations and exceptions "
+            "remain unknown; review the full official source before relying on a claim."
+        )
     retrieved_chunks = knowledge_result.get("retrieved_chunks", [])
     if not retrieved_chunks:
-        st.markdown("- No verified RAG passage was supplied to the report model.")
+        st.markdown("- No retrieved passage is available for this initial-context preview.")
         return
     st.caption("Similarity supports retrieval ranking only. Review the current official page before use.")
     st.dataframe([_retrieved_chunk_row(chunk) for chunk in retrieved_chunks], width="stretch", hide_index=True)
@@ -192,23 +211,6 @@ def _retrieved_chunk_row(chunk):
         "url": chunk.get("url", ""),
         "excerpt": str(chunk.get("text") or "")[:500],
     }
-
-
-def _community_evidence_value(value, suffix=""):
-    """Format presentation only: missing indicators are not numeric zero."""
-    missing = "To be confirmed"
-    if value is None or isinstance(value, bool):
-        return missing
-    text = str(value).strip()
-    if not text:
-        return missing
-    try:
-        number = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return missing if suffix else text
-    if not math.isfinite(number) or suffix == "%" and not 0 <= number <= 100:
-        return missing
-    return f"{text}{suffix}"
 
 
 def _render_community_evidence(community_result):

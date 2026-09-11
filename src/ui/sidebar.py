@@ -96,7 +96,14 @@ def render_sidebar(
             else:
                 if saved_path:
                     display_path = Path(saved_path).name if is_cloud_deployment() else saved_path
-                    st.sidebar.success(f"Saved: {display_path}")
+                    if is_cloud_deployment():
+                        st.sidebar.success(
+                            f"Saved Markdown on server: {display_path}. "
+                            "This does not restore your browser session or review/sign-off workspace. "
+                            "Audit records are retained separately. Download your exports before closing this session."
+                        )
+                    else:
+                        st.sidebar.success(f"Saved: {display_path}")
     st.sidebar.markdown("### Safety Boundary")
     st.sidebar.caption(
         "This app does not provide live fire conditions, fire bans, evacuation orders or life-safety decisions. "

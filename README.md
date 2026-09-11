@@ -37,9 +37,13 @@ a download-authorization gap. The follow-up fix adds authenticated-session
 export delivery, explicit model-completion checks with bounded repair, and
 content-preserving PDF pagination. The fix is deployed: health is normal, the
 previous public ZIP URL returns 404, and startup reused the same private RAG
-manifest. The repair commit passed 1,297 non-E2E tests plus two Chromium tests
-in CI, with 88.19% Linux coverage. Post-fix real-model generation, authenticated
-live exports and audit/trace/quota recovery acceptance remain pending.
+manifest. That repair commit passed 1,297 non-E2E tests plus two Chromium tests
+in CI, with 88.19% Linux coverage. Subsequent September 11 synthetic generation,
+revision and review were verified separately. The saved Markdown and three linked
+audit events, plus two Traces, were read back after a real Railway deployment and
+independently checked. Live quota recovery, complete authenticated cloud download
+acceptance and Word visual rendering remain distinct open checks; see the
+[latest controlled-demo readiness record](docs/LAUNCH_READINESS_2026-09-11.md).
 See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
 and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).
 The historical release measurements below do not certify this new cloud path.

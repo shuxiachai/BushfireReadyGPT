@@ -219,6 +219,13 @@ def render_latest_report_preview(
             else:
                 if saved_path:
                     display_path = Path(saved_path).name if is_cloud_deployment() else saved_path
-                    st.success(f"Saved: {display_path}")
+                    if is_cloud_deployment():
+                        st.success(
+                            f"Saved Markdown on server: {display_path}. "
+                            "This does not restore your browser session or review/sign-off workspace. "
+                            "Audit records are retained separately. Download your exports before closing this session."
+                        )
+                    else:
+                        st.success(f"Saved: {display_path}")
     with st.container(border=True):
         st.markdown(latest_report)
