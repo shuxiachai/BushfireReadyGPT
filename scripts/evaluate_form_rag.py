@@ -22,6 +22,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.evaluate_rag import build_run_metadata  # noqa: E402
 from scripts.evaluation_artifacts import (  # noqa: E402
+    _validate_index_provenance,
     canonical_sha256,
     require_stable_release_provenance,
 )
@@ -264,11 +265,83 @@ def _check_span(span, text_length, term_length):
         _require(0 <= span[0] < span[1] <= text_length and span[1] - span[0] == term_length, "term span bounds")
 
 
-def validate_form_evaluation_artifact(output, payload):
+def _validate_run_bindings(output, payload, suite_bytes):
+    run = output.get("run")
+    _require(isinstance(run, dict), "run provenance mapping")
+    if run == {"provenance": "not_collected_test_or_in_memory_run"}:
+        _require(suite_bytes is None, "run provenance required to verify exact suite bytes")
+        return
+
+    _require(run.get("questions_hash_basis") == "exact_file_bytes", "suite file hash basis")
+    _require(
+        isinstance(run.get("questions_sha256"), str) and _HASH.fullmatch(run["questions_sha256"]),
+        "suite file hash",
+    )
+    _require(run.get("questions_schema_version") == payload.get("schema_version"), "suite schema version binding")
+    if suite_bytes is not None:
+        _require(isinstance(suite_bytes, bytes), "suite_bytes must be original bytes, not serialised JSON text")
+        try:
+            supplied = json.loads(suite_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError) as error:
+            raise ValueError("Invalid form RAG diagnostic: suite bytes are not valid UTF-8 JSON") from error
+        _require(canonical_sha256(supplied) == canonical_sha256(payload), "suite bytes and parsed fixture differ")
+        _require(hashlib.sha256(suite_bytes).hexdigest() == run["questions_sha256"], "exact suite bytes hash binding")
+
+    index = run.get("rag_index")
+    _require(isinstance(index, dict) and index.get("status") == "verified", "verified run index required")
+    _require(index.get("schema") in {"bushfire-rag-index-v3", "bushfire-rag-index-v4"}, "digest-bound index schema")
+    try:
+        _validate_index_provenance(index)
+    except ValueError as error:
+        raise ValueError("Invalid form RAG diagnostic: run index identity is inconsistent") from error
+    for field in ("source_count", "chunk_count", "embedding_dimension"):
+        _require(type(index.get(field)) is int and index[field] > 0, "positive run index " + field)
+    identity = index["embedding_identity"]
+    model = run.get("embedding_model")
+    _require(
+        isinstance(model, dict) and model.get("digest_status") == "resolved", "resolved run model identity required"
+    )
+    _require(
+        isinstance(model.get("digest"), str)
+        and _HASH.fullmatch(model["digest"])
+        and model["digest"] == identity.get("digest"),
+        "run model digest differs from index identity",
+    )
+    _require(
+        model.get("provider") == index.get("embedding_provider") == identity.get("provider"),
+        "run model provider differs from index",
+    )
+    _require(
+        isinstance(model.get("name"), str) and bool(model["name"]) and model["name"] == identity.get("model"),
+        "run model name differs from index",
+    )
+    _require(
+        type(model.get("dimension")) is int and model["dimension"] == index["embedding_dimension"],
+        "run model dimension differs from index",
+    )
+    distinct_chunks = set()
+    distinct_sources = set()
+    for row in output["rows"]:
+        _require(row["index_manifest_sha256"] == index["manifest_sha256"], "row index differs from run index")
+        for entry in row["assembly"]["chunks"]:
+            distinct_chunks.add(entry["chunk_id"])
+            distinct_sources.add(entry["source_id"])
+    _require(len(distinct_chunks) <= index["chunk_count"], "retrieved chunks exceed run index count")
+    _require(len(distinct_sources) <= index["source_count"], "retrieved sources exceed run index count")
+
+
+def validate_form_evaluation_artifact(output, payload, *, suite_bytes=None):
     """Check suite binding and recompute scores from bounded phrase witnesses.
 
-    This verifies artifact consistency, not truth of unauthenticated JSON. A
-    replay against the recorded source/index hashes is needed to verify content.
+    Run/index/model identities and row bindings are checked offline. The parsed
+    fixture binds canonical JSON content only: its exact-file hash is verified
+    ONLY when the caller supplies original ``suite_bytes``. No file is opened
+    based on an artifact path. Without bytes, exact-file hash verification has
+    not occurred; reserialising the parsed fixture cannot establish it.
+
+    This verifies consistency, not truth of unauthenticated JSON. Source/model
+    files and the claimed Git revision still need independent replay. Explicit
+    in-memory runs without collected provenance validate scores only.
     """
     cases = validate_form_suite(payload)
     _require(
@@ -416,6 +489,7 @@ def validate_form_evaluation_artifact(output, payload):
                 "target scores do not match witnesses",
             )
     _require(output.get("summary") == _summary(rows), "summary does not match rows")
+    _validate_run_bindings(output, payload, suite_bytes)
     return output
 
 
@@ -430,7 +504,8 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Output already exists; use a new diagnostic artifact path.")
-    payload = json.loads(args.suite.read_text(encoding="utf-8"))
+    suite_bytes = args.suite.read_bytes()
+    payload = json.loads(suite_bytes.decode("utf-8"))
     validate_form_suite(payload)
     service = RagService()
     baseline = build_run_metadata(payload, args.suite, service)
@@ -450,7 +525,7 @@ def main():
     check("completion")
     output["run"]["provenance_stability"] = {"checked": True, "stable": True, "drift_fields": []}
     output["run"]["completed_at_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    validate_form_evaluation_artifact(output, payload)
+    validate_form_evaluation_artifact(output, payload, suite_bytes=suite_bytes)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("x", encoding="utf-8") as handle:
         json.dump(output, handle, indent=2, ensure_ascii=False)

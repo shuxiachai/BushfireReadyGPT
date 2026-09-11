@@ -1,3 +1,4 @@
+import math
 import os
 from datetime import date
 from html import escape
@@ -193,6 +194,23 @@ def _retrieved_chunk_row(chunk):
     }
 
 
+def _community_evidence_value(value, suffix=""):
+    """Format presentation only: missing indicators are not numeric zero."""
+    missing = "To be confirmed"
+    if value is None or isinstance(value, bool):
+        return missing
+    text = str(value).strip()
+    if not text:
+        return missing
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return missing if suffix else text
+    if not math.isfinite(number) or suffix == "%" and not 0 <= number <= 100:
+        return missing
+    return f"{text}{suffix}"
+
+
 def _render_community_evidence(community_result):
     st.markdown("#### Community Data Evidence")
     matched_location = community_result.get("matched_location")
@@ -202,10 +220,10 @@ def _render_community_evidence(community_result):
         indicators = community_result.get("indicators", {})
         rows = [
             ("Matched community", matched_location),
-            ("Population", indicators.get("population")),
-            ("Older people percentage", f"{indicators.get('older_people_pct')}%"),
-            ("No-car household percentage", f"{indicators.get('no_car_households_pct')}%"),
-            ("Language support need", indicators.get("language_support_needed")),
+            ("Population", _community_evidence_value(indicators.get("population"))),
+            ("Older people percentage", _community_evidence_value(indicators.get("older_people_pct"), "%")),
+            ("No-car household percentage", _community_evidence_value(indicators.get("no_car_households_pct"), "%")),
+            ("Language support need", _community_evidence_value(indicators.get("language_support_needed"))),
         ]
         optional_rows = [
             ("Language other than English at home", "language_other_than_english_pct", "%"),
@@ -213,7 +231,9 @@ def _render_community_evidence(community_result):
             ("Matched SA2 count", "matched_sa2_count", ""),
         ]
         rows.extend(
-            (label, f"{indicators[key]}{suffix}") for label, key, suffix in optional_rows if indicators.get(key)
+            (label, _community_evidence_value(indicators[key], suffix))
+            for label, key, suffix in optional_rows
+            if key in indicators
         )
         for label, value in rows:
             st.markdown(f"- **{label}:** {value}")

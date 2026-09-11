@@ -305,6 +305,181 @@ def test_cli_never_overwrites_previous_artifact(tmp_path, monkeypatch):
     assert previous.read_text(encoding="utf-8") == "historical evidence"
 
 
+def _recorded_metadata(suite_bytes, provider="fastembed"):
+    identity = {
+        "provider": provider,
+        "model": "synthetic-test-only",
+        "dimension": 384,
+    }
+    if provider == "fastembed":
+        identity.update(
+            {
+                "repository": "synthetic/model",
+                "revision": "c" * 40,
+                "encoding": "fastembed-raw-text-v1",
+                "runtime": {"fastembed": "test", "onnxruntime": "test"},
+                "files": [{"path": "model.onnx", "size_bytes": 123, "sha256": "d" * 64}],
+            }
+        )
+        identity["digest"] = diagnostic.canonical_sha256(identity)
+    else:
+        identity.update(
+            {"resolved_model": "synthetic-test-only:latest", "encoding": "ollama-api-embed-v1", "digest": "b" * 64}
+        )
+    return {
+        "questions_sha256": hashlib.sha256(suite_bytes).hexdigest(),
+        "questions_hash_basis": "exact_file_bytes",
+        "questions_schema_version": 1,
+        "git": {"commit": "c" * 40, "working_tree_dirty": False, "collection_status": "collected"},
+        "rag_index": {
+            "status": "verified",
+            "schema": "bushfire-rag-index-v3" if provider == "fastembed" else "bushfire-rag-index-v4",
+            "manifest_sha256": "a" * 64,
+            "catalog_sha256": "b" * 64,
+            "corpus_sha256": "c" * 64,
+            "documents_sha256": "d" * 64,
+            "embedding_provider": provider,
+            "embedding_dimension": 384,
+            "embedding_identity": identity,
+            "source_count": 9,
+            "chunk_count": 28,
+        },
+        "embedding_model": {
+            "name": identity["model"],
+            "digest": identity["digest"],
+            "digest_status": "resolved",
+            "provider": provider,
+            "dimension": 384,
+        },
+    }
+
+
+def _recorded_artifact(provider="fastembed"):
+    payload = _payload()
+    payload["cases"] = payload["cases"][:1]
+    suite_bytes = json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8")
+    output = diagnostic.run_form_evaluation(
+        payload,
+        _Service([_chunk("not evacuation centres and assembly areas")]),
+        run_metadata=_recorded_metadata(suite_bytes, provider),
+    )
+    return output, payload, suite_bytes
+
+
+@pytest.mark.parametrize("provider", ["fastembed", "ollama"])
+def test_recorded_identity_validation_preserves_artifact_and_supports_both_index_schemas(provider):
+    output, payload, suite_bytes = _recorded_artifact(provider)
+    before = json.dumps(output)
+    assert diagnostic.validate_form_evaluation_artifact(output, payload) is output
+    assert diagnostic.validate_form_evaluation_artifact(output, payload, suite_bytes=suite_bytes) is output
+    assert json.dumps(output) == before
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "run_index",
+        "row_index",
+        "model_digest",
+        "model_name",
+        "model_provider",
+        "model_dimension",
+        "unresolved_model",
+        "index_digest",
+        "index_files",
+        "index_dimension",
+        "legacy_schema",
+        "missing_run",
+        "missing_identity",
+        "schema_version",
+        "hash_basis",
+        "malformed_file_hash",
+    ],
+)
+def test_standalone_validator_rejects_run_to_row_and_model_identity_tampering(mutation):
+    output, payload, _ = _recorded_artifact()
+    run = output["run"]
+    if mutation == "run_index":
+        run["rag_index"]["manifest_sha256"] = "f" * 64
+    elif mutation == "row_index":
+        output["rows"][0]["index_manifest_sha256"] = "f" * 64
+    elif mutation.startswith("model_"):
+        field = mutation.removeprefix("model_")
+        run["embedding_model"][field] = {
+            "digest": "f" * 64,
+            "name": "another-model",
+            "provider": "ollama",
+            "dimension": 512,
+        }[field]
+    elif mutation == "unresolved_model":
+        run["embedding_model"]["digest_status"] = "not_collected"
+    elif mutation == "index_digest":
+        run["rag_index"]["embedding_identity"]["digest"] = "f" * 64
+    elif mutation == "index_files":
+        run["rag_index"]["embedding_identity"]["files"][0]["sha256"] = "f" * 64
+    elif mutation == "index_dimension":
+        run["rag_index"]["embedding_dimension"] = 512
+    elif mutation == "legacy_schema":
+        run["rag_index"]["schema"] = "bushfire-rag-index-v2"
+    elif mutation == "missing_run":
+        output.pop("run")
+    elif mutation == "missing_identity":
+        run["rag_index"].pop("embedding_identity")
+    elif mutation == "schema_version":
+        run["questions_schema_version"] = 99
+    elif mutation == "hash_basis":
+        run["questions_hash_basis"] = "canonical_json"
+    else:
+        run["questions_sha256"] = "not-a-hash"
+    with pytest.raises(ValueError, match="Invalid form RAG diagnostic"):
+        diagnostic.validate_form_evaluation_artifact(output, payload)
+
+
+def test_original_suite_bytes_are_required_to_verify_exact_file_hash():
+    output, payload, suite_bytes = _recorded_artifact()
+    output["run"]["questions_sha256"] = "f" * 64
+    # A parsed object does not preserve whitespace or original file bytes.
+    diagnostic.validate_form_evaluation_artifact(output, payload)
+    with pytest.raises(ValueError, match="exact suite bytes hash binding"):
+        diagnostic.validate_form_evaluation_artifact(output, payload, suite_bytes=suite_bytes)
+
+
+def test_reserialising_equivalent_fixture_cannot_replace_original_bytes():
+    output, payload, suite_bytes = _recorded_artifact()
+    compact_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    assert json.loads(compact_bytes) == json.loads(suite_bytes) and compact_bytes != suite_bytes
+    with pytest.raises(ValueError, match="exact suite bytes hash binding"):
+        diagnostic.validate_form_evaluation_artifact(output, payload, suite_bytes=compact_bytes)
+
+
+def test_matching_file_hash_does_not_allow_different_fixture_content():
+    output, payload, _ = _recorded_artifact()
+    other_payload = copy.deepcopy(payload)
+    other_payload["cases"][0]["form"]["audience"] = "Different synthetic audience"
+    other_bytes = json.dumps(other_payload).encode("utf-8")
+    output["run"]["questions_sha256"] = hashlib.sha256(other_bytes).hexdigest()
+    with pytest.raises(ValueError, match="suite bytes and parsed fixture differ"):
+        diagnostic.validate_form_evaluation_artifact(output, payload, suite_bytes=other_bytes)
+
+
+@pytest.mark.parametrize("value", ["not bytes", b"not json", b"\xff"])
+def test_invalid_original_suite_bytes_fail_explicitly(value):
+    output, payload, _ = _recorded_artifact()
+    with pytest.raises(ValueError, match="Invalid form RAG diagnostic"):
+        diagnostic.validate_form_evaluation_artifact(output, payload, suite_bytes=value)
+
+
+def test_in_memory_provenance_is_explicit_and_cannot_verify_file_identity():
+    output, payload, suite_bytes = _recorded_artifact()
+    output["run"] = {"provenance": "not_collected_test_or_in_memory_run"}
+    diagnostic.validate_form_evaluation_artifact(output, payload)
+    with pytest.raises(ValueError, match="run provenance required"):
+        diagnostic.validate_form_evaluation_artifact(output, payload, suite_bytes=suite_bytes)
+    output["run"]["rag_index"] = {"manifest_sha256": "f" * 64}
+    with pytest.raises(ValueError, match="suite file hash basis"):
+        diagnostic.validate_form_evaluation_artifact(output, payload)
+
+
 def _cli_setup(tmp_path, monkeypatch, service):
     suite_path = tmp_path / "suite.json"
     payload = _payload()
@@ -313,12 +488,7 @@ def _cli_setup(tmp_path, monkeypatch, service):
     output_path = tmp_path / "diagnostic.json"
     monkeypatch.setattr("sys.argv", ["evaluate_form_rag.py", "--suite", str(suite_path), "--output", str(output_path)])
     monkeypatch.setattr(diagnostic, "RagService", lambda: service)
-    baseline = {
-        "questions_sha256": hashlib.sha256(suite_path.read_bytes()).hexdigest(),
-        "git": {"commit": "synthetic", "working_tree_dirty": False},
-        "rag_index": {"manifest_sha256": "a" * 64},
-        "embedding_model": {"name": "synthetic-test-only", "digest": "b" * 64},
-    }
+    baseline = _recorded_metadata(suite_path.read_bytes())
     monkeypatch.setattr(diagnostic, "build_run_metadata", lambda *args: copy.deepcopy(baseline))
     return payload, output_path, baseline
 
@@ -356,5 +526,13 @@ def test_cli_provenance_drift_aborts_without_publishing_artifact(tmp_path, monke
 def test_cli_invalid_index_cannot_publish_an_empty_success(tmp_path, monkeypatch):
     _, output_path, _ = _cli_setup(tmp_path, monkeypatch, _Service([], status="invalid"))
     with pytest.raises(ValueError, match="retrieval unavailable"):
+        diagnostic.main()
+    assert not output_path.exists()
+
+
+def test_cli_checks_original_suite_bytes_even_when_wrong_hash_is_stable(tmp_path, monkeypatch):
+    _, output_path, baseline = _cli_setup(tmp_path, monkeypatch, _Service([], status="no_match"))
+    baseline["questions_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="exact suite bytes hash binding"):
         diagnostic.main()
     assert not output_path.exists()
