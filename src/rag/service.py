@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import math
+from collections import Counter
 from uuid import NAMESPACE_URL, uuid5
 
 from src.rag.embeddings import create_embedding_client, embed_with_identity
@@ -191,15 +193,136 @@ def _status(state, label, **extra):
     }
 
 
+_GENERIC_FOCUS_TERMS = {
+    "bushfire",
+    "bushfires",
+    "fire",
+    "emergency",
+    "official",
+    "information",
+    "source",
+    "sources",
+    "plan",
+    "plans",
+    "planning",
+    "guidance",
+    "safety",
+    "preparedness",
+}
+PLANNING_RETRIEVAL_MODE = "base_preserving_focused_dense_bm25_rrf_v1"
+PLANNING_FUSION = "base_preserving_query_rrf_v1"
+
+
+def _focus_terms(query):
+    return set(tokenize(query)) - _GENERIC_FOCUS_TERMS
+
+
+def _fuse_planning_results(query_plan, ranked_lists, settings, top_k):
+    """Fuse only already-admitted candidates, deduplicate and reapply limits."""
+    candidates = {}
+    if not query_plan or len(query_plan) != len(ranked_lists):
+        raise RagError("rag_query_failed", "Focused retrieval result count differs from its query plan.")
+    for query_number, (query, rows) in enumerate(zip(query_plan, ranked_lists, strict=True)):
+        for rank, row in enumerate(rows, 1):
+            key = row["chunk_id"]
+            candidate = candidates.setdefault(
+                key, {"row": row, "sum": 0.0, "matches": [], "base_rank": rank if query_number == 0 else None}
+            )
+            if candidate["row"]["chunk_sha256"] != row["chunk_sha256"]:
+                raise RagError("rag_index_changed", "A focused retrieval candidate changed identity.")
+            if candidate["base_rank"] is None and row["score"] > candidate["row"]["score"]:
+                candidate["row"] = row
+            candidate["sum"] += 1 / (settings.rrf_k + rank)
+            candidate["matches"].append(
+                {
+                    "query_number": query_number,
+                    "focus_id": query["focus_id"],
+                    "query_sha256": hashlib.sha256(query["query"].encode("utf-8")).hexdigest(),
+                    "rank": rank,
+                    "score": row["score"],
+                }
+            )
+    ordered = sorted(
+        candidates.values(),
+        key=lambda item: (
+            item["base_rank"] is None,
+            item["base_rank"] or 0,
+            -item["sum"],
+            -item["row"]["score"],
+            item["row"]["chunk_id"],
+        ),
+    )
+    counts = Counter()
+    results = []
+    normalizer = len(query_plan) / (settings.rrf_k + 1)
+    for candidate in ordered:
+        row = candidate["row"]
+        if counts[row["source_id"]] >= settings.max_chunks_per_source:
+            continue
+        results.append(
+            {
+                **row,
+                "within_query_score": row["score"],
+                "score": round(candidate["sum"] / normalizer, 6),
+                "query_matches": candidate["matches"],
+                "base_query_rank": candidate["base_rank"],
+                "selection_origin": "base_query" if candidate["base_rank"] is not None else "focus_supplement",
+                "retrieval_mode": PLANNING_RETRIEVAL_MODE,
+            }
+        )
+        counts[row["source_id"]] += 1
+        if len(results) >= top_k:
+            break
+    return results
+
+
 class RagService:
     def __init__(self, settings=None, *, data_paths=None, embedder=None):
         self.settings = settings or RagSettings.from_env(data_paths=data_paths)
         self.embedder = embedder or create_embedding_client(self.settings)
 
     def retrieve(self, query, *, jurisdiction=None, top_k=None, trusted_planning_scope=False):
+        return self._retrieve(
+            query, jurisdiction=jurisdiction, top_k=top_k, trusted_planning_scope=trusted_planning_scope
+        )
+
+    def retrieve_planning(self, query, *, focus_queries=(), jurisdiction=None, top_k=None):
+        """Retrieve one bounded query plan under one verified index snapshot.
+
+        Only structured application callers should use this method. The complete
+        original query is still safety-checked before any focused retrieval.
+        """
+        if not isinstance(focus_queries, (list, tuple)) or len(focus_queries) > 4:
+            raise ValueError("Planning retrieval accepts at most four focus queries.")
+        queries = []
+        for item in focus_queries:
+            if not isinstance(item, dict):
+                raise ValueError("Invalid planning focus query.")
+            text = normalise_retrieval_query(item.get("query"))
+            focus_id = item.get("focus_id")
+            if (
+                not text
+                or len(text) > 256
+                or not isinstance(focus_id, str)
+                or not focus_id
+                or len(focus_id) > 80
+                or any(character not in "abcdefghijklmnopqrstuvwxyz_0123456789" for character in focus_id)
+            ):
+                raise ValueError("Invalid planning focus query.")
+            if focus_id in {row["focus_id"] for row in queries}:
+                raise ValueError("Planning focus identifiers must be unique.")
+            if text != normalise_retrieval_query(query) and text not in {row["query"] for row in queries}:
+                queries.append({"focus_id": focus_id, "query": text})
+        return self._retrieve(
+            query, jurisdiction=jurisdiction, top_k=top_k, trusted_planning_scope=True, focus_queries=queries
+        )
+
+    def _retrieve(self, query, *, jurisdiction, top_k, trusted_planning_scope, focus_queries=()):
         query_text = normalise_retrieval_query(query)
         query_hash = hashlib.sha256(query_text.encode("utf-8")).hexdigest()
-        requested_top_k = top_k or self.settings.top_k
+        requested_top_k = self.settings.top_k if top_k is None else top_k
+        if type(requested_top_k) is not int or requested_top_k < 1:
+            raise ValueError("RAG top_k must be a positive integer.")
         retrieval_configuration = _retrieval_configuration(
             self.settings,
             trusted_planning_scope=trusted_planning_scope,
@@ -209,7 +332,7 @@ class RagService:
                 requested_top_k * self.settings.candidate_multiplier,
             ),
         )
-        if _requires_live_authority(query_text):
+        if _requires_live_authority(query_text) or any(_requires_live_authority(row["query"]) for row in focus_queries):
             result = self._empty_result(
                 _status(
                     "out_of_scope",
@@ -261,39 +384,15 @@ class RagService:
                         top_k=requested_top_k,
                         candidate_k=candidate_k,
                     )
-                    vectors = embed_with_identity(
-                        self.settings, self.embedder, [query_text], manifest["embedding_identity"]
-                    )
-                    if len(vectors) != 1 or len(vectors[0]) != manifest["embedding_dimension"]:
-                        raise RagError(
-                            "rag_embedding_invalid", "The query embedding dimension does not match the RAG index."
-                        )
-                    dense_results = self._query_index(
-                        vectors[0],
-                        jurisdiction=jurisdiction,
-                        top_k=candidate_k,
-                        expected_chunk_count=manifest["chunk_count"],
-                    )
-                    results = hybrid_rank(
-                        query_text,
+                    query_plan = [{"focus_id": None, "query": query_text}, *focus_queries]
+                    results = self._retrieve_query_plan(
+                        query_plan,
                         documents,
-                        dense_results,
-                        jurisdiction=jurisdiction,
-                        top_k=requested_top_k,
-                        candidate_k=candidate_k,
-                        dense_score_threshold=self.settings.score_threshold,
-                        dense_weight=self.settings.dense_weight,
-                        rrf_k=self.settings.rrf_k,
-                        max_chunks_per_source=self.settings.max_chunks_per_source,
-                        lexical_coverage_threshold=retrieval_configuration["effective_thresholds"][
-                            "lexical_coverage_threshold"
-                        ],
-                        semantic_score_threshold=retrieval_configuration["effective_thresholds"][
-                            "semantic_score_threshold"
-                        ],
-                        semantic_coverage_threshold=retrieval_configuration["effective_thresholds"][
-                            "semantic_coverage_threshold"
-                        ],
+                        manifest,
+                        jurisdiction,
+                        requested_top_k,
+                        candidate_k,
+                        retrieval_configuration,
                     )
                     ending_manifest = load_and_validate_index(self.settings, embedder=self.embedder)
                     after = index_snapshot(self.settings, ending_manifest)
@@ -327,7 +426,7 @@ class RagService:
             "candidate_k": candidate_k,
             "dense_score_threshold": retrieval_configuration["effective_thresholds"]["dense_score_threshold"],
             "score_threshold": retrieval_configuration["effective_thresholds"]["dense_score_threshold"],
-            "retrieval_mode": "dense_bm25_rrf_v1",
+            "retrieval_mode": PLANNING_RETRIEVAL_MODE if focus_queries else "dense_bm25_rrf_v1",
             "query_scope": retrieval_configuration["query_scope"],
             "dense_weight": self.settings.dense_weight,
             "lexical_weight": round(1 - self.settings.dense_weight, 6),
@@ -350,6 +449,71 @@ class RagService:
                 "A reviewer must open each cited official source and verify the current page before use.",
             ],
         }
+
+    def _retrieve_query_plan(self, query_plan, documents, manifest, jurisdiction, top_k, candidate_k, configuration):
+        """Called only inside the caller's verified index read/write lock."""
+        vectors = embed_with_identity(
+            self.settings, self.embedder, [row["query"] for row in query_plan], manifest["embedding_identity"]
+        )
+        try:
+            valid = (
+                isinstance(vectors, (list, tuple))
+                and len(vectors) == len(query_plan)
+                and all(
+                    isinstance(vector, (list, tuple))
+                    and len(vector) == manifest["embedding_dimension"]
+                    and all(type(value) in (int, float) and math.isfinite(value) for value in vector)
+                    for vector in vectors
+                )
+            )
+        except (OverflowError, TypeError, ValueError):
+            valid = False
+        if not valid:
+            raise RagError("rag_embedding_invalid", "Query embeddings do not match the index count or dimension.")
+        focused = len(query_plan) > 1
+        thresholds = configuration["effective_thresholds"]
+        ranked_lists = []
+        for planned, vector in zip(query_plan, vectors, strict=True):
+            supplementary = planned["focus_id"] is not None
+            dense_results = self._query_index(
+                vector, jurisdiction=jurisdiction, top_k=candidate_k, expected_chunk_count=manifest["chunk_count"]
+            )
+            ranked = hybrid_rank(
+                planned["query"],
+                documents,
+                dense_results,
+                jurisdiction=jurisdiction,
+                top_k=candidate_k if supplementary else top_k,
+                candidate_k=candidate_k,
+                dense_score_threshold=self.settings.score_threshold,
+                dense_weight=self.settings.dense_weight,
+                rrf_k=self.settings.rrf_k,
+                max_chunks_per_source=candidate_k if supplementary else self.settings.max_chunks_per_source,
+                lexical_coverage_threshold=thresholds["lexical_coverage_threshold"],
+                semantic_score_threshold=thresholds["semantic_score_threshold"],
+                semantic_coverage_threshold=thresholds["semantic_coverage_threshold"],
+            )
+            if planned["focus_id"] is not None:
+                terms = _focus_terms(planned["query"])
+                ranked = [row for row in ranked if terms & set(tokenize(row.get("text", "")))]
+            ranked_lists.append(ranked)
+        if not focused:
+            return ranked_lists[0]
+        configuration["query_plan"] = {
+            "schema": "official-focus-query-plan-v1",
+            "fusion": PLANNING_FUSION,
+            "rrf_k": self.settings.rrf_k,
+            "per_query_candidate_k": candidate_k,
+            "queries": [
+                {
+                    "focus_id": row["focus_id"],
+                    "query_sha256": hashlib.sha256(row["query"].encode()).hexdigest(),
+                    "matched_chunks": len(matches),
+                }
+                for row, matches in zip(query_plan, ranked_lists, strict=True)
+            ],
+        }
+        return _fuse_planning_results(query_plan, ranked_lists, self.settings, top_k)
 
     def _empty_result(self, status, query_hash, retrieval_configuration):
         effective = retrieval_configuration["effective_thresholds"]
@@ -568,7 +732,7 @@ def summarise_context_assembly(assembly):
     """Describe budget use, not semantic completeness, without assembling again."""
     manifest = assembly["manifest"]
     entries = manifest["chunks"]
-    truncated = sum(entry["reason"] == "per_chunk_character_budget" for entry in entries)
+    truncated = sum(entry["reason"] in {"per_chunk_character_budget", "focus_sentence_window"} for entry in entries)
     omitted = sum(not entry["included"] for entry in entries)
     return {
         "retrieved_chunks": manifest["retrieved_count"],

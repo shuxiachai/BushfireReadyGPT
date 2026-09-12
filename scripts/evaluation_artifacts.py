@@ -656,6 +656,108 @@ def _validate_report_row_extended(
     )
 
 
+def _validate_optional_model_visible_summary(row):
+    if "model_visible_rag" not in row:
+        return  # Historical absence is neither a new diagnostic pass nor failure.
+    summary = row["model_visible_rag"]
+    fields = {
+        "schema",
+        "status",
+        "capture_status",
+        "snapshot_sha256",
+        "request_kind",
+        "attempt_number",
+        "sdk_messages_sha256",
+        "normalized_narrative_sha256",
+        "context_sha256",
+        "included_passages",
+        "retrieved_passages",
+        "metrics",
+        "release_gate_enforced",
+    }
+    _require(isinstance(summary, dict) and set(summary) == fields, "model-visible summary fields are invalid")
+    _require(summary["schema"] == "model-visible-rag-summary-v1", "model-visible summary schema is unsupported")
+    _require(summary["release_gate_enforced"] is False, "model-visible summary is diagnostic only")
+    _require(
+        isinstance(summary["snapshot_sha256"], str) and _SHA256.fullmatch(summary["snapshot_sha256"]) is not None,
+        "model-visible snapshot hash is invalid",
+    )
+    status = summary["status"]
+    captured = summary["capture_status"] == "captured"
+    _require(
+        isinstance(summary["capture_status"], str) and summary["capture_status"] in {"captured", "unavailable"},
+        "model-visible capture status is invalid",
+    )
+    _require(
+        isinstance(status, str)
+        and status
+        in ({"pass", "review_required", "not_applicable"} if captured else {"unavailable", "invalid_snapshot"}),
+        "model-visible status does not match capture availability",
+    )
+    metrics = summary["metrics"]
+    _require(
+        isinstance(metrics, dict)
+        and set(metrics) == {"rag_cited_claims", "claims_with_visible_lexical_support", "support_rate"},
+        "model-visible metric fields are invalid",
+    )
+    claims, supported, rate = (
+        metrics[key] for key in ("rag_cited_claims", "claims_with_visible_lexical_support", "support_rate")
+    )
+    _require(type(claims) is int and claims >= 0, "model-visible claim count is invalid")
+    _require(type(supported) is int and 0 <= supported <= claims, "model-visible supported count is invalid")
+    if not captured:
+        _require(claims == supported == 0 and rate is None, "unavailable model-visible metrics must be unknown")
+        _require(
+            all(
+                summary[key] is None
+                for key in (
+                    "request_kind",
+                    "attempt_number",
+                    "sdk_messages_sha256",
+                    "normalized_narrative_sha256",
+                    "context_sha256",
+                    "included_passages",
+                    "retrieved_passages",
+                )
+            ),
+            "unavailable model-visible summary cannot claim a request binding",
+        )
+        return
+    _require(
+        type(summary["attempt_number"]) is int
+        and 1 <= summary["attempt_number"] <= 10
+        and summary["attempt_number"] == row.get("generation_attempts"),
+        "model-visible attempt does not match the final generation attempt",
+    )
+    allowed_kinds = {"initial"} if summary["attempt_number"] == 1 else {"structural_repair", "protocol_retry"}
+    _require(
+        isinstance(summary["request_kind"], str) and summary["request_kind"] in allowed_kinds,
+        "model-visible request kind does not match the attempt",
+    )
+    for key in ("sdk_messages_sha256", "normalized_narrative_sha256", "context_sha256"):
+        _require(
+            isinstance(summary[key], str) and _SHA256.fullmatch(summary[key]) is not None,
+            f"model-visible {key} is invalid",
+        )
+    included, retrieved = summary["included_passages"], summary["retrieved_passages"]
+    _require(
+        type(included) is int and type(retrieved) is int and 0 <= included <= retrieved <= 32,
+        "model-visible passage counts are invalid",
+    )
+    _require(
+        type(row.get("retrieved_chunks")) is int and retrieved == row["retrieved_chunks"],
+        "model-visible retrieval count differs from the row",
+    )
+    if status == "not_applicable":
+        _require(claims == supported == 0 and rate is None, "non-applicable model-visible metrics must be unknown")
+    else:
+        _require(claims > 0 and type(rate) in (int, float) and math.isfinite(rate), "model-visible rate is invalid")
+        _require(rate == round(supported / claims, 4), "model-visible rate does not match claim counts")
+        _require((status == "pass") is (supported == claims), "model-visible status differs from its counts")
+    # Full-source grounding selects a different claim scope; do not infer equality
+    # with those counts or use either lexical diagnostic as semantic validation.
+
+
 def _validate_red_team_report_row(row):
     _require(isinstance(row.get("attack_success_marker_hits"), list), "red-team attack marker hits are required")
     _require(isinstance(row.get("prompt_injection_resisted"), bool), "red-team resistance result is required")
@@ -780,6 +882,7 @@ def validate_report_evaluation_artifact(payload: dict) -> dict:
         "maximum report repair attempts is invalid",
     )
     for row in rows:
+        _validate_optional_model_visible_summary(row)
         row_contract = _validate_report_row_core(
             row,
             quality_policy,

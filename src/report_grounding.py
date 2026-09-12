@@ -15,6 +15,7 @@ from src.source_attribution import (
 )
 
 GROUNDING_METHOD = "deterministic_lexical_grounding_v4"
+MODEL_VISIBLE_GROUNDING_METHOD = "submitted_rag_lexical_alignment_v1"
 DEFAULT_THRESHOLDS = {
     "support_rate": 0.8,
     "citation_coverage_rate": 0.7,
@@ -231,6 +232,94 @@ def grounding_trace_metrics(evaluation):
         "numeric_consistency_rate": metrics.get("numeric_consistency_rate"),
         "jurisdiction_conflicts": int(metrics.get("jurisdiction_conflicts") or 0),
     }
+
+
+def evaluate_model_visible_rag_grounding(report_text, analysis, snapshot=None):
+    """Separately assess RAG-cited prose against the final request's passages.
+
+    Full-source attribution identities are retained even when a passage was not
+    submitted. Official metadata, U0 and prior model prose are never substitutes
+    for a visible RAG passage. This does not assess semantic entailment/negation.
+    """
+    from src.model_evidence import unavailable_model_evidence, validate_model_evidence
+
+    snapshot = snapshot if isinstance(snapshot, dict) else unavailable_model_evidence()
+    result = {
+        "method": MODEL_VISIBLE_GROUNDING_METHOD,
+        "scope": "final_sdk_submitted_rag_passages_only",
+        "snapshot": snapshot,
+        "status": "unavailable",
+        "metrics": {"rag_cited_claims": 0, "claims_with_visible_lexical_support": 0, "support_rate": None},
+        "claims": [],
+        "limitations": [
+            "Separate from full frozen-source alignment; earlier attempts and prior model narratives are excluded.",
+            "Application SDK submission is recorded, not independent provider receipt or model attention.",
+            "Matching words do not prove semantic entailment, negation handling, truth or source currency.",
+            "Only recognised RAG-cited prose sentences are checked; tables and sentences beyond the extractor budget are not fully assessed.",
+        ],
+    }
+    try:
+        visible = validate_model_evidence(snapshot, analysis, report_text=str(report_text or ""))
+    except (ValueError, TypeError, KeyError, AttributeError):
+        result["status"] = "invalid_snapshot"
+        return result
+    if snapshot.get("status") != "captured":
+        return result
+    sources = _build_evidence_items(analysis)
+    narrative = strip_application_source_bindings(
+        extract_narrative_body(str(report_text or "")),
+        official_sources=(analysis.get("data") or {}).get("sources") or [],
+        rag_sources=(analysis.get("knowledge") or {}).get("retrieved_chunks") or [],
+    )
+    evidence = [
+        _evidence_item(
+            source_id=str(chunk.get("source_id") or ""),
+            title=str(chunk.get("title") or ""),
+            agency=str(chunk.get("agency") or ""),
+            text=chunk["text"],
+            evidence_type="submitted_rag_passage",
+            jurisdictions=chunk.get("jurisdictions") or [],
+            evidence_path=f"model_evidence.visible_passages[{index}].text",
+            evidence_version=chunk.get("chunk_sha256"),
+        )
+        for index, chunk in enumerate(visible)
+    ]
+    for sentence in _sentences(narrative):
+        cited = canonical_rag_source_ids(sentence, (analysis.get("knowledge") or {}).get("retrieved_chunks") or [])
+        if not cited:
+            continue
+        body = _claim_body(sentence, sources)
+        checks = []
+        for source_id in sorted(cited):
+            source_evidence = [item for item in evidence if item["source_id"] == source_id]
+            check = _assess_claim(sentence, body, source_evidence, {source_id}, analysis)
+            checks.append(
+                {
+                    "source_id": source_id,
+                    "visible_passage_present": bool(source_evidence),
+                    "lexical_support": check["supported"],
+                    "support_score": check["support_score"],
+                    "best_evidence_sha256": check["best_evidence_sha256"],
+                }
+            )
+        result["claims"].append(
+            {
+                "claim_id": hashlib.sha256(sentence.encode("utf-8")).hexdigest()[:16],
+                "claim": sentence,
+                "cited_source_ids": sorted(cited),
+                "source_checks": checks,
+                "all_cited_sources_lexically_supported": all(check["lexical_support"] for check in checks),
+            }
+        )
+    count = len(result["claims"])
+    supported = sum(claim["all_cited_sources_lexically_supported"] for claim in result["claims"])
+    result["metrics"] = {
+        "rag_cited_claims": count,
+        "claims_with_visible_lexical_support": supported,
+        "support_rate": _rate(supported, count) if count else None,
+    }
+    result["status"] = "not_applicable" if not count else "pass" if supported == count else "review_required"
+    return result
 
 
 def _validate_thresholds(thresholds):

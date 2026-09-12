@@ -129,7 +129,7 @@ def test_ui_preview_shows_exact_counts_and_limits_without_historical_claim(texts
     assert not app.exception
     captions = "\n".join(item.value for item in app.caption)
     markdown = "\n".join(item.value for item in app.markdown)
-    assert "Current-rule initial-context assembly preview only" in captions
+    assert "Legacy v1 prefix preview only" in captions
     assert "does not establish what a historical report, repair or revision call received" in captions
     assert "not semantic completeness" in captions
     assert f"{summary['retrieved_chunks']} retrieved; {summary['included_chunks']} included" in markdown
@@ -141,6 +141,49 @@ def test_ui_preview_shows_exact_counts_and_limits_without_historical_claim(texts
         assert "Unseen qualifications, negations and exceptions" in app.warning[0].value
     if not texts:
         assert "No retrieved passage is available for this initial-context preview" in markdown
+
+
+def test_ui_uses_bound_v2_sentence_window_assembly_not_reconstructed_v1():
+    from src.rag.context import assemble_planning_context
+
+    knowledge = _knowledge(["Administrative source sentence. " * 90 + "Family planning guidance concludes here."])
+    assembly = assemble_planning_context(knowledge)
+    summary = summarise_context_assembly(assembly)
+    code = (
+        "from src.ui.review_views import _render_retrieved_knowledge\n_render_retrieved_knowledge("
+        + repr(knowledge)
+        + ", "
+        + repr(assembly)
+        + ")"
+    )
+    app = AppTest.from_string(code).run()
+    assert not app.exception
+    captions = "\n".join(item.value for item in app.caption)
+    markdown = "\n".join(item.value for item in app.markdown)
+    assert "Recorded initial planning assembly" in captions
+    assert "not proof of the final SDK request" in captions
+    assert "Assembly v2 uses contiguous sentence windows" in captions
+    assert "per-original-chunk visible cap 2200" in markdown
+    assert f"{summary['context_characters']}/8000" in markdown
+    assert "Legacy v1" not in captions
+
+
+def test_ui_rejects_source_mismatch_in_recorded_initial_assembly():
+    from src.rag.context import assemble_planning_context
+
+    knowledge = _knowledge(["A short source sentence."])
+    assembly = assemble_planning_context(knowledge)
+    knowledge["retrieved_chunks"][0]["text"] = "Changed source."
+    code = (
+        "from src.ui.review_views import _render_retrieved_knowledge\n_render_retrieved_knowledge("
+        + repr(knowledge)
+        + ", "
+        + repr(assembly)
+        + ")"
+    )
+    app = AppTest.from_string(code).run()
+    assert not app.exception
+    assert any("preview counts are unavailable" in item.value for item in app.warning)
 
 
 @pytest.mark.parametrize("local", [True, False])

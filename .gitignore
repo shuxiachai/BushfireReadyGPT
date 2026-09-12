@@ -155,6 +155,7 @@ celerybeat.pid
 .agents/
 /项目描述说明.md
 /output/
+/.playwright-cli/
 /tmp/
 env/
 venv/

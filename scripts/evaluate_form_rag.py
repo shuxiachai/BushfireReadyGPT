@@ -188,7 +188,12 @@ def run_form_evaluation(payload, service, *, data_paths=None, run_metadata=None,
         if provenance_check:
             provenance_check(case["id"] + ":before")
         form = case["form"]
-        analysis = run_analysis_pipeline(**form, data_paths=data_paths, knowledge_service=service)
+        analysis = run_analysis_pipeline(
+            **form,
+            data_paths=data_paths,
+            knowledge_service=_LegacyQueryService(service),
+            rag_context_strategy="prefix_v1",
+        )
         knowledge = analysis["knowledge"]
         _require(
             knowledge.get("status") in {"ready", "no_match", "out_of_scope"}, "retrieval unavailable: " + case["id"]
@@ -257,6 +262,16 @@ def run_form_evaluation(payload, service, *, data_paths=None, run_metadata=None,
     }
     validate_form_evaluation_artifact(output, payload)
     return output
+
+
+class _LegacyQueryService:
+    """Keep the frozen v1 diagnostic on its original single-query path."""
+
+    def __init__(self, service):
+        self.service = service
+
+    def retrieve(self, *args, **kwargs):
+        return self.service.retrieve(*args, **kwargs)
 
 
 def _check_span(span, text_length, term_length):

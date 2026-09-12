@@ -7,19 +7,22 @@ actually finishes, so reconnecting a browser cannot bypass concurrency limits.
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
+import stat
 import threading
 from collections.abc import Mapping
 from contextlib import closing
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from src.deployment_access import DeploymentConfigurationError, deployment_mode
 
 _ACTIVE_LOCK = threading.Lock()
 _ACTIVE_REQUESTS = 0
+_MAX_USAGE_DATABASE_BYTES = 1024 * 1024
 
 
 class ModelAllowanceError(RuntimeError):
@@ -67,6 +70,87 @@ def load_model_limits(environ: Mapping[str, str] | None = None) -> ModelLimits:
     )
 
 
+def _usage_day(day: str | None) -> str:
+    if day is None:
+        return datetime.now(timezone.utc).date().isoformat()
+    try:
+        if not isinstance(day, str) or date.fromisoformat(day).isoformat() != day:
+            raise ValueError
+    except ValueError:
+        raise ValueError("Model usage requires a canonical UTC date (YYYY-MM-DD).") from None
+    return day
+
+
+def read_model_usage(day: str | None = None, *, limits: ModelLimits | None = None) -> dict:
+    """Read one UTC day's aggregate without creating, repairing or incrementing state.
+
+    An absent database is not evidence of zero usage. An existing valid table with
+    no row for the requested day does mean zero. Only the configured rollback-mode
+    counter is supported: WAL reads may create shared-memory sidecars, so reject
+    that format rather than opening it or ignoring its possibly uncheckpointed data.
+    Results contain no paths, configuration values, records or raw error details.
+    """
+    selected_day = _usage_day(day)
+    unavailable = {"status": "unavailable", "day": selected_day, "calls": None}
+    try:
+        database = (limits or load_model_limits()).database
+        try:
+            metadata = database.lstat()
+        except FileNotFoundError:
+            return {"status": "not_initialized", "day": selected_day, "calls": None}
+        if not stat.S_ISREG(metadata.st_mode) or not 100 <= metadata.st_size <= _MAX_USAGE_DATABASE_BYTES:
+            return unavailable
+        with database.open("rb") as source:
+            header = source.read(20)
+        if header[:16] != b"SQLite format 3\x00" or header[18:20] != b"\x01\x01":
+            return unavailable
+        with closing(sqlite3.connect(database.as_uri() + "?mode=ro", uri=True, timeout=1.0)) as connection:
+            connection.execute("PRAGMA query_only=ON")
+            # Bound work even if the persisted schema has been replaced by a view
+            # or lost its index; never inspect unrelated rows as an alternative.
+            connection.set_progress_handler(lambda: 1, 10_000)
+            if connection.execute("SELECT type FROM sqlite_schema WHERE name = 'daily_calls'").fetchone() != ("table",):
+                return unavailable
+            columns = connection.execute("PRAGMA table_info(daily_calls)").fetchall()
+            if [(item[1], item[2].upper(), item[3], item[5]) for item in columns] != [
+                ("day", "TEXT", 0, 1),
+                ("calls", "INTEGER", 1, 0),
+            ]:
+                return unavailable
+            row = connection.execute("SELECT calls FROM daily_calls WHERE day = ?", (selected_day,)).fetchone()
+        if row is None:
+            return {"status": "ready", "day": selected_day, "calls": 0}
+        if type(row[0]) is int and row[0] >= 0:
+            return {"status": "ready", "day": selected_day, "calls": row[0]}
+    except (OSError, sqlite3.Error, DeploymentConfigurationError, ValueError):
+        pass
+    return unavailable
+
+
+def _emit_usage_event(phase: str, snapshot: dict) -> None:
+    # Fixed fields only. Observability must not fail a request after its allowance
+    # has already been committed (for example when stdout is closing on shutdown).
+    event = {"event": "model_usage", "schema_version": 1, "phase": phase, **snapshot}
+    try:
+        print(json.dumps(event, sort_keys=True), flush=True)
+    except (OSError, ValueError):
+        pass
+
+
+def emit_model_usage_snapshot(day: str | None = None) -> None:
+    """Emit a cloud startup's selected UTC-day aggregate to private runtime logs.
+
+    Explicit dates support a same-day comparison across a midnight deployment;
+    they do not change the day charged by real model calls.
+    """
+    try:
+        limits = load_model_limits()
+    except DeploymentConfigurationError:
+        return
+    if limits.cloud:
+        _emit_usage_event("startup", read_model_usage(day, limits=limits))
+
+
 def _consume_daily_call(limits: ModelLimits) -> None:
     if not limits.daily_calls:
         return
@@ -78,7 +162,7 @@ def _consume_daily_call(limits: ModelLimits) -> None:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute("SELECT calls FROM daily_calls WHERE day = ?", (today,)).fetchone()
             count = row[0] if row else 0
-            if not isinstance(count, int) or count < 0:
+            if not isinstance(count, int) or not 0 <= count < 2**63 - 1:
                 raise ModelAllowanceError("The model usage counter is invalid. Contact the project owner.")
             if count >= limits.daily_calls:
                 raise ModelAllowanceError(
@@ -92,6 +176,10 @@ def _consume_daily_call(limits: ModelLimits) -> None:
         raise ModelAllowanceError(
             "Model requests are paused because the persistent usage counter is unavailable."
         ) from error
+    if limits.cloud:
+        # The connection context committed before this event. It records the
+        # admitted HTTP attempt, not a successful provider response or token cost.
+        _emit_usage_event("call_committed", {"status": "ready", "day": today, "calls": count + 1})
 
 
 class ModelRequestSlot:

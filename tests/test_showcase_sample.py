@@ -1,10 +1,45 @@
 import json
 from io import BytesIO
+from types import SimpleNamespace
 from zipfile import ZipFile
 
 import pytest
 
 from scripts import build_showcase_sample
+from src.model_evidence import EvidencePrompt, bind_normalized_narrative, capture_model_evidence
+from src.model_runtime import GovernedModelClient
+from src.rag.context import assemble_planning_context
+
+
+@pytest.fixture(autouse=True)
+def _synthetic_clean_source(monkeypatch):
+    monkeypatch.setattr(
+        build_showcase_sample,
+        "git_provenance",
+        lambda _: {"commit": "a" * 40, "working_tree_dirty": False, "collection_status": "collected"},
+    )
+
+
+def _recorded_synthetic_snapshot(analysis, report="Synthetic draft"):
+    assembly = assemble_planning_context(analysis["knowledge"])
+    prompt = EvidencePrompt(assembly["context"], assembly=assembly)
+    sdk = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=lambda **_: SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(content=report),
+                            finish_reason="stop",
+                        )
+                    ]
+                ),
+            )
+        )
+    )
+    runtime = GovernedModelClient(completion_client=sdk, provider="synthetic", is_local=False)
+    response = runtime.generate(prompt)
+    return bind_normalized_narrative(capture_model_evidence(prompt, runtime, response, attempt_number=1), response)
 
 
 @pytest.mark.parametrize("name", build_showcase_sample._OUTPUT_NAMES)
@@ -49,6 +84,7 @@ def _mock_sample_generation(monkeypatch, *, sensitive=False, before_export=None)
         "knowledge_status": "ready",
         "retrieved_chunks": 1,
     }
+    snapshot = _recorded_synthetic_snapshot(analysis)
     archive_bytes = BytesIO()
     with ZipFile(archive_bytes, "w") as archive:
         for suffix in (".md", ".pdf", ".docx"):
@@ -66,7 +102,7 @@ def _mock_sample_generation(monkeypatch, *, sensitive=False, before_export=None)
     monkeypatch.setattr(
         build_showcase_sample,
         "run_scenario_with_artifacts",
-        lambda _: {"row": row, "analysis": analysis, "report": "Synthetic draft"},
+        lambda _: {"row": row, "analysis": analysis, "report": "Synthetic draft", "model_evidence": snapshot},
     )
     monkeypatch.setattr(build_showcase_sample, "evaluate_governed_report", lambda *args: quality)
     monkeypatch.setattr(build_showcase_sample, "evaluate_report_grounding", lambda *args: {})

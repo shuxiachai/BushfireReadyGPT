@@ -42,6 +42,13 @@ from src.config import (  # noqa: E402
     MODEL_TIMEOUT_SECONDS,
     model,
 )
+from src.model_evidence import (  # noqa: E402
+    EvidencePrompt,
+    EvidenceResponse,
+    capture_model_evidence,
+    json_sha256,
+    unavailable_model_evidence,
+)
 from src.model_runtime import GovernedModelClient, ModelServiceError  # noqa: E402
 from src.rag.errors import RagError  # noqa: E402
 from src.rag.settings import RagSettings  # noqa: E402
@@ -55,7 +62,11 @@ from src.report_generation_quality import (  # noqa: E402
     quality_policy_metadata,
     structural_gate_passed,
 )
-from src.report_grounding import GROUNDING_METHOD, evaluate_report_grounding  # noqa: E402
+from src.report_grounding import (  # noqa: E402
+    GROUNDING_METHOD,
+    evaluate_model_visible_rag_grounding,
+    evaluate_report_grounding,
+)
 from src.report_template import (  # noqa: E402
     append_evidence_tables,
     append_human_signoff,
@@ -206,12 +217,15 @@ def run_scenario_with_artifacts(scenario):
         analysis=analysis,
         governance_context=_governance_context(),
     )
+    prompt = EvidencePrompt(prompt, assembly=analysis.get("rag_context_assembly"), request_kind="initial")
     model_client = GovernedModelClient()
     attempt_state = {"count": 0}
 
     def generate_attempt(attempt_prompt, attempt_number, _is_repair):
         attempt_state["count"] = attempt_number
-        return model_client.generate(attempt_prompt)
+        response = model_client.generate(attempt_prompt)
+        snapshot = capture_model_evidence(attempt_prompt, model_client, response, attempt_number=attempt_number)
+        return EvidenceResponse(response, snapshot)
 
     try:
         narrative, generation_quality, generation_attempts = generate_narrative_with_repairs(
@@ -254,6 +268,8 @@ def run_scenario_with_artifacts(scenario):
         unsafe_live_claims=unsafe_live_claims,
     )
     grounding = evaluate_report_grounding(narrative, analysis)
+    model_evidence = getattr(narrative, "model_evidence", None) or unavailable_model_evidence()
+    grounding["model_visible_rag"] = evaluate_model_visible_rag_grounding(report, analysis, model_evidence)
     grounding_metrics = grounding.get("metrics", {})
     grounding_review = _grounding_review_claim_summary(grounding)
     safety_findings = _privacy_minimised_safety_findings(quality)
@@ -298,10 +314,43 @@ def run_scenario_with_artifacts(scenario):
         "grounding_review_claim_unique_count": grounding_review["unique_count"],
         "grounding_review_claim_ids": grounding_review["ids"],
         "grounding_review_claim_ids_truncated": grounding_review["truncated"],
+        "model_visible_rag": _model_visible_summary(grounding["model_visible_rag"]),
     }
     row["repair_succeeded"] = row["repair_required"] and row["governed_gate_passed"]
     row["repair_exhausted"] = generation_attempts >= MAX_REPORT_REPAIR_ATTEMPTS + 1 and not row["governed_gate_passed"]
-    return {"row": row, "report": report, "analysis": analysis}
+    return {
+        "row": row,
+        "report": report,
+        "analysis": analysis,
+        "model_evidence": model_evidence,
+        "grounding_evaluation": grounding,
+    }
+
+
+def _model_visible_summary(evaluation):
+    """Optional versioned benchmark metadata, never official text, prompts or claims.
+
+    These diagnostics do not modify the historical report-evaluation schema,
+    full-source metric meaning, or governed release thresholds.
+    """
+    snapshot = evaluation["snapshot"]
+    captured = snapshot.get("status") == "captured" and evaluation["status"] != "invalid_snapshot"
+    manifest = snapshot["assembly_manifest"] if captured else {}
+    return {
+        "schema": "model-visible-rag-summary-v1",
+        "status": evaluation["status"],
+        "capture_status": "captured" if captured else "unavailable",
+        "snapshot_sha256": json_sha256(snapshot),
+        "request_kind": snapshot.get("request_kind") if captured else None,
+        "attempt_number": snapshot.get("attempt_number") if captured else None,
+        "sdk_messages_sha256": snapshot["request_binding"]["messages_sha256"] if captured else None,
+        "normalized_narrative_sha256": snapshot.get("normalized_narrative_sha256") if captured else None,
+        "context_sha256": manifest.get("context_sha256"),
+        "included_passages": manifest.get("included_count"),
+        "retrieved_passages": manifest.get("retrieved_count"),
+        "metrics": dict(evaluation["metrics"]),
+        "release_gate_enforced": False,
+    }
 
 
 def _run_scenario(scenario):

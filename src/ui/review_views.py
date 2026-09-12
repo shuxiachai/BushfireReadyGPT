@@ -9,8 +9,14 @@ from src.evidence_confidence import build_evidence_confidence_rows
 from src.evidence_formatting import format_evidence_value as _community_evidence_value
 from src.export_package import create_pilot_export_package
 from src.input_validation import REVIEW_FIELD_LIMITS
+from src.model_evidence import validate_recorded_assembly
 from src.rag.service import assemble_retrieved_context, summarise_context_assembly
-from src.report_grounding import GROUNDING_METHOD, claim_review_reasons, evaluate_report_grounding
+from src.report_grounding import (
+    GROUNDING_METHOD,
+    claim_review_reasons,
+    evaluate_model_visible_rag_grounding,
+    evaluate_report_grounding,
+)
 from src.ui.components import render_path_line, safe_diagnostic_detail, safe_display_text
 from src.ui.downloads import download_button
 
@@ -69,7 +75,7 @@ def render_agent_analysis_summary():
         _render_evidence_overview(analysis.get("community", {}), snapshot)
         _render_confidence_provenance(analysis)
         _render_profile_and_sources(analysis.get("profile", {}), analysis.get("data", {}))
-        _render_retrieved_knowledge(analysis.get("knowledge", {}))
+        _render_retrieved_knowledge(analysis.get("knowledge", {}), analysis.get("rag_context_assembly"))
         _render_community_evidence(analysis.get("community", {}))
         _render_geography_reference(analysis.get("community", {}).get("geography_reference", {}))
         _render_planning_evidence(
@@ -159,7 +165,7 @@ def _render_profile_and_sources(profile, data_result):
         st.markdown("- No specific official sources were matched.")
 
 
-def _render_retrieved_knowledge(knowledge_result):
+def _render_retrieved_knowledge(knowledge_result, recorded_assembly=None):
     st.markdown("#### Retrieved Official Knowledge (RAG)")
     fields = [
         ("Status", knowledge_result.get("status_label") or "Not configured"),
@@ -169,30 +175,55 @@ def _render_retrieved_knowledge(knowledge_result):
     ]
     for label, value in fields:
         st.markdown(f"- **{label}:** {value}")
-    summary = summarise_context_assembly(assemble_retrieved_context(knowledge_result))
-    st.caption(
-        "Current-rule initial-context assembly preview only. It does not establish what a historical report, "
-        "repair or revision call received."
-    )
-    st.markdown(
-        f"- **Initial-context preview:** {summary['retrieved_chunks']} retrieved; "
-        f"{summary['included_chunks']} included; {summary['truncated_chunks']} truncated; "
-        f"{summary['omitted_chunks']} omitted.\n"
-        f"- **RAG block character budget:** {summary['context_characters']}/{summary['max_context_characters']} "
-        f"(including framing); per-chunk prefix cap {summary['max_chunk_characters']}."
-    )
-    st.caption("These counts describe budget use, not semantic completeness or coverage of the full source documents.")
-    if summary["incomplete"]:
-        st.warning(
-            "The preview contains truncated or omitted passages. Unseen qualifications, negations and exceptions "
-            "remain unknown; review the full official source before relying on a claim."
-        )
+    _render_initial_context_preview(knowledge_result, recorded_assembly)
     retrieved_chunks = knowledge_result.get("retrieved_chunks", [])
     if not retrieved_chunks:
         st.markdown("- No retrieved passage is available for this initial-context preview.")
         return
     st.caption("Similarity supports retrieval ranking only. Review the current official page before use.")
     st.dataframe([_retrieved_chunk_row(chunk) for chunk in retrieved_chunks], width="stretch", hide_index=True)
+
+
+def _render_initial_context_preview(knowledge_result, recorded_assembly):
+    if recorded_assembly is None:
+        assembly = assemble_retrieved_context(knowledge_result)
+        st.caption(
+            "Legacy v1 prefix preview only; no recorded initial assembly is available. It does not establish "
+            "what a historical report, repair or revision call received."
+        )
+    else:
+        assembly = recorded_assembly
+        try:
+            validate_recorded_assembly(assembly, {"knowledge": knowledge_result})
+        except (ValueError, TypeError, KeyError, AttributeError):
+            st.warning(
+                "The recorded initial assembly does not match its frozen retrieved sources; preview counts are unavailable."
+            )
+            return
+        st.caption(
+            "Recorded initial planning assembly, checked against its frozen retrieved sources. This is not proof "
+            "of the final SDK request; repair and revision evidence is shown separately below."
+        )
+    summary = summarise_context_assembly(assembly)
+    v2 = assembly["manifest"]["schema"] == "rag-context-assembly-v2"
+    cap_label = "per-original-chunk visible cap" if v2 else "per-chunk prefix cap"
+    st.markdown(
+        f"- **Initial-context preview:** {summary['retrieved_chunks']} retrieved; "
+        f"{summary['included_chunks']} included; {summary['truncated_chunks']} truncated; "
+        f"{summary['omitted_chunks']} omitted.\n"
+        f"- **RAG block character budget:** {summary['context_characters']}/{summary['max_context_characters']} "
+        f"(including framing); {cap_label} {summary['max_chunk_characters']}."
+    )
+    if v2:
+        st.caption(
+            "Assembly v2 uses contiguous sentence windows; truncated counts describe partial indexed chunks, not mid-sentence cuts."
+        )
+    st.caption("These counts describe budget use, not semantic completeness or coverage of the full source documents.")
+    if summary["incomplete"]:
+        st.warning(
+            "The preview contains truncated or omitted passages. Unseen qualifications, negations and exceptions "
+            "remain unknown; review the full official source before relying on a claim."
+        )
 
 
 def _retrieved_chunk_row(chunk):
@@ -368,8 +399,9 @@ def render_report_quality_summary():
                 "The recorded generation-time evaluation and historical audit evidence are unchanged."
             )
         st.caption(
-            "This deterministic check compares attributable narrative claims with the frozen analysis and "
-            "retrieved passages. It does not prove factual truth or source currency."
+            "Full-source snapshot check: this compares attributable narrative claims with frozen analysis and "
+            "complete retrieved chunks, including text not submitted to the model. It does not prove actual "
+            "model-context support, factual truth or source currency."
         )
         if grounding.get("status") == "pass":
             st.success("Configured evidence-alignment thresholds passed. Human source verification is still required.")
@@ -393,6 +425,53 @@ def render_report_quality_summary():
             st.markdown(f"**Claims requiring review:** {len(flagged)} (complete list)")
             for claim, reasons in flagged:
                 st.markdown(f"- `{claim.get('claim_id')}` — {claim.get('claim')} ({'; '.join(reasons)})")
+        _render_model_visible_rag_review(report_record)
+
+
+def _render_model_visible_rag_review(report_record):
+    recorded = (report_record.get("grounding_evaluation") or {}).get("model_visible_rag") or {}
+    evaluation = evaluate_model_visible_rag_grounding(
+        report_record.get("text") or "",
+        report_record.get("analysis") or {},
+        recorded.get("snapshot"),
+    )
+    st.markdown("#### Final request: actually submitted RAG passages")
+    st.caption(
+        "A separate lexical check using the final successful request only. Earlier attempts, prior model prose "
+        "and source-register metadata are not supporting passages. SDK submission is recorded, not provider "
+        "receipt or model attention. Matching words do not prove entailment or understanding of negation."
+    )
+    if evaluation["status"] == "unavailable":
+        st.info(
+            "No actual SDK evidence snapshot was recorded for this report. Historical context is unknown; no current-rule reconstruction is presented as historical proof."
+        )
+        return
+    if evaluation["status"] == "invalid_snapshot":
+        st.warning("The recorded model-evidence binding is invalid. Do not treat this diagnostic as verified support.")
+        return
+    snapshot = evaluation["snapshot"]
+    manifest = snapshot["assembly_manifest"]
+    metrics = evaluation["metrics"]
+    st.markdown(
+        f"Attempt {snapshot['attempt_number']} ({snapshot['request_kind']}): "
+        f"{manifest['included_count']}/{manifest['retrieved_count']} passages submitted; "
+        f"{manifest['context_characters']}/{manifest['max_characters']} context characters. "
+        f"RAG-cited prose claims: {metrics['rag_cited_claims']}; visible lexical support: "
+        f"{metrics['claims_with_visible_lexical_support']}."
+    )
+    if evaluation["status"] == "not_applicable":
+        st.info("No recognised RAG-cited prose claim was selected; this is not evidence of complete grounding.")
+    elif evaluation["status"] == "review_required":
+        st.warning(
+            "Some RAG citations lack lexical support in the final submitted passages. Review the full official source before use."
+        )
+    else:
+        st.info(
+            "Selected RAG-cited prose claims have visible lexical matches. Human source verification remains required."
+        )
+    for claim in evaluation["claims"]:
+        if not claim["all_cited_sources_lexically_supported"]:
+            st.markdown(f"- `{claim['claim_id']}` — {claim['claim']}")
 
 
 def _current_grounding_review(report_record):
@@ -617,6 +696,7 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
             parent_audit_path=report_record.get("parent_audit_path"),
             register_snapshot=report_record.get("export_register_snapshot"),
             analysis=report_record.get("analysis"),
+            grounding_evaluation=report_record.get("grounding_evaluation"),
         )
         download_button(
             "Download pilot export package",

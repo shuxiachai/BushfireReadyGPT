@@ -125,7 +125,11 @@ def test_first_and_restart_verify_real_audit_trace_and_quota_without_rewriting_o
     assert smoke._read_quota(expected["quota"]["day"]) == 2
     assert _evidence_bytes(fixture_volume) == evidence
     assert fixture_volume.sentinel.read_bytes() == sentinel
-    outputs = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    records = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    outputs = [record for record in records if record.get("smoke") == "passed"]
+    quota_events = [record for record in records if record.get("event") == "model_usage"]
+    assert [record["calls"] for record in quota_events] == [1, 2]
+    assert all(record["phase"] == "call_committed" for record in quota_events)
     assert [output["actual_restart_verified"] for output in outputs] == [False, True]
     assert all(output["audit_events"] == 2 and output["trace_records"] == 1 for output in outputs)
     assert fixture_volume.pdf_probe["read_calls"] == 2

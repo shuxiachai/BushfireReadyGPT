@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import json
 import sys
+from copy import deepcopy
 from io import BytesIO
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from zipfile import BadZipFile, ZipFile
@@ -16,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.release_paths import ReleasePathError, resolve_release_directory  # noqa: E402
 from src.audit import AuditIntegrityError, review_record_hash, sha256_json, validate_audit_record  # noqa: E402
 from src.export_package import PILOT_EXPORT_SCHEMA  # noqa: E402
+from src.model_evidence import validate_model_evidence  # noqa: E402
 from src.report_generation_quality import (  # noqa: E402
     KNOWN_QUALITY_POLICY_MANIFESTS,
     QUALITY_POLICY_FINGERPRINT,
@@ -23,6 +25,7 @@ from src.report_generation_quality import (  # noqa: E402
     is_current_quality_policy_binding,
     quality_policy_metadata,
 )
+from src.report_grounding import MODEL_VISIBLE_GROUNDING_METHOD  # noqa: E402
 
 REQUIRED_REPORT_MARKERS = (
     "DRAFT STATUS NOTICE",
@@ -40,6 +43,7 @@ FORBIDDEN_INTERNAL_MARKERS = (
 )
 PACKAGE_MANIFEST_PATH = "governance/package_manifest.json"
 AUDIT_RECORD_PATH = "governance/audit_record.json"
+GROUNDING_PATH = "governance/grounding_evaluation.json"
 AUDIT_CHAIN_PREFIX = "governance/audit_chain/"
 PARENT_AUDIT_CHAIN_PREFIX = "governance/parent_audit_chain/"
 ANCESTOR_AUDIT_CHAIN_PREFIX = "governance/ancestor_audit_chains/"
@@ -86,6 +90,15 @@ def verify_sample_package(package_path, *, standalone_dir=None, require_current_
         "PDF": pdf_text,
         "DOCX": docx_text,
     }
+    if GROUNDING_PATH in governance_texts:
+        governance_texts[GROUNDING_PATH] = _verified_grounding_scan_text(
+            governance_texts[GROUNDING_PATH],
+            manifest,
+            audit_record,
+            markdown_text,
+        )
+    elif "grounding_diagnostic" in manifest:
+        raise ValueError("The manifest declares a missing grounding diagnostic.")
     for marker in REQUIRED_REPORT_MARKERS:
         missing_formats = [label for label, text in report_texts.items() if not _contains_marker(text, marker)]
         if missing_formats:
@@ -127,6 +140,136 @@ def _report_paths(names):
             raise ValueError(f"Expected exactly one {suffix} report in the sample package.")
         report_paths[suffix] = matches[0]
     return report_paths
+
+
+def _verified_grounding_scan_text(content, manifest, audit_record, report_text):
+    """Allow only verified official-context fields through the leakage scanner.
+
+    Package hashes and the audit's object hash bind this optional file. Offline
+    validation checks its exact framing, excerpts, schema and narrative binding;
+    full raw-source revalidation still requires the separately frozen analysis.
+    Every other field and every other report/governance file retains leak checks.
+    """
+    if len(content.encode("utf-8")) > 1_000_000:
+        raise ValueError("Grounding artifact exceeds its verification budget.")
+    evaluation = json.loads(content)
+    metadata = manifest.get("grounding_diagnostic")
+    if not isinstance(evaluation, dict) or not isinstance(metadata, dict):
+        raise ValueError("Grounding artifact is missing its manifest binding.")
+    digest = sha256_json(evaluation)
+    if digest != audit_record.get("grounding_evaluation_hash") or digest != metadata.get("sha256"):
+        raise ValueError("Grounding artifact does not match the audited diagnostic.")
+    visible = evaluation.get("model_visible_rag")
+    if visible is None:
+        if metadata.get("model_visible_rag_status") != "unavailable":
+            raise ValueError("Legacy grounding cannot claim model-visible evidence.")
+        return content
+    _verify_visible_grounding_shape(visible, metadata, report_text)
+    snapshot = visible["snapshot"]
+    validate_model_evidence(snapshot, report_text=report_text)
+    if snapshot["status"] != "captured":
+        if visible["status"] != "unavailable":
+            raise ValueError("Unavailable capture cannot claim model-visible support.")
+        return content
+    audited_chunks = audit_record.get("analysis", {}).get("knowledge", {}).get("retrieved_chunks", [])
+    entries = snapshot["assembly_manifest"]["chunks"]
+    if len(audited_chunks) != len(entries) or any(
+        any(entry.get(key) != chunk.get(key) for key in ("source_id", "chunk_id"))
+        or entry.get("declared_chunk_sha256") != chunk.get("chunk_sha256")
+        for entry, chunk in zip(entries, audited_chunks)
+    ):
+        raise ValueError("Grounding artifact source identities differ from the audit.")
+    sanitized = deepcopy(evaluation)
+    safe_snapshot = sanitized["model_visible_rag"]["snapshot"]
+    safe_snapshot["context"] = "[verified bounded official context]"
+    for passage in safe_snapshot["visible_passages"]:
+        passage["text"] = "[verified bounded official excerpt]"
+    return json.dumps(sanitized, ensure_ascii=False)
+
+
+def _verify_visible_grounding_shape(visible, metadata, report_text):
+    fields = {"method", "scope", "snapshot", "status", "metrics", "claims", "limitations"}
+    if (
+        not isinstance(visible, dict)
+        or set(visible) != fields
+        or visible.get("method") != MODEL_VISIBLE_GROUNDING_METHOD
+    ):
+        raise ValueError("Unsupported model-visible grounding artifact schema.")
+    if (
+        visible.get("scope") != "final_sdk_submitted_rag_passages_only"
+        or visible.get("status")
+        not in {
+            "unavailable",
+            "pass",
+            "not_applicable",
+            "review_required",
+        }
+        or visible.get("status") != metadata.get("model_visible_rag_status")
+    ):
+        raise ValueError("Invalid model-visible grounding scope or status.")
+    metrics, claims = visible["metrics"], visible["claims"]
+    metric_fields = {"rag_cited_claims", "claims_with_visible_lexical_support", "support_rate"}
+    if (
+        not isinstance(metrics, dict)
+        or set(metrics) != metric_fields
+        or not isinstance(claims, list)
+        or len(claims) > 1000
+    ):
+        raise ValueError("Invalid model-visible grounding metrics.")
+    for claim in claims:
+        _verify_visible_claim_shape(claim, report_text)
+    count = len(claims)
+    supported = sum(claim["all_cited_sources_lexically_supported"] for claim in claims)
+    if (
+        metrics["rag_cited_claims"] != count
+        or metrics["claims_with_visible_lexical_support"] != supported
+        or metrics["support_rate"] != (round(supported / count, 4) if count else None)
+    ):
+        raise ValueError("Model-visible grounding claim counts do not match metrics.")
+    expected = "not_applicable" if not count else "pass" if supported == count else "review_required"
+    if visible["status"] != "unavailable" and visible["status"] != expected:
+        raise ValueError("Model-visible grounding status does not match claims.")
+    if (
+        not isinstance(visible["limitations"], list)
+        or len(visible["limitations"]) > 10
+        or any(not isinstance(item, str) or len(item) > 1000 for item in visible["limitations"])
+    ):
+        raise ValueError("Invalid model-visible grounding limitations.")
+
+
+def _verify_visible_claim_shape(claim, report_text):
+    fields = {"claim_id", "claim", "cited_source_ids", "source_checks", "all_cited_sources_lexically_supported"}
+    if not isinstance(claim, dict) or set(claim) != fields:
+        raise ValueError("Unknown model-visible claim fields.")
+    body = claim["claim"]
+    if not isinstance(body, str) or not 0 < len(body) <= 600 or claim["claim_id"] != sha256_bytes(body.encode())[:16]:
+        raise ValueError("Invalid model-visible claim identity.")
+    if " ".join(body.split()) not in " ".join(report_text.split()):
+        raise ValueError("Model-visible claim is absent from the report.")
+    checks = claim["source_checks"]
+    check_fields = {"source_id", "visible_passage_present", "lexical_support", "support_score", "best_evidence_sha256"}
+    if (
+        not isinstance(checks, list)
+        or not 0 < len(checks) <= 32
+        or any(not isinstance(check, dict) or set(check) != check_fields for check in checks)
+    ):
+        raise ValueError("Unknown model-visible source-check fields.")
+    if claim["cited_source_ids"] != sorted(check["source_id"] for check in checks):
+        raise ValueError("Model-visible citation source checks are inconsistent.")
+    for check in checks:
+        if type(check["visible_passage_present"]) is not bool or type(check["lexical_support"]) is not bool:
+            raise ValueError("Invalid model-visible source-check booleans.")
+        if type(check["support_score"]) not in (int, float) or not 0 <= check["support_score"] <= 1000:
+            raise ValueError("Invalid model-visible source-check score.")
+        digest = check["best_evidence_sha256"]
+        if digest is not None and (
+            not isinstance(digest, str) or len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest)
+        ):
+            raise ValueError("Invalid model-visible source-check digest.")
+    if type(claim["all_cited_sources_lexically_supported"]) is not bool or claim[
+        "all_cited_sources_lexically_supported"
+    ] != all(check["lexical_support"] for check in checks):
+        raise ValueError("Model-visible claim support is inconsistent.")
 
 
 def _contains_marker(text, marker):

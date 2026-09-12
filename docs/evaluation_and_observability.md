@@ -12,6 +12,31 @@ collapsed into one accuracy number:
 
 None of these alone proves operational safety, legal fitness or factual currency.
 
+## Maintained runtime evidence scopes
+
+The September 12 runtime adds a separate `submitted_rag_lexical_alignment_v1`
+diagnostic. The original grounding result still compares extracted narrative
+claims with the full frozen evidence snapshot. The new result considers only
+RAG-cited prose and the official excerpts submitted in the final successful SDK
+call. It excludes earlier attempts, unsubmitted tails, U0 text, other deterministic
+fields and the prior model narrative as substitutes for those excerpts. Existing
+sentence extraction excludes tables and is not an exhaustive assertion extractor.
+
+`model-evidence-context-v1` binds the actual SDK system/user message hashes,
+response and normalized narrative to a bounded assembly manifest and visible
+passages. Initial generation, protocol retry, structural repair and revision are
+recorded separately; repair keeps its smaller 3,500/900 budgets, and revision
+resubmits frozen excerpts without retrieval. Old records or clients without real
+capture are `unavailable`, not retroactively reconstructed. This is an application
+submission attestation, not provider-receipt or semantic-entailment proof.
+
+Authenticated governance ZIPs may include the audit-bound evidence diagnostic;
+they are sensitive exports containing source excerpts and report content. Public
+CLI evaluation rows contain only a versioned status/count/hash summary, while
+Trace retains no Prompt or official passage body. The historical v6 quality policy
+and existing benchmark files are unchanged. See the
+[current validation and limitations](LAUNCH_READINESS_2026-09-12.md).
+
 ## v0.6.0 Release Evidence Contract
 
 The current machine-readable release evidence is:

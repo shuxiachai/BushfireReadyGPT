@@ -40,6 +40,7 @@ If you only have a few minutes, read these in order:
 | File | Purpose |
 | --- | --- |
 | `architecture.md` | Technical architecture, agent responsibilities and data flow. |
+| `LAUNCH_READINESS_2026-09-12.md` | Maintained-source sentence windows, actual SDK-evidence binding, paired diagnostics and deployment acceptance boundaries. |
 | `rag.md` | Local official-knowledge RAG build, evaluation, integrity and trust boundary. |
 | `evaluation_and_observability.md` | Report evidence-alignment evaluation, pilot metrics and privacy-minimised runtime Trace. |
 | `project_reassessment.md` | Current project status, gaps and recommended next build order. |

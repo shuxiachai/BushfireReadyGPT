@@ -25,6 +25,14 @@ This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT
 
 **Current release:** `v0.6.0`
 
+**September 12 maintenance:** the maintained application now assembles bounded,
+contiguous sentence windows around selected planning focuses, retains separate
+full-source and SDK-submitted-evidence grounding diagnostics, and emits read-only
+daily quota observations for deployment recovery checks. These are unreleased
+changes, not new historical benchmark results. See the
+[current implementation and acceptance record](docs/LAUNCH_READINESS_2026-09-12.md)
+for paired diagnostic results and the precise remaining launch boundaries.
+
 **Unreleased cloud deployment work:** Docker / Railway startup, versioned persistent
 RAG, verified private corpus import, fixed-revision CPU embeddings, shared access
 control and persistent daily model-call limits are implemented. Official source
@@ -43,7 +51,7 @@ revision and review were verified separately. The saved Markdown and three linke
 audit events, plus two Traces, were read back after a real Railway deployment and
 independently checked. Live quota recovery, complete authenticated cloud download
 acceptance and Word visual rendering remain distinct open checks; see the
-[latest controlled-demo readiness record](docs/LAUNCH_READINESS_2026-09-11.md).
+[September 11 controlled-demo readiness record](docs/LAUNCH_READINESS_2026-09-11.md).
 See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
 and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).
 The historical release measurements below do not certify this new cloud path.

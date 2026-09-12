@@ -28,6 +28,7 @@ from src.governance import (
     REVIEWED_STATUSES,
     is_review_checklist_complete,
 )
+from src.model_evidence import validate_model_evidence
 from src.pdf_export import create_report_pdf
 from src.report_generation_quality import (
     QUALITY_POLICY_FINGERPRINT,
@@ -36,6 +37,7 @@ from src.report_generation_quality import (
     is_current_quality_policy_binding,
     quality_policy_metadata,
 )
+from src.report_grounding import evaluate_model_visible_rag_grounding
 from src.report_template import append_human_signoff
 
 PILOT_EXPORT_SCHEMA = "pilot-export-v4"
@@ -49,6 +51,7 @@ def create_pilot_export_package(
     parent_audit_path=None,
     register_snapshot=None,
     analysis=None,
+    grounding_evaluation=None,
 ):
     """Create a zip package for pilot review and stakeholder handover."""
 
@@ -104,6 +107,7 @@ def create_pilot_export_package(
         raise AuditIntegrityError("The export requires the complete analysis snapshot bound to the report.")
     if latest_audit.get("analysis", {}).get("analysis_hash") != sha256_json(analysis):
         raise AuditIntegrityError("The export analysis does not match the verified report snapshot.")
+    grounding_bytes = _verified_grounding_bytes(grounding_evaluation, latest_audit, analysis, report_markdown)
     exact_quality = evaluate_governed_report(report_markdown, analysis)
     if latest_audit.get("quality") != exact_quality:
         raise AuditIntegrityError(
@@ -177,6 +181,7 @@ def create_pilot_export_package(
         "artifact_hashes": {},
     }
     manifest["included_files"].append("governance/audit_record.json")
+    _add_grounding_artifact(artifact_bytes, manifest, grounding_bytes, grounding_evaluation, latest_audit)
     artifact_bytes["governance/audit_record.json"] = audit_chain[-1]["bytes"]
     manifest["audit_chain"] = [
         {
@@ -242,6 +247,44 @@ def create_pilot_export_package(
         "content": buffer.getvalue(),
         "manifest": manifest,
     }
+
+
+def _verified_grounding_bytes(evaluation, audit_record, analysis, report_text):
+    if evaluation is None:
+        return None
+    if not isinstance(evaluation, dict) or audit_record.get("grounding_evaluation_hash") != sha256_json(evaluation):
+        raise AuditIntegrityError("The export grounding diagnostic does not match the verified audit snapshot.")
+    visible = evaluation.get("model_visible_rag")
+    if visible is not None:
+        try:
+            validate_model_evidence(visible["snapshot"], analysis, report_text=report_text)
+            if visible != evaluate_model_visible_rag_grounding(report_text, analysis, visible["snapshot"]):
+                raise ValueError("Recorded model-visible result differs from its bound evidence.")
+        except (ValueError, TypeError, KeyError, AttributeError) as error:
+            raise AuditIntegrityError(
+                "The model-visible evidence diagnostic is invalid; export was blocked."
+            ) from error
+    content = json.dumps(evaluation, ensure_ascii=False, indent=2).encode("utf-8")
+    if len(content) > 1_000_000:
+        raise AuditIntegrityError("The grounding diagnostic exceeds its export budget.")
+    return content
+
+
+def _add_grounding_artifact(artifacts, manifest, content, evaluation, audit_record):
+    if content is None:
+        return
+    path = "governance/grounding_evaluation.json"
+    artifacts[path] = content
+    manifest["included_files"].append(path)
+    manifest["grounding_diagnostic"] = {
+        "sha256": audit_record.get("grounding_evaluation_hash"),
+        "model_visible_rag_status": (evaluation.get("model_visible_rag") or {}).get("status", "unavailable"),
+        "boundary": "Lexical diagnostics only; no proof of truth, semantic entailment or provider receipt.",
+    }
+    manifest["privacy"]["notice"] += (
+        " The grounding diagnostic also contains bounded official-reference excerpts submitted to the model; "
+        "it does not contain complete user/system prompts."
+    )
 
 
 def _sha256_bytes(value):

@@ -22,6 +22,7 @@ if str(PROJECT_ROOT) not in sys.path:
 load_dotenv(PROJECT_ROOT / ".env")
 
 from scripts.evaluate_report_generation import run_scenario_with_artifacts  # noqa: E402
+from scripts.evaluation_artifacts import git_provenance  # noqa: E402
 from scripts.release_paths import ReleasePathError, resolve_release_directory  # noqa: E402
 from src.app_catalog import EXAMPLE_CASES  # noqa: E402
 from src.audit import canonical_review_record, save_report_audit  # noqa: E402
@@ -29,8 +30,9 @@ from src.config import LLM_PROVIDER, MODEL_ENDPOINT_IS_LOCAL, model  # noqa: E40
 from src.export_package import create_pilot_export_package  # noqa: E402
 from src.export_register import build_export_register_snapshot  # noqa: E402
 from src.governance import DRAFT_STATUS  # noqa: E402
+from src.model_evidence import json_sha256, validate_model_evidence  # noqa: E402
 from src.report_generation_quality import evaluate_governed_report  # noqa: E402
-from src.report_grounding import evaluate_report_grounding  # noqa: E402
+from src.report_grounding import evaluate_model_visible_rag_grounding, evaluate_report_grounding  # noqa: E402
 from src.report_template import append_human_signoff  # noqa: E402
 
 DEFAULT_OUTPUT_DIR = resolve_release_directory(PROJECT_ROOT)[1]
@@ -120,6 +122,19 @@ def _validate_showcase_retrieval(row, analysis):
     return manifest_sha256
 
 
+def _require_clean_showcase_source(expected=None):
+    current = git_provenance(PROJECT_ROOT)
+    if (
+        current.get("collection_status") != "collected"
+        or current.get("working_tree_dirty") is not False
+        or not re.fullmatch(r"[0-9a-f]{40,64}", str(current.get("commit") or ""))
+    ):
+        raise RuntimeError("A formal showcase requires a verified clean Git source before generation and publication.")
+    if expected is not None and current != expected:
+        raise RuntimeError("Showcase source provenance changed during generation; no sample files were published.")
+    return current
+
+
 def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
     """Generate, audit, package and write one portfolio-safe governed sample."""
 
@@ -128,9 +143,11 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
     _require_local_ollama_runtime()
     output_dir = Path(output_dir if output_dir is not None else resolve_release_directory(PROJECT_ROOT)[1]).resolve()
     _require_unused_outputs(output_dir)
+    source_provenance = _require_clean_showcase_source()
     example = EXAMPLE_CASES[example_name]
     scenario = _scenario_from_example(example_name)
     artifacts = run_scenario_with_artifacts(scenario)
+    _require_clean_showcase_source(source_provenance)
     row = artifacts["row"]
     if row.get("governed_gate_passed") is not True:
         failures = row.get("blocking_failures") or []
@@ -178,6 +195,16 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
     }
     register_snapshot = build_export_register_snapshot()
     grounding = evaluate_report_grounding(report, analysis)
+    snapshot = artifacts.get("model_evidence")
+    if not isinstance(snapshot, dict) or snapshot.get("status") != "captured":
+        raise RuntimeError("A formal showcase requires the final successful SDK request's recorded evidence snapshot.")
+    try:
+        validate_model_evidence(snapshot, analysis, report_text=report)
+    except (ValueError, TypeError, KeyError, AttributeError) as error:
+        raise RuntimeError(
+            "The final showcase model-evidence snapshot failed validation; publication was blocked."
+        ) from error
+    grounding["model_visible_rag"] = evaluate_model_visible_rag_grounding(report, analysis, snapshot)
 
     with TemporaryDirectory(prefix="bushfire-showcase-audit-") as audit_dir:
         previous_audit_dir = os.environ.get("BUSHFIRE_AUDIT_DIR")
@@ -213,6 +240,7 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
                 package_context=package_context,
                 register_snapshot=register_snapshot,
                 analysis=analysis,
+                grounding_evaluation=grounding,
             )
         finally:
             if previous_audit_dir is None:
@@ -245,6 +273,7 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
             raise RuntimeError("The showcase package contains a sensitive audit payload and cannot be committed.")
 
     output_bytes[package_path] = package["content"]
+    _require_clean_showcase_source(source_provenance)
     _require_unused_outputs(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     for path, content in output_bytes.items():
@@ -265,6 +294,10 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
         "model_provider": LLM_PROVIDER,
         "model_name": model,
         "model_endpoint_boundary": model_boundary,
+        "source_provenance": source_provenance,
+        "model_evidence_schema": snapshot["schema"],
+        "model_evidence_sha256": json_sha256(snapshot),
+        "model_visible_rag_status": grounding["model_visible_rag"]["status"],
         "files": {
             path.name: {"sha256": _sha256(path.read_bytes()), "size_bytes": path.stat().st_size}
             for path in (markdown_path, pdf_path, docx_path, package_path)

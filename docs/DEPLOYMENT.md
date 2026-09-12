@@ -561,3 +561,10 @@ readback. It also records context-budget warnings, private-download failure
 feedback and stronger disposable-container restart checks. Server saving stores
 Markdown, not a restorable browser/review workspace. Local re-exports are not
 original cloud-downloaded files, and the Word visual check is still open.
+
+The [September 12 maintenance record](LAUNCH_READINESS_2026-09-12.md) covers
+sentence-window retrieval, separate SDK-visible evidence diagnostics and bounded
+read-only quota observations. `scripts/start_container.py --observe-usage-day
+YYYY-MM-DD` optionally logs one explicit historical UTC date in addition to the
+current date, allowing an honest cross-midnight restart comparison without
+changing counters. It is not a restore command or a public monitoring endpoint.

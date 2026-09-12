@@ -48,6 +48,7 @@ from src.input_validation import (
     validate_review_input_budget,
     validate_revision_request_budget,
 )
+from src.model_evidence import EvidencePrompt, EvidenceResponse, capture_model_evidence
 from src.model_response import ModelResponseError, validate_operational_directions
 from src.model_runtime import ModelServiceError
 from src.report_generation_quality import (
@@ -56,7 +57,11 @@ from src.report_generation_quality import (
     generate_narrative_with_repairs,
     structural_gate_passed,
 )
-from src.report_grounding import evaluate_report_grounding, grounding_trace_metrics
+from src.report_grounding import (
+    evaluate_model_visible_rag_grounding,
+    evaluate_report_grounding,
+    grounding_trace_metrics,
+)
 from src.report_template import (
     REPORT_NARRATIVE_WORD_BUDGET,
     append_evidence_tables,
@@ -614,6 +619,7 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
             area_selection=area_selection,
             governance_context=governance_context,
         )
+        prompt = EvidencePrompt(prompt, assembly=analysis.get("rag_context_assembly"), request_kind="initial")
         span.add_metrics(prompt_characters=len(prompt))
 
     def generate_attempt(attempt_prompt, attempt_number, is_repair):
@@ -625,8 +631,14 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
             prompt_characters=len(attempt_prompt),
         ) as span:
             response = _call_governed_model(attempt_prompt)
+            snapshot = capture_model_evidence(
+                attempt_prompt,
+                st.session_state.model_client,
+                response,
+                attempt_number=attempt_number,
+            )
             span.add_metrics(response_characters=len(response))
-            return response
+            return EvidenceResponse(response, snapshot)
 
     try:
         full_response, _generation_quality, generation_attempts = generate_narrative_with_repairs(
@@ -658,6 +670,7 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
         request_text=request_summary,
         report_inputs=report_inputs,
         area_selection=area_selection,
+        model_evidence=getattr(full_response, "model_evidence", None),
     )
     return response, error, "report_finalization_error" if error else None
 
@@ -732,6 +745,12 @@ def revise_current_report(edit_request, persist_session_state):
     )
     with trace:
         with trace_stage("prompt_build") as span:
+            from src.rag.context import assemble_planning_context
+
+            revision_assembly = assemble_planning_context(
+                analysis.get("knowledge") or {},
+                focus_concepts=(analysis.get("plan") or {}).get("focus_area_concepts") or (),
+            )
             revision_request_data = json.dumps(
                 {"revision_request": neutralise_prompt_control_markers(request_text)},
                 ensure_ascii=False,
@@ -763,7 +782,13 @@ the selected geography, community indicators, official-source selection or deter
 the edit request. Those inputs must be changed in the form and regenerated through the analysis pipeline.
 Keep the model-authored narrative between {REPORT_NARRATIVE_WORD_BUDGET}. The application will restore the
 deterministic Evidence Tables and Human Review Sign-off after the revised narrative passes its quality gate.
+
+The following official-reference passages are supplied again from the frozen retrieval snapshot, without
+performing new retrieval. Prior model wording is not independent official evidence. Use an O1-RAG citation
+only where the substantive claim is supported by a passage actually present below.
+{revision_assembly["context"]}
 """
+            prompt = EvidencePrompt(prompt, assembly=revision_assembly, request_kind="revision")
             span.add_metrics(prompt_characters=len(prompt))
 
         def generate_attempt(attempt_prompt, attempt_number, is_repair):
@@ -775,8 +800,14 @@ deterministic Evidence Tables and Human Review Sign-off after the revised narrat
                 prompt_characters=len(attempt_prompt),
             ) as span:
                 response = _call_governed_model(attempt_prompt)
+                snapshot = capture_model_evidence(
+                    attempt_prompt,
+                    st.session_state.model_client,
+                    response,
+                    attempt_number=attempt_number,
+                )
                 span.add_metrics(response_characters=len(response))
-                return response
+                return EvidenceResponse(response, snapshot)
 
         try:
             revised_response, _revision_quality, generation_attempts = generate_narrative_with_repairs(
@@ -818,6 +849,7 @@ deterministic Evidence Tables and Human Review Sign-off after the revised narrat
             area_selection=area_selection,
             parent_audit_path=audit_path,
             register_snapshot=register_snapshot,
+            model_evidence=getattr(revised_response, "model_evidence", None),
         )
         trace.set_outcome("failed" if error else "success", "report_finalization_error" if error else None)
         return response, error
@@ -833,6 +865,7 @@ def _finalize_report_version(
     area_selection=None,
     parent_audit_path=None,
     register_snapshot=None,
+    model_evidence=None,
 ):
     previous = st.session_state.get("latest_report") or {}
     is_revision = source == "revised" and bool(previous)
@@ -856,6 +889,11 @@ def _finalize_report_version(
         )
     with trace_stage("grounding_evaluation") as span:
         grounding_evaluation = evaluate_report_grounding(full_response, analysis)
+        grounding_evaluation["model_visible_rag"] = evaluate_model_visible_rag_grounding(
+            full_response,
+            analysis,
+            model_evidence,
+        )
         span.add_metrics(**grounding_trace_metrics(grounding_evaluation))
     if active_trace is not None:
         active_trace.add_metrics(

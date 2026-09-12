@@ -22,6 +22,7 @@ from src.config import (
     model,
 )
 from src.deployment_access import DeploymentConfigurationError
+from src.model_evidence import CapturedMessages, bind_submitted_messages, text_sha256
 from src.model_limits import ModelAllowanceError, acquire_model_slot
 from src.model_response import ModelResponseError, ModelServiceError, record_response_admission
 
@@ -165,6 +166,7 @@ class GovernedModelClient:
         self.is_local = is_local
         self.timeout_seconds = float(timeout_seconds)
         self._clock = clock
+        self.last_request_capture = None
         if not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be finite and greater than zero.")
 
@@ -191,6 +193,7 @@ class GovernedModelClient:
                 # One reserved call must mean one HTTP attempt. Structural repairs reserve separately.
                 completion_client = configure(max_retries=0)
             request_slot.consume_call()
+            bind_submitted_messages(messages)
             return completion_client.chat.completions.create(**kwargs)
         except ModelAllowanceError as error:
             raise ModelServiceError(str(error)) from error
@@ -335,13 +338,16 @@ class GovernedModelClient:
         return outcome.get("value", "")
 
     def generate(self, prompt):
+        self.last_request_capture = None
         prompt_text = str(prompt or "").strip()
         if not prompt_text:
             raise ValueError("A governed model prompt is required.")
-        messages = [
-            {"role": "system", "content": GOVERNED_MODEL_SYSTEM_PROMPT},
-            {"role": "user", "content": prompt_text},
-        ]
+        messages = CapturedMessages(
+            [
+                {"role": "system", "content": GOVERNED_MODEL_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt_text},
+            ]
+        )
         try:
             request_slot = acquire_model_slot()
         except (ModelAllowanceError, DeploymentConfigurationError) as error:
@@ -358,4 +364,6 @@ class GovernedModelClient:
         cleaned = clean_model_output(response_text)
         if not cleaned:
             raise ModelServiceError("The model returned no usable report text. Retry the request.")
+        if messages.submitted_binding is not None:
+            self.last_request_capture = {**messages.submitted_binding, "response_sha256": text_sha256(cleaned)}
         return cleaned

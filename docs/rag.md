@@ -18,6 +18,23 @@ orders or confirmed safe routes.
 
 ## Runtime flow
 
+Since the September 12 maintenance, structured forms retain their admitted base
+query results and use up to four bounded, allowlisted focus queries to fill spare
+Top-K/source capacity. Supplemental candidates are rank-fused only after each
+query passes the existing thresholds and a non-generic focus overlap check.
+All queries share one verified index snapshot; the original live-safety refusal
+still runs first. This adds embedding/query work and does not guarantee that every
+selected focus has supporting text.
+
+Production context uses `rag-context-assembly-v2`: one contiguous sentence window
+per original chunk, at most 2,200 body characters and 8,000 total context
+characters including framing. Adjacent qualifications are retained when detected;
+this heuristic cannot reconstruct lost paragraph boundaries or prove complete
+source meaning. The original single-query/v1 prefix path remains available for
+historical replay. `scripts/compare_form_rag.py` measures both changes separately
+without sending a report-model request. See the
+[paired diagnostic and acceptance record](LAUNCH_READINESS_2026-09-12.md).
+
 ```text
 sources.yml -> HTTPS download -> document validation -> focused multi-region extraction
             -> deterministic chunks -> Ollama embeddinggemma -> Qdrant + document snapshot

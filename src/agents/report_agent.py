@@ -17,10 +17,12 @@ class ReportAgent:
         community_result=None,
         knowledge_result=None,
         area_selection=None,
+        rag_assembly=None,
     ):
         community_result = community_result or {}
         knowledge_result = knowledge_result or {}
-        rag_assembly = assemble_retrieved_context(knowledge_result)
+        if rag_assembly is None:
+            rag_assembly = assemble_retrieved_context(knowledge_result)
         rag_summary = summarise_context_assembly(rag_assembly)
         profile_lines = [
             f"- State / territory inference: {profile['state']}",

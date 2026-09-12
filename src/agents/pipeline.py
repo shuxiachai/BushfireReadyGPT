@@ -12,6 +12,8 @@ from src.data_artifacts import (
 )
 from src.data_paths import get_data_paths, safe_data_path_label
 from src.evidence_confidence import build_evidence_confidence_rows
+from src.rag.context import assemble_planning_context
+from src.rag.service import assemble_retrieved_context
 from src.runtime_trace import trace_stage
 
 
@@ -52,9 +54,13 @@ def run_analysis_pipeline(
     area_selection=None,
     data_paths=None,
     knowledge_service=None,
+    *,
+    rag_context_strategy="planning_v2",
 ):
     """Run the deterministic Australia-focused multi-agent analysis pipeline."""
 
+    if rag_context_strategy not in {"planning_v2", "prefix_v1"}:
+        raise ValueError("Unknown RAG context strategy; use planning_v2 or prefix_v1.")
     paths = data_paths or get_data_paths()
     with trace_stage("data_integrity", map_selection_present=bool(area_selection)) as span:
         pre_analysis_provenance = build_data_provenance(
@@ -113,6 +119,11 @@ def run_analysis_pipeline(
     with trace_stage("planner_agent"):
         plan_result = PlannerAgent().run(profile, risk_context)
     with trace_stage("report_agent"):
+        rag_assembly = (
+            assemble_planning_context(knowledge_result, focus_concepts=plan_result.get("focus_area_concepts", ()))
+            if rag_context_strategy == "planning_v2"
+            else assemble_retrieved_context(knowledge_result)
+        )
         prompt_context = ReportAgent().run(
             profile,
             data_result,
@@ -121,6 +132,7 @@ def run_analysis_pipeline(
             community_result,
             knowledge_result,
             area_selection=area_selection,
+            rag_assembly=rag_assembly,
         )
     with trace_stage("data_integrity"):
         post_analysis_provenance = build_data_provenance(
@@ -142,6 +154,7 @@ def run_analysis_pipeline(
         "plan": plan_result,
         "area_selection": area_selection,
         "prompt_context": prompt_context,
+        "rag_context_assembly": rag_assembly,
         "resolved_data_paths": {name: safe_data_path_label(path, paths) for name, path in vars(paths).items()},
         "data_integrity": artifact_status,
         "data_provenance": post_analysis_provenance,
