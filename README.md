@@ -49,8 +49,10 @@ manifest. That repair commit passed 1,297 non-E2E tests plus two Chromium tests
 in CI, with 88.19% Linux coverage. Subsequent September 11 synthetic generation,
 revision and review were verified separately. The saved Markdown and three linked
 audit events, plus two Traces, were read back after a real Railway deployment and
-independently checked. Live quota recovery, complete authenticated cloud download
-acceptance and Word visual rendering remain distinct open checks; see the
+independently checked. September 12 maintenance subsequently verified the same
+nonzero historical-day SQLite allowance across two real Railway deployments.
+Complete authenticated cloud download acceptance and Word visual rendering remain
+open; see the current maintenance record above. For the earlier readback, see the
 [September 11 controlled-demo readiness record](docs/LAUNCH_READINESS_2026-09-11.md).
 See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
 and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).

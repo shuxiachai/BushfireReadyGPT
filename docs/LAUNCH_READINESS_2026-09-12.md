@@ -61,8 +61,9 @@ python scripts/start_container.py --observe-usage-day 2026-09-11
 ## 验收边界与后续记录
 
 本轮本地实现与验证已完成；远端 CI、部署和完整云端流程按下方实际回执分别记录。
-现有线上旧部署健康接口与登录页可达；隔离浏览器仍需要现有访问口令，
-Railway OAuth 连接只返回变量名，不提供口令值。不关闭登录、不创建免登录下载通道。
+线上维护部署的健康接口与登录页可达；隔离浏览器仍需要现有访问口令。
+此前 Railway OAuth 连接只返回变量名、不提供口令值；续验时连接工具不再可用，
+Railway 浏览器入口也没有登录态。不关闭登录、不创建免登录下载通道。
 
 文档验收运行时 `26.909.12148` 在此 Windows 主机没有绑定的 LibreOffice。
 规范 Word 渲染未完成；结构/文本检查和旧本地 PDF 重现不能替代 Word 逐页验收。
@@ -103,3 +104,67 @@ CPU 索引 manifest：`065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88ed
 此单例不是八场景正式回归，也不是新的 DeepSeek 云端用户流程。
 真实调用诊断保留本地，不随公开仓库上传；其文件 SHA-256 为
 `f7c925edee776338165d9ed2a7f04f71299da52c5e16718a7aac29821d2beb9d`。
+
+## 完整本地模型回归与远端检查：b89d80c
+
+随后完整八场景回归绑定干净提交 `b89d80ce3202abbe16edb05ea5afc62e77e59d85`，
+使用已有本地 Ollama `bushfire-ready-qwen` 与上述 CPU 索引。
+模型、索引、场景原字节及源提交稳定性检查通过，v4 JSON 独立校验通过。
+八场景治理、结构、预期 RAG 行为与安全检查全部通过；六例初次通过，
+Council 修复一次、WA Farm 修复两次，共十一轮生成尝试。
+最终成功调用捕获均为 captured：六个 initial、两个 structural_repair。
+实时路线请求为 out_of_scope、无 RAG 场景为 disabled，均符合原题集预期。
+
+不能将以上结果写成事实正确率或可见 grounding 通过：八例全来源词面对齐均为
+review_required，共 82 条待审声明；八例可见 RAG 检查均未识别到可评估的
+RAG 行内引用声明，状态 not_applicable、support_rate=null。
+运行文件仅存最终捕获的摘要与哈希，不足以从文件重建全部十一轮 SDK 消息，
+也不证明供应商收件或使用证据。它不是本轮真实 DeepSeek 云端下载流程。
+
+完整回归文件保留本地、不上传公开仓库；33,391 bytes，SHA-256：
+`1cd54ee0d60b80c00acd2e2e1f9604ed28fb2eacaea40a586cf78aec50297200`。
+这是一份维护源完整模型回归，不覆盖 `v0.6.0` 正式发布证据或生成新的正式样例。
+
+对应提交的 [Tests 34677431901](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34677431901)
+与 [Docker 34677431900](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34677431900)
+全部通过。Linux 3.11 / 3.13 各 2,132 passed、16 skipped，覆盖率分别 89.58% / 89.59%；
+Windows 2,147 passed、1 skipped，另 Chromium 6 passed，不跨平台累加重复用例。
+Docker 隔离合成卷验证 UID 10001、审计 2 条、Trace 1 条、配额 1→2，
+actual_restart_verified=true，且重启前后索引/语料 manifest 不变。
+此处 Docker CI 不是 Railway 私有卷或真实模型调用证据。
+
+## 真实 Railway 历史配额恢复
+
+同一源 `b89d80c`、同一服务 `b887a7e5-8eff-4b6d-b4bd-3126fddc1e23`、
+同一 production 环境 `1cb003ac-b604-4ad7-b061-cacfb70cdefd`，
+`/data` 挂载卷 `1f939cbb-54c2-4013-ba13-cddc4c9fa20f`。
+两次部署均启动成功；从各自部署的独立日志属性读取：
+
+| 观测 | Deployment ID | 平台日志 UTC 时间 | 指定 UTC 日 | 状态 | calls |
+| --- | --- | --- | --- | --- | --- |
+| 基线 | 5bf58f84-ee46-4421-ba22-c234e4671d8d | 2026-09-12T06:12:44.215900512Z | 2026-09-11 | ready | 2 |
+| 实际重新部署后 | ff0a4d1b-ccdb-4465-b15b-eacd7c0c715b | 2026-09-12T06:13:45.387476234Z | 2026-09-11 | ready | 2 |
+
+两条均为 event=model_usage、phase=startup、schema_version=1。
+独立校验部署 ID 与时间不同、日期相同、非零整数计数相同；不是同次启动重复日志，
+也没有用次日 ready/0 冒充恢复成功。由此补齐该历史日聚合配额的真实云端恢复证据。
+计数不是成功报告数、某用户调用数或费用；观察操作没有调用报告模型或改写计数。
+正常启动仍会执行权限探针与索引预热，不能称整个部署流程完全不写文件。
+原私有 RAG manifest 保持
+`f1d4587e0a0f3648190febac62be8ef358961a27701ab2efb292c6b79b677c45`。
+
+## 恢复默认启动与尚未完成项目
+
+配额验证后，服务设置已改回 `python scripts/start_container.py`。
+但随后对旧部署执行 Redeploy 得到的 `f0fab700-4b46-4111-a5a2-fb2af2737000`
+仍在 06:14:57 UTC 输出历史日期记录，因此未将此步骤写成参数恢复成功。
+[Railway 官方说明](https://docs.railway.com/deployments/deployment-actions)指出，
+Redeploy 复用所选部署的代码和构建/部署配置；应用最新服务设置应触发新提交部署
+或 Deploy Latest Commit，而不是再次复用旧部署快照。
+本次同步将触发一次新提交自动部署；需要其新日志确认仅输出当前日期，
+在缺少 Railway 日志连接时，GitHub 部署 success 不能单独证明参数已经移除。
+
+剩余验收仍明确保留：现有口令登录后的完整云端下载包、Word 全页渲染及
+临时观察参数移除的新部署日志。当前依赖包仍为 26.909.12148、没有绑定 LibreOffice，
+没有擅用桌面渲染器、关闭登录或公开敏感下载地址。网站可继续用于受控演示；
+不据此发布新正式版本、声称全部交付验收完成或真实用户试点通过。

@@ -545,8 +545,8 @@ artifacts with results from a different model or dirty worktree.
 | PDF/DOCX/ZIP exports, including Chinese reviewer names | Original package integrity passed; local fixed PDF visually checked and exporter deployed; live fixed export, Word visual render and Chinese reviewer acceptance pending |
 | Authorization on report download requests | Fix deployed; old public ZIP returns 404; authenticated delivery and anonymous denial pass separate-context browser CI; authenticated live export acceptance pending |
 | Two-browser session isolation and separate administrator access | Separate-context private-download E2E passed locally; full live isolation and administrator checks pending |
-| Concurrent-call rejection and persisted daily allowance | Unit tests passed; CI persisted quota passed; live contention pending |
-| Restart with saved audit/trace/quota and reused index generation | September 11 authorized readback verified saved Markdown, three linked audit events and two Traces after deployment; original private index reused; live SQLite quota readback remains unverified |
+| Concurrent-call rejection and persisted daily allowance | Unit tests and CI passed; September 12 real Railway historical-day allowance remained 2 across different deployments; live contention pending |
+| Restart with saved audit/trace/quota and reused index generation | September 11 authorized readback verified saved Markdown, three linked audit events and two Traces; September 12 separately verified historical-day SQLite allowance 2→2 on the same volume; private index reused |
 | Railway HTTPS, deployment health and browser interaction | Passed for HTTPS, health 200, authenticated generation and revision |
 | External user pilot | Not performed |
 
@@ -568,3 +568,13 @@ read-only quota observations. `scripts/start_container.py --observe-usage-day
 YYYY-MM-DD` optionally logs one explicit historical UTC date in addition to the
 current date, allowing an honest cross-midnight restart comparison without
 changing counters. It is not a restore command or a public monitoring endpoint.
+
+That historical-day check has now passed on two distinct Railway deployments;
+the linked record binds deployment IDs, timestamps, the observed day and volume.
+It does not replace authenticated full-download or Word visual acceptance.
+After observation, restore `python scripts/start_container.py` and trigger a
+fresh deployment from the latest commit. Railway's deployment-level
+[Redeploy action](https://docs.railway.com/deployments/deployment-actions) reuses
+the selected deployment's code and configuration; do not infer that a changed
+service setting took effect just because such a redeploy is healthy. Confirm the
+new deployment's startup logs no longer contain the extra historical-day probe.
