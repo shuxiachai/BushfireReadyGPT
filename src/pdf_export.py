@@ -366,17 +366,26 @@ class _HeadingWithTable(KeepTogether):
 
 
 def _keep_heading_spacing(story):
-    """Blank Markdown lines must not detach a table title from its first rows."""
+    """Keep consecutive Markdown headings with their first content flowable."""
     grouped = []
     index = 0
+    heading_styles = {"BushfireHeading1", "BushfireHeading2"}
     while index < len(story):
         flowable = story[index]
         next_index = index + 1
-        if isinstance(flowable, Paragraph) and flowable.style.name in {"BushfireHeading1", "BushfireHeading2"}:
-            while next_index < len(story) and isinstance(story[next_index], Spacer):
+        if isinstance(flowable, Paragraph) and flowable.style.name in heading_styles:
+            while next_index < len(story) and (
+                isinstance(story[next_index], Spacer)
+                or isinstance(story[next_index], Paragraph)
+                and story[next_index].style.name in heading_styles
+            ):
                 next_index += 1
             if next_index < len(story) and isinstance(story[next_index], Table):
                 grouped.append(_HeadingWithTable(story[index : next_index + 1]))
+                index = next_index + 1
+                continue
+            if next_index < len(story) and not isinstance(story[next_index], PageBreak):
+                grouped.append(KeepTogether(story[index : next_index + 1]))
                 index = next_index + 1
                 continue
         grouped.append(flowable)

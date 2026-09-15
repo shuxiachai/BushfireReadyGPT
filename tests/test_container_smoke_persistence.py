@@ -8,7 +8,7 @@ import subprocess
 import sys
 from contextlib import closing
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -192,19 +192,38 @@ def test_restart_phase_cannot_be_replayed_to_add_more_fixture_calls(fixture_volu
     assert smoke._read_quota(expected["quota"]["day"]) == 2
 
 
-def test_restart_on_next_utc_day_preserves_the_old_day_and_counts_the_new_day(fixture_volume, monkeypatch):
-    expected = _first(fixture_volume)
+@pytest.mark.parametrize(
+    ("first_time", "restart_time", "expected_calls"),
+    [
+        ("2026-09-15T13:59:00+00:00", "2026-09-15T14:01:00+00:00", {"2026-09-15": 2}),
+        ("2026-09-15T23:59:00+00:00", "2026-09-16T00:01:00+00:00", {"2026-09-15": 1, "2026-09-16": 1}),
+        ("2026-09-15T14:37:00+00:00", "2026-09-16T14:37:00+00:00", {"2026-09-15": 1, "2026-09-16": 1}),
+    ],
+    ids=["local-midnight-same-utc-day", "utc-midnight-same-local-day", "next-utc-day-local-date-ahead"],
+)
+def test_restart_counts_utc_days_independently_of_local_midnight(
+    fixture_volume, monkeypatch, first_time, restart_time, expected_calls
+):
+    current_time = datetime.fromisoformat(first_time)
+    local_timezone = timezone(timedelta(hours=10))
 
-    class NextDay(datetime):
+    class FrozenClock(datetime):
         @classmethod
         def now(cls, tz=None):
-            return datetime.now(tz) + timedelta(days=1)
+            if tz is None:
+                return current_time.astimezone(local_timezone).replace(tzinfo=None)
+            return current_time.astimezone(tz)
 
-    monkeypatch.setattr(smoke, "datetime", NextDay)
-    monkeypatch.setattr(model_limits, "datetime", NextDay)
+    monkeypatch.setattr(smoke, "datetime", FrozenClock)
+    monkeypatch.setattr(model_limits, "datetime", FrozenClock)
+    expected = _first(fixture_volume)
+    assert expected["quota"]["day"] == current_time.date().isoformat()
+    current_time = datetime.fromisoformat(restart_time)
     fixture_volume.run("restart")
-    assert smoke._read_quota(expected["quota"]["day"]) == 1
-    assert smoke._read_quota(NextDay.now().date().isoformat()) == 1
+    for day, calls in expected_calls.items():
+        assert smoke._read_quota(day) == calls
+    with closing(sqlite3.connect(fixture_volume.volume / "model-usage.sqlite3")) as connection:
+        assert dict(connection.execute("SELECT day, calls FROM daily_calls")) == expected_calls
 
 
 @pytest.mark.parametrize("item", ["audit", "trace", "quota", "head"])
