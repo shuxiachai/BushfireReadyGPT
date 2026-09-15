@@ -34,6 +34,7 @@ from src.report_workflow import (
 from src.report_workflow import (
     update_latest_report_signoff as run_update_latest_report_signoff,
 )
+from src.revision_state import get_pending_revision
 from src.session_store import clear_conversation, initialize_state, persist_session_state
 from src.ui.data_views import (
     render_data_register,
@@ -61,8 +62,10 @@ from src.ui.review_views import (
     render_report_quality_summary,
     render_reviewer_approval,
 )
+from src.ui.revision_recovery import render_revision_recovery
 from src.ui.sidebar import render_sidebar
 from src.ui.theme import apply_theme
+from src.ui.workflow_progress import workflow_progress
 
 PILOT_MODE_OPTIONS = [
     "School Preparedness",
@@ -159,12 +162,12 @@ def update_latest_report_signoff(review_record):
     return run_update_latest_report_signoff(review_record, is_welcome_message)
 
 
-def generate_current_report():
-    return run_generate_current_report(persist_session_state)
+def generate_current_report(*, progress_callback=None):
+    return run_generate_current_report(persist_session_state, progress_callback=progress_callback)
 
 
-def revise_current_report(edit_request):
-    return run_revise_current_report(edit_request, persist_session_state)
+def revise_current_report(edit_request, *, progress_callback=None):
+    return run_revise_current_report(edit_request, persist_session_state, progress_callback=progress_callback)
 
 
 def display_feedback(message, index):
@@ -264,6 +267,7 @@ apply_theme()
 if not render_access_gate():
     st.stop()
 initialize_state()
+get_pending_revision(st.session_state, interrupt_running=True)
 if st.session_state.get("pending_approval_reset"):
     st.session_state.approval_status = "Draft - human review required"
     st.session_state.approval_reviewer_name = ""
@@ -283,12 +287,14 @@ render_sidebar(
 )
 render_header()
 render_workspace_tabs()
+render_revision_recovery(revise_current_report)
 
 user_prompt = None
 if st.session_state.get("latest_report"):
     user_prompt = st.chat_input(
         "Request a wording or content revision; change geography in the form",
         max_chars=REVISION_REQUEST_MAX_CHARS,
+        disabled=bool(get_pending_revision(st.session_state)),
     )
 
 if user_prompt:
@@ -296,12 +302,11 @@ if user_prompt:
         st.markdown(user_prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Revising the governed report..."):
-            full_response, error = revise_current_report(user_prompt)
+        with workflow_progress("Revising the report") as progress:
+            full_response, error = revise_current_report(user_prompt, progress_callback=progress)
+            progress.finish(error=bool(error))
         if error:
             st.warning(error)
-            st.caption("No report version was created. Restore the model service or generate a report first.")
         else:
             st.markdown(full_response)
-    if full_response:
-        st.rerun()
+    st.rerun()

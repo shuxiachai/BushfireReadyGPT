@@ -758,6 +758,126 @@ def _validate_optional_model_visible_summary(row):
     # with those counts or use either lexical diagnostic as semantic validation.
 
 
+def _validate_optional_body_claim_summary(row):
+    if "body_claim_evidence" not in row:
+        return
+    summary = row["body_claim_evidence"]
+    fields = {
+        "schema",
+        "method",
+        "status",
+        "snapshot_status",
+        "metrics",
+        "processing",
+        "delivery_required",
+        "delivery_passed",
+        "release_gate_enforced",
+    }
+    _require(isinstance(summary, dict) and set(summary) == fields, "body-claim summary fields are invalid")
+    _require(
+        summary["schema"] == "body-claim-evidence-summary-v1" and summary["method"] == "body_claim_evidence_v1",
+        "body-claim summary method is unsupported",
+    )
+    _require(summary["release_gate_enforced"] is False, "body-claim summary is diagnostic only")
+    _require(
+        isinstance(summary["status"], str) and summary["status"] in {"review_required", "clear", "not_applicable"},
+        "body-claim status is invalid",
+    )
+    _require(
+        isinstance(summary["snapshot_status"], str)
+        and summary["snapshot_status"] in {"captured", "unavailable", "invalid_snapshot"},
+        "body-claim snapshot status is invalid",
+    )
+    metrics = summary["metrics"]
+    count_keys = {
+        "claims_evaluated",
+        "claims_requiring_citation",
+        "cited_claims",
+        "missing_citations",
+        "lexical_match_claims",
+        "no_lexical_match_claims",
+        "unknown_support_claims",
+        "review_required_claims",
+    }
+    _require(
+        isinstance(metrics, dict) and set(metrics) == count_keys | {"citation_coverage_rate"},
+        "body-claim metric fields are invalid",
+    )
+    _require(
+        all(type(metrics[key]) is int and metrics[key] >= 0 for key in count_keys), "body-claim counts are invalid"
+    )
+    count, required, missing = (
+        metrics[key] for key in ("claims_evaluated", "claims_requiring_citation", "missing_citations")
+    )
+    _require(
+        all(metrics[key] <= count for key in count_keys)
+        and missing <= required
+        and required - missing <= metrics["cited_claims"],
+        "body-claim counts are inconsistent",
+    )
+    _require(
+        sum(metrics[key] for key in ("lexical_match_claims", "no_lexical_match_claims", "unknown_support_claims"))
+        <= count,
+        "body-claim support counts are inconsistent",
+    )
+    _require(
+        metrics["unknown_support_claims"]
+        == missing + metrics["cited_claims"] - metrics["lexical_match_claims"] - metrics["no_lexical_match_claims"]
+        and metrics["review_required_claims"] == metrics["unknown_support_claims"] + metrics["no_lexical_match_claims"]
+        and missing <= metrics["unknown_support_claims"],
+        "body-claim review counts are inconsistent",
+    )
+    if summary["snapshot_status"] != "captured":
+        _require(
+            metrics["lexical_match_claims"] == metrics["no_lexical_match_claims"] == 0,
+            "unavailable body-claim snapshot cannot establish passage alignment",
+        )
+    expected_rate = round((required - missing) / required, 4) if required else None
+    _require(
+        metrics["citation_coverage_rate"] == expected_rate
+        and (expected_rate is None or type(metrics["citation_coverage_rate"]) in (int, float)),
+        "body-claim citation rate is inconsistent",
+    )
+    processing = summary["processing"]
+    _require(
+        isinstance(processing, dict)
+        and set(processing) == {"complete", "claims_extracted", "claims_evaluated", "claims_omitted", "max_claims"},
+        "body-claim processing fields are invalid",
+    )
+    _require(
+        type(processing["complete"]) is bool
+        and all(
+            type(processing[key]) is int and processing[key] >= 0
+            for key in ("claims_extracted", "claims_evaluated", "claims_omitted", "max_claims")
+        ),
+        "body-claim processing counts are invalid",
+    )
+    _require(
+        processing["claims_evaluated"] == count == min(processing["claims_extracted"], processing["max_claims"])
+        and processing["claims_extracted"] == count + processing["claims_omitted"]
+        and processing["complete"] is (processing["claims_omitted"] == 0),
+        "body-claim processing counts are inconsistent",
+    )
+    expected_status = (
+        "review_required"
+        if metrics["review_required_claims"] or not processing["complete"]
+        else "clear"
+        if count
+        else "not_applicable"
+    )
+    _require(summary["status"] == expected_status, "body-claim status differs from counts")
+    visible = row.get("model_visible_rag")
+    _require(isinstance(visible, dict), "body-claim summary requires its final model-visible snapshot summary")
+    expected_snapshot = "invalid_snapshot" if visible["status"] == "invalid_snapshot" else visible["capture_status"]
+    _require(summary["snapshot_status"] == expected_snapshot, "body-claim final snapshot status is inconsistent")
+    delivery_required = summary["snapshot_status"] == "captured" and bool(visible["included_passages"]) and required > 0
+    _require(
+        summary["delivery_required"] is delivery_required
+        and summary["delivery_passed"] is ((metrics["cited_claims"] > 0) if delivery_required else None),
+        "body-claim delivery criterion is inconsistent",
+    )
+
+
 def _validate_red_team_report_row(row):
     _require(isinstance(row.get("attack_success_marker_hits"), list), "red-team attack marker hits are required")
     _require(isinstance(row.get("prompt_injection_resisted"), bool), "red-team resistance result is required")
@@ -883,6 +1003,7 @@ def validate_report_evaluation_artifact(payload: dict) -> dict:
     )
     for row in rows:
         _validate_optional_model_visible_summary(row)
+        _validate_optional_body_claim_summary(row)
         row_contract = _validate_report_row_core(
             row,
             quality_policy,

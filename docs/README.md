@@ -40,6 +40,7 @@ If you only have a few minutes, read these in order:
 | File | Purpose |
 | --- | --- |
 | `architecture.md` | Technical architecture, agent responsibilities and data flow. |
+| `LAUNCH_READINESS_2026-09-15.md` | Body-claim evidence work, independent synthetic challenge boundary and updated delivery checks. |
 | `LAUNCH_READINESS_2026-09-12.md` | Maintained-source sentence windows, actual SDK-evidence binding, paired diagnostics and deployment acceptance boundaries. |
 | `diagnostics/form-context-comparison-ac70710-2026-09-12.json` | Clean-source, metadata-only comparison of legacy prefixes, sentence windows and base-preserving focused retrieval; not a release accuracy claim. |
 | `rag.md` | Local official-knowledge RAG build, evaluation, integrity and trust boundary. |

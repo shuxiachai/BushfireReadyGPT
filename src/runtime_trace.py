@@ -71,6 +71,7 @@ _RATE_METRICS = {
     "support_rate",
 }
 _STRING_METRICS = {
+    "request_kind": re.compile(r"(?:initial|structural_repair|protocol_retry|revision)\Z"),
     "error_code": re.compile(r"[a-z][a-z0-9_]{0,63}\Z"),
     "grounding_status": re.compile(r"(?:pass|review_required|not_applicable|error|unknown)\Z"),
     "knowledge_status": re.compile(
@@ -99,10 +100,13 @@ class TracePrivacyError(ValueError):
 
 
 class RuntimeTrace:
-    def __init__(self, operation, **metrics):
+    def __init__(self, operation, *, progress_callback=None, **metrics):
         if operation not in _OPERATIONS:
             raise ValueError(f"Unsupported trace operation: {operation}")
         self.operation = operation
+        if progress_callback is not None and not callable(progress_callback):
+            raise TypeError("progress_callback must be callable.")
+        self._progress_callback = progress_callback
         self.trace_id = uuid4().hex
         self.enabled = _trace_enabled()
         self.started_at_utc = _utc_now()
@@ -145,6 +149,7 @@ class RuntimeTrace:
             raise ValueError(f"Unsupported trace stage: {name}")
         span = TraceStage(name, metrics)
         try:
+            self._notify_progress("stage_started", span)
             yield span
         except Exception as error:
             span.status = "error"
@@ -154,6 +159,26 @@ class RuntimeTrace:
             span.finish()
             if len(self._stages) < 50:
                 self._stages.append(span.as_record())
+            self._notify_progress("stage_finished", span)
+
+    def _notify_progress(self, event, span):
+        if self._progress_callback is None:
+            return
+        payload = {
+            "event": event,
+            "operation": self.operation,
+            "stage": span.name,
+            "elapsed_ms": max(0, round((time.perf_counter() - self._started) * 1000, 2)),
+            "stage_elapsed_ms": span.duration_ms if event == "stage_finished" else 0.0,
+            "attempt": span.metrics.get("attempt"),
+            "request_kind": span.metrics.get("request_kind"),
+        }
+        try:
+            self._progress_callback(payload)
+        except Exception:
+            # Display failures must not change the governed transaction. Streamlit
+            # rerun/stop control flow derives from BaseException and still escapes.
+            return
 
     def _write(self):
         if not self.enabled:

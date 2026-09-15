@@ -30,6 +30,7 @@ from src.governance import (
 )
 from src.model_evidence import validate_model_evidence
 from src.pdf_export import create_report_pdf
+from src.report_claim_evidence import validate_body_claim_evidence
 from src.report_generation_quality import (
     QUALITY_POLICY_FINGERPRINT,
     QUALITY_POLICY_VERSION,
@@ -264,6 +265,16 @@ def _verified_grounding_bytes(evaluation, audit_record, analysis, report_text):
             raise AuditIntegrityError(
                 "The model-visible evidence diagnostic is invalid; export was blocked."
             ) from error
+    if "body_claim_evidence" in evaluation:
+        try:
+            validate_body_claim_evidence(
+                evaluation["body_claim_evidence"],
+                report_text,
+                visible["snapshot"] if visible is not None else None,
+                analysis=analysis,
+            )
+        except (ValueError, TypeError, KeyError, AttributeError) as error:
+            raise AuditIntegrityError("The body-claim evidence diagnostic is invalid; export was blocked.") from error
     content = json.dumps(evaluation, ensure_ascii=False, indent=2).encode("utf-8")
     if len(content) > 1_000_000:
         raise AuditIntegrityError("The grounding diagnostic exceeds its export budget.")

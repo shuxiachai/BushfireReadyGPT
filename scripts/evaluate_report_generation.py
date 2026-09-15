@@ -52,6 +52,7 @@ from src.model_evidence import (  # noqa: E402
 from src.model_runtime import GovernedModelClient, ModelServiceError  # noqa: E402
 from src.rag.errors import RagError  # noqa: E402
 from src.rag.settings import RagSettings  # noqa: E402
+from src.report_claim_evidence import evaluate_body_claim_evidence  # noqa: E402
 from src.report_generation_quality import (  # noqa: E402
     MAX_REPORT_REPAIR_ATTEMPTS,
     QUALITY_POLICY_FINGERPRINT,
@@ -270,6 +271,12 @@ def run_scenario_with_artifacts(scenario):
     grounding = evaluate_report_grounding(narrative, analysis)
     model_evidence = getattr(narrative, "model_evidence", None) or unavailable_model_evidence()
     grounding["model_visible_rag"] = evaluate_model_visible_rag_grounding(report, analysis, model_evidence)
+    grounding["body_claim_evidence"] = evaluate_body_claim_evidence(report, analysis, model_evidence)
+    body_delivery_required = (
+        grounding["body_claim_evidence"]["snapshot_status"] == "captured"
+        and bool(model_evidence.get("visible_passages"))
+        and grounding["body_claim_evidence"]["metrics"]["claims_requiring_citation"] > 0
+    )
     grounding_metrics = grounding.get("metrics", {})
     grounding_review = _grounding_review_claim_summary(grounding)
     safety_findings = _privacy_minimised_safety_findings(quality)
@@ -315,6 +322,19 @@ def run_scenario_with_artifacts(scenario):
         "grounding_review_claim_ids": grounding_review["ids"],
         "grounding_review_claim_ids_truncated": grounding_review["truncated"],
         "model_visible_rag": _model_visible_summary(grounding["model_visible_rag"]),
+        "body_claim_evidence": {
+            "schema": "body-claim-evidence-summary-v1",
+            "method": grounding["body_claim_evidence"]["method"],
+            "status": grounding["body_claim_evidence"]["status"],
+            "snapshot_status": grounding["body_claim_evidence"]["snapshot_status"],
+            "metrics": dict(grounding["body_claim_evidence"]["metrics"]),
+            "processing": dict(grounding["body_claim_evidence"]["processing"]),
+            "delivery_required": body_delivery_required,
+            "delivery_passed": (
+                grounding["body_claim_evidence"]["metrics"]["cited_claims"] > 0 if body_delivery_required else None
+            ),
+            "release_gate_enforced": False,
+        },
     }
     row["repair_succeeded"] = row["repair_required"] and row["governed_gate_passed"]
     row["repair_exhausted"] = generation_attempts >= MAX_REPORT_REPAIR_ATTEMPTS + 1 and not row["governed_gate_passed"]

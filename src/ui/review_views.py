@@ -1,5 +1,6 @@
 import os
 from datetime import date
+from hashlib import sha256
 from html import escape
 
 import streamlit as st
@@ -9,7 +10,7 @@ from src.evidence_confidence import build_evidence_confidence_rows
 from src.evidence_formatting import format_evidence_value as _community_evidence_value
 from src.export_package import create_pilot_export_package
 from src.input_validation import REVIEW_FIELD_LIMITS
-from src.model_evidence import validate_recorded_assembly
+from src.model_evidence import validate_model_evidence, validate_recorded_assembly
 from src.rag.service import assemble_retrieved_context, summarise_context_assembly
 from src.report_grounding import (
     GROUNDING_METHOD,
@@ -426,6 +427,7 @@ def render_report_quality_summary():
             for claim, reasons in flagged:
                 st.markdown(f"- `{claim.get('claim_id')}` — {claim.get('claim')} ({'; '.join(reasons)})")
         _render_model_visible_rag_review(report_record)
+        _render_current_body_claim_review(report_record)
 
 
 def _render_model_visible_rag_review(report_record):
@@ -472,6 +474,169 @@ def _render_model_visible_rag_review(report_record):
     for claim in evaluation["claims"]:
         if not claim["all_cited_sources_lexically_supported"]:
             st.markdown(f"- `{claim['claim_id']}` — {claim['claim']}")
+
+
+def _render_current_body_claim_review(report_record):
+    """Render an ephemeral review of the final submitted RAG passages only."""
+
+    st.markdown("#### Current body-claim diagnostic")
+    st.caption(
+        "Current diagnostic only: it is recomputed from the final submitted RAG passages and does not change "
+        "the recorded generation diagnostic, grounding evaluation, or audit evidence. Lexical matches are not "
+        "semantic proof, factual truth, or evidence of model attention."
+    )
+    report_text = str(report_record.get("text") or "")
+    analysis = report_record.get("analysis")
+    recorded = (report_record.get("grounding_evaluation") or {}).get("model_visible_rag") or {}
+    snapshot = recorded.get("snapshot")
+    snapshot_status, visible_passages = _resolve_current_visible_passages(snapshot, analysis, report_text)
+    try:
+        from src.report_claim_evidence import evaluate_body_claim_evidence
+
+        evaluation = evaluate_body_claim_evidence(report_text, analysis, snapshot)
+    except (ImportError, AttributeError, TypeError, ValueError) as error:
+        st.warning("The current body-claim diagnostic is unavailable; human source review remains required.")
+        st.caption(safe_diagnostic_detail(error, "The review diagnostic could not be computed."))
+        return
+    if not isinstance(evaluation, dict):
+        st.warning(
+            "The current body-claim diagnostic returned an invalid result; human source review remains required."
+        )
+        return
+
+    metrics = evaluation.get("metrics") if isinstance(evaluation.get("metrics"), dict) else {}
+    st.markdown(
+        f"**Claims evaluated:** {metrics.get('claims_evaluated', 0)}  "
+        f"**Citation coverage:** {_format_metric_rate(metrics.get('citation_coverage_rate'))}  "
+        f"**Missing citations:** {metrics.get('missing_citations', 0)}  "
+        f"**Review required:** {metrics.get('review_required_claims', 0)}"
+    )
+    if snapshot_status == "unavailable":
+        st.info(
+            "No actual SDK evidence snapshot was recorded for this report. Submitted-passage support is unknown; "
+            "the diagnostic does not reconstruct historical model context."
+        )
+    elif snapshot_status == "invalid_snapshot":
+        st.warning("The recorded SDK evidence snapshot is invalid. Submitted-passage support is unknown.")
+    if evaluation.get("status") == "not_applicable":
+        st.info("No body claim required this diagnostic. This is not evidence of complete grounding.")
+    elif evaluation.get("status") == "clear":
+        st.info(
+            "No selected claim requires review under this lexical diagnostic. Human source verification remains required."
+        )
+    else:
+        st.warning("One or more body claims need human review; report generation was not blocked.")
+
+    claims = evaluation.get("claims") if isinstance(evaluation.get("claims"), list) else []
+    include_not_required = st.checkbox(
+        "Show claims not requiring citations", value=True, key="body_claim_review_show_not_required"
+    )
+    displayed = [
+        claim
+        for claim in claims
+        if isinstance(claim, dict) and (include_not_required or claim.get("citation_required") is not False)
+    ]
+    st.caption(f"Showing {len(displayed)} of {len(claims)} extracted body claims.")
+    for claim in displayed:
+        _render_body_claim_detail(claim, visible_passages, snapshot_status)
+
+    for limitation in evaluation.get("limitations", []):
+        st.caption(safe_display_text(limitation))
+
+
+def _resolve_current_visible_passages(snapshot, analysis, report_text):
+    """Validate the recorded capture before exposing only its submitted excerpts."""
+
+    if not isinstance(snapshot, dict) or snapshot.get("status") == "unavailable":
+        return "unavailable", []
+    try:
+        passages = validate_model_evidence(snapshot, analysis, report_text=report_text)
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return "invalid_snapshot", []
+    return "captured", passages if isinstance(passages, list) else []
+
+
+def _render_body_claim_detail(claim, visible_passages, snapshot_status):
+    claim_id = safe_display_text(claim.get("claim_id"), "claim")
+    claim_text = safe_display_text(claim.get("claim"), "No claim text was extracted.")
+    with st.expander(f"{claim_id}: {claim_text[:160]}", expanded=False):
+        st.markdown(f"**Claim:** {claim_text}")
+        location = claim.get("span") if isinstance(claim.get("span"), dict) else {}
+        table_row, table_column = claim.get("table_row"), claim.get("table_column")
+        st.markdown(
+            f"**Location:** {safe_display_text(claim.get('section'), 'Unsectioned')} / "
+            f"{safe_display_text(claim.get('block_type'), 'unknown')} / "
+            f"characters {location.get('start', 'unknown')}–{location.get('end', 'unknown')}"
+            + (
+                f" / table row {table_row}, column {table_column}"
+                if table_row is not None and table_column is not None
+                else ""
+            )
+        )
+        st.markdown(
+            f"**Classification:** {safe_display_text(claim.get('classification'), 'uncertain')}  "
+            f"**Citation status:** {safe_display_text(claim.get('citation_status'), 'unknown')}  "
+            f"**Support status:** {safe_display_text(claim.get('support_status'), 'unknown')}"
+        )
+        reasons = claim.get("reasons") if isinstance(claim.get("reasons"), list) else []
+        if reasons:
+            st.markdown("**Review reasons:**")
+            for reason in reasons:
+                st.markdown(f"- {safe_display_text(reason)}")
+        else:
+            st.caption("No additional review reason was recorded.")
+
+        source_checks = claim.get("source_checks") if isinstance(claim.get("source_checks"), list) else []
+        if snapshot_status != "captured":
+            st.caption(
+                "Submitted-passage excerpts are unknown because the final SDK snapshot is unavailable or invalid."
+            )
+        elif not source_checks:
+            st.caption("No cited submitted source passage was selected for this claim.")
+        for check in source_checks:
+            if not isinstance(check, dict):
+                continue
+            st.markdown(
+                f"**Source {safe_display_text(check.get('source_id'), 'unknown')}** "
+                f"({safe_display_text(check.get('source_type'), 'unknown')}): "
+                f"{safe_display_text(check.get('support_status'), 'unknown')}"
+            )
+            _render_claim_passage_refs(check.get("passage_refs"), visible_passages)
+
+
+def _render_claim_passage_refs(refs, visible_passages):
+    if not isinstance(refs, list) or not refs:
+        st.caption("No visible submitted passage was resolved for this cited source.")
+        return
+    resolved = 0
+    for ref in refs:
+        passage = _resolve_visible_passage(ref, visible_passages)
+        if passage is None:
+            continue
+        resolved += 1
+        st.markdown("**Submitted passage excerpt:**")
+        st.code(str(passage.get("text") or ""), language=None)
+    if not resolved:
+        st.caption("No visible submitted passage matched the recorded passage reference.")
+
+
+def _resolve_visible_passage(ref, visible_passages):
+    if not isinstance(ref, dict):
+        return None
+    index = ref.get("passage_index")
+    if type(index) is not int or not 0 <= index < len(visible_passages):
+        return None
+    passage = visible_passages[index]
+    if not isinstance(passage, dict):
+        return None
+    text = str(passage.get("text") or "")
+    if (
+        passage.get("source_id") != ref.get("source_id")
+        or passage.get("chunk_id") != ref.get("chunk_id")
+        or sha256(text.encode("utf-8")).hexdigest() != ref.get("visible_text_sha256")
+    ):
+        return None
+    return passage
 
 
 def _current_grounding_review(report_record):

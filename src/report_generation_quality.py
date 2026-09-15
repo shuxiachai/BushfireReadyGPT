@@ -14,7 +14,9 @@ from src.focus_coverage import (
 )
 from src.model_evidence import EvidencePrompt, normalized_evidence_response, protocol_retry_prompt
 from src.model_response import ModelResponseError, validate_narrative_ending, validate_operational_directions
+from src.report_claim_evidence import evaluate_body_claim_evidence
 from src.report_template import (
+    BODY_CLAIM_CITATION_GUIDANCE,
     REPORT_TEMPLATE_SECTIONS,
     append_evidence_tables,
     append_human_signoff,
@@ -305,8 +307,15 @@ def generate_narrative_with_repairs(
             )
             continue
         quality = assess_generated_narrative(narrative, analysis)
+        body_evidence = evaluate_body_claim_evidence(narrative, analysis, getattr(narrative, "model_evidence", None))
+        needs_body_citation_repair = (
+            body_evidence["snapshot_status"] == "captured"
+            and bool((getattr(narrative, "model_evidence", None) or {}).get("visible_passages"))
+            and body_evidence["metrics"]["claims_requiring_citation"] > 0
+            and body_evidence["metrics"]["cited_claims"] == 0
+        )
         if (
-            quality.get("approval_gate", {}).get("passed") is True
+            (quality.get("approval_gate", {}).get("passed") is True and not needs_body_citation_repair)
             or attempt_count > max_repair_attempts
             or not allow_structural_repair
         ):
@@ -645,6 +654,8 @@ Fixed heading sequence (each exactly once, in this order):
   section-specific substantive content and use Markdown checkboxes in section 14. Prefer one concise paragraph
   per section and do not repeat the same priority list in multiple sections.
 - Use only governed Markdown. Emit no raw HTML, hidden text, prompt text, JSON, patch, explanation or preface.
+
+{BODY_CLAIM_CITATION_GUIDANCE}
 
 FINAL OUTPUT RULE: Return exactly one complete report, with only the 15 fixed headings above. Never restart it and
 stop immediately after section 15, Safety Disclaimer."""

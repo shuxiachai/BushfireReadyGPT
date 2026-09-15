@@ -17,6 +17,7 @@ from src.pdf_export import create_report_pdf
 from src.ui.artifact_cache import get_report_artifact
 from src.ui.components import safe_diagnostic_detail
 from src.ui.downloads import download_button
+from src.ui.workflow_progress import workflow_progress
 
 
 def render_model_privacy_boundary():
@@ -35,7 +36,9 @@ def render_model_privacy_boundary():
             "**Fields sent for generation:** location, audience, scenario, focus areas, timeframe, "
             "additional context, selected geography, deterministic analysis/evidence context, and any "
             "static official passages retrieved by the local RAG index.\n\n"
-            "**Fields sent for revision:** the revision request and model-authored report narrative. "
+            "**Fields sent for revision:** the revision request, model-authored report narrative, "
+            "bounded official-reference passages from that report's frozen retrieval snapshot, and "
+            "application instructions. "
             "Organisation and reviewer identity fields are not sent. Deterministic evidence tables and the "
             "Human Review Sign-off are also excluded."
         )
@@ -141,8 +144,9 @@ def render_report_form(
 
     if submitted:
         with st.chat_message("assistant"):
-            with st.spinner("Generating report..."):
-                full_response, error = generate_current_report()
+            with workflow_progress("Generating the report") as progress:
+                full_response, error = generate_current_report(progress_callback=progress)
+                progress.finish(error=bool(error))
                 if error:
                     st.warning(error)
                     return

@@ -1,0 +1,171 @@
+{
+  "cases": [
+    {
+      "citation_statuses": [
+        "missing"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "id": "CHO-019",
+      "latency_ms": 1.025,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "missing_body_citation",
+        "no_cited_passage_to_check"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "missing_body_citation",
+          "no_cited_passage_to_check"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "missing_citation",
+          "scope_overgeneralised"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "unknown"
+      ],
+      "unnecessary_review": false
+    }
+  ],
+  "confusion_matrix": {
+    "actual_review_required": 1,
+    "expected_review_required": 12,
+    "false_negative": 0,
+    "false_positive": 0,
+    "true_negative": 0,
+    "true_positive": 1
+  },
+  "cost_note": "not a live cost benchmark",
+  "counts": {
+    "cases": 24,
+    "evaluated_cases": 1,
+    "extraction_misses": 23
+  },
+  "embedding_calls": 0,
+  "evaluated_source_sha256": "089d726ec6be913aa339f72f51b29d490b1767e62cdc4546b711075ae515ef16",
+  "expectation_mismatches": [],
+  "extraction_misses": [
+    {
+      "id": "CHO-001",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-002",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-003",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-004",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-005",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-006",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-007",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-008",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-009",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-010",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-011",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-012",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-013",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-014",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-015",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-016",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-017",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-018",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-020",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-021",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-022",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-023",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    },
+    {
+      "id": "CHO-024",
+      "reason_code": "target claim was not extracted; it cannot be silently omitted"
+    }
+  ],
+  "false_accept_ids": [],
+  "fixture_byte_sha256": "4cc42051ee29babc6fd18903e225a691dd5a97f1de448261681cd43187c9dcc2",
+  "gate": {
+    "failure_reasons": [
+      "extraction_misses"
+    ],
+    "passed": false
+  },
+  "git": {
+    "dirty": true,
+    "revision": "f9bf4c8661eb433e6ae737660fdd8fa58032b5fa"
+  },
+  "latency_ms": {
+    "p50": 1.025,
+    "p95": 1.025,
+    "total": 82.25
+  },
+  "method": "body_claim_evidence_v1",
+  "model_calls": 0,
+  "provenance": "synthetic_sdk_mock",
+  "retrieval_calls": 0,
+  "scope": "final_sdk_submitted_rag_passages_only",
+  "unnecessary_review_ids": []
+}

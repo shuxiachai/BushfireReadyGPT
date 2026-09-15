@@ -51,6 +51,7 @@ from src.input_validation import (
 from src.model_evidence import EvidencePrompt, EvidenceResponse, capture_model_evidence
 from src.model_response import ModelResponseError, validate_operational_directions
 from src.model_runtime import ModelServiceError
+from src.report_claim_evidence import evaluate_body_claim_evidence
 from src.report_generation_quality import (
     ReportGenerationPreconditionError,
     evaluate_governed_report,
@@ -63,12 +64,20 @@ from src.report_grounding import (
     grounding_trace_metrics,
 )
 from src.report_template import (
+    BODY_CLAIM_CITATION_GUIDANCE,
     REPORT_NARRATIVE_WORD_BUDGET,
     append_evidence_tables,
     append_human_signoff,
     apply_governance_notice,
     build_report_prompt,
     extract_narrative_body,
+)
+from src.revision_state import (
+    begin_pending_revision,
+    discard_pending_revision,
+    fail_pending_revision,
+    get_pending_revision,
+    mark_revision_finalizing,
 )
 from src.runtime_trace import RuntimeTrace, get_active_trace, trace_stage
 from src.source_attribution import fold_known_attribution_labels, neutralise_prompt_control_markers
@@ -553,7 +562,7 @@ def validate_geography_consistency(inputs, area_selection):
     return None
 
 
-def generate_current_report(persist_session_state):
+def generate_current_report(persist_session_state, *, progress_callback=None):
     validation_error = validate_current_report_form()
     if validation_error:
         return None, validation_error
@@ -567,6 +576,7 @@ def generate_current_report(persist_session_state):
 
     trace = RuntimeTrace(
         "report.generate",
+        progress_callback=progress_callback,
         report_source="generated",
         model_boundary="local_loopback" if MODEL_ENDPOINT_IS_LOCAL else "external",
         map_selection_present=bool(area_selection),
@@ -628,6 +638,7 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
         with trace_stage(
             "model_repair" if is_repair else "model_generation",
             attempt=attempt_number,
+            request_kind=getattr(attempt_prompt, "request_kind", "initial"),
             prompt_characters=len(attempt_prompt),
         ) as span:
             response = _call_governed_model(attempt_prompt)
@@ -675,7 +686,34 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
     return response, error, "report_finalization_error" if error else None
 
 
-def revise_current_report(edit_request, persist_session_state):
+def revise_current_report(edit_request, persist_session_state, *, progress_callback=None):
+    """Retain only the bounded request and failed checks outside the report transaction."""
+    try:
+        begin_pending_revision(st.session_state, edit_request)
+    except ValueError as error:
+        return None, str(error)
+    try:
+        response, error = _revise_current_report(
+            edit_request, persist_session_state, progress_callback=progress_callback
+        )
+    except Exception:
+        fail_pending_revision(st.session_state, "revision_unexpected_error")
+        raise
+    if error:
+        pending = get_pending_revision(st.session_state)
+        if pending is not None:
+            fail_pending_revision(
+                st.session_state,
+                pending["error_code"] or "revision_failed",
+                blocking_failures=pending["blocking_failures"],
+                message=error,
+            )
+    else:
+        discard_pending_revision(st.session_state)
+    return response, error
+
+
+def _revise_current_report(edit_request, persist_session_state, *, progress_callback=None):
     latest_report = st.session_state.get("latest_report") or {}
     current_text = latest_report.get("text", "")
     request_budget_error = validate_revision_request_budget(edit_request)
@@ -739,6 +777,7 @@ def revise_current_report(edit_request, persist_session_state):
 
     trace = RuntimeTrace(
         "report.revise",
+        progress_callback=progress_callback,
         report_source="revised",
         model_boundary="local_loopback" if MODEL_ENDPOINT_IS_LOCAL else "external",
         map_selection_present=bool(area_selection),
@@ -787,6 +826,8 @@ The following official-reference passages are supplied again from the frozen ret
 performing new retrieval. Prior model wording is not independent official evidence. Use an O1-RAG citation
 only where the substantive claim is supported by a passage actually present below.
 {revision_assembly["context"]}
+
+{BODY_CLAIM_CITATION_GUIDANCE}
 """
             prompt = EvidencePrompt(prompt, assembly=revision_assembly, request_kind="revision")
             span.add_metrics(prompt_characters=len(prompt))
@@ -797,6 +838,7 @@ only where the substantive claim is supported by a passage actually present belo
             with trace_stage(
                 "model_repair" if is_repair else "model_generation",
                 attempt=attempt_number,
+                request_kind=getattr(attempt_prompt, "request_kind", "revision"),
                 prompt_characters=len(attempt_prompt),
             ) as span:
                 response = _call_governed_model(attempt_prompt)
@@ -818,9 +860,11 @@ only where the substantive claim is supported by a passage actually present belo
             )
         except ModelServiceError as error:
             trace.set_outcome("failed", "model_service_error")
+            fail_pending_revision(st.session_state, "model_service_error")
             return None, str(error)
         except ReportGenerationPreconditionError as error:
             trace.set_outcome("failed", "source_contract_unready")
+            fail_pending_revision(st.session_state, "source_contract_unready")
             return (
                 None,
                 "Report revision stopped before contacting the model because the frozen official-source "
@@ -833,12 +877,18 @@ only where the substantive claim is supported by a passage actually present belo
         )
         if _revision_quality.get("approval_gate", {}).get("passed") is not True:
             trace.set_outcome("failed", "revision_quality_gate_failed")
+            fail_pending_revision(
+                st.session_state,
+                "revision_quality_gate_failed",
+                blocking_failures=_revision_quality.get("approval_gate", {}).get("blocking_failures") or (),
+            )
             return (
                 None,
                 "The revision did not pass the report quality gate. Your original report is unchanged. "
                 "Try a narrower wording request or regenerate using the form. Automatic context-only "
                 "rewriting is disabled for revisions because it could discard your requested changes.",
             )
+        mark_revision_finalizing(st.session_state)
         response, error = _finalize_report_version(
             revised_response,
             analysis,
@@ -852,6 +902,8 @@ only where the substantive claim is supported by a passage actually present belo
             model_evidence=getattr(revised_response, "model_evidence", None),
         )
         trace.set_outcome("failed" if error else "success", "report_finalization_error" if error else None)
+        if error:
+            fail_pending_revision(st.session_state, "report_finalization_error", retry_allowed=False)
         return response, error
 
 
@@ -893,6 +945,9 @@ def _finalize_report_version(
             full_response,
             analysis,
             model_evidence,
+        )
+        grounding_evaluation["body_claim_evidence"] = evaluate_body_claim_evidence(
+            full_response, analysis, model_evidence
         )
         span.add_metrics(**grounding_trace_metrics(grounding_evaluation))
     if active_trace is not None:
@@ -990,6 +1045,7 @@ def _finalize_report_version(
         "updated_at": datetime.now().isoformat(timespec="seconds"),
     }
     st.session_state.latest_report = report_record
+    discard_pending_revision(st.session_state)
     st.session_state.latest_analysis = analysis
     st.session_state.latest_quality = quality
     st.session_state.latest_audit_path = audit_path

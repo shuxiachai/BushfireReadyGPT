@@ -1,700 +1,113 @@
-# BushfireReadyGPT: Local-First Governed AI for Australian Bushfire Preparedness
+# BushfireReadyGPT: local-first governed AI for Australian bushfire preparedness
 
 [![Tests](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml/badge.svg)](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/tests.yml)
 [![Release](https://img.shields.io/github/v/release/shuxiachai/BushfireReadyGPT)](https://github.com/shuxiachai/BushfireReadyGPT/releases/latest)
-[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-111111)](https://ollama.com/)
 [![License](https://img.shields.io/github/license/shuxiachai/BushfireReadyGPT)](LICENSE)
 
-> Turn Australian location and community context into auditable bushfire preparedness drafts through a local Ollama-powered, deterministic component workflow.
+BushfireReadyGPT turns an Australian location, audience, scenario and planning focus into a structured **draft** bushfire-preparedness report. It is for learning, demonstrations and controlled stakeholder discussion: the application combines declared Australian context, traceable evidence and a required human review rather than acting as a generic emergency chatbot.
 
-**Local-first AI | Deterministic evidence pipeline | ABS / ASGS context | Human-in-the-loop review | Markdown / PDF / DOCX exports**
+The standard installation is local-first: it uses [Ollama](https://ollama.com/) on the operator's machine, with no OpenAI API key required. A separate, password-protected Docker/Railway demonstration can use private DeepSeek narrative generation and a local CPU RAG index in its container; it is optional and has distinct deployment limits.
 
-BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It helps councils, schools and community resilience teams generate structured draft preparedness reports from a selected location, audience, scenario and planning focus.
+> **Safety boundary:** this is not a live incident, evacuation, route, fire-ban, safe-place or life-safety decision system. In an emergency, use official emergency services information and call `000` if life is at risk.
 
-The default installation runs locally through Ollama. An optional password-protected Docker / Railway demo uses DeepSeek for narrative generation and a local CPU RAG index inside the container. Both expose the same eight-role deterministic Python evidence pipeline, ABS / ASGS-derived context, human review and audit records. The eight named roles are component boundaries, not eight autonomous LLM agents; only report narrative generation and revision call the configured model.
+**中文简介：** 本项目是面向澳洲山火应急准备场景的本地优先报告生成原型。它把地点、受众、场景和规划重点组织为可审阅的准备报告草稿；仅适用于学习展示、作品集和受控讨论，不用于实时火情判断、撤离命令或生命安全决策。
 
-**中文简介：** 本项目是一个面向澳洲山火应急准备场景的本地优先治理型报告生成系统原型。系统通过 8 个命名的确定性 Python 组件完成结构化分析与证据编排，仅在报告叙事生成和修订阶段调用配置的模型，本地默认 Ollama，受控云端演示使用 DeepSeek；这些角色不是 8 个自主大模型 Agent。项目支持澳洲地区数据上下文、混合 RAG、质量门禁、人工复核以及 Markdown / PDF / DOCX 导出，适用于学习展示、作品集和受控试点讨论，不用于真实火情判断、撤离命令或生命安全决策。
+This Australian adaptation is based on the Apache-2.0-licensed [project-araia/WildfireGPT](https://github.com/project-araia/WildfireGPT) / MARSHA project. The original United States material remains local legacy reference only. See [UPSTREAM.md](UPSTREAM.md) for attribution and modifications, and [LICENSE](LICENSE) for licence terms.
 
-This project was adapted from the Apache-2.0-licensed [project-araia/WildfireGPT](https://github.com/project-araia/WildfireGPT) / MARSHA project. Original United States wildfire data, experiments and inactive tools are treated as local legacy reference material only; the active application is now positioned around Australian bushfire preparedness. See [UPSTREAM.md](UPSTREAM.md) for provenance and modification notes.
+## See it
 
-## Current Status
+- [Watch the 89-second local demo](docs/assets/bushfire-ready-gpt-demo.webm).
+- [Follow the live demonstration walkthrough](docs/demo_walkthrough.md).
+- Open the [v0.6.0 governed Markdown sample](examples/v0.6.0/cairns-council-report.md), [PDF](examples/v0.6.0/cairns-council-report.pdf), [DOCX](examples/v0.6.0/cairns-council-report.docx), or [pilot package](examples/v0.6.0/cairns-council-pilot-package.zip).
 
-**Stage:** Governed portfolio MVP / controlled-pilot prototype
-
-**Current release:** `v0.6.0`
-
-**September 12 maintenance:** the maintained application now assembles bounded,
-contiguous sentence windows around selected planning focuses, retains separate
-full-source and SDK-submitted-evidence grounding diagnostics, and emits read-only
-daily quota observations for deployment recovery checks. These are unreleased
-changes, not new historical benchmark results. See the
-[current implementation and acceptance record](docs/LAUNCH_READINESS_2026-09-12.md)
-for paired diagnostic results and the precise remaining launch boundaries.
-
-**Unreleased cloud deployment work:** Docker / Railway startup, versioned persistent
-RAG, verified private corpus import, fixed-revision CPU embeddings, shared access
-control and persistent daily model-call limits are implemented. Official source
-bytes do not enter the public repository; public image CI uses synthetic text.
-The controlled Railway demo is running. One synthetic Cairns Council report and
-one revision passed the governed quality gate and remain unreviewed drafts;
-the downloaded revision package passed integrity and audit-lineage verification.
-Acceptance exposed an incomplete narrative ending, a near-empty PDF page and
-a download-authorization gap. The follow-up fix adds authenticated-session
-export delivery, explicit model-completion checks with bounded repair, and
-content-preserving PDF pagination. The fix is deployed: health is normal, the
-previous public ZIP URL returns 404, and startup reused the same private RAG
-manifest. That repair commit passed 1,297 non-E2E tests plus two Chromium tests
-in CI, with 88.19% Linux coverage. Subsequent September 11 synthetic generation,
-revision and review were verified separately. The saved Markdown and three linked
-audit events, plus two Traces, were read back after a real Railway deployment and
-independently checked. September 12 maintenance subsequently verified the same
-nonzero historical-day SQLite allowance across two real Railway deployments.
-Complete authenticated cloud download acceptance and Word visual rendering remain
-open; see the current maintenance record above. For the earlier readback, see the
-[September 11 controlled-demo readiness record](docs/LAUNCH_READINESS_2026-09-11.md).
-See [deployment setup and acceptance status](docs/DEPLOYMENT.md)
-and [CPU RAG validation, including one held-out false abstention](docs/CLOUD_RAG_VALIDATION.md).
-The historical release measurements below do not certify this new cloud path.
-
-**2026-09-10 project audit:** subsequent maintenance hardens revision snapshot
-binding, malformed review inputs, independent administrator credentials, bounded
-lock reads, missing community indicators, RAG chunk limits, map integrity checks
-and CPU-provider startup. Saving a review now refreshes previews and downloads
-before confirming success, including password-protected browser exports; cloud
-export errors no longer expose raw internal paths. See the
-[audit findings, regression evidence and remaining limits](docs/PROJECT_AUDIT_2026-09-10.md).
-Audit repair source `efe8c84` passed Linux, Windows, Chromium and Docker CI and
-is deployed on Railway; health and unchanged private-index reuse are verified.
-Existing frozen RAG indexes and historical release artifacts are not rebuilt or
-rewritten by these fixes. New chunking applies to future controlled index builds.
-
-**Follow-up external audit (unreleased):** 13 selected findings now have
-targeted fixes or conservative admission blocks: HTTP redirects, revision-goal
-loss during structural repair, untrusted grounding evidence, address-state
-resolution, nullable and population-basis-aware ABS indicators, Windows lock
-recovery, RAG queue deadlines, approval conflicts, evaluation-row integrity and
-complete review/Trace diagnostics. Legacy ABS language ratios without a verified
-same-population basis now display as unknown; stored datasets are not recomputed.
-New response/approval admission checks do not change the historical v6 policy.
-These changes do not establish a new release or completed cloud acceptance; see the
-[20-finding triage, verification and deferred work](docs/EXTERNAL_AUDIT_TRIAGE_2026-09-10.md).
-Local validation passed 1,664 non-E2E tests plus two isolated Windows startup
-tests and three Chromium scenarios, with 88.83% non-E2E `src` coverage and seven
-skips. This does not establish new cloud, real-model or production acceptance.
-
-**September 11 follow-up (unreleased):** the remaining engineering work separates
-real-form/model-visible RAG diagnostics from historical retrieval scores, binds
-new Ollama indexes to observed model digests, and hardens audit retry/read budgets.
-Sample generation refuses to overwrite previous evidence. See the
-[implementation, migration, verification and cloud-acceptance boundaries](docs/AUDIT_FOLLOWUP_2026-09-11.md).
-Historical samples and benchmark numbers below remain release-specific; they
-are not reruns of the maintained source or corrected ABS language indicators.
-Existing local Ollama v2 indexes require an explicit new-directory migration
-before RAG startup; they are no longer silently trusted or overwritten. The
-current cloud CPU v3 index does not need this migration.
-
-The v0.6.0 release evidence was produced from clean source commit
-[`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7).
-Local validation contains `885` passing tests (`884` non-E2E plus one Chromium
-E2E), with `86.95%` measured `src` coverage. Ruff lint/format, Bandit,
-Poetry/package consistency and `pip-audit` also pass locally. Governed exports
-use `pilot-export-v4` and the fingerprinted `governed-report-v6` quality policy
-(`b3d65d22...4e364745`). These are run-specific local results; the pushed
-commit's GitHub Actions run remains the source of truth for remote CI status.
-
-Ready for:
-
-- Internship demonstration
-- Coursework or portfolio showcase
-- Controlled stakeholder discussion
-- Early school, council or community pilot scoping
-
-Not ready for:
-
-- Operational emergency management
-- Public life-safety decision support
-- Government procurement
-- Commercial deployment without legal, security, privacy and licence review
-
-## What It Does
-
-- Generates formal English bushfire preparedness draft reports.
-- Supports council, school, community, household, care facility and land management scenarios.
-- Uses a form-first workflow rather than a generic chatbot flow.
-- Runs a local Australia-focused pipeline of eight deterministic Python component roles.
-- Shows an Evidence Trail with profile, official source, community vulnerability, risk and planning outputs.
-- Labels report provenance as O1 official reference, P2 processed data, R3 rule inference, A4 AI draft or U0 unverified input.
-- Uses local ABS / ASGS-derived geography and community context.
-- Provides official source, data and licence registers.
-- Adds draft notices, evidence tables, safety disclaimers and human review sign-off.
-- Re-runs one canonical Governed Report Check across generation, revision, organisational approval and governed pilot-package export: 16 fixed report-quality/safety checks, trusted scenario and Focus coverage checks, plus conditional RAG source attribution.
-- Treats follow-up edits as governed report revisions with a new report ID, version, quality result and audit record.
-- Reviews attributable narrative claims against frozen evidence for citation, number and jurisdiction mismatches without presenting the heuristic as factual proof.
-- Records privacy-minimised local runtime Traces for per-agent/model latency, repair use and safe failure diagnosis.
-- Exports Markdown, PDF, DOCX and pilot export packages.
-- Runs locally with Ollama, so no OpenAI API key is required.
-
-## Technical Highlights
-
-- Refactored the original chatbot-style interaction into a form-driven report generation workflow.
-- Designed an eight-role deterministic component pipeline covering profile parsing, Australian data context, community vulnerability, risk context, planning and report quality checks; it is not an autonomous multi-agent runtime.
-- Replaced cloud-only OpenAI usage with local Ollama inference for offline-friendly demonstrations and no-cloud-key environments.
-- Built a reviewable evidence trail, governance notice, human sign-off section and audit-ready pilot export package.
-- Added deterministic evidence-confidence labels so official references, processed data, rule inference and AI prose are not presented as equivalent evidence.
-- Added a deterministic safety-boundary evaluator for prohibited live-status, evacuation, route/place-safety, absolute-safety and governance-removal assertions.
-- Added report versioning, approval validation and review-checklist reset so revised content cannot silently inherit an earlier approval.
-- Isolated browser sessions in memory by default and replaced optional pickle persistence with explicitly enabled JSON persistence for single-user installations.
-- Added Australia-specific official source, licence, data status and safety-boundary registries for more transparent outputs.
-- Centralised every active data path, fail-closed bundled-core integrity validation and before/after analysis provenance checks.
-- Added v4 append-only audit events that bind the exact report, deterministic sign-off, quality result, inputs, model boundary, frozen registers and recursive revision lineage.
-- Made governed external-model calls stateless, tool-free and subject to an explicit per-session privacy acknowledgement.
-- Added a local hybrid RAG pipeline with nine page-level licensed sources covering all eight Australian states and territories, deterministic abstention and hard-negative evaluation.
-- Added a self-checking Windows launcher, an 8K-context Ollama model tuned for local GPU memory, and Windows CI coverage.
-- Added report-level data currency, source-age and geographic-match warnings so approximate or aging evidence is visible in the report and Evidence Trail.
-- Expanded real-model regression coverage to all six planning scenarios plus live-request refusal and no-RAG degradation cases.
-- Added report-level evidence-alignment metrics, a strict anonymous pilot-measurement schema and a Bad Case-to-regression workflow.
-- Added content-free per-stage runtime tracing and a Readiness diagnostic view, separate from governed audit records.
-- Unified form and map geography into one effective profile, and fail closed on explicit cross-state conflicts before evidence selection.
-- Hardened RAG builds and retrieval against concurrent source/index changes with process-local plus PID/token-owned cross-process locks, immutable build snapshots, backup-first recovery and before/after identity checks.
-- Reused one PID/token-owned lock contract for audit writes and RAG operations, including conservative recovery of sufficiently old invalid lock records without deleting a live owner's lock.
-- Standardised model-authored RAG citations as `[O1-RAG][source_id=...] <title>` and keep verified URLs out of model prose; deterministic evidence tables remain the only URL authority.
-- Added bounded input/session schemas, iterative audit-chain verification, strict review-date validation and one shared generation/repair workflow.
-- Enforced a hard wall-clock deadline for local model streams, separated U0 form values from deterministic prompt data, and reject blank or duplicate configured source/rule identifiers.
-- Bound release evaluations before and after each question/scenario call so drift visible at those boundaries, including A-to-B-to-A changes across calls, cannot be hidden by matching run-end snapshots; a model-tag swap wholly inside one HTTP call remains outside this observation boundary.
-- Reused one Markdown table parser and a privacy-safe, renderer-fingerprinted session-local export cache across PDF/DOCX preview paths.
-- Added a fake-Ollama Windows launcher integration test, a single PowerShell quality-check entry point and repository-local temporary-directory exclusion.
-- Added trusted scenario and Focus allowlists, canonical coverage declarations and composite Focus expansion so raw U0 labels cannot satisfy governed coverage checks.
-- Isolated repair prompts from the original prompt, previous model response and raw U0 values; compact repair context carries only bounded application-owned fields and evidence.
-- Added six prompt-injection red-team cases covering role changes, delimiter/control-marker attacks, governance removal, forged tool Markdown and live-route prompt leakage.
-- Reworked absolute-safety repair instructions into positive risk-reduction language while keeping the deterministic safety gate fail closed.
-
-## Product Tour
-
-[Watch the 89-second local demo](docs/assets/bushfire-ready-gpt-demo.webm).
-
-| Create a governed draft | Inspect evidence and data quality |
+| Create a draft | Inspect evidence and status |
 | --- | --- |
-| ![Create Report workflow](docs/assets/create-report.png) | ![Evidence review workflow](docs/assets/evidence-review.png) |
+| ![Create Report workflow](docs/assets/create-report.png) | ![Data and map status](docs/assets/data-map.png) |
 
-| Review the generated report | Verify map and data status |
-| --- | --- |
-| ![Generated report preview](docs/assets/report-preview.png) | ![Data and map status](docs/assets/data-map.png) |
+| Review before export |
+| --- |
+| ![Generated report preview](docs/assets/report-preview.png) |
 
-## Example Output
+All examples are demonstration drafts, not emergency plans or operational instructions.
 
-For the current governed demonstration generated with local Ollama and the
-release-bound RAG index, see:
+## Engineering in three points
 
-- [governed Markdown report](examples/v0.6.0/cairns-council-report.md)
-- [presentation-ready PDF](examples/v0.6.0/cairns-council-report.pdf)
-- [editable DOCX](examples/v0.6.0/cairns-council-report.docx)
-- [verified pilot export package](examples/v0.6.0/cairns-council-pilot-package.zip)
+1. **Eight deterministic components, not autonomous agents.** Profile, Australian data, official knowledge/RAG, vulnerability, risk, planning, report and quality functions are named Python component boundaries. Only narrative generation and bounded revision call the configured model. See the [architecture](docs/architecture.md).
+2. **Evidence and review stay visible.** Outputs distinguish official references, processed data, rule inferences, model prose and unverified input; governed drafts carry quality checks, evidence tables, version/audit records and human-review sign-off. These controls support review; they do not prove factual accuracy or create legal approval.
+3. **Local by default, explicit cloud boundary.** Ollama supports offline-friendly single-user demonstrations. The optional private DeepSeek/Railway path has its own access, persistence and quota constraints; see [deployment and acceptance status](docs/DEPLOYMENT.md).
 
-The `v0.3.0` Cairns Council package and the earlier
-[Cairns campus sample](examples/cairns_campus_bushfire_report.md) remain
-historical examples. All samples are demonstration drafts, not live emergency
-plans or operational instructions.
+## Current status and limits
 
-## Safety Boundary
+The current tagged release is **v0.6.0**. Its release-specific, historical validation evidence belongs to clean-source commit [`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7), not to every later maintenance change. The release record and immutable benchmark artifacts are linked below.
 
-BushfireReadyGPT does **not** provide live fire conditions, fire bans, evacuation orders, official safe routes, confirmed safe assembly points or life-safety decisions.
+Maintenance after v0.6.0 is documented separately. It includes ongoing hardening and controlled-demo acceptance work, but does **not** declare a newer release, complete production acceptance, or new historical benchmark results. Read the [September 15 content and delivery review](docs/LAUNCH_READINESS_2026-09-15.md) and [September 12 implementation record](docs/LAUNCH_READINESS_2026-09-12.md) before relying on current cloud claims.
 
-It is a preparedness planning and draft reporting tool. In an emergency, follow official emergency services and call `000` if life is at risk.
+This is a governed portfolio MVP / controlled-pilot prototype. It is not ready for operational emergency management, public life-safety decisions, government procurement or commercial deployment without independent legal, security, privacy, data/licence and domain review. There are no completed external pilot claims: [the pilot evidence register](docs/pilot_results.md) records the current status.
 
-## Quick Start
+Important governance qualifications:
 
-For the password-protected cloud option, use [Docker / Railway deployment](docs/DEPLOYMENT.md).
-The Windows launcher below remains the local Ollama installation path and does
-not install Docker or cloud-only embedding dependencies.
+- Local audit records are application-level, tamper-evident evidence, not immutable government records. The local profile has no authenticated user identity, verified reviewer identity, digital signature, trusted timestamp, WORM retention or external transparency log.
+- The optional shared cloud demo adds controls described in its deployment documentation, but it is not a multi-tenant production emergency service and still needs privacy, security, retention and licence review.
+- Australian data is planning context only. It is not live incident status, fire danger ratings, evacuation information, safe routes or confirmed assembly points.
 
-On Windows, install [Python 3.11-3.13](https://www.python.org/downloads/windows/)
-and [Ollama](https://ollama.com/download/windows), then use the single launcher in
-the project folder:
+## Run locally
+
+### Windows launcher
+
+Install [Python 3.11-3.13](https://www.python.org/downloads/windows/) and [Ollama](https://ollama.com/download/windows), then from the project folder double-click:
 
 ```text
-Double-click Start BushfireReadyGPT.bat
+Start BushfireReadyGPT.bat
 ```
 
-Every launch checks the local environment before opening the app. Existing Python
-dependencies, Ollama models and a valid RAG index are reused; only missing or
-outdated components are installed or rebuilt. The launcher also creates the
-dedicated 8K-context report model and starts Ollama when needed.
+The launcher checks the local environment, reuses valid local dependencies/models/indexes where possible, prepares the dedicated report model, starts Ollama when needed and opens the app. It is the local Ollama path; it does not install Docker or cloud-only dependencies.
 
-If you explicitly select FastEmbed CPU embeddings, the launcher checks the
-prepared CPU model identity and optional dependencies before downloading any
-models or reference sources. It does not start Ollama for CPU retrieval or
-silently install the cloud dependency group. Missing CPU assets require the
-[explicit preparation steps](docs/DEPLOYMENT.md#windows-with-cpu-embeddings).
+### Essential CLI path
 
-### Manual setup
-
-These commands assume Windows PowerShell from the project root.
-
-Create and activate a virtual environment:
+From Windows PowerShell at the project root:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install poetry==2.3.4
-```
-
-Install the locked runtime and development dependencies:
-
-```powershell
 poetry install --with dev --no-root
-```
 
-`pyproject.toml` and the committed `poetry.lock` are the reproducible source of
-truth. `requirements.txt`, `requirements-dev.txt` and
-`requirements-e2e.txt` remain runtime/development/browser-test compatibility
-files for environments that cannot use Poetry; they are not lock files.
-
-Install Ollama, then download the configured local model:
-
-```powershell
 ollama pull qwen2.5:7b
 ollama pull embeddinggemma
 ollama create bushfire-ready-qwen -f .\Modelfile
+
+poetry run streamlit run src\wildfireChat.py
 ```
 
-The first model writes the report; the second powers the optional local RAG
-retriever. Build the RAG index from its declared official static sources:
+Local RAG is optional. To build it from its declared static official sources:
 
 ```powershell
 poetry run python scripts\build_rag_index.py --download
-poetry run python scripts\evaluate_rag.py --warmup --output output\rag-evaluation.json
 ```
 
-The RAG corpus covers nine official pages across all eight states and territories. Retrieval combines
-local dense embeddings with BM25 using reciprocal-rank fusion, applies a
-deterministic source-diversity cap and exposes both component ranks in the
-Evidence Trail. The committed 84-query benchmark includes 68 answerable cases
-and 16 hard negatives. The default evaluation runs the production
-`structured_planning` profile at the configured runtime Top-K as the release
-gate, then reports the stricter `free_text` profile at Top-5 as a separate
-diagnostic. The production profile covers all 68 answerable cases plus the five
-live-operation/life-safety negatives that must always abstain. Arbitrary
-out-of-domain negatives remain in the free-text profile because the trusted
-planning scope is only called with a form-built, in-domain query at runtime.
-The current [v0.6.0 retrieval artifact](docs/benchmarks/rag-retrieval-v0.6.0.json)
-binds the exact question set, Git commit, verified index manifest and local
-embedding-model digest. Its production `structured_planning` Top-8 gate covers
-73 questions (68 answerable plus five reachable safety negatives): 1.0000
-passage recall, 0.9216 MRR, 0.8529 Top-1 accuracy, 1.0000 abstention, 86.05 ms
-average latency and 124.15 ms p95. The separate `free_text` Top-5 diagnostic
-covers all 84 questions (68 answerable plus 16 negatives): 0.9706 recall,
-0.8922 MRR, 0.8235 Top-1 accuracy, 1.0000 abstention, 94.00 ms average and
-113.10 ms p95. The v0.5.0 artifact and earlier
-[2026-08-24 production-profile artifact](docs/benchmarks/rag-retrieval-2026-08-24.json)
-is retained as historical evidence. These are local regression measurements,
-not production-accuracy claims.
+For Docker/Railway, CPU embeddings, private-corpus handling and the controlled-demo limitations, follow [DEPLOYMENT.md](docs/DEPLOYMENT.md) rather than mixing those steps into the local launcher flow.
 
-Raw RAG downloads, the verified document snapshot and Qdrant files stay local and are ignored by Git. The app
-still works in **local mode** if the optional index is absent, stale or disabled with
-`BUSHFIRE_RAG_ENABLED=false`; in that case no retrieved passage is sent to the
-report model. See [docs/rag.md](docs/rag.md) for the data contract, integrity
-checks, evaluation method and safety boundary.
+## Troubleshooting and verification
 
-Cloud mode requires a verified private corpus and CPU RAG index and fails closed on index or embedding
-infrastructure errors. Valid no-match results remain explicitly labelled; they
-are not treated as evidence. Its model/index identities and metrics are separate
-from the Ollama release benchmark.
+- **Launcher or model issue:** confirm Python and Ollama are installed, then rerun `Start BushfireReadyGPT.bat`. See [local setup and deployment troubleshooting](docs/DEPLOYMENT.md).
+- **No local RAG results:** build the index with the command above; RAG remains optional, and the application must not turn missing retrieval into invented evidence. Read the [RAG design and trust boundary](docs/rag.md).
+- **Data/map warning:** do not treat unavailable or unverified context as confirmed. Use the application's Evidence Trail and [data/architecture documentation](docs/architecture.md) to understand the boundary.
+- **Test the working tree:**
 
-The project launcher starts the local Ollama service automatically when needed. To run or troubleshoot Ollama manually, open a separate PowerShell terminal and run:
+  ```powershell
+  poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail-under=85
+  powershell -ExecutionPolicy Bypass -File .\scripts\run_quality_checks.ps1
+  ```
 
-```powershell
-ollama serve
-```
+  The maintained CI coverage threshold is 85% for the non-E2E suite. A local result is evidence for that run only; GitHub Actions is authoritative for remote CI.
 
-Keep that Ollama terminal open when using the manual command. The automated launcher runs the service in the background instead.
+## Documentation and history
 
-Create `.env` in the project root:
+Start with the [documentation index](docs/README.md), [plain-language project overview](docs/project_overview.md), [architecture](docs/architecture.md), [RAG guide](docs/rag.md), and [demo walkthrough](docs/demo_walkthrough.md).
 
-```env
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
-OLLAMA_MODEL=bushfire-ready-qwen
-```
+For governance, readiness and commercial positioning, use the [September 12 readiness record](docs/LAUNCH_READINESS_2026-09-12.md), [deployment status](docs/DEPLOYMENT.md), [commercial gap assessment](docs/commercial_gap_assessment.md), [commercial-readiness checklist](docs/commercial_readiness_checklist.md), and [pilot evidence register](docs/pilot_results.md).
 
-Browser sessions are isolated in memory by default. For an explicitly single-user local installation, optional JSON session persistence can be enabled with `BUSHFIRE_SESSION_STATE_PATH=chat_history/session_state.json`. That plaintext file can contain complete reports, locations and reviewer sign-off identity; protect it with operating-system access controls and a retention policy. Do not use one shared state file for a multi-user deployment.
+Historical release scope, validation and limitations are retained in [v0.3.0](docs/releases/v0.3.0.md), [v0.4.0](docs/releases/v0.4.0.md), [v0.5.0](docs/releases/v0.5.0.md), and [v0.6.0](docs/releases/v0.6.0.md). The v0.6.0 [report-generation](docs/benchmarks/report-generation-v0.6.0.json), [red-team](docs/benchmarks/report-red-team-v0.6.0.json), and [RAG-retrieval](docs/benchmarks/rag-retrieval-v0.6.0.json) artifacts are historical release evidence, not a guarantee for maintained or cloud deployments.
 
-Endpoints on `localhost`, `127.0.0.0/8` or `::1` keep the default local-model workflow. Any other endpoint, including a remote Ollama server, is treated as external and fails closed unless the operator sets `BUSHFIRE_ALLOW_EXTERNAL_MODEL=true` and the user acknowledges the privacy disclosure for the current browser session. The disclosure lists the fields sent and warns that provider retention depends on the configured service and account; sensitive personal data and live incident or life-safety requests must not be entered.
-
-For an external provider, generation sends the location, audience, scenario,
-focus areas, timeframe, additional context, selected geography and deterministic
-analysis context. Revision sends the requested change and current report body,
-with the human sign-off removed. Governed calls are isolated and tool-free;
-organisation and reviewer identity fields are not sent. The configured provider's
-retention, training and deletion terms still apply.
-
-Every generated report writes a privacy-minimised audit event to local disk. The
-default event stores content hashes and bounded metadata, not the full report,
-reviewer name or free-text notes. Setting
-`BUSHFIRE_AUDIT_INCLUDE_SENSITIVE_CONTENT=true` opts into the complete payload and
-requires an operator-approved access, retention and deletion policy. Clearing the
-current conversation removes in-app/session state only; retained audit events,
-manually saved reports and already downloaded packages remain.
-
-Windows double-click startup:
-
-```text
-Double-click Start BushfireReadyGPT.bat
-```
-
-Alternative VSCode startup:
-
-```text
-Ctrl + Shift + P
-Tasks: Run Task
-Start BushfireReadyGPT
-```
-
-Or run from PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\start_app.ps1
-```
-
-The startup script reads the configured provider from `.env`. For local Ollama, it starts the service when needed, waits up to 30 seconds for the API, verifies that the configured model is installed, and only then launches Streamlit. It records the active project port locally, avoids launching a duplicate instance, and automatically selects an available port from `8501` to `8505`. Once the health check passes, the launcher opens the default browser; running the launcher again reopens the existing app. Streamlit is explicitly bound to `127.0.0.1` with usage telemetry disabled. Keep the terminal open while using the app. Press `Ctrl + C` or close this terminal to stop Streamlit and release the port.
-Process-level configuration values take precedence over `.env`, matching the
-configuration precedence used by the Python application.
-
-## Demo Path
-
-For the cleanest demonstration:
-
-1. Open the app.
-2. Go to `Create Report`.
-3. Select `Cairns Council pilot`.
-4. Click `Load example`.
-5. Click `Generate report`.
-6. Show `Latest Report Preview`.
-7. Open `Review & Export` and show the Evidence Trail, Governed Report Check and Human Review Checklist.
-8. Open `Data & Map` and show official sources, data status, licence register and map context.
-9. Show the verified RAG index card and retrieved passage provenance in the Evidence Trail.
-10. Download the pilot export package.
-11. Explain the safety boundary and current commercial limitations.
-
-See [docs/demo_walkthrough.md](docs/demo_walkthrough.md) for a full presentation script.
-
-## Documentation
-
-Start with:
-
-- [docs/README.md](docs/README.md) - Documentation index and recommended reading order.
-- [docs/showcase_package.md](docs/showcase_package.md) - Showcase package for presentations and portfolio review.
-- [docs/project_overview.md](docs/project_overview.md) - Plain project explanation and positioning.
-- [docs/demo_walkthrough.md](docs/demo_walkthrough.md) - Step-by-step live demo walkthrough.
-- [docs/showcase_checklist.md](docs/showcase_checklist.md) - Pre-presentation readiness checklist.
-
-Project and commercial context:
-
-- [docs/architecture.md](docs/architecture.md) - Architecture, agent responsibilities and data flow.
-- [docs/rag.md](docs/rag.md) - Local RAG design, build, evaluation and trust boundary.
-- [docs/evaluation_and_observability.md](docs/evaluation_and_observability.md) - Evidence-alignment evaluation, anonymous pilot metrics and privacy-minimised runtime Trace.
-- [docs/project_reassessment.md](docs/project_reassessment.md) - Current maturity, gaps and next build order.
-- [docs/commercial_gap_assessment.md](docs/commercial_gap_assessment.md) - Commercial and government-readiness gap assessment.
-- [docs/commercial_readiness_checklist.md](docs/commercial_readiness_checklist.md) - Commercial readiness checklist.
-- [docs/pilot_pitch.md](docs/pilot_pitch.md) - One-page pilot pitch.
-- [docs/pilot_feedback_form.md](docs/pilot_feedback_form.md) - Controlled pilot feedback form.
-- [docs/pilot_protocol.md](docs/pilot_protocol.md) - Executable 3-5 participant pilot protocol.
-- [docs/pilot_results.md](docs/pilot_results.md) - Honest pilot evidence register; external sessions are currently pending.
-- [docs/benchmarks/report-generation-v0.6.0.json](docs/benchmarks/report-generation-v0.6.0.json) - Current eight-scenario governed real-Ollama release gate and grounding diagnostics.
-- [docs/benchmarks/report-red-team-v0.6.0.json](docs/benchmarks/report-red-team-v0.6.0.json) - Current six-scenario prompt-injection diagnostic gate.
-- [docs/benchmarks/rag-retrieval-v0.6.0.json](docs/benchmarks/rag-retrieval-v0.6.0.json) - Current production-aligned Top-8 release gate and free-text Top-5 diagnostic.
-- [docs/benchmarks/report-generation-v0.5.0.json](docs/benchmarks/report-generation-v0.5.0.json) and [rag-retrieval-v0.5.0.json](docs/benchmarks/rag-retrieval-v0.5.0.json) - Historical v0.5.0 release evidence.
-- [docs/benchmarks/report-generation-v0.3.0.json](docs/benchmarks/report-generation-v0.3.0.json) - Historical eight-case real-Ollama regression result.
-- [docs/benchmarks/report-generation-v0.4.0.json](docs/benchmarks/report-generation-v0.4.0.json) - Historical evidence-alignment regression result.
-- [docs/benchmarks/rag-retrieval-2026-08-24.json](docs/benchmarks/rag-retrieval-2026-08-24.json) - Historical production-profile retrieval checkpoint.
-
-Sample output and release evidence:
-
-- [examples/v0.6.0/](examples/v0.6.0/) - current Markdown, PDF, DOCX and governed `pilot-export-v4` package.
-- [examples/v0.5.0/README.md](examples/v0.5.0/README.md) - historical v0.5.0 governed sample.
-- [examples/v0.3.0/README.md](examples/v0.3.0/README.md) - historical governed sample retained for comparison.
-- [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md) - v0.3.0 scope, validation and limitations.
-- [docs/releases/v0.4.0.md](docs/releases/v0.4.0.md) - Evidence alignment, anonymous pilot measurement and privacy-minimised runtime Trace release.
-- [docs/releases/v0.5.0.md](docs/releases/v0.5.0.md) - Reproducible release evidence, governed quality-policy binding and offline verification.
-- [docs/releases/v0.6.0.md](docs/releases/v0.6.0.md) - Trusted-input coverage, repair isolation and prompt-injection hardening release.
-
-## Architecture Summary
-
-```text
-Streamlit UI
-  -> Report form and workspace tabs
-  -> Deterministic component pipeline (eight named Python roles)
-      -> Profile Agent
-      -> Australian Data Agent
-      -> Official Knowledge Agent (optional local RAG)
-      -> Community Vulnerability Agent
-      -> Risk Context Agent
-      -> Planner Agent
-      -> Report Agent
-      -> Evidence confidence classification
-      -> Report Quality Agent
-  -> Local Ollama generation
-  -> Deterministic evidence-alignment review
-  -> Evidence tables, sign-off and audit JSON
-  -> Privacy-minimised local runtime Trace
-  -> Markdown / PDF / DOCX / pilot package export
-```
-
-```mermaid
-flowchart LR
-    A[User report form] --> B[Profile Agent]
-    B --> C[Australian Data Agent]
-    C --> D[Official Knowledge Agent]
-    D --> E[Community Vulnerability Agent]
-    E --> F[Risk Context Agent]
-    F --> G[Planner Agent]
-    G --> H[Ollama-backed Report Generation]
-    H --> I[Report Quality Agent]
-    I --> G2[Evidence Alignment Review]
-    G2 --> J[Evidence Trail and Human Review]
-    J --> K[Markdown / PDF / DOCX / Pilot Package]
-```
-
-## Project Structure
-
-```text
-src/wildfireChat.py                 Streamlit application entry
-src/app_state.py                    Shared Streamlit state helpers
-src/session_store.py                Session persistence and conversation reset
-src/report_workflow.py              Report generation, audit and human-review workflow
-src/ui/                             Streamlit UI modules
-src/app_catalog.py                  Official sources, form options and pilot examples
-src/report_template.py              Fixed English report prompt and report structure
-src/report_grounding.py             Claim/evidence, citation, number and jurisdiction review
-src/pilot_evaluation.py             Anonymous pilot schema, aggregation and Bad Case validation
-src/runtime_trace.py                Content-free local operation and stage traces
-src/data_quality.py                 Source currency and geographic-match assessment
-src/evidence_confidence.py          Shared O1 / P2 / R3 / A4 / U0 provenance rules
-src/agents/                         Australia-focused deterministic component pipeline
-src/rag/                            Local corpus, Ollama embeddings, Qdrant index and retrieval
-src/model_runtime.py                Stateless, tool-free governed model client
-src/coverage_map.py                 SA2 / SA3 / SA4 map and community profile loading
-src/data_paths.py                   Central, environment-aware data path configuration
-src/data_artifacts.py               Manifest validation, provenance and atomic publication
-src/data_register.py                Data source register
-src/licence_register.py             Licence register loader and export helpers
-src/data_status.py                  Data status and source checks
-src/audit.py                        Append-only, hash-linked local audit events
-src/export_register.py              Frozen report-time data/licence register snapshots
-src/export_package.py               Audit-bound pilot package creation and verification
-src/pdf_export.py                   PDF report export
-src/docx_export.py                  DOCX report export
-src/export_content.py               Shared report metadata extraction for exports
-data_australia/                     Australian metadata, rules and lightweight processed data
-scripts/                            Data download / rebuild scripts
-docs/                               Project, demo, governance and commercial-readiness docs
-tests/                              Deterministic regression tests
-start_app.ps1                       PowerShell implementation used by the launcher and VSCode task
-```
-
-## Data Notes
-
-The active data layer is under `data_australia/`.
-
-- `data_australia/raw/` stores raw official downloads or API responses for traceability and is ignored by Git.
-- `data_australia/processed/` stores cleaned files used by the agents.
-- `data_australia/manifest.json` verifies the bundled core files by size, row count and SHA-256 before analysis.
-- `data_australia/rag/sources.yml` declares the optional static official RAG corpus; raw files and the built Qdrant index remain local.
-- The pipeline refuses invalid bundled-core data and verifies that the files used did not change during analysis.
-- Lightweight processed reference files may be committed for reproducible demos.
-- Large raw and geospatial files, including the all-Australia map, are optional and intentionally ignored by Git.
-- The nationwide selector is enabled only when its profile, boundary ID join and sidecar hashes all verify; structurally valid but unverified legacy files remain unavailable to reports and approval.
-- Downloaders validate complete responses and publish related files, sidecar metadata and manifest updates as a recoverable transaction; every writer of the shared core manifest uses the same publication lock.
-- Environment-variable data overrides remain available for draft analysis but are labelled `Unverified custom data` and cannot receive in-app organisational approval.
-- Original-project legacy material is not part of the active Australian evidence layer.
-
-The committed data is intended for demonstration, traceability and planning context only. It does not provide live incident status, fire danger ratings, evacuation orders, safe routes or confirmed assembly points.
-
-The clean-clone core demo does not require the all-Australia map. To install or
-rebuild that optional SA2 / SA3 / SA4 selection capability:
-
-```powershell
-poetry run python scripts\download_abs_sa2_all.py
-```
-
-To rebuild ASGS allocation and correspondence reference data:
-
-```powershell
-poetry run python scripts\download_abs_asgs_allocations.py
-```
-
-## Tests
-
-Run the fast unit, integration, Streamlit smoke and AppTest workflow suite:
-
-```powershell
-poetry run pytest -m "not e2e" -q --cov=src --cov-report=term-missing --cov-fail-under=85
-```
-
-The maintained coverage contract is the CI gate: the non-E2E suite must cover
-at least `85%` of `src` on supported Python versions. v0.6.0 was checked locally
-on 2026-08-30 with `884` passing non-E2E tests and `86.95%` coverage, plus one
-passing Chromium E2E workflow (`885` total). This includes the user-facing BAT
-preflight and fake-Ollama Windows full-launch integration test. Exact percentages
-remain run-specific diagnostics; the pushed commit's workflow is authoritative
-for remote CI status.
-
-Run the same static, dependency and security checks as CI:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run_quality_checks.ps1
-```
-
-The wrapper runs the lock, installed-dependency, Ruff formatting/linting,
-Bandit and `pip-audit` checks. It enables Python UTF-8 mode for the command so
-the dependency audit also works when the Windows checkout path contains
-non-ASCII characters.
-
-Install the browser-test dependencies and matching Chromium build once:
-
-```powershell
-poetry run python -m playwright install chromium
-```
-
-Run the real-browser workflow or the complete suite:
-
-```powershell
-poetry run pytest -m e2e -q
-poetry run pytest -q
-```
-
-Run the real-model report benchmark with governed report-quality, RAG and evidence-alignment
-metrics, or validate an anonymous pilot measurement file:
-
-```powershell
-poetry run python scripts\evaluate_report_generation.py --output output\report-evaluation.json
-poetry run python scripts\evaluate_pilot_results.py --input docs\pilot_evaluation_template.json
-poetry run python scripts\verify_release.py
-```
-
-The committed pilot template contains zero sessions by design and returns
-`awaiting_participants`. It must not be presented as user validation.
-
-The RAG unit tests use a deterministic in-process embedder and temporary Qdrant
-index, so CI does not need Ollama or network access. The separate local retrieval
-evaluation uses the real `embeddinggemma` model and the downloaded nine-source
-official corpus. It evaluates answerable and unanswerable queries separately and
-reports Recall@K, MRR, Top-1 accuracy, false-positive rate and latency by
-jurisdiction and category.
-
-The current
-[v0.6.0 real-model artifact](docs/benchmarks/report-generation-v0.6.0.json)
-contains eight cases: all six supported planning scenarios, a live-route safety
-boundary and a no-RAG degradation case. Governed, structural, evidence binding,
-RAG attribution, RAG behaviour and topic rates are all 1.0000; safety-violation
-and unsafe-live-claim rates are both 0.0000. One of eight scenarios required a
-successful bounded repair, none exhausted repair, and average latency was 26.99
-seconds. Diagnostic grounding reports 0.9612 lexical support, 0.0000 claim-level
-citation coverage/precision, 0.9792 numeric consistency and zero jurisdiction
-conflicts. Application-bound RAG attribution proves that deterministic output is
-bound to the retrieval provenance; it is not claim-level citation accuracy.
-Every case remains `review_required`, and grounding remains a human-review
-signal rather than factual-accuracy proof.
-
-The companion
-[v0.6.0 red-team artifact](docs/benchmarks/report-red-team-v0.6.0.json)
-covers six prompt-injection cases. Its diagnostic gate passes with 1.0000
-prompt-injection resistance, governed/structural rates of 1.0000, zero safety
-violations and zero repair exhaustion. The red-team release gate is intentionally
-inactive because only the declared product suite owns the aggregate release
-decision. Older v0.3.0-v0.5.0 artifacts remain immutable historical checkpoints.
-
-The release verifier checks a clean source tree, tracked evidence files, source
-commit ancestry and the three v0.6.0 benchmark contracts before checking the
-sample package. The sample checks include ZIP CRC, duplicate and case-colliding names,
-unsafe paths, complete file/hash coverage, audit and ancestor lineage, internal
-prompt leakage, sensitive audit payloads, required report markers, PDF/DOCX
-readability and a dedicated DOCX human-sign-off page. These checks are engineering
-regression evidence, not stakeholder or operational validation.
-
-GitHub Actions runs the same suite automatically on Python 3.11 and 3.13 for
-pushes to `main`, pull requests targeting `main`, and manual workflow runs. The
-workflow also checks installed dependency consistency and does not require an
-Ollama service because model-service failure paths are tested with controlled
-mocks. The suite also renders the Streamlit app, starts a headless server, and
-verifies both the health endpoint and the root web page. UI workflow tests cover
-required-field validation, pilot-example loading, governed report generation and
-versioned revision with a controlled model response. A separate Chromium job exercises pilot loading,
-report generation through a local mock model endpoint, Markdown and ZIP downloads,
-reviewer sign-off, audit updates, package-manifest verification, Cairns-to-Brisbane
-map filtering, controlled official-source reachability and data-status rendering.
-
-## Audit And Approval Boundary
-
-New governed reports use the `government-pilot-v4` audit schema and explicitly
-bind the `governed-report-v6` quality policy and its
-`b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`
-fingerprint. Its canonical RAG-attribution gate
-requires an exact source ID/title label in the narrative Data Sources and
-Limitations section; exact historical v2-v5 bindings remain readable. Events are
-append-only and hash-linked at the application layer. Each positive-integer report
-version binds the exact Markdown body, deterministic Human Review Sign-off,
-quality gate, inputs, selected geography, provider boundary, canonical review
-record and the report-time data/licence register snapshot by SHA-256. Revisions
-also bind and recursively package their verified ancestor lineage.
-
-Stale, malformed, forked or snapshot-mismatched chains fail closed. Per-report
-locks, authoritative head records, single-child revision claims and interrupted
-write recovery prevent concurrent tabs or an incomplete local write from silently
-forking the chain. Convenience Markdown, PDF and DOCX downloads require the
-current verified report snapshot but remain available for remediation when the
-report is quality-blocked. A `pilot-export-v4` governance package additionally
-requires a passing fresh gate and a full analysis snapshot whose hash matches the
-audit; every package artifact is hashed in its manifest. Earlier audit schemas or
-v4 events without the current quality-policy binding remain readable but must be
-regenerated or re-reviewed before governed package export.
-
-This is tamper-evident local application logging, not a formally immutable
-government record. The prototype has no user authentication, independently
-verified reviewer identity, digital signature, trusted timestamp, WORM storage or
-external transparency log. An operator with filesystem access can delete or
-replace the entire local history. Do not describe an in-app approval as legal,
-procurement or agency approval without a separately governed identity and records
-system.
-
-Runtime Trace is a separate local diagnostic channel under
-`chat_history/traces/`. It records allowlisted stage names, status, duration,
-counts/rates and safe error codes; it excludes prompts, report and retrieval text,
-locations, audiences, reviewer identity and free-text input. The Readiness tab
-shows local aggregates. This is not a central log service, distributed tracing
-backend or retention-controlled production monitor.
-
-## Deployment Boundary
-
-The supplied Windows launcher remains a single-user loopback profile. The
-optional Docker / Railway profile adds shared-password access, a separate
-administrator gate, persistent SQLite model-call quotas, a one-request
-concurrency gate and a persistent `/data` volume. Railway supplies public HTTPS.
-See [deployment and acceptance status](docs/DEPLOYMENT.md). This controlled demo
-still lacks per-user identity/tenancy, distributed workers, managed backups,
-externally anchored audit retention and continuous monitoring. It is not a
-production emergency system; privacy, security and licence review remain necessary.
-
-## Git And Repository Hygiene
-
-Before publishing or sharing the repository, review the current Git status and commit the intended changes:
-
-```powershell
-git status
-git log --oneline -8
-```
-
-Ignored local files include `.env`, `.venv/`, `.claude/`, `.agents/`, runtime chat history and large raw/geospatial data.
-
-## Next Improvement Areas
-
-Without weakening the governed boundary, the next polishing work is:
-
-- Improve the remediation UX for drafts that remain blocked after bounded model repair.
-- Keep expanding hard negatives and prompt-injection regressions from observed Bad Cases.
-- Run the prepared 3-5 person controlled pilot only when suitable participants become available, and publish only anonymised measured results.
-- Validate evidence labels and confidence boundaries with data, GIS and emergency-management reviewers.
-- Review licence and disclaimer language with a legal/risk advisor before any commercial positioning.
-- Add authenticated roles and externally anchored audit retention before any formal approval workflow.
+Earlier samples remain available under [examples/](examples/); they are preserved for comparison and do not become current operational claims.

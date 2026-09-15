@@ -1,0 +1,790 @@
+{
+  "cases": [
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-001",
+      "latency_ms": 3.385,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_negation_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_negation_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "claim_negates_evidence",
+          "location_role_reversal"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-002",
+      "latency_ms": 1.18,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "clear",
+      "support_statuses": [
+        "lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-003",
+      "latency_ms": 1.102,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_negation_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_negation_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "claim_negates_evidence",
+          "public_access_invented"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-004",
+      "latency_ms": 1.276,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "clear",
+      "support_statuses": [
+        "lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-005",
+      "latency_ms": 1.075,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_omitted_condition"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_omitted_condition"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "availability_overstated",
+          "only_condition_omitted"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-006",
+      "latency_ms": 1.063,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "clear",
+      "support_statuses": [
+        "lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-007",
+      "latency_ms": 1.633,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_negation_mismatch",
+        "possible_omitted_condition"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_negation_mismatch",
+          "possible_omitted_condition"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "approval_condition_omitted",
+          "unless_exception_misread"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-008",
+      "latency_ms": 1.831,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_omitted_condition"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_omitted_condition"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": true
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-009",
+      "latency_ms": 1.394,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_cross_statement_numeric_context"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_cross_statement_numeric_context"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "measure_substitution",
+          "same_value_wrong_population"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-010",
+      "latency_ms": 1.194,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "clear",
+      "support_statuses": [
+        "lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-011",
+      "latency_ms": 1.181,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "numeric_context_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "numeric_context_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "same_count_wrong_year",
+          "wrong_denominator"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-012",
+      "latency_ms": 1.189,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "clear",
+      "support_statuses": [
+        "lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-013",
+      "latency_ms": 1.112,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_negation_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_negation_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "unknown_presented_as_negative",
+          "unsupported_universal_claim"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-014",
+      "latency_ms": 1.129,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_negation_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_negation_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": true
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-015",
+      "latency_ms": 1.12,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "numeric_context_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "numeric_context_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "accessibility_fabricated",
+          "date_fabricated",
+          "unknown_presented_as_fact"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-016",
+      "latency_ms": 1.33,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_negation_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_negation_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": true
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-017",
+      "latency_ms": 1.241,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "numeric_context_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "numeric_context_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "claim_conflicts_with_cited_evidence",
+          "wrong_citation"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-018",
+      "latency_ms": 1.273,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "clear",
+      "support_statuses": [
+        "lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "missing"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-019",
+      "latency_ms": 1.052,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "missing_body_citation",
+        "no_cited_passage_to_check"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "missing_body_citation",
+          "no_cited_passage_to_check"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "missing_citation",
+          "scope_overgeneralised"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "unknown"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-020",
+      "latency_ms": 1.179,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "clear",
+      "support_statuses": [
+        "lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited",
+        "missing"
+      ],
+      "claim_count": 2,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-021",
+      "latency_ms": 1.355,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "missing_body_citation",
+        "no_cited_passage_to_check"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "missing_body_citation",
+          "no_cited_passage_to_check"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "lexical_match",
+        "unknown"
+      ],
+      "unnecessary_review": true
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-022",
+      "latency_ms": 1.676,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_negation_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_negation_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "claim_negates_evidence",
+          "late_contradiction",
+          "only_condition_omitted"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-023",
+      "latency_ms": 1.839,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [
+        "no_sufficient_lexical_match_in_cited_passages",
+        "possible_negation_mismatch"
+      ],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [
+          "no_sufficient_lexical_match_in_cited_passages",
+          "possible_negation_mismatch"
+        ],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": [
+          "claim_negates_evidence",
+          "except_exception_omitted",
+          "late_contradiction"
+        ]
+      },
+      "snapshot_status": "captured",
+      "status": "review_required",
+      "support_statuses": [
+        "no_lexical_match"
+      ],
+      "unnecessary_review": false
+    },
+    {
+      "citation_statuses": [
+        "cited"
+      ],
+      "claim_count": 1,
+      "expectation_mismatches": [],
+      "expected_review": "not_required",
+      "false_accept": false,
+      "fixture_adapter": "synthetic_citation_annotations_and_complete_table_cells_v2",
+      "id": "CHO-024",
+      "latency_ms": 1.215,
+      "provenance": "synthetic_sdk_mock",
+      "reason_codes": [],
+      "reason_tag_coverage": {
+        "actual_reason_codes": [],
+        "comparison": "descriptive_not_exact_label_assertion",
+        "expected_tags": []
+      },
+      "snapshot_status": "captured",
+      "status": "clear",
+      "support_statuses": [
+        "lexical_match"
+      ],
+      "unnecessary_review": false
+    }
+  ],
+  "confusion_matrix": {
+    "actual_review_required": 16,
+    "expected_review_required": 12,
+    "false_negative": 0,
+    "false_positive": 4,
+    "true_negative": 8,
+    "true_positive": 12
+  },
+  "cost_note": "not a live cost benchmark",
+  "counts": {
+    "cases": 24,
+    "evaluated_cases": 24,
+    "extraction_misses": 0
+  },
+  "embedding_calls": 0,
+  "evaluated_source_sha256": "bf06e3a453b0fb05c779fd268fdb4e34a8511bca33bdf8aebb0e1ad4c2364731",
+  "evaluation_phase": "seen_case_regression",
+  "expectation_mismatches": [],
+  "extraction_misses": [],
+  "false_accept_ids": [],
+  "fixture_byte_sha256": "4cc42051ee29babc6fd18903e225a691dd5a97f1de448261681cd43187c9dcc2",
+  "gate": {
+    "failure_reasons": [],
+    "passed": true
+  },
+  "git": {
+    "collection_status": "not_requested_no_git_scope",
+    "dirty": null,
+    "revision": null
+  },
+  "interpretation": "Post-inspection diagnostic regression; not unseen performance or semantic accuracy.",
+  "latency_ms": {
+    "p50": 1.204,
+    "p95": 1.838,
+    "total": 36.499
+  },
+  "method": "body_claim_evidence_v1",
+  "model_calls": 0,
+  "provenance": "synthetic_sdk_mock",
+  "retrieval_calls": 0,
+  "scope": "final_sdk_submitted_rag_passages_only",
+  "unnecessary_review_ids": [
+    "CHO-008",
+    "CHO-014",
+    "CHO-016",
+    "CHO-021"
+  ]
+}

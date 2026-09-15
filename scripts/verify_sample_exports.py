@@ -18,6 +18,7 @@ from scripts.release_paths import ReleasePathError, resolve_release_directory  #
 from src.audit import AuditIntegrityError, review_record_hash, sha256_json, validate_audit_record  # noqa: E402
 from src.export_package import PILOT_EXPORT_SCHEMA  # noqa: E402
 from src.model_evidence import validate_model_evidence  # noqa: E402
+from src.report_claim_evidence import validate_body_claim_evidence  # noqa: E402
 from src.report_generation_quality import (  # noqa: E402
     KNOWN_QUALITY_POLICY_MANIFESTS,
     QUALITY_POLICY_FINGERPRINT,
@@ -160,6 +161,19 @@ def _verified_grounding_scan_text(content, manifest, audit_record, report_text):
     if digest != audit_record.get("grounding_evaluation_hash") or digest != metadata.get("sha256"):
         raise ValueError("Grounding artifact does not match the audited diagnostic.")
     visible = evaluation.get("model_visible_rag")
+    if "body_claim_evidence" in evaluation:
+        validate_body_claim_evidence(
+            evaluation["body_claim_evidence"],
+            report_text,
+            visible.get("snapshot") if isinstance(visible, dict) else None,
+        )
+        audited_chunks = audit_record.get("analysis", {}).get("knowledge", {}).get("retrieved_chunks", [])
+        expected_catalog = [
+            {"source_id": str(item.get("source_id") or ""), "title": str(item.get("title") or "")}
+            for item in audited_chunks
+        ]
+        if evaluation["body_claim_evidence"]["source_catalog"]["rag"] != expected_catalog:
+            raise ValueError("Body-claim source catalogue differs from the audited source identities.")
     if visible is None:
         if metadata.get("model_visible_rag_status") != "unavailable":
             raise ValueError("Legacy grounding cannot claim model-visible evidence.")
