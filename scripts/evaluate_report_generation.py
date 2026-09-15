@@ -323,7 +323,7 @@ def run_scenario_with_artifacts(scenario):
         "grounding_review_claim_ids_truncated": grounding_review["truncated"],
         "model_visible_rag": _model_visible_summary(grounding["model_visible_rag"]),
         "body_claim_evidence": {
-            "schema": "body-claim-evidence-summary-v1",
+            "schema": "body-claim-evidence-summary-v2",
             "method": grounding["body_claim_evidence"]["method"],
             "status": grounding["body_claim_evidence"]["status"],
             "snapshot_status": grounding["body_claim_evidence"]["snapshot_status"],
@@ -331,7 +331,10 @@ def run_scenario_with_artifacts(scenario):
             "processing": dict(grounding["body_claim_evidence"]["processing"]),
             "delivery_required": body_delivery_required,
             "delivery_passed": (
-                grounding["body_claim_evidence"]["metrics"]["cited_claims"] > 0 if body_delivery_required else None
+                grounding["body_claim_evidence"]["metrics"]["claims_requiring_citation"]
+                > grounding["body_claim_evidence"]["metrics"]["missing_citations"]
+                if body_delivery_required
+                else None
             ),
             "release_gate_enforced": False,
         },

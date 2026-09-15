@@ -152,6 +152,29 @@ per-source cap prevents one long page from occupying every returned slot. The
 Evidence Trail records the dense score/rank, BM25 score/rank, fused score and
 rerank reasons so the result can be explained in an interview or review.
 
+## Body claims and the submitted evidence boundary
+
+`src/report_claim_evidence.py` adds a separate body-claim diagnostic alongside
+the historical full-source and model-visible grounding results. It keeps full
+sentences, list items and Markdown table cells, with source-text positions;
+removing a citation does not remove the statement from its assessment scope.
+Hidden HTML, comments, code and application-owned appendices are not report claims.
+
+Citation presence, lexical support and the need for external evidence are
+separate dimensions. Only validated passages from the final actual SDK request
+may supply visible support. Missing or invalid capture means unknown support,
+not zero risk or a reconstructed claim of what the model received. The review
+UI pairs each statement with its submitted passage and review reasons, without
+rewriting the recorded historical diagnostic or audit event.
+
+Negation, qualifiers and numeric-context flags are conservative heuristics, not
+semantic entailment. The independently authored synthetic challenge and its
+subsequent **seen-case** regressions are recorded in the
+[September 15 content review](LAUNCH_READINESS_2026-09-15.md), including failed
+runs and false positives. They are separate from retrieval recall and the old
+12-target visibility diagnostic. Their offline processing latency must not be
+reported as real retrieval, embedding or model latency.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.

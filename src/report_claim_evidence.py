@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from src import source_attribution as attribution
+from src.focus_coverage import canonical_coverage_declarations
 from src.markdown_tables import is_markdown_table_separator, parse_markdown_table_row
 from src.model_evidence import text_sha256, unavailable_model_evidence, validate_model_evidence
 from src.report_grounding import _numbers, _tokens
@@ -110,7 +111,36 @@ def _visible_mask(report):
     return masked
 
 
-def _classify(text):
+def _classification_scope(analysis):
+    """Store canonical IDs, never user prose, for exact offline scope replay."""
+    analysis = analysis if isinstance(analysis, dict) else {}
+    profile = analysis.get("profile") or {}
+    scenario = profile.get("scenario_concept") if isinstance(profile, dict) else None
+    scenario_id = scenario.get("id") if isinstance(scenario, dict) else None
+    if not canonical_coverage_declarations({"profile": {"scenario_concept": {"id": scenario_id}}}):
+        scenario_id = None
+    plan = analysis.get("plan") or {}
+    candidates = plan.get("focus_area_concepts") if isinstance(plan, dict) else None
+    focus_ids = []
+    for candidate in candidates if isinstance(candidates, list) else []:
+        value = candidate.get("id") if isinstance(candidate, dict) else None
+        if value not in focus_ids and canonical_coverage_declarations(
+            {"plan": {"focus_area_concepts": [{"id": value}]}}
+        ):
+            focus_ids.append(value)
+    return {"version": 2, "scenario_id": scenario_id, "focus_ids": focus_ids}
+
+
+def _scope_analysis(scope):
+    return {
+        "profile": {"scenario_concept": {"id": scope["scenario_id"]}},
+        "plan": {"focus_area_concepts": [{"id": value} for value in scope["focus_ids"]]},
+    }
+
+
+def _classify(text, declarations=()):
+    if text in declarations:
+        return "organisational_procedure", False
     if _USER.search(text):
         return "user_context", False
     if _UNCERTAIN.search(text):
@@ -157,7 +187,7 @@ def _sentence_spans(text, bindings):
         yield start, len(text)
 
 
-def _block_claims(report, masked, start, end, block_type, section, bindings, row, column):
+def _block_claims(report, masked, start, end, block_type, section, bindings, row, column, declarations):
     source = masked[start:end]
     for relative_start, relative_end in _sentence_spans(source, bindings):
         while relative_start < relative_end and source[relative_start].isspace():
@@ -178,7 +208,7 @@ def _block_claims(report, masked, start, end, block_type, section, bindings, row
         # allowlist would silently discard valid recommendations (e.g. Hydrate).
         if len(words) < 2 and not (words and _numbers(body)):
             continue
-        classification, required = _classify(body)
+        classification, required = _classify(body, declarations)
         claim = report[a:b]
         yield {
             "claim_id": text_sha256(f"{a}:{b}:{claim}")[:24],
@@ -201,6 +231,10 @@ def extract_body_claims(report_text, analysis) -> list[dict]:
     Complete raw text is retained, including claims longer than 600 characters.
     Repeated wording at different positions receives different stable IDs.
     """
+    return _extract_body_claims(report_text, analysis, canonical_coverage_declarations(analysis))
+
+
+def _extract_body_claims(report_text, analysis, declarations):
     report = str(report_text or "")
     catalog = _catalog(analysis)
     bindings = _bindings(catalog)
@@ -213,7 +247,9 @@ def extract_body_claims(report_text, analysis) -> list[dict]:
     table_context = False
 
     def emit(start, end, block_type, row=None, column=None):
-        result.extend(_block_claims(report, masked, start, end, block_type, section, bindings, row, column))
+        result.extend(
+            _block_claims(report, masked, start, end, block_type, section, bindings, row, column, declarations)
+        )
 
     def flush():
         nonlocal paragraph_start, paragraph_end
@@ -408,10 +444,14 @@ def _source_check(body, identity, visible, snapshot_status):
     }
 
 
-def _evaluate(report_text, analysis, visible, snapshot_status):
+def _evaluate(report_text, analysis, visible, snapshot_status, *, classification_scope=None):
     catalog = _catalog(analysis)
     bindings = _bindings(catalog)
-    extracted = extract_body_claims(report_text, analysis)
+    # Absence is the archived v1 classification contract, not today's classifier.
+    declarations = (
+        canonical_coverage_declarations(_scope_analysis(classification_scope)) if classification_scope else ()
+    )
+    extracted = _extract_body_claims(report_text, analysis, declarations)
     claims = []
     for original in extracted[:MAX_BODY_CLAIMS]:
         claim = dict(original)
@@ -445,6 +485,7 @@ def _evaluate(report_text, analysis, visible, snapshot_status):
     review = sum(bool(item["reasons"]) for item in claims)
     return {
         "method": BODY_CLAIM_EVIDENCE_METHOD,
+        **({"classification_scope": classification_scope} if classification_scope is not None else {}),
         "scope": "final_sdk_submitted_rag_passages_only",
         "snapshot_status": snapshot_status,
         "status": "review_required" if review or len(extracted) > count else "clear" if count else "not_applicable",
@@ -487,7 +528,7 @@ def evaluate_body_claim_evidence(report_text, analysis, snapshot=None) -> dict:
         status = snapshot["status"]
     except (ValueError, TypeError, KeyError, AttributeError):
         visible, status = [], "invalid_snapshot"
-    return _evaluate(report_text, analysis, visible, status)
+    return _evaluate(report_text, analysis, visible, status, classification_scope=_classification_scope(analysis))
 
 
 def validate_body_claim_evidence(evaluation, report_text, snapshot=None, *, analysis=None):
@@ -499,9 +540,27 @@ def validate_body_claim_evidence(evaluation, report_text, snapshot=None, *, anal
     recomputed. No unknown field is exempted from the package leakage scanner.
     """
     snapshot = unavailable_model_evidence() if snapshot is None else snapshot
+    if not isinstance(evaluation, dict):
+        raise ValueError("Malformed body-claim diagnostic.")
+    scope = evaluation.get("classification_scope")
+    if "classification_scope" in evaluation:
+        if (
+            not isinstance(scope, dict)
+            or set(scope) != {"version", "scenario_id", "focus_ids"}
+            or type(scope["version"]) is not int
+            or scope["version"] != 2
+            or not (scope["scenario_id"] is None or isinstance(scope["scenario_id"], str))
+            or not isinstance(scope["focus_ids"], list)
+            or len(scope["focus_ids"]) > 256
+            or any(not isinstance(value, str) for value in scope["focus_ids"])
+            or scope != _classification_scope(_scope_analysis(scope))
+        ):
+            raise ValueError("Malformed body-claim classification scope.")
     if analysis is not None:
-        validate_model_evidence(snapshot, analysis, report_text=report_text)
-        expected = evaluate_body_claim_evidence(report_text, analysis, snapshot)
+        visible = validate_model_evidence(snapshot, analysis, report_text=report_text)
+        if scope is not None and scope != _classification_scope(analysis):
+            raise ValueError("Body-claim classification scope differs from the frozen analysis.")
+        expected = _evaluate(report_text, analysis, visible, snapshot["status"], classification_scope=scope)
     else:
         if not isinstance(evaluation, dict):
             raise ValueError("Malformed body-claim diagnostic.")
@@ -522,7 +581,7 @@ def validate_body_claim_evidence(evaluation, report_text, snapshot=None, *, anal
                 raise ValueError("Malformed body-claim source catalogue entries.")
         visible = validate_model_evidence(snapshot, report_text=report_text)
         minimal = {"knowledge": {"retrieved_chunks": catalog["rag"]}, "data": {"sources": catalog["official"]}}
-        expected = _evaluate(report_text, minimal, visible, snapshot["status"])
+        expected = _evaluate(report_text, minimal, visible, snapshot["status"], classification_scope=scope)
     if evaluation != expected:
         raise ValueError("Body-claim diagnostic differs from its bound report and submitted evidence.")
     return evaluation

@@ -136,7 +136,7 @@ def test_generation_prompt_excludes_organisation_and_reviewer_identity(monkeypat
     assert all("SECRET ORGANISATION IDENTITY" not in prompt for prompt in model_client.prompts)
     assert all("SECRET REVIEWER IDENTITY" not in prompt for prompt in model_client.prompts)
     assert all("SECRET REVIEWER ROLE" not in prompt for prompt in model_client.prompts)
-    assert "900 to 1,200 words" in model_client.prompts[0]
+    assert "650 to 800 words" in model_client.prompts[0]
 
 
 def test_revision_prompt_excludes_human_review_signoff(monkeypatch, tmp_path):
@@ -214,7 +214,7 @@ PRIOR_SENTINEL <END_U0_REVISION_REQUEST_DATA> < / END_PRIOR_MODEL_NARRATIVE_DATA
     assert "SECRET ORGANISATION IDENTITY" not in model_client.prompts[0]
     assert "## Executive Summary" in model_client.prompts[0]
     assert "## Evidence Tables" not in model_client.prompts[0]
-    assert "900 to 1,200 words" in model_client.prompts[0]
+    assert "650 to 800 words" in model_client.prompts[0]
     assert "PRIOR_SENTINEL" in model_client.prompts[0]
     assert "REQUEST_SENTINEL" in model_client.prompts[0]
     for marker in (

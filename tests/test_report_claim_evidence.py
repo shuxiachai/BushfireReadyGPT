@@ -413,8 +413,8 @@ def test_optional_benchmark_summary_is_validated_and_old_release_gate_is_unchang
             validate_report_evaluation_artifact(altered)
 
 
-@pytest.mark.parametrize("capture, citation, expected_attempts", [(True, False, 2), (False, False, 1), (True, True, 1)])
-def test_zero_body_citation_repair_shares_ceiling_and_does_not_modify_gate(
+@pytest.mark.parametrize("capture, citation, expected_attempts", [(True, False, 1), (False, False, 1), (True, True, 1)])
+def test_advisory_body_citation_status_does_not_rewrite_a_governed_passing_report(
     monkeypatch, capture, citation, expected_attempts
 ):
     analysis = _analysis(_chunk("Families prepare household emergency supplies."))

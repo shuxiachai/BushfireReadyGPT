@@ -136,6 +136,15 @@ not independently authorise a report. RAG IDs, titles, hashes and ranks describe
 application-bound retrieval provenance, not claim-level citation accuracy or
 semantic entailment.
 
+The additional body-claim diagnostic preserves uncited statements, long text,
+lists and table cells. It separates citation presence, external-evidence need
+and lexical support from validated passages in the final SDK request capture.
+The UI shows statement-to-passage relationships and review reasons. This is
+advisory evidence for human review, not a new semantic approval gate; historical
+grounding methods and audit results are not silently recalculated in place.
+See the [content evaluation record](LAUNCH_READINESS_2026-09-15.md) for measured
+failures and remaining acceptance limits.
+
 The RAG path is optional and fail-closed. Its source catalog restricts downloads to declared HTTPS URLs and local paths, requires page-level licence and verification metadata, and covers all eight states and territories. HTML extraction can target one or more declared ID elements, and PDF/HTML signatures are checked before atomic publication. Builds use deterministic chunk IDs, local Ollama embeddings, a canonical document snapshot and a staged Qdrant directory. The manifest binds the catalog, exact source bytes, document snapshot, chunk corpus, model and dimensions. Build, inspection and retrieval operations for the same resolved index acquire one fixed process-then-file lock order, coordinating embedded Qdrant both within the app and with a separate local build process. A build captures an immutable private catalog/source snapshot, verifies it before publication and rolls back to the previous index if live inputs drift in the publication window. Retrieval validates the index at entry and exit, filters by jurisdiction, then combines dense candidates with BM25 through weighted reciprocal-rank fusion, bounded metadata boosts and a per-source diversity cap. It also validates the Qdrant point count and every returned point ID/text hash before adding passages to the prompt. Component scores, ranks and rerank reasons are exposed for review; retrieved text is delimited as untrusted evidence, never as instructions, and is excluded from privacy-minimised audit events. Live/life-safety queries and unsupported free-text queries deterministically abstain. A missing, stale or corrupt index results in zero RAG passages while the deterministic pipeline continues.
 
 Cross-process locks store a PID plus an unpredictable owner token. Unlocking
@@ -189,6 +198,15 @@ session persistence are observable without storing prompts, reports, retrieved
 passages, locations, audiences, reviewer identity or free text. The Readiness tab
 shows local aggregates; this is not a remote tracing backend or multi-instance
 monitoring system.
+
+The same content-free stage events can drive the live UI even when disk tracing
+is disabled. Elapsed time and attempt type come from the running workflow, not
+a simulated percentage. Failed revision requests remain editable only in the
+current browser session, bound to the original report version, text hash and
+audit head. Rejected candidates do not replace the report, quality panel or
+audit history. Stale, discarded or successful requests are cleared; an interrupted
+request is never automatically retried. Finalization failures disable another
+model retry until the original transaction is explicitly handled.
 
 ## Current Boundary
 

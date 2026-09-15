@@ -775,7 +775,8 @@ def _validate_optional_body_claim_summary(row):
     }
     _require(isinstance(summary, dict) and set(summary) == fields, "body-claim summary fields are invalid")
     _require(
-        summary["schema"] == "body-claim-evidence-summary-v1" and summary["method"] == "body_claim_evidence_v1",
+        summary["schema"] in ("body-claim-evidence-summary-v1", "body-claim-evidence-summary-v2")
+        and summary["method"] == "body_claim_evidence_v1",
         "body-claim summary method is unsupported",
     )
     _require(summary["release_gate_enforced"] is False, "body-claim summary is diagnostic only")
@@ -871,9 +872,14 @@ def _validate_optional_body_claim_summary(row):
     expected_snapshot = "invalid_snapshot" if visible["status"] == "invalid_snapshot" else visible["capture_status"]
     _require(summary["snapshot_status"] == expected_snapshot, "body-claim final snapshot status is inconsistent")
     delivery_required = summary["snapshot_status"] == "captured" and bool(visible["included_passages"]) and required > 0
+    # Preserve already published v1 meaning; v2 counts citations on required
+    # external claims, never citations on user context or administrative text.
+    delivered = (
+        metrics["cited_claims"] > 0 if summary["schema"] == "body-claim-evidence-summary-v1" else required > missing
+    )
     _require(
         summary["delivery_required"] is delivery_required
-        and summary["delivery_passed"] is ((metrics["cited_claims"] > 0) if delivery_required else None),
+        and summary["delivery_passed"] is (delivered if delivery_required else None),
         "body-claim delivery criterion is inconsistent",
     )
 

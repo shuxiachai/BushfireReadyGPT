@@ -22,11 +22,13 @@ This report is a preparedness planning draft. It is not emergency advice, does n
 Safety disclaimer: live warnings, fire bans, evacuation orders and life-safety decisions must come from official emergency services and authorised public information sources.
 """
 
-REPORT_NARRATIVE_WORD_BUDGET = "900 to 1,200 words"
+REPORT_NARRATIVE_WORD_BUDGET = "650 to 800 words"
 
 # Kept outside MODEL_SOURCE_ATTRIBUTION_RULES and captured retrieval context:
 # historical SDK assembly validation reconstructs those exact original bytes.
 BODY_CLAIM_CITATION_GUIDANCE = """Body-claim evidence instructions (application-owned):
+- Copy the COMPLETE opaque token from the supporting passage's `Citation token:` line, including both
+  adjacent bracket groups. A bare [O1], [A4] or [O1-RAG] label is not a source citation.
 - Place the supplied citation immediately after each factual assertion or externally grounded recommendation,
   including bullets, checklists and substantive table cells. A source-register entry is not a body citation.
 - Preserve the cited passage's qualifications, conditions and numeric context. Cite only passages actually
@@ -34,6 +36,8 @@ BODY_CLAIM_CITATION_GUIDANCE = """Body-claim evidence instructions (application-
 - If no supplied passage supports a proposed action, explicitly label it an unverified proposal for local
   review or say what must be confirmed. Do not attach an unrelated citation merely to fill a citation gap.
 - Distinguish user-reported context and organisational assignments from external factual or safety claims.
+- Use narrow, faithful paraphrases of the supplied evidence. Planner tasks and scope declarations are not
+  external evidence. Keep unsupported planning proposals explicitly unverified; do not present them as facts.
 """
 
 
