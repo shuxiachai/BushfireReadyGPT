@@ -16,7 +16,7 @@ This Australian adaptation is based on the Apache-2.0-licensed [project-araia/Wi
 
 ## See it
 
-- [Watch the 89-second local Ollama demo (MP4)](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/heads/main/docs/assets/bushfire-ready-gpt-demo.mp4) · [original WebM download](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/heads/main/docs/assets/bushfire-ready-gpt-demo.webm).
+- [Download the 89-second local Ollama demo (MP4)](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/heads/main/docs/assets/bushfire-ready-gpt-demo.mp4) · [original WebM](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/heads/main/docs/assets/bushfire-ready-gpt-demo.webm). GitHub serves these as downloads; open the MP4 in your video player, or view the screenshots below.
 - [Follow the live demonstration walkthrough](docs/demo_walkthrough.md).
 - Open the [private cloud demonstration](https://bushfire-ready-production.up.railway.app) (access password available from the [author](https://github.com/shuxiachai)); it uses DeepSeek with container CPU RAG and does not require visitors to install Ollama.
 - Open the historical v0.6.0 governed [Markdown sample](https://github.com/shuxiachai/BushfireReadyGPT/blob/v0.6.0/examples/v0.6.0/cairns-council-report.md), or download its [PDF](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/tags/v0.6.0/examples/v0.6.0/cairns-council-report.pdf), [DOCX](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/tags/v0.6.0/examples/v0.6.0/cairns-council-report.docx), or [pilot package](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/tags/v0.6.0/examples/v0.6.0/cairns-council-pilot-package.zip). These files document that release, not the current main or cloud deployment.
