@@ -1,6 +1,6 @@
 # BushfireReadyGPT Demo Walkthrough
 
-Use this walkthrough for a live demonstration. It assumes the app is already installed and Ollama is available.
+Use this walkthrough for the local live demonstration. It assumes the app is already installed and Ollama is available. The separate [password-protected cloud demonstration](https://bushfire-ready-production.up.railway.app) uses DeepSeek with container CPU RAG; request access from the [author](https://github.com/shuxiachai), and do not present its model calls or deployment as this local Ollama workflow.
 
 ## Before The Demo
 
@@ -205,17 +205,17 @@ Say:
 
 > The export package is useful for stakeholder handover because it includes the report, review metadata, data register and audit materials.
 
-The current package uses `pilot-export-v4`. The committed governed sample is under `examples/v0.6.0/`; it uses Ollama `bushfire-ready-qwen` through a local-loopback endpoint and the same RAG manifest as the release benchmarks.
+The current package schema is `pilot-export-v4`; this labels an export format, not a new version acceptance result. The committed governed sample is historical `v0.6.0` material under `examples/v0.6.0/`; it uses Ollama `bushfire-ready-qwen` through a local-loopback endpoint and the same RAG manifest as the release benchmarks.
 
 ### 9. Show Release Evidence
 
-Open the committed `v0.6.0` benchmark summaries and say:
+Open the committed historical `v0.6.0` benchmark summaries and say:
 
 > The 73-question production RAG profile uses Top-8 and records recall 1.0000, MRR 0.9216, Top-1 0.8529, abstention 1.0000 and average retrieval latency 86.05 milliseconds on the release machine.
 
 > All eight product cases passed at an average of 26.99 seconds. One controlled repair was required and succeeded; safety violations and repair exhaustion were both zero. All six red-team cases also passed, including 100% prompt-injection resistance, at a 30.45-second average. Every red-team scenario-level governed gate and the suite diagnostic gate passed; its release gate is inactive by design.
 
-Point out that all three JSON artifacts keep their evaluation rows, bind exact dataset/Git/index provenance, and record stable provenance snapshots. The retrieval artifact binds the embedding identity; the report artifacts bind the generation-model identity and quality policy. The release run aborts rather than writing an artifact if those identities drift. Grounding and evidence-alignment results are diagnostics for human review, not semantic-truth or approval guarantees.
+Point out that all three JSON artifacts keep their evaluation rows, bind exact dataset/Git/index provenance, and record stable provenance snapshots. The retrieval artifact binds the embedding identity; the report artifacts bind the generation-model identity and quality policy. The release run aborts rather than writing an artifact if those identities drift. These 8/8 and 6/6 results are v0.6.0 historical release evidence, not current-main or cloud-demo acceptance. Grounding and evidence-alignment results are diagnostics for human review, not semantic-truth or approval guarantees.
 
 ### 10. Close The Demo
 

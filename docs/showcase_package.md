@@ -1,22 +1,23 @@
 # BushfireReadyGPT Showcase Package
 
+The repository sharing card is `docs/assets/social-preview.png` (1280×640), with editable layout in `docs/assets/social-preview.html`. It uses the existing local-demo screenshots, not a current cloud-acceptance capture.
+
 This folder already contains the main materials needed to present BushfireReadyGPT as a working MVP. Use this document as the starting point when preparing an internship presentation, portfolio review, supervisor update or early stakeholder demo.
 
-Current visual and sample assets:
+Demonstration and historical release assets:
 
-- `docs/assets/bushfire-ready-gpt-demo.webm` — 89-second local demonstration;
-- `docs/assets/*.png` — current Create Report, report, evidence, map and readiness views;
-- `examples/v0.6.0/` — current governed Cairns Council Markdown, PDF, DOCX and `pilot-export-v4` package;
-- `docs/benchmarks/rag-retrieval-v0.6.0.json` — current 73-question structured Top-8 release gate;
-- `docs/benchmarks/report-generation-v0.6.0.json` — current eight-scenario real-model product gate;
-- `docs/benchmarks/report-red-team-v0.6.0.json` — current six-scenario adversarial prompt-injection diagnostic gate; its release gate is inactive by design.
+- `docs/assets/bushfire-ready-gpt-demo.mp4` — browser-compatible copy of the 89-second local demonstration; the original `bushfire-ready-gpt-demo.webm` is retained unchanged;
+- `docs/assets/create-report.png`, `report-preview.png`, `evidence-review.png`, `data-map.png` and `readiness.png` — recorded local demonstration screenshots, not current acceptance evidence;
+- `examples/v0.6.0/` — historical governed Cairns Council Markdown, PDF, DOCX and `pilot-export-v4` package;
+- `docs/benchmarks/rag-retrieval-v0.6.0.json` — historical 73-question structured Top-8 release gate;
+- `docs/benchmarks/report-generation-v0.6.0.json` — historical eight-scenario real-model product gate;
+- `docs/benchmarks/report-red-team-v0.6.0.json` — historical six-scenario adversarial prompt-injection diagnostic gate; its release gate is inactive by design.
 
-Earlier sample and benchmark versions remain historical evidence,
-not the current release baseline.
+These are not current-main acceptance claims. For maintained-source and controlled-demo context, read the [September 15 content and delivery review](LAUNCH_READINESS_2026-09-15.md). Historical samples and benchmark versions remain preserved release evidence and must not be presented as a replacement for current-main or cloud validation.
 
 ## v0.6.0 Evidence Snapshot
 
-| Evidence | Current measured result |
+| Evidence | Historical v0.6.0 measured result |
 | --- | --- |
 | Benchmark source and policy | Commit `44d0c3f1f8c78af4291f79b090eb3fc53da95ea7`; `governed-report-v6` fingerprint `b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745`; `pilot-export-v4` |
 | Automated validation | 885 passing checks: 884 non-E2E plus one Chromium E2E; 86.95% non-E2E `src` coverage |
@@ -25,7 +26,7 @@ not the current release baseline.
 | Adversarial reports | 6/6 passed; prompt-injection resistance 1.0000; average 30.45 s; every scenario-level governed gate and the suite diagnostic gate passed; release gate inactive by design |
 | Grounding boundary | Evidence-alignment metrics are diagnostics for human review, not semantic-truth or claim-level citation guarantees |
 
-The current sample set is committed under `examples/v0.6.0/`. Its audit binds the
+The historical v0.6.0 sample set is committed under `examples/v0.6.0/`. Its audit binds the
 provider (`ollama`), model name (`bushfire-ready-qwen`), `local_loopback` boundary
 and release RAG manifest. The evaluation artifacts bind exact dataset, Git,
 index and model/embedding provenance. This is application-level retrieval

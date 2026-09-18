@@ -16,9 +16,10 @@ This Australian adaptation is based on the Apache-2.0-licensed [project-araia/Wi
 
 ## See it
 
-- [Watch the 89-second local demo](docs/assets/bushfire-ready-gpt-demo.webm).
+- [Watch the 89-second local Ollama demo (MP4)](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/heads/main/docs/assets/bushfire-ready-gpt-demo.mp4) · [original WebM download](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/heads/main/docs/assets/bushfire-ready-gpt-demo.webm).
 - [Follow the live demonstration walkthrough](docs/demo_walkthrough.md).
-- Open the [v0.6.0 governed Markdown sample](examples/v0.6.0/cairns-council-report.md), [PDF](examples/v0.6.0/cairns-council-report.pdf), [DOCX](examples/v0.6.0/cairns-council-report.docx), or [pilot package](examples/v0.6.0/cairns-council-pilot-package.zip).
+- Open the [private cloud demonstration](https://bushfire-ready-production.up.railway.app) (access password available from the [author](https://github.com/shuxiachai)); it uses DeepSeek with container CPU RAG and does not require visitors to install Ollama.
+- Open the historical v0.6.0 governed [Markdown sample](https://github.com/shuxiachai/BushfireReadyGPT/blob/v0.6.0/examples/v0.6.0/cairns-council-report.md), or download its [PDF](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/tags/v0.6.0/examples/v0.6.0/cairns-council-report.pdf), [DOCX](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/tags/v0.6.0/examples/v0.6.0/cairns-council-report.docx), or [pilot package](https://github.com/shuxiachai/BushfireReadyGPT/raw/refs/tags/v0.6.0/examples/v0.6.0/cairns-council-pilot-package.zip). These files document that release, not the current main or cloud deployment.
 
 | Create a draft | Inspect evidence and status |
 | --- | --- |
@@ -28,7 +29,16 @@ This Australian adaptation is based on the Apache-2.0-licensed [project-araia/Wi
 | --- |
 | ![Generated report preview](docs/assets/report-preview.png) |
 
-All examples are demonstration drafts, not emergency plans or operational instructions.
+The video and screenshots are recorded local workflow illustrations, not acceptance evidence for current main or the cloud deployment.
+
+| Path | What it is | Acceptance scope |
+| --- | --- | --- |
+| Local Ollama | Run the checked-out source on your machine | Validate that checkout locally; recorded media are illustrative |
+| Password cloud | Private Railway demo: DeepSeek + container CPU RAG | Separate controlled-demo deployment, not local acceptance |
+| v0.6.0 | Immutable release samples, packages and benchmarks | Historical evidence only |
+| Current main | Maintained source and documentation | Not a new release or replacement benchmark |
+
+All examples are demonstration drafts, not emergency plans or operational instructions. For project context or cloud-demo access, contact the [author](https://github.com/shuxiachai).
 
 ## Engineering in three points
 
