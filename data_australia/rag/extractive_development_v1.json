@@ -1,0 +1,68 @@
+{
+  "schema": "extractive-development-dataset-v1",
+  "dataset_id": "extractive-development-v1",
+  "data_origin": "synthetic_development",
+  "section_focus": {
+    "7": "Equipment and supplies preparedness priorities.",
+    "11": "Notices, contact arrangements and accessibility.",
+    "12": "First-aid training, practice sessions or exercises."
+  },
+  "cases": [
+    {
+      "id": "D1",
+      "scenario": {
+        "region": "Synthetic Zone A - fictional and unverified",
+        "audience": "Synthetic volunteer group A - no actual organisation or local profile verified",
+        "task_focus": "Review equipment preparation and communication arrangements; training arrangements are unknown."
+      },
+      "units": [
+        {"id": "u01", "text": "List the equipment needed before an activity. Assign responsibility for checking its availability and condition."},
+        {"id": "u02", "text": "Keep contact details current. Provide important notices in plain language."},
+        {"id": "u03", "text": "The exhibition catalogue lists artworks alphabetically by title."}
+      ],
+      "expected_refs": {"7": ["u01"], "11": ["u02"], "12": [null]}
+    },
+    {
+      "id": "D2",
+      "scenario": {
+        "region": "Synthetic Zone B - fictional and unverified",
+        "audience": "Synthetic equipment team B - inspection and recall status unverified",
+        "task_focus": "Review equipment issue controls and practice-session arrangements."
+      },
+      "units": [
+        {"id": "u01", "text": "Issue equipment only after inspection, unless a recall is active. Items marked X are excluded."},
+        {"id": "u02", "text": "Run the practice session only after the instructor confirms readiness, unless the session is suspended. Participants with unresolved access requirements need separate arrangements before joining."},
+        {"id": "u03", "text": "The fictional artwork carries the title Northern Arc."}
+      ],
+      "expected_refs": {"7": ["u01", "u02"], "11": ["u02", null], "12": ["u02"]}
+    },
+    {
+      "id": "D3",
+      "scenario": {
+        "region": "Synthetic Zone C - fictional and unverified",
+        "audience": "Synthetic participant group C - languages, access requirements and participant numbers unverified",
+        "task_focus": "Review accessible communication; no local needs assessment is supplied."
+      },
+      "units": [
+        {"id": "u01", "text": "Publish notices in accessible formats. Ask participants which formats they require."},
+        {"id": "u02", "text": "A general publication does not establish a particular group's language needs, participant numbers or available resources. Confirm these locally before planning arrangements."},
+        {"id": "u03", "text": "The printed postcard has a blue border and a blank reverse."}
+      ],
+      "expected_refs": {"7": [null], "11": ["u01", "u02"], "12": [null]}
+    },
+    {
+      "id": "D4",
+      "scenario": {
+        "region": "Synthetic Zone D - fictional and unverified",
+        "audience": "Synthetic planning group D - no operational profile verified",
+        "task_focus": "Review equipment preparation, communication and first-aid training using only the supplied units."
+      },
+      "units": [
+        {"id": "u01", "text": "The fictional sculpture is titled Evening Curve."},
+        {"id": "u02", "text": "The exhibition catalogue orders artists alphabetically by surname."},
+        {"id": "u03", "text": "The postcard illustration contains three decorative circles."}
+      ],
+      "expected_refs": {"7": [null], "11": [null], "12": [null]}
+    }
+  ]
+}

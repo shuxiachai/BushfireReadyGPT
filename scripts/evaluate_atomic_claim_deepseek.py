@@ -1,4 +1,4 @@
-"""Two-case, at-most-two-call private JSON experiment; never a report or UI gate."""
+"""Bounded private JSON experiments; never a report or production gate."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -23,6 +24,9 @@ from src.model_evidence import json_sha256, text_sha256  # noqa: E402
 
 RESULT_SCHEMA = "atomic-selection-deepseek-results-v1"
 MAX_CALLS = 2
+MAX_EXTRACTIVE_CALLS = 4
+EXTRACTIVE_PROTOCOL = "extractive-development-v1"
+EXTRACTIVE_DATASET_PATH = PROJECT_ROOT / "data_australia/rag/extractive_development_v1.json"
 FOLLOW_UP_ID = "complete-root-example-v1"
 FOLLOW_UP_PREPARED_SHA256 = "75f08bbca7909d3e3a65e2ba93adffacc0ff0ae7e640b69bff1f772af98a13c5"
 FOLLOW_UP_PARENT_RESULT_PATH = PROJECT_ROOT / "output/atomic-claim-selection-results-20260926-a.json"
@@ -45,6 +49,8 @@ _JOURNAL_KEYS = {
     "parent_result_sha256",
     "parent_journal_sha256",
     "system_prompt_sha256",
+    "protocol",
+    "dataset_file_sha256",
 }
 
 
@@ -233,6 +239,62 @@ def execution_provenance(path, digest, settings, model):
     }
 
 
+def extractive_journal_path():
+    return PROJECT_ROOT / "output/extractive-development-v1.calls.jsonl"
+
+
+def load_extractive_dataset(expected_sha256):
+    from scripts import extractive_development as development
+
+    expected = expected_sha256.lower()
+    if not adapter.contract._hash(expected):
+        raise previous.ExperimentBlocked("expected_dataset_hash_required")
+    raw = EXTRACTIVE_DATASET_PATH.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected:
+        raise previous.ExperimentBlocked("development_dataset_hash_mismatch")
+    return development.prepare_dataset(raw)
+
+
+def extractive_provenance(expected_sha256, settings, model):
+    from scripts import extractive_development as development
+
+    bundle = load_extractive_dataset(expected_sha256)
+    if previous._settings(model) != settings:
+        raise previous.ExperimentBlocked("execution_configuration_drift")
+    files = (
+        "scripts/atomic_claim_adapter.py",
+        "scripts/evaluate_atomic_claim_deepseek.py",
+        "scripts/extractive_development.py",
+        "scripts/extractive_basis_prototype.py",
+        "scripts/atomic_claim_contract.py",
+        "scripts/evaluate_body_evidence_deepseek.py",
+        "scripts/evaluation_artifacts.py",
+    )
+    return {
+        "git": previous.git_provenance(PROJECT_ROOT),
+        "dependencies": previous.dependency_identity(PROJECT_ROOT),
+        "source_files_sha256": {
+            **previous._source_hashes(PROJECT_ROOT),
+            **{name: sha256_file(PROJECT_ROOT / name) for name in files},
+        },
+        "settings": copy.deepcopy(settings),
+        "dataset_path": str(EXTRACTIVE_DATASET_PATH),
+        "dataset_file_sha256": bundle["dataset_file_sha256"],
+        "dataset_sha256": bundle["dataset_sha256"],
+        "case_identities": [
+            {
+                "id": case["scenario"]["id"],
+                "case_sha256": case["development_case_sha256"],
+                "scenario_sha256": json_sha256(case["development_case"]["scenario"]),
+                "expected_refs_sha256": json_sha256(case["development_case"]["expected_refs"]),
+                "pack_sha256": case["evidence_pack"]["evidence_pack_sha256"],
+                "request_sha256": json_sha256(development.build_request(case, bundle["section_focus"], model)[0]),
+            }
+            for case in bundle["cases"]
+        ],
+    }
+
+
 def _case_binding(case):
     if (
         json_sha256(case["analysis"]) != case["analysis_sha256"]
@@ -246,20 +308,69 @@ def _case_binding(case):
 def run_suite(
     bundle, settings, journal, *, provenance, max_calls=MAX_CALLS, invoke=adapter.invoke_once, client_factory=None
 ):
-    if type(max_calls) is not int or not 1 <= max_calls <= MAX_CALLS:
+    return _run_case_loop(
+        bundle,
+        settings,
+        journal,
+        provenance=provenance,
+        max_calls=max_calls,
+        invoke=invoke,
+        client_factory=client_factory,
+    )
+
+
+def run_extractive_suite(
+    bundle,
+    settings,
+    journal,
+    *,
+    provenance,
+    max_calls=MAX_EXTRACTIVE_CALLS,
+    invoke=adapter.invoke_once,
+    client_factory=None,
+):
+    return _run_case_loop(
+        bundle,
+        settings,
+        journal,
+        provenance=provenance,
+        max_calls=max_calls,
+        invoke=invoke,
+        client_factory=client_factory,
+        development_mode=True,
+    )
+
+
+def _development_end_failure(bundle):
+    from scripts import extractive_development as development
+
+    try:
+        development.validate_prepared(bundle)
+    except Exception:
+        return "development_input_drift"
+    return None
+
+
+def _run_case_loop(bundle, settings, journal, *, provenance, max_calls, invoke, client_factory, development_mode=False):
+    maximum = MAX_EXTRACTIVE_CALLS if development_mode else MAX_CALLS
+    if type(max_calls) is not int or not 1 <= max_calls <= maximum:
         raise previous.ExperimentBlocked("invalid_call_budget")
-    if bundle.get("phase") != "seen_pilot" or len(bundle.get("cases", [])) != 2:
+    if development_mode:
+        from scripts import extractive_development as development
+
+        development.validate_prepared(bundle)
+    elif bundle.get("phase") != "seen_pilot" or len(bundle.get("cases", [])) != 2:
         raise previous.ExperimentBlocked("two_seen_cases_required")
     if settings["model"] != "deepseek-v4-flash" or settings["temperature"] != 0.2 or settings["max_tokens"] != 2300:
         raise previous.ExperimentBlocked("fixed_atomic_request_configuration_required")
     client_factory = client_factory or (lambda: adapter.create_sdk(settings))
     result = {
-        "schema": RESULT_SCHEMA,
+        "schema": "extractive-development-results-v1" if development_mode else RESULT_SCHEMA,
         **_flags(),
         "started_at_utc": _now(),
         "rows": [],
         "valid": True,
-        "historical_input_origin": copy.deepcopy(bundle),
+        "development_input_origin" if development_mode else "historical_input_origin": copy.deepcopy(bundle),
         "execution_configuration": copy.deepcopy(settings),
         "max_calls": max_calls,
         "provenance_checks": [],
@@ -267,6 +378,7 @@ def run_suite(
         "capture_boundary": "application_sdk_invocation_not_wire_or_provider_receipt",
     }
     baseline, fatal, reservations = None, None, 0
+    batch_started = time.monotonic() if development_mode else None
 
     def check(label):
         nonlocal baseline, fatal
@@ -303,8 +415,15 @@ def run_suite(
         if fatal is None:
             try:
                 _case_binding(case)
-                pack = build_evidence_pack(case["analysis"], case["rag_context_assembly"])
-                request = adapter.build_request(case["scenario"], pack, settings["model"])
+                invoke_options = {}
+                if development_mode:
+                    development.validate_prepared(bundle)
+                    pack = copy.deepcopy(case["evidence_pack"])
+                    request, typed_request = development.build_request(case, bundle["section_focus"], settings["model"])
+                    invoke_options["content_validator"] = development.content_validator(typed_request)
+                else:
+                    pack = build_evidence_pack(case["analysis"], case["rag_context_assembly"])
+                    request = adapter.build_request(case["scenario"], pack, settings["model"])
                 binding = {
                     "case_binding_sha256": case["binding_sha256"],
                     "analysis_sha256": case["analysis_sha256"],
@@ -317,6 +436,7 @@ def run_suite(
                 except Exception:
                     raise previous.ExperimentBlocked("journal_write_failed") from None
                 reservations += 1
+                call_started = time.monotonic() if development_mode else None
                 row.update(
                     evidence_pack=pack,
                     **invoke(
@@ -325,8 +445,14 @@ def run_suite(
                         binding,
                         timeout_seconds=settings["timeout_seconds"],
                         client_factory=client_factory,
+                        **invoke_options,
                     ),
                 )
+                if development_mode:
+                    development.validate_prepared(bundle)
+                    row["elapsed_seconds"] = round(time.monotonic() - call_started, 6)
+                    row["timing_scope"] = "invoke_once_slot_sdk_validation_cleanup_or_timeout"
+                    row["selection_target_check"] = development.target_agreement(row, case)
                 fatal = row.get("fatal_reason")
                 try:
                     journal.append(
@@ -347,6 +473,9 @@ def run_suite(
         result["rows"].append(row)
         check(f"after_case_{index}")
     check("end")
+    if development_mode:
+        end_failure = _development_end_failure(bundle)
+        fatal = fatal or end_failure
     rows = result["rows"]
     result.update(
         completed_at_utc=_now(),
@@ -372,13 +501,23 @@ def run_suite(
     )
     if fatal:
         result["valid"] = False
+    if development_mode:
+        result.update(
+            protocol=EXTRACTIVE_PROTOCOL,
+            data_origin="synthetic_development",
+            summary=development.summarize(rows),
+            elapsed_seconds=round(time.monotonic() - batch_started, 6),
+            timing_scope="case_loop_including_provenance_and_local_validation",
+        )
     return result
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--prepared", type=Path, required=True)
-    parser.add_argument("--expected-prepared-file-sha256", required=True)
+    parser.add_argument("--protocol", default=adapter.WIRE_SCHEMA, choices=[adapter.WIRE_SCHEMA, EXTRACTIVE_PROTOCOL])
+    parser.add_argument("--prepared", type=Path)
+    parser.add_argument("--expected-prepared-file-sha256")
+    parser.add_argument("--expected-dataset-sha256")
     parser.add_argument("--run-model", action="store_true")
     parser.add_argument("--allow-external-deepseek", action="store_true")
     parser.add_argument(
@@ -387,22 +526,53 @@ def main(argv=None):
         help="Use the fixed, anchored complete-root-example follow-up allowance once.",
     )
     parser.add_argument("--model", required=True, choices=["deepseek-v4-flash"])
-    parser.add_argument("--max-calls", type=int, default=MAX_CALLS, choices=[1, 2])
+    parser.add_argument("--max-calls", type=int)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
+    development_mode = args.protocol == EXTRACTIVE_PROTOCOL
+    if development_mode:
+        if (
+            args.prepared
+            or args.expected_prepared_file_sha256
+            or args.root_example_follow_up
+            or not args.expected_dataset_sha256
+        ):
+            parser.error(
+                "extractive development requires only --expected-dataset-sha256; prepared/follow-up arguments are forbidden"
+            )
+    elif not args.prepared or not args.expected_prepared_file_sha256 or args.expected_dataset_sha256:
+        parser.error(
+            "atomic selection requires --prepared and --expected-prepared-file-sha256, without dataset arguments"
+        )
+    maximum = MAX_EXTRACTIVE_CALLS if development_mode else MAX_CALLS
+    args.max_calls = maximum if args.max_calls is None else args.max_calls
+    if not 1 <= args.max_calls <= maximum:
+        parser.error(f"--max-calls must be between 1 and {maximum} for this protocol")
     try:
         settings = previous.admit_environment(
             run_model=args.run_model, allow_external_deepseek=args.allow_external_deepseek, model_arg=args.model
         )
-        bundle = previous.load_seen_pilot(args.prepared, args.expected_prepared_file_sha256)
+        bundle = (
+            load_extractive_dataset(args.expected_dataset_sha256)
+            if development_mode
+            else previous.load_seen_pilot(args.prepared, args.expected_prepared_file_sha256)
+        )
         follow_up = (
             validate_root_example_follow_up(args.prepared, args.expected_prepared_file_sha256, bundle)
             if args.root_example_follow_up
             else None
         )
-        ledger = follow_up_journal_path() if follow_up else journal_path(args.expected_prepared_file_sha256)
+        ledger = (
+            extractive_journal_path()
+            if development_mode
+            else follow_up_journal_path()
+            if follow_up
+            else journal_path(args.expected_prepared_file_sha256)
+        )
 
         def provenance():
+            if development_mode:
+                return extractive_provenance(args.expected_dataset_sha256, settings, args.model)
             current = execution_provenance(args.prepared, args.expected_prepared_file_sha256, settings, args.model)
             if follow_up:
                 current["follow_up"] = validate_root_example_follow_up(
@@ -410,7 +580,8 @@ def main(argv=None):
                 )
             return current
 
-        if args.output.resolve() in {args.prepared.resolve(), ledger.resolve()}:
+        input_path = EXTRACTIVE_DATASET_PATH if development_mode else args.prepared
+        if args.output.resolve() in {input_path.resolve(), ledger.resolve()}:
             raise previous.ExperimentBlocked("output_path_collision")
         with args.output.open("x", encoding="utf-8") as output:
             try:
@@ -418,9 +589,16 @@ def main(argv=None):
                     journal = Journal(handle)
                     journal.append(
                         event="run_claim",
-                        prepared_file_sha256=args.expected_prepared_file_sha256.lower(),
                         max_calls=args.max_calls,
                         model=args.model,
+                        **(
+                            {
+                                "protocol": EXTRACTIVE_PROTOCOL,
+                                "dataset_file_sha256": args.expected_dataset_sha256.lower(),
+                            }
+                            if development_mode
+                            else {"prepared_file_sha256": args.expected_prepared_file_sha256.lower()}
+                        ),
                         **(
                             {
                                 key: follow_up[key]
@@ -435,7 +613,8 @@ def main(argv=None):
                             else {}
                         ),
                     )
-                    result = run_suite(
+                    run = run_extractive_suite if development_mode else run_suite
+                    result = run(
                         bundle,
                         settings,
                         journal,
@@ -447,7 +626,12 @@ def main(argv=None):
                         result["follow_up"] = follow_up
             except Exception as error:
                 result = {
-                    "schema": RESULT_SCHEMA,
+                    "schema": "extractive-development-results-v1" if development_mode else RESULT_SCHEMA,
+                    **(
+                        {"protocol": EXTRACTIVE_PROTOCOL, "data_origin": "synthetic_development"}
+                        if development_mode
+                        else {}
+                    ),
                     **_flags(),
                     "valid": False,
                     "error_code": error.code

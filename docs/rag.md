@@ -588,6 +588,31 @@ and responses, not new model trials or the unopened four-case holdout. The
 prototype verifies full-unit copying and state separation only; selection
 quality, proposal quality and complete-report usefulness remain unmeasured.
 
+### Bounded extractive development run
+
+The existing atomic evaluator has an explicit `extractive-development-v1`
+protocol for four synthetic development cases, with region, audience and task
+focus supplied as unverified scenario data. Each case includes distractor
+units. `data_australia/rag/extractive_development_v1.json` fixes the inputs and
+allowed-reference sets before execution; those sets remain evaluation-only
+and are never sent to the model. Agreement with these sets is a development
+diagnostic, not semantic accuracy or professional approval.
+
+The protocol reuses the existing TLS client, admission checks, quota, deadline
+and SDK argument capture. A content validator runs only after the unchanged
+response-boundary checks and cannot replace transport metadata. Extractive
+validation results use a narrow projection, not the offline prototype's
+`synthetic_offline`/zero-call envelope. The input passages are synthetic even
+when the response is from a real remote model.
+
+This batch permits at most four calls, one per case, without repair or retry.
+Its fixed, exclusively created journal cannot be reset by changing output or
+code filenames. Ordinary protocol failures stay in the four-case denominator;
+transport, authentication, quota, timeout, safety-boundary, provenance or journal
+failures stop subsequent calls. Timings include the stated invocation boundary,
+not a claim about pure model inference time. Historical runs, the unopened
+holdout and production generation are not changed or reclassified by this run.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.

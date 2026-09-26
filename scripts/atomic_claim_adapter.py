@@ -215,7 +215,7 @@ def response_metadata(response):
     }
 
 
-def check_response(response, pack):
+def check_response(response, pack, content_validator=None):
     result = {
         "response_origin": "remote_model",
         "assistant_content": None,
@@ -281,9 +281,32 @@ def check_response(response, pack):
     if _field(choice, "finish_reason") != "stop" or not isinstance(content, str):
         return {**result, "error_code": "incomplete_or_nontext_response"}
     try:
-        return {**result, **validate_selection(content, pack), "status": "validated"}
-    except (contract.ContractError, SelectionError) as error:
-        return {**result, "error_code": error.code if isinstance(error, SelectionError) else "contract_rejected"}
+        if content_validator is None:
+            checked = validate_selection(content, pack)
+        else:
+            checked = content_validator(content, copy.deepcopy(pack))
+            if (
+                type(checked) is not dict
+                or set(checked) != {"extractive_check"}
+                or type(checked["extractive_check"]) is not dict
+            ):
+                return {
+                    **result,
+                    "error_code": "content_validator_boundary_rejected",
+                    "fatal_reason": "content_validator_boundary_rejected",
+                }
+            checked = copy.deepcopy(checked)
+        return {**result, **checked, "status": "validated"}
+    except contract.ContractError:
+        return {**result, "error_code": "contract_rejected"}
+    except SelectionError as error:
+        if content_validator is not None:
+            return {**result, "error_code": "content_validator_failed", "fatal_reason": "content_validator_failed"}
+        return {**result, "error_code": error.code}
+    except Exception:
+        if content_validator is None:
+            raise
+        return {**result, "error_code": "content_validator_failed", "fatal_reason": "content_validator_failed"}
 
 
 def create_sdk(settings, *, sdk_factory=None, http_factory=None):
@@ -322,7 +345,16 @@ def _check_binding(request, pack, binding):
 
 
 def invoke_once(
-    request, pack, binding, *, timeout_seconds, client_factory, acquire_slot=None, clock=time.monotonic, waiter=None
+    request,
+    pack,
+    binding,
+    *,
+    timeout_seconds,
+    client_factory,
+    acquire_slot=None,
+    clock=time.monotonic,
+    waiter=None,
+    content_validator=None,
 ):
     """One daemon worker owns the slot until completion; callers never release it."""
     if acquire_slot is None:
@@ -365,7 +397,7 @@ def invoke_once(
             if cancelled.is_set() or clock() >= deadline:
                 return
             _check_binding(request, pack, binding)
-            checked = check_response(response, pack)
+            checked = check_response(response, pack, content_validator=content_validator)
             with lock:
                 if not cancelled.is_set() and clock() < deadline:
                     state["invocation_capture"]["response_sha256"] = checked["assistant_content_sha256"]
