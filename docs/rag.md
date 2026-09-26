@@ -665,6 +665,58 @@ regressions. The full non-E2E suite passed 2,522 tests, with 7 skipped,
 The four-case holdout remains unread and unrun. Production generation and the
 formal v0.6.0 release evidence are unchanged.
 
+### Offline proposal evidence boundary
+
+`scripts/proposal_evidence_contract.py` is a separate offline candidate, not a
+revision of the executed extractive v1 protocol. It binds an application-owned
+selection context for sections 7, 11 and 12 to one validated visible-evidence
+pack. That context does not attest a historical model response or SDK capture.
+Old v1 responses are not automatically migrated or reclassified as new passes.
+
+When a section has no selected unit, its proposal can only be the fixed
+`requires_evidence` state. The application asks for evidence to be supplied and
+reviewed before drafting; no free-text proposal or dependency list is accepted
+in that branch. This prevents an empty selection from carrying an instruction
+to draft from unspecified general guidance through this proposal field. It
+does not prove that no relevant source exists elsewhere, or validate text in
+other fields or in the production report.
+
+A selected unit permits a separate `draft_for_review` proposal, capped at 480
+Unicode codepoints, with one to three unique declared references. Those must
+explicitly include the selected primary reference; none is added automatically.
+An unrelated primary is not justified merely by listing it. A different basis
+requires an explicit application selection change or the `requires_evidence`
+state, which remains available even with a selected unit.
+Every referenced visible unit is copied in full into its
+own review block with its identity and hash; units are not spliced into a
+synthetic quotation. Declaring several references makes those dependencies
+inspectable, not their combined reasoning valid. Each dependency and proposal
+remains unverified; local sufficiency, semantic support and undeclared
+dependencies remain unknown.
+
+In particular, a proposal declaring A but implicitly relying on undeclared B
+can still pass structural validation. So can a proposal that reverses a source
+negation or assigns the same number to a different population. Synthetic
+counterexamples preserve this limitation rather than claiming that reference
+validation detects it. This candidate closes the empty-selection free-text
+path and makes declared cross-unit dependencies visible; it does not solve
+semantic grounding or establish dependency completeness.
+
+The functions only build, validate and render an escaped review fragment.
+Rendering revalidates the typed result's request, payload and reference bindings;
+it does not accept an arbitrary result dictionary. This catches accidental
+tampering, not an operator with arbitrary Python-memory or filesystem control.
+They add no CLI, SDK invocation, retrieval, budget or production integration.
+The previous prompt, dataset, adapter, runner, raw results and call journals
+remain unchanged; the nineteen-call historical sequence and unopened holdout
+are unaffected.
+
+Verification on 2026-09-26: 60 new synthetic tests passed as part of 168 related
+offline regressions. The full non-E2E suite passed 2,582 tests, with 7 skipped,
+6 deselected and 89.64% src coverage. Independent read-only review and the
+repository Ruff/Bandit checks passed. No new model request or browser E2E run
+was performed. This candidate remains outside the production generation path.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
