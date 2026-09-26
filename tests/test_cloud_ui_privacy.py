@@ -77,8 +77,19 @@ def _data_status():
     return status
 
 
+@pytest.fixture(scope="module")
+def _initialized_dataframe_renderer():
+    # The first st.dataframe lazily imports pandas/pyarrow. Give that framework
+    # startup its own budget so the privacy render keeps its three-second limit.
+    app = AppTest.from_string("import streamlit as st\nst.dataframe([{'status': 'ready'}])").run(timeout=10)
+    assert not app.exception
+    assert app.dataframe[0].value.to_dict("records") == [{"status": "ready"}]
+
+
 @pytest.mark.parametrize("mode", ["local", "cloud"])
-def test_rendered_data_rag_and_network_errors_follow_deployment_privacy(mode, monkeypatch):
+def test_rendered_data_rag_and_network_errors_follow_deployment_privacy(
+    mode, monkeypatch, _initialized_dataframe_renderer
+):
     monkeypatch.setenv("BUSHFIRE_DEPLOYMENT_MODE", mode)
     monkeypatch.delenv("RAILWAY_PROJECT_ID", raising=False)
     monkeypatch.delenv("RAILWAY_ENVIRONMENT_ID", raising=False)
@@ -100,7 +111,7 @@ render_data_status()
 render_rag_status()
 render_official_status_panel()
 """
-    ).run()
+    ).run(timeout=3)
     assert not app.exception
     markdown = "\n".join(item.value for item in app.markdown)
     warnings = "\n".join(item.value for item in app.warning)
