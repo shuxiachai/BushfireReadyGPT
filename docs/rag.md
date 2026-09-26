@@ -391,13 +391,68 @@ from the basis. A literal quotation can still omit a neighbouring exception.
 The result explicitly records zero model calls, synthetic offline origin,
 no new transport capture, unevaluated full-report coverage, null semantic
 accuracy and production disabled. The production Markdown client/admission
-path is unchanged; there is no network adapter, UI rollout or new release.
+path is unchanged; this offline component has no network adapter or UI rollout.
 
 Verification on 2026-09-26: 54 dedicated synthetic cases passed, including
 Unicode offsets, oversized integers, forged references and preview escaping.
 The complete non-E2E suite passed 2,365 tests, with 7 skipped, 6 deselected and
 89.64% src coverage. Independent review and Ruff/Bandit checks passed. These
 results verify the offline contract, not structured model output quality.
+
+### Independent structured selection probe
+
+`scripts/atomic_claim_adapter.py` and
+`scripts/evaluate_atomic_claim_deepseek.py` keep live structured generation
+separate from the production Markdown client and the offline preview. The
+provider is asked for [JSON object output](https://api-docs.deepseek.com/guides/json_mode/);
+normal completion, the selection schema and reference binding are still checked
+by the application. Provider JSON mode is not proof of a valid claim contract.
+
+The wire schema, `atomic-claim-selection-v1`, asks the model to choose a
+`passage_ref` and an exact `quote`, not to count characters. The application
+searches only the already selected passage and derives offsets only for a
+single exact occurrence, including overlapping matches. No match or multiple
+matches is a failure; there is no trimming, normalisation, fuzzy matching,
+cross-passage search or post-failure repair. The derived payload is then
+validated by the unchanged offline contract.
+
+SDK assistant content is retained without the Markdown cleaner. Raw content,
+the derived payload, evidence pack and actual SDK invocation arguments have
+separate bindings. Derived offsets are labelled as application-computed, not
+model-authored. Returned model, fingerprint and token usage are provider-reported
+metadata, not immutable weight identity or a currency-cost measurement. The
+live envelope does not reuse the offline preview's synthetic-origin wording.
+Capture attests application SDK arguments, not network bytes or provider receipt.
+
+This initial probe permits one request for each of the same two seen cases:
+at most two new calls, no automatic retry, repair, model fallback or holdout
+evaluation. A fixed separate journal namespace preserves the previous eleven
+remote calls and prevents a new output filename resetting this probe. Transport,
+quota, authentication, timeout, tooling-boundary or journal/provenance failures
+stop the batch; ordinary JSON or literal-binding failures remain failed cases.
+Partial section coverage and all-abstention output are reported separately,
+not counted as evidence of successful full-report generation. Production and
+release activation stay off, with semantic support and condition preservation
+still requiring review.
+
+The first live selection probe on 2026-09-26 used exactly two new requests,
+bringing the recorded remote total to thirteen. Both returned normal `stop`
+completion and parseable JSON, but **0/2 passed the selection contract**:
+both root objects contained only `type` and `items`, omitting `schema` and
+`evidence_pack_sha256`. No missing field was filled in, no canonical payload
+was generated, and the responses were not counted as verified quote bindings.
+Six provenance checks were stable; the request, response, evidence-pack and
+journal bindings were independently checked. Provider-reported usage was
+3,294 input plus 735 output tokens (4,029 total); currency cost remains unknown.
+
+The request instructions named the required fields but only illustrated the
+nested basis shape, not the complete root JSON object. Adding a complete
+root example is a prompt-contract clarification to verify offline, not proof
+that this omission was the sole cause or that model performance has improved.
+The original response and journal remain private and unchanged. The live
+adapter's 46 dedicated tests and related regressions passed (163 together);
+the complete non-E2E suite passed 2,411 tests, 7 skipped, 6 deselected, with
+89.64% src coverage. No production activation or new release follows.
 
 ## Integrity and prompt-injection controls
 
