@@ -463,9 +463,18 @@ synthetic tests, the non-E2E suite passed 2,413 tests, with 7 skipped,
 6 deselected and 89.64% src coverage. A final wording-only change from
 "Select" to "Choose" avoided a Bandit SQL-string false positive; the final
 version then passed 165 related regressions, Ruff and Bandit without suppressing
-the rule. The complete suite was not repeated for that synonym. No new model call followed the
-clarification: the observed live result remains **0/2**. No production
-activation or new release follows.
+the rule. The complete suite was not repeated for that synonym. At that
+checkpoint, the clarification had not been rerun against a model; the observed
+live result was **0/2**. No production activation or new release followed.
+
+A separately authorised `--root-example-follow-up` is limited to the same two
+seen cases, once each. This is a fixed campaign, not an arbitrary run ID or a
+budget reset. Its admission binds the original prepared-file, result and journal
+hashes and the clarified system-prompt hash. Rebuilt requests must equal the
+original captured requests except for that system message. A separate fixed,
+exclusively created journal prevents repeated dispatch by changing output names;
+the old result and counters are retained. It does not evaluate the holdout or
+activate production, and failures remain in the two-case denominator.
 
 ## Integrity and prompt-injection controls
 
