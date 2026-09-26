@@ -613,6 +613,58 @@ failures stop subsequent calls. Timings include the stated invocation boundary,
 not a claim about pure model inference time. Historical runs, the unopened
 holdout and production generation are not changed or reclassified by this run.
 
+Execution on `535bd6b` on 2026-09-26 completed exactly four remote requests,
+one per development case, without retry or repair. All four passed the
+extractive contract, and all twelve section selections agreed with their
+predeclared allowed-reference sets. There were **six selected units and six
+empty selections**, not twelve evidence-supported sections or complete reports.
+The inputs and targets are synthetic development fixtures, not independent
+human/domain gold labels. These counts do not measure semantic accuracy,
+real-world retrieval quality or improvement over the earlier two seen cases.
+
+All ten provenance checks were stable. Offline recomputation reproduced the
+captured SDK arguments, raw-response hashes, evidence-pack bindings, full-unit
+copies, evaluation-only target comparisons and call-journal correspondence.
+The same local quota database increased from four to eight calls; the remote
+comparison/selection sequence has now used nineteen calls. Earlier results and
+journals remain unchanged, and no additional call was made after this batch.
+
+The requested alias was `deepseek-v4-flash`; all four responses reported
+`deepseek-flash` with fingerprint `aeb56401ca74e127821c4f9126dcb669`.
+That is provider-reported identity, not an immutable weights digest. Usage was
+4,191 input plus 1,721 output tokens (5,912 total), including 384 cache-hit input
+tokens. The case loop took 13.67 seconds including provenance and local
+validation; this is not pure inference latency or a general performance claim.
+Currency cost and semantic accuracy remain unknown.
+
+The retained local, Git-ignored result
+`output/extractive-development-results-20260926-a.json` has SHA-256
+`6ed778f69daeb07bdacedf6e9f3fc92293709d20a428ec2cec38b55063a2651d`;
+the fixed journal `output/extractive-development-v1.calls.jsonl` has SHA-256
+`98dcd5cf318d388b3a887520635791f69991c8b21a7174411bf1076c95012df0`.
+The original machine summary retains `manual_raw_response_review=not_performed`;
+later model-assisted source review is a separate observation, not a rewritten
+raw result or a human assessment.
+
+Independent model-assisted source review found that D3's empty equipment and
+training selections still propose drafting from unspecified "general guidance"
+that was not supplied for those topics. Its communication proposal selects
+`passage-001` but also uses a caution from unselected `passage-002`. That caution
+exists in the visible catalog, but is not bound by the selected basis. Neither
+an empty selection nor a valid copied unit endorses the separate proposal.
+D2 retains the supplied conditions and exclusion, while D4 requests relevant
+evidence before drafting. Review did not identify filled-in local names, counts
+or inspection states in these four responses; that limited observation is not
+a hallucination-free or safety finding. Proposal scope for empty selections and
+cross-unit dependencies needs offline definition and counterexample coverage
+before advancing this candidate to the unopened holdout or production.
+
+Before execution, 32 dedicated synthetic tests passed as part of 257 related
+regressions. The full non-E2E suite passed 2,522 tests, with 7 skipped,
+6 deselected and 89.64% src coverage; independent review, Ruff and Bandit passed.
+The four-case holdout remains unread and unrun. Production generation and the
+formal v0.6.0 release evidence are unchanged.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
