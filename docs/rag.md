@@ -515,6 +515,43 @@ regressions, followed by 2,436 non-E2E tests (7 skipped, 6 deselected; 89.64% sr
 coverage), independent review and Ruff/Bandit checks. The four-case holdout is
 still unread and unrun. No production activation or new release follows.
 
+### Offline selected-quotation review
+
+`scripts/atomic_claim_advisory.py` adds a separate advisory layer. It revalidates
+the supplied wire response and evidence pack using the unchanged selection
+contract. The selected quotation is the comparison boundary for a claim;
+neighbouring text is shown separately for review and never fills gaps in that
+quotation. Differences in content terms, numeric literals and negation or
+condition markers are diagnostic observations, not semantic verdicts.
+
+For abstentions, a small fixed topic-cue inventory exposes general material
+that a reviewer may want to inspect. A cue does not establish local needs or
+prove the abstention wrong; no cue does not establish that evidence is absent.
+Local sufficiency, semantic support and abstention correctness remain unknown.
+Local proposals require separate review, and even an item with no detected
+differences is not automatically approved.
+
+Offline replay of the two existing follow-up responses exposes the school
+claim's missing selected-quote terms and the communication cues discussed above.
+It also flags the farm claim's expansion of `APZ` to its full name: a useful
+example of why lexical differences are not unsupported-claim verdicts. English
+word forms, synonyms, abbreviations and relation changes are not resolved by
+this inventory. A repeated number can refer to a different population or
+predicate even when every word and number is present.
+
+The escaped preview is an offline review fragment, not a complete report or a
+new transport capture. This layer does not change the executed prompt, wire
+schema, call budgets, production gate or historical model results. It performs
+no retrieval or model call and does not evaluate the four-case holdout.
+
+Verification on 2026-09-26: 17 new synthetic advisory tests passed as part of
+129 related regressions; the complete non-E2E suite passed 2,453 tests, with
+7 skipped, 6 deselected and 89.64% src coverage. Independent read-only review,
+Ruff and Bandit passed. Reanalysis used only the already-recorded two responses;
+the executed prompt, adapter, contract, runner, raw results and call journals
+remain unchanged. These checks validate diagnostic behavior, not improved
+generation quality or a new semantic benchmark.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
