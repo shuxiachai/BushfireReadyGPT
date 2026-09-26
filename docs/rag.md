@@ -326,6 +326,79 @@ human/domain gold label or semantic accuracy score. No candidate promotion,
 holdout execution, structured-generation rollout or new release follows from
 this incomplete comparison.
 
+After the protocol-retry fix, a separately authorised run on `2c1c3da`
+froze a new input bundle and completed the four-arm procedure with **seven
+new invocations** (eleven across both remote runs). The old four-call result
+and journal remain unchanged. Retrieval source IDs, chunk text and ordering
+matched the old bundle; small dense-score differences changed the context
+metadata and its hash. Both arms within the new run used exactly the same new
+frozen input. This is not a byte-identical cross-run model comparison.
+
+| Case | Arm | Outcome | Cited / requires citation | Invocations |
+| --- | --- | --- | ---: | ---: |
+| Cairns school | Baseline | Governed gate/capture passed | 3 / 99 | 1 |
+| Cairns school | Claim pair | Passed after one length retry | 3 / 98 | 2 |
+| Margaret River farm | Claim pair | Governed gate/capture passed | 3 / 106 | 1 |
+| Margaret River farm | Baseline | Three length rejections; no admitted report | Unknown | 3 |
+
+All thirteen provenance checks were stable. All three admitted final reports
+had valid SDK capture. The two candidate reports each contained three complete
+pairs, but their six cited claims represented only 6 of 204 claims classified as
+requiring citations; 198 remained uncited. The baseline denominator still
+includes its failed farm arm; its available content metrics describe only the
+school report. Pair compliance, completion and whole-report citation coverage
+are distinct outcomes. This seen two-case run is a limited format/completion
+signal, not evidence of semantic accuracy, general model superiority or
+readiness for default production activation. No additional model calls or
+holdout evaluation followed this run.
+
+Independent model-assisted source review found corresponding text for the six
+candidate basis statements, but also material limits: one school statement used
+roof/gutter maintenance evidence in a first-aid/training section, and one farm
+statement compressed a condition and omitted an alternative branch. The
+available school pair had three cited claims in both arms (3/99 versus 3/98),
+so the layout did not increase that case's citation count. These findings do
+not constitute human gold labels or permission to suppress the review flags.
+
+The cached QLD home-preparation text also contains counterintuitive property
+maintenance wording that was still present on the
+[official source page](https://www.qld.gov.au/emergency/dealing-disasters/disaster-types/bushfires/bushfire-prepare/prepare-your-home-for-bushfire-season)
+when checked on 2026-09-26. The raw file and submitted sentence agree; no lost
+negation was found at extraction or windowing boundaries. This is a source
+quality review item, not evidence that an official-source label guarantees
+correctness. The frozen corpus was not silently rewritten.
+
+### Offline atomic-claim contract, not a generation pipeline
+
+`scripts/atomic_claim_contract.py` is an isolated pure-function prototype.
+An application-owned evidence pack is built only after validating a recorded
+context assembly. A payload may contain one to three explicit claim-or-abstention
+items for sections 7, 11 and 12, with a separate local proposal. It cannot
+declare new source metadata or ask the application to choose a similar source.
+
+Each claim explicitly selects a passage reference and a contiguous quotation
+using Python Unicode character offsets. The quotation must match that exact
+visible passage slice: no trimming, Unicode normalisation, fuzzy repair or
+cross-passage splicing. Duplicate JSON keys, unknown fields, invalid spans,
+wrong evidence-pack hashes and abstentions carrying hidden claims/references
+are rejected. The review preview is an escaped experimental fragment, not a
+complete governed report or a replacement for its fifteen sections.
+
+This proves only structural validity and literal reference binding. Topic
+relevance, preservation of conditions and semantic atomicity remain unknown;
+the local proposal always needs its own review and does not inherit support
+from the basis. A literal quotation can still omit a neighbouring exception.
+The result explicitly records zero model calls, synthetic offline origin,
+no new transport capture, unevaluated full-report coverage, null semantic
+accuracy and production disabled. The production Markdown client/admission
+path is unchanged; there is no network adapter, UI rollout or new release.
+
+Verification on 2026-09-26: 54 dedicated synthetic cases passed, including
+Unicode offsets, oversized integers, forged references and preview escaping.
+The complete non-E2E suite passed 2,365 tests, with 7 skipped, 6 deselected and
+89.64% src coverage. Independent review and Ruff/Bandit checks passed. These
+results verify the offline contract, not structured model output quality.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
