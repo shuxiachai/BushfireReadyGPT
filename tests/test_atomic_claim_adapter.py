@@ -145,6 +145,45 @@ def test_exact_request_json_mode_and_single_complete_pack():
     assert "quote_start" not in request["messages"][0]["content"]
 
 
+def test_prompt_complete_root_example_matches_v1_after_synthetic_substitution():
+    pack, *_ = make_pack()
+    example = json.loads(adapter.ROOT_EXAMPLE_JSON)
+    assert set(example) == {"schema", "evidence_pack_sha256", "items"}
+    assert example["schema"] == adapter.WIRE_SCHEMA == "atomic-claim-selection-v1"
+    assert [item["section_id"] for item in example["items"]] == [7, 11, 12]
+    assert all(set(item) == {"id", "section_id", "basis", "local_proposal"} for item in example["items"])
+    assert adapter.SYSTEM_PROMPT.count(adapter.ROOT_EXAMPLE_JSON) == 1
+    assert "NOT your output object" in adapter.SYSTEM_PROMPT
+    assert "Replace EVERY angle-bracket placeholder" in adapter.SYSTEM_PROMPT
+    assert "CURRENT supplied" in adapter.SYSTEM_PROMPT
+    example["evidence_pack_sha256"] = pack["evidence_pack_sha256"]
+    passage = pack["passages"][0]
+    first = example["items"][0]["basis"]
+    first["text"] = "Organisers should review routes unless official advice changes."
+    first["evidence"] = {"passage_ref": passage["passage_ref"], "quote": passage["text"]}
+    for item in example["items"]:
+        item["local_proposal"] = "Proposed local owner review; confirmation is required."
+        if item["basis"]["kind"] == "abstention":
+            item["basis"]["reason"] = "No suitable evidence for this section in the synthetic fixture."
+    assert "<" not in json.dumps(example)
+    checked = adapter.validate_selection(json.dumps(example), pack)
+    assert checked["requested_section_coverage_complete"] and checked["quote_binding_exercised"]
+    assert checked["contract_check"]["contract_valid"] and checked["contract_check"]["reference_binding_valid"]
+
+
+def test_api_type_and_items_root_still_fails_without_schema_and_hash():
+    pack, *_ = make_pack()
+    wrong_root = {"type": "json_object", "items": selection(pack)["items"]}
+    raw = json.dumps(wrong_root)
+    with pytest.raises(contract.ContractError, match="missing or unknown fields"):
+        adapter.validate_selection(raw, pack)
+    checked = adapter.check_response(sdk_response(raw), pack)
+    assert checked["finish_reason"] == "stop" and checked["status"] == "failed"
+    assert checked["error_code"] == "contract_rejected" and "canonical_payload" not in checked
+    assert checked["assistant_content"] == raw
+    assert set(json.loads(checked["assistant_content"])) == {"type", "items"}
+
+
 @pytest.mark.parametrize("text,quote", [("aaa", "aa"), ("review review", "review")])
 def test_overlapping_and_nonoverlapping_duplicate_quotes_fail(text, quote):
     pack, *_ = make_pack([text])

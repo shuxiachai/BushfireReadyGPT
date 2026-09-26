@@ -350,7 +350,8 @@ school report. Pair compliance, completion and whole-report citation coverage
 are distinct outcomes. This seen two-case run is a limited format/completion
 signal, not evidence of semantic accuracy, general model superiority or
 readiness for default production activation. No additional model calls or
-holdout evaluation followed this run.
+holdout evaluation were made within this comparison; the separate selection
+probe below does not replace these results.
 
 Independent model-assisted source review found corresponding text for the six
 candidate basis statements, but also material limits: one school statement used
@@ -445,14 +446,26 @@ Six provenance checks were stable; the request, response, evidence-pack and
 journal bindings were independently checked. Provider-reported usage was
 3,294 input plus 735 output tokens (4,029 total); currency cost remains unknown.
 
-The request instructions named the required fields but only illustrated the
-nested basis shape, not the complete root JSON object. Adding a complete
-root example is a prompt-contract clarification to verify offline, not proof
-that this omission was the sole cause or that model performance has improved.
-The original response and journal remain private and unchanged. The live
-adapter's 46 dedicated tests and related regressions passed (163 together);
-the complete non-E2E suite passed 2,411 tests, 7 skipped, 6 deselected, with
-89.64% src coverage. No production activation or new release follows.
+The executed adapter and its failure record are preserved in `39f6c21`.
+Those request instructions named the required fields but only illustrated the
+nested basis shape, not the complete root JSON object. A subsequent prompt-only
+clarification adds a complete root example, lists the exact root keys and
+distinguishes the API's `response_format` setting from the expected response
+shape. Example hashes, references and quotations are placeholders, not
+preselected evidence. The strict validator is unchanged; an object containing
+only `type` and `items` is still rejected. This is not proof that the incomplete
+example was the sole cause or that model performance has improved.
+
+The original response and journal remain private and unchanged. The executed
+adapter passed 46 dedicated tests and related regressions (163 together),
+and 2,411 non-E2E tests. With the root-example clarification and two additional
+synthetic tests, the non-E2E suite passed 2,413 tests, with 7 skipped,
+6 deselected and 89.64% src coverage. A final wording-only change from
+"Select" to "Choose" avoided a Bandit SQL-string false positive; the final
+version then passed 165 related regressions, Ruff and Bandit without suppressing
+the rule. The complete suite was not repeated for that synonym. No new model call followed the
+clarification: the observed live result remains **0/2**. No production
+activation or new release follows.
 
 ## Integrity and prompt-injection controls
 
