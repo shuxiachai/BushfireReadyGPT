@@ -12,6 +12,7 @@ data_australia/rag/report_red_team-v*.json text eol=lf
 data_australia/rag/form_evaluation_v*.json text eol=lf
 data_australia/rag/content_holdout_v1.json -text
 data_australia/rag/extractive_development_v1.json text eol=lf
+data_australia/rag/proposal_development_v1.json text eol=lf
 # Preserve recorded diagnostic bytes; their published hashes must survive checkout.
 docs/diagnostics/*.json -text
 examples/v*/*.md text eol=lf

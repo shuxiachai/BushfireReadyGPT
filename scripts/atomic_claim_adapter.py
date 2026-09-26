@@ -287,8 +287,8 @@ def check_response(response, pack, content_validator=None):
             checked = content_validator(content, copy.deepcopy(pack))
             if (
                 type(checked) is not dict
-                or set(checked) != {"extractive_check"}
-                or type(checked["extractive_check"]) is not dict
+                or set(checked) not in ({"extractive_check"}, {"proposal_check"})
+                or any(type(value) is not dict for value in checked.values())
             ):
                 return {
                     **result,

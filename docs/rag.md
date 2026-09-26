@@ -717,6 +717,49 @@ offline regressions. The full non-E2E suite passed 2,582 tests, with 7 skipped,
 repository Ruff/Bandit checks passed. No new model request or browser E2E run
 was performed. This candidate remains outside the production generation path.
 
+### Bounded given-basis proposal development
+
+The explicit `proposal-development-v1` protocol in the existing atomic
+evaluator exercises the unchanged proposal contract with real model responses.
+It is a separate fixed campaign, not an upgrade of previous responses or a
+reset of an existing call allowance. `proposal_development_v1.json` binds the
+already-seen four-case synthetic catalog by file hash, and independently fixes
+application primary selections and task focus before execution. The original
+catalog's selection targets do not determine these choices or enter requests.
+
+The model receives the application-provided primary references, visible units
+and proposal task. This is **given-basis proposal compliance**, not a test of
+model source selection, an independent holdout, a full report or a fair A/B
+comparison with the earlier selection task. The twelve slots contain six null
+and six non-null primaries. Diagnostics separate fixed evidence requests in
+null slots, drafts versus evidence requests in non-null slots, and single- versus
+multi-source declarations. Failed or unrun cases remain in the four-case and
+twelve-slot denominators as unevaluated, not successful evidence requests. If
+every slot requests evidence, the non-null draft count is zero out of six.
+
+Source-based review separately checks whether D3 uses the general-publication
+caution and declares its dependency, and whether D2 preserves the prerequisites
+and exceptions for the actions actually proposed. Other review questions are
+whether a primary is merely attached without relevance, whether outside guidance
+or local facts were invented, and whether each declared unit is copied fully.
+These are review questions, not machine-scored semantic gold labels. Declaring
+two references cannot establish that all dependencies have been declared.
+
+The campaign permits at most four requests, once per case, with no repair or
+retry, using the existing transport, slot, timeout, quota and SDK capture.
+A fixed exclusively created journal prevents a second dispatch under changed
+output or configuration names. Source data, application selections, typed
+request, actual SDK kwargs and raw response are bound separately and checked
+for drift. The remote result contains only a narrow projection of contract
+content: it does not inherit the offline preview's zero-call origin or use its
+renderer. Neither production generation nor the unopened holdout is enabled.
+
+Pre-execution verification on 2026-09-26: 35 dedicated mock tests passed as part
+of 198 related regressions. The complete non-E2E suite passed 2,617 tests,
+with 7 skipped, 6 deselected and 89.64% src coverage. Independent read-only
+admission review and the repository Ruff/Bandit checks passed. These checks
+authorize this bounded experiment; they are not real-model content results.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.

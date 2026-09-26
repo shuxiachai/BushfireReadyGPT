@@ -1,0 +1,27 @@
+{
+  "schema": "proposal-development-context-v1",
+  "protocol": "proposal-development-v1",
+  "source_dataset_sha256": "c621a7d64c3fe3fea5d5f176160f6f54cc1ea93c18ca4031051000f1503ed2fd",
+  "cases": [
+    {
+      "id": "D1",
+      "selected_unit_id_by_section": {"7": "u01", "11": "u02", "12": null},
+      "task_focus": "Review equipment checking and contact maintenance as proposals for human review. Do not invent local owners, inventory or communication needs. Draft only when the supplied units and explicitly declared dependencies permit a reviewable proposal; otherwise request evidence."
+    },
+    {
+      "id": "D2",
+      "selected_unit_id_by_section": {"7": "u01", "11": "u02", "12": "u02"},
+      "task_focus": "Review equipment issue controls, participant accessibility and practice arrangements. Preserve the conditions and exceptions for any action actually proposed; do not assert that inspection, recall checks or instructor readiness have been confirmed. Draft only if reviewable from the supplied units; otherwise request evidence."
+    },
+    {
+      "id": "D3",
+      "selected_unit_id_by_section": {"7": null, "11": "u01", "12": null},
+      "task_focus": "Review accessible communication while distinguishing general format guidance from locally verified needs. If a proposal relies on another supplied unit, explicitly declare that dependency. No local needs assessment is supplied. For a null primary return only the fixed evidence-required state."
+    },
+    {
+      "id": "D4",
+      "selected_unit_id_by_section": {"7": null, "11": null, "12": null},
+      "task_focus": "Use only the supplied units and application selection context. With no selected primary, request evidence rather than drafting free text or filling gaps with outside general guidance."
+    }
+  ]
+}
