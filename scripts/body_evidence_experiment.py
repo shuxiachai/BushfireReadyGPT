@@ -270,7 +270,9 @@ def run_arm(scenario, frozen_analysis, variant, client):
         result["attempts"].append(record)
         if attempt_number > MAX_REPORT_REPAIR_ATTEMPTS + 1:
             raise ValueError("Shared three-attempt budget exceeded.")
-        if is_repair and len(submitted) > MAX_REPORT_REPAIR_PROMPT_CHARACTERS:
+        # Protocol retries replay the full original request; only the compact
+        # structural-repair contract has this character cap in production.
+        if submitted.request_kind == "structural_repair" and len(submitted) > MAX_REPORT_REPAIR_PROMPT_CHARACTERS:
             record["error_code"] = "repair_prompt_limit_exceeded"
             raise ValueError("Actual variant repair prompt exceeds the unchanged 18000-character limit.")
         try:

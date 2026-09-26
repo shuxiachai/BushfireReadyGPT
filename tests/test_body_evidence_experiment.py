@@ -209,6 +209,51 @@ def test_suffix_cannot_expand_repair_budget(monkeypatch):
     assert result["initial"] and result["final"] is None
 
 
+@pytest.mark.parametrize("variant", experiment.VARIANTS)
+@pytest.mark.parametrize("length_rejections", [1, 2, 3])
+def test_long_original_protocol_retries_keep_capture_and_shared_sdk_budget(monkeypatch, variant, length_rejections):
+    analysis, calls = analysis_fixture(), []
+    analysis["prompt_context"] = "Synthetic planning context. " * 800 + analysis["rag_context_assembly"]["context"]
+    response = report_fixture(analysis)
+    monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": True}})
+
+    def create(**kwargs):
+        calls.append(copy.deepcopy(kwargs))
+        reason = "length" if len(calls) <= length_rejections else "stop"
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content=response), finish_reason=reason)]
+        )
+
+    client = GovernedModelClient(
+        completion_client=SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create))),
+        provider="deepseek",
+        is_local=False,
+        model_name="synthetic-test-model",
+    )
+    result = experiment.run_arm(scenario_fixture(), analysis, variant, client)
+    expected_calls = min(length_rejections + 1, 3)
+    assert len(calls) == result["model_calls"] == result["generation_attempts"] == expected_calls
+    assert [record["request_kind"] for record in result["attempts"]] == ["initial"] + ["protocol_retry"] * (
+        expected_calls - 1
+    )
+    assert all(record["prompt_characters"] > 18000 for record in result["attempts"])
+    assert all(record.get("error_code") != "repair_prompt_limit_exceeded" for record in result["attempts"])
+    for call in calls:
+        submitted = call["messages"][1]["content"]
+        assert submitted.count(experiment.LAYOUT_GUIDANCE.strip()) == (1 if variant == "claim_pair_v1" else 0)
+        assert submitted.count(analysis["rag_context_assembly"]["context"]) == 1
+        assert call["max_tokens"] == 2300
+    if length_rejections < 3:
+        assert result["status"] == "completed" and result["capture_valid"]
+        snapshot = result["final"]["model_evidence"]
+        assert snapshot["request_kind"] == "protocol_retry" and snapshot["attempt_number"] == expected_calls
+        assert snapshot["request_binding"]["user_prompt_sha256"] == text_sha256(calls[-1]["messages"][1]["content"])
+        assert result["final"]["body_claim_evidence"]["snapshot_status"] == "captured"
+    else:
+        assert result["status"] == "failed" and result["final"] is None
+        assert result["error_code"] == "ModelResponseError"
+
+
 def synthetic_provenance(path):
     return {"scenario_path": str(path), "scenario_sha256": cli.sha256_file(path)}
 

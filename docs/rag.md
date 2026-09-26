@@ -281,14 +281,50 @@ their frozen public-source evidence are in scope. Full outputs remain private
 under `output/`; this diagnostic is not a logged-in Railway acceptance test
 or a reason to enable a candidate in production.
 
-At implementation verification on 2026-09-26, 38 dedicated synthetic tests and
+At implementation verification of `fecc9ea` on 2026-09-26, 38 dedicated synthetic tests and
 the existing related regressions passed (124 together); the complete non-E2E
 suite passed 2,305 tests with 7 skipped, 6 deselected and 89.64% src coverage.
-The real frozen bundle passed a read-only compatibility check. **No DeepSeek
-request has been run for this comparison yet**: execution awaits local
-credential setup confirmation. The local failed pilot is not a remote result;
-structured-generation changes and a new release remain conditional on further
-evidence.
+The real frozen bundle passed a read-only compatibility check. Credentials were
+then configured locally and the following bounded comparison was attempted.
+
+The 2026-09-26 DeepSeek run used **four invocations** but was **not a complete
+A/B comparison**:
+
+| Case | Arm | Final report | Cited / requires citation |
+| --- | --- | --- | ---: |
+| Cairns school | Baseline | Governed gate and SDK capture passed | 4 / 101 |
+| Cairns school | Claim pair | Failed before protocol retry was sent | Unknown |
+| Margaret River farm | Claim pair | Failed before protocol retry was sent | Unknown |
+| Margaret River farm | Baseline | Failed before protocol retry was sent | Unknown |
+
+The execution console recorded three `length` rejections. The experiment helper
+then incorrectly applied the 18,000-character **structural-repair** cap to
+`protocol_retry`, which replays the original full request in the production
+workflow. It blocked retries of 28,319 / 25,496 / 24,206 characters without
+issuing them. The artifact's `valid=true` records stable execution provenance,
+not completion of the comparison or evidence that the candidate failed all
+permitted production attempts. Its three unavailable reports remain failures
+in the four-arm denominator, not zero-citation reports.
+
+The helper now applies this cap only to `structural_repair`. Six new SDK-mock
+cases cover long protocol retries for both arms, including exhaustion of the
+unchanged three-attempt budget and actual request/capture binding. The existing
+oversized structural-repair rejection remains tested. Production code, the
+2,300-token limit and the original result/journal were not changed. The fix
+passed 130 related tests and the full non-E2E suite: 2,311 passed, 7 skipped,
+6 deselected, 89.64% src coverage. No paid rerun followed this fix. The original prepared bundle is source-bound and now
+fails source-identity admission; do not rewrite its hashes or delete its
+journal to force a replay.
+
+The one evaluable report had 97 missing citations; all four cited claims point
+to RAG passages present in the captured request. The lexical diagnostic marked
+all four for review because of passage-level negation/condition flags. That is
+not proof that all four statements are false: source-based AI review found
+directly supported details alongside scope extensions from household guidance
+to a campus, and from evacuation kits to first-aid kits. This review is not a
+human/domain gold label or semantic accuracy score. No candidate promotion,
+holdout execution, structured-generation rollout or new release follows from
+this incomplete comparison.
 
 ## Integrity and prompt-injection controls
 
