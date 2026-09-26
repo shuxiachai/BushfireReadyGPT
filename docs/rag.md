@@ -807,6 +807,50 @@ local names, quantities or confirmed statuses in these four responses; this is
 not a hallucination-free or safety finding. No further request, holdout use or
 production activation followed this batch.
 
+### Offline selection-to-proposal handoff
+
+`scripts/selection_proposal_bridge.py` connects the two existing content
+contracts through pure functions, without adding a model caller or modifying
+the executed protocols. It revalidates a supplied selection response against
+its original typed request, checks that request against the same evidence pack,
+and only then derives section primaries and builds the proposal request. Entry
+snapshots isolate the caller's pack and typed request from subsequent mutation.
+Invalid selection input cannot produce a downstream request; null stays null,
+with no first-source default or borrowing from another section.
+
+Only validated references and the original catalog cross into the proposal
+request. The selection stage's free proposal, explanation and local-unknown
+strings are not promoted to instructions, copied suggestions or local facts.
+Changing those strings changes the selection/handoff digest, but does not change
+the downstream task when the validated reference choices are unchanged.
+
+The handoff binds the application case ID, pack, selection request and raw
+response, derived map and proposal request. Completion requires the caller's
+expected handoff digest, revalidates those bindings, and validates the proposal
+against the actual derived primaries. A failed second response yields no typed
+completed result or partially accepted draft. The preview revalidates the whole
+chain before displaying separately copied sources and unverified proposals.
+The case-context digest covers the application label only, not a full user form
+or scenario.
+
+These checks establish a recorded application association, not response-origin
+attestation. Compatible raw JSON contains no proof of which request produced
+it; a case ID and hashes cannot discover every cross-case text substitution.
+This is an `offline_application_supplied` fragment with zero model calls, no
+transport capture and unknown semantic accuracy, not two authenticated remote
+calls or a complete form-to-report workflow. Tests use synthetic inputs rather
+than joining historical remote outputs into a new success claim. The existing
+callers, budgets, prompts, source data and historical results remain unchanged;
+the remote sequence is still twenty-three calls and the holdout is unopened.
+
+Verification on 2026-09-26: 34 new synthetic bridge tests passed as part of
+185 related regressions. The full non-E2E suite passed 2,651 tests, with
+7 skipped, 6 deselected and 89.64% src coverage. Independent read-only review
+and the repository Ruff/Bandit checks passed. An initial pair of test failures
+came from positional section lookup; tests now address the intended section ID
+without relaxing the contract or expected failure. No new model or browser E2E
+run was performed, and no production path was changed.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
