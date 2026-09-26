@@ -476,6 +476,45 @@ exclusively created journal prevents repeated dispatch by changing output names;
 the old result and counters are retained. It does not evaluate the holdout or
 activate production, and failures remain in the two-case denominator.
 
+The follow-up executed on `8ed4b7a` on 2026-09-26 used exactly two new calls:
+**2/2 passed the unchanged selection contract**, with all three requested
+section items present in each response. Each case contained one claim with a
+uniquely matching quotation and two explicit abstentions: two claims and four
+abstentions overall, not six evidence-supported sections or a complete report.
+There was no automatic retry or response repair. The original 0/2 result is
+unchanged; this comparison/selection sequence has now used fifteen remote calls.
+
+All six provenance checks were stable. Offline recomputation reproduced the
+raw-response and invocation hashes, derived canonical payloads, pack bindings
+and journal correspondence. The same local quota database increased from two
+to four calls; no prior counter or journal was reset. Both responses reported
+`deepseek-flash` with the same fingerprint as the first probe, which is not an
+immutable model identity. Provider-reported usage was 4,298 input plus 963
+output tokens (5,261 total). The input increased by 1,004 tokens across the two
+requests compared with the first probe. Currency cost and semantic accuracy
+remain unknown. This is a small, seen-case format observation, not a controlled
+estimate of general improvement or report accuracy.
+
+Independent model-assisted content review found that the school claim adds
+local-hazard research outside its selected quotation, although neighbouring
+text in the visible passage mentions it. Literal binding therefore does not
+establish that the quotation supports the whole claim. The farm claim's APZ
+definition and minimum defendable-space width have corresponding text in its
+quotation, but its local application still requires independent review. Both
+communication-section abstentions overlook relevant general material (support
+contacts or warning/Easy English resources); that material does not establish
+the specific school's or farm's local needs. Training-section abstentions are
+consistent with the absence of specific first-aid/training/exercise material.
+These are source-based AI review observations, not human/domain gold labels or
+a semantic score. The observed first-claim/two-abstention pattern also matches
+the example layout; this run does not separate example influence from evidence
+sufficiency. No third call was made to tune these findings away.
+
+Before execution, 23 new synthetic follow-up tests passed as part of 188 related
+regressions, followed by 2,436 non-E2E tests (7 skipped, 6 deselected; 89.64% src
+coverage), independent review and Ruff/Bandit checks. The four-case holdout is
+still unread and unrun. No production activation or new release follows.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
