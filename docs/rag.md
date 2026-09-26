@@ -238,6 +238,58 @@ local model invocations across two seen cases, not a new eight-scenario release
 evaluation, cloud acceptance, semantic accuracy result or evidence that the
 underlying citation problem is solved.
 
+### Separately authorised DeepSeek comparison
+
+`scripts/evaluate_body_evidence_deepseek.py` is a separate remote diagnostic,
+not an expansion of the local-only CLI or an application setting. It accepts
+only the original two-case seen-pilot prepared bundle, its externally recorded
+file SHA256, and the unchanged source implementation. It does not retrieve
+again, inspect the four-case holdout or edit the historical local result.
+
+Keep an existing `DEEPSEEK_API_KEY` in the ignored local `.env` or process
+environment; never put a key in command arguments or a committed artifact.
+Explicitly select `LLM_PROVIDER=deepseek` and
+`BUSHFIRE_ALLOW_EXTERNAL_MODEL=true` for the diagnostic process. The accepted
+destination is HTTPS `api.deepseek.com` (root or `/v1`); redirects, environment
+proxies and SDK retries are disabled. Set the same requested temperature and
+2,300-token output limit as the local run. For example, after recording and
+checking the prepared-file hash independently:
+
+```powershell
+poetry run python scripts/evaluate_body_evidence_deepseek.py --prepared output/body-pilot-prepared.json --expected-prepared-file-sha256 <recorded-sha256> --run-model --allow-external-deepseek --model deepseek-v4-flash --max-calls 12 --output output/body-deepseek-results.json
+```
+
+The example model name follows this repository's configured default, not a
+verified current Railway environment value or immutable provider revision.
+The historical Ollama digest remains historical input provenance; it is never
+relabelled as DeepSeek identity. The remote execution records its own code,
+configuration and dependency provenance. There is no automatic model fallback.
+
+This is a cross-provider comparison, not identical sampling: the shared client
+sends no seed to DeepSeek and disables thinking. It requests `top_p=0.8`, but
+the [provider documentation](https://api-docs.deepseek.com/guides/thinking_mode/)
+describes non-thinking `top_p` as fixed at 1.0; that statement is not a
+measurement of the serving backend. Unavailable immutable model identity,
+usage/currency cost and semantic accuracy must remain explicitly unknown.
+
+At most 12 new attempted invocations cover both arms and all necessary repairs.
+The new result and invocation journal are created exclusively; reservations are
+flushed before calls. Authentication, quota, network or timeout failures stop
+the batch, with remaining arms recorded as not run. There is no automatic
+resume after an interrupted or uncertain request. Only synthetic inputs and
+their frozen public-source evidence are in scope. Full outputs remain private
+under `output/`; this diagnostic is not a logged-in Railway acceptance test
+or a reason to enable a candidate in production.
+
+At implementation verification on 2026-09-26, 38 dedicated synthetic tests and
+the existing related regressions passed (124 together); the complete non-E2E
+suite passed 2,305 tests with 7 skipped, 6 deselected and 89.64% src coverage.
+The real frozen bundle passed a read-only compatibility check. **No DeepSeek
+request has been run for this comparison yet**: execution awaits local
+credential setup confirmation. The local failed pilot is not a remote result;
+structured-generation changes and a new release remain conditional on further
+evidence.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
