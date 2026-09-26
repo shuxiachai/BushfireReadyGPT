@@ -552,6 +552,42 @@ the executed prompt, adapter, contract, runner, raw results and call journals
 remain unchanged. These checks validate diagnostic behavior, not improved
 generation quality or a new semantic benchmark.
 
+### Offline extractive-basis prototype
+
+`scripts/extractive_basis_prototype.py` explores a different output contract:
+the response selects an application-owned passage reference, rather than
+writing a claim or quotation. The application copies that entire recorded
+visible passage into a separate source-text panel. There is no sentence
+selection, trimming, splicing or paraphrase inside this prototype. Complete
+copying applies only to the recorded visible unit, not the original document;
+relevance, omitted external conditions and local applicability remain unknown.
+
+The response root contains only `items`, one for each of sections 7, 11 and 12.
+Protocol identity and evidence-pack bindings belong to the application request,
+not to model-authored metadata. A selected reference can coexist with local
+unknowns. An empty selection means only that no unit was selected; its note is
+an unverified explanation, not proof that evidence is absent. An empty list of
+local unknowns means they were not listed, not that local information is known
+or sufficient. Proposals remain separate and inherit no source endorsement.
+
+The request builder, validator and escaped typed preview are pure offline
+functions. The neutral instructions do not preselect a claim/abstention pattern
+for the three sections. There is no scenario input, SDK client, new call budget
+or production integration. Synthetic fixtures demonstrate copying and state
+separation; they do not measure whether a model selects relevant material or
+improves a complete report. The existing prompt, selection wire, validators,
+live runners and historical results remain unchanged.
+
+Verification on 2026-09-26: 37 synthetic prototype tests passed as part of
+156 related regressions; the full non-E2E suite passed 2,490 tests, with
+7 skipped, 6 deselected and 89.64% src coverage. Independent review and
+Ruff/Bandit checks passed. The four reusable development fixtures cover a
+direct source unit, conditions and an exception, general guidance alongside
+local unknowns, and an unselected training unit. These are constructed inputs
+and responses, not new model trials or the unopened four-case holdout. The
+prototype verifies full-unit copying and state separation only; selection
+quality, proposal quality and complete-report usefulness remain unmeasured.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
