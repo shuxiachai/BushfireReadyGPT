@@ -1,0 +1,48 @@
+{
+  "schema": "body-evidence-ab-scenarios-v1",
+  "phase": "sealed_holdout",
+  "candidate": "claim_pair_v1",
+  "target_sections": [7, 11, 12],
+  "cases": [
+    {
+      "id": "tas_school_hobart_unconfirmed_arrangements",
+      "location": "Hobart, Tasmania",
+      "audience": "school leaders, teachers, students and families",
+      "scenario": "School bushfire preparedness",
+      "concerns": ["evacuation", "candidate assembly points", "communications", "first aid training"],
+      "timeframe": "7-day action plan",
+      "extra_context": "Synthetic form, not a real institution. No assembly location, access arrangement or amenity has been nominated or approved; retain those details as unknown pending local verification. No personal information is supplied and no official source is asserted.",
+      "rag_enabled": true
+    },
+    {
+      "id": "sa_council_adelaide_unsupported_quantities",
+      "location": "Adelaide, South Australia",
+      "audience": "council resilience officers and community service partners",
+      "scenario": "Council community preparedness",
+      "concerns": ["evacuation", "vulnerable residents", "communications", "human review and approval"],
+      "timeframe": "This-month preparedness plan",
+      "extra_context": "Synthetic form, not a real council. No local population count, service capacity, staffing ratio, route capacity or contact list is supplied; do not add numerical estimates. No personal information is supplied and no official source is asserted.",
+      "rag_enabled": true
+    },
+    {
+      "id": "vic_care_geelong_conditional_support",
+      "location": "Geelong, Victoria",
+      "audience": "care-facility managers, staff, residents and families",
+      "scenario": "Aged care / care facility preparedness",
+      "concerns": ["assisted evacuation", "medication continuity", "communications", "backup power"],
+      "timeframe": "Before the next bushfire season",
+      "extra_context": "Synthetic form, not a real facility. Individual support needs, relocation suitability, medication arrangements and backup-power capability have not been confirmed, so any conditional arrangement requires responsible local review. No personal information is supplied and no official source is asserted.",
+      "rag_enabled": true
+    },
+    {
+      "id": "nsw_household_wagga_evidence_gap",
+      "location": "Wagga Wagga, New South Wales",
+      "audience": "household members and neighbouring residents",
+      "scenario": "Household bushfire preparedness",
+      "concerns": ["property preparation", "emergency kits", "pets", "communications"],
+      "timeframe": "Before the next bushfire season",
+      "extra_context": "Synthetic form, not a real household. It supplies no live warning, road status, local destination, property assessment or animal arrangement; preserve those evidence gaps instead of inferring them. No personal information is supplied and no official source is asserted.",
+      "rag_enabled": true
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "body-evidence-ab-scenarios-v1",
+  "phase": "seen_pilot",
+  "candidate": "claim_pair_v1",
+  "target_sections": [7, 11, 12],
+  "cases": [
+    {
+      "id": "pilot_qld_school_cairns",
+      "location": "Cairns, Queensland",
+      "audience": "school leaders, teachers, students and parents",
+      "scenario": "School bushfire preparedness",
+      "concerns": ["evacuation", "candidate assembly points", "communications", "first aid training"],
+      "timeframe": "7-day action plan",
+      "extra_context": "Synthetic software-evaluation scenario, not a real school or operational plan. All operational decisions remain subject to school leadership and emergency-service review.",
+      "rag_enabled": true
+    },
+    {
+      "id": "pilot_wa_farm_margaret_river",
+      "location": "Margaret River, Western Australia",
+      "audience": "farm owners, workers, contractors and neighbouring properties",
+      "scenario": "Farm / land management preparedness",
+      "concerns": ["livestock", "vegetation management", "machinery", "water and access roads"],
+      "timeframe": "Before the next bushfire season",
+      "extra_context": "Synthetic software-evaluation scenario, not a real farm or operational plan. Address farm continuity and animal planning without presenting vegetation work as a guarantee of safety.",
+      "rag_enabled": true
+    }
+  ]
+}

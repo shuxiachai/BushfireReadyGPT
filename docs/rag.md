@@ -175,6 +175,69 @@ runs and false positives. They are separate from retrieval recall and the old
 12-target visibility diagnostic. Their offline processing latency must not be
 reported as real retrieval, embedding or model latency.
 
+### Opt-in body-evidence layout experiment
+
+`scripts/evaluate_body_evidence_ab.py` compares the unchanged report prompt
+with `claim_pair_v1`: adjacent **Evidence basis** and **Local application**
+paragraphs in sections 7, 11 and 12. This isolated CLI is not imported by the
+application. It preserves the complete report, existing token budget, governed
+quality policy and maximum two repairs; missing citations do not buy extra
+model calls. It never selects or attaches citations for the model.
+
+Use a running loopback Ollama model and an already verified, cached FastEmbed
+index with local-files-only enabled (see the [CPU profile](deployment.md)).
+Set `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL=http://127.0.0.1:11434/v1`,
+`BUSHFIRE_MODEL_MAX_TOKENS=2300`, and explicitly pin the model, temperature,
+seed, index and cache paths. The experiment neither downloads models nor builds
+an index. Preparation freezes the analysis and assembled passages once per
+case; both arms use that same input. Run from the repository root, using new
+output filenames:
+
+```powershell
+poetry run python scripts/evaluate_body_evidence_ab.py --prepare-only --scenarios data_australia/rag/body_evidence_pilot_v1.json --output output/body-pilot-prepared.json
+poetry run python scripts/evaluate_body_evidence_ab.py --prepared output/body-pilot-prepared.json --run-model --max-calls 12 --output output/body-pilot-results.json
+```
+
+The two seen pilot cases permit at most 12 attempted model invocations in total.
+Stop if the candidate introduces a safety failure or invalid capture, or fails
+to provide a useful body-citation improvement. The separately authored four-case
+holdout is not a tuning set: only proceed after freezing the candidate and an
+independent source-based rubric, with at most 24 further invocations. Such a
+synthetic rubric is not human/domain validation. Once inspected for tuning,
+those cases become seen regression cases.
+
+Outputs preserve first/final drafts, actual SDK evidence captures, failed arms,
+budgets and provenance checks. They contain full private synthetic diagnostic
+material and belong under ignored `output/`, not in a release sample. A captured
+SDK request does not prove server receipt, absence of server-side truncation or
+model attention. Pair completeness is only format compliance; citation coverage
+and lexical overlap are not semantic accuracy. Semantic accuracy remains null,
+and every artifact explicitly keeps the release gate and production use inactive.
+
+The 2026-09-26 local seen pilot did **not** improve citations, so it stopped
+before holdout generation and the candidate remains disabled. With the same
+`bushfire-ready-qwen` digest `21aa9b63ebd6...`, temperature 0.2, seed 42,
+2,300-token limit and frozen CPU-index inputs, the four final reports were:
+
+| Case | Arm | Cited / requires citation | Final governed gate | Model invocations |
+| --- | --- | ---: | --- | ---: |
+| Cairns school | Baseline | 0 / 57 | Pass | 1 |
+| Cairns school | Claim pair | 0 / 61 | Pass | 1 |
+| Margaret River farm | Claim pair | 0 / 70 | Pass | 1 |
+| Margaret River farm | Baseline | 0 / 53 | Pass after repair | 2 |
+
+All final SDK captures and boundary provenance checks were valid. The farm
+baseline initially triggered `premises_status_assertion`; the existing single
+repair resolved that governed failure. None of the five admitted responses
+contained a complete opaque citation token, including before normalization.
+The candidate had zero complete pairs: school labels were absent, while farm
+labels did not follow the requested plain-paragraph layout. Thus neither
+canonicalization nor the pair parser explains away the missing body citations.
+The four independently authored holdout cases remain unrun. These are five
+local model invocations across two seen cases, not a new eight-scenario release
+evaluation, cloud acceptance, semantic accuracy result or evidence that the
+underlying citation problem is solved.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
