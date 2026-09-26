@@ -757,8 +757,55 @@ renderer. Neither production generation nor the unopened holdout is enabled.
 Pre-execution verification on 2026-09-26: 35 dedicated mock tests passed as part
 of 198 related regressions. The complete non-E2E suite passed 2,617 tests,
 with 7 skipped, 6 deselected and 89.64% src coverage. Independent read-only
-admission review and the repository Ruff/Bandit checks passed. These checks
-authorize this bounded experiment; they are not real-model content results.
+admission review and the repository Ruff/Bandit checks passed. These are
+execution-readiness checks, not real-model content results.
+
+Execution on `e15a958` on 2026-09-26 completed exactly four new requests without
+repair or retry: **4/4 cases passed the proposal contract**. All six null slots
+returned only `requires_evidence`; all six non-null slots returned reviewable
+draft structures, five declaring one source and one declaring two. Here,
+"reviewable" means structurally admitted for review, not semantically approved.
+The D3 communication draft explicitly declared both the formats unit and the
+general-publication caution unit. No failed or unrun case was omitted.
+
+All ten provenance checks were stable. Offline recomputation reproduced the
+SDK request and raw-response hashes, application selection, campaign and typed
+request bindings, content projection and journal. Seven dependency placements
+(including reuse across sections) each copy the corresponding visible unit in
+full. These are not seven independently verified sources. The same local quota
+database increased from eight to twelve; this remote experiment sequence now
+totals twenty-three calls. Historical results and journals remain unchanged.
+
+All responses reported `deepseek-flash` and fingerprint
+`aeb56401ca74e127821c4f9126dcb669` for the requested `deepseek-v4-flash` alias;
+there is no immutable weights identity. Provider-reported usage was 4,667 input
+plus 566 output tokens (5,233 total), including 768 cache-hit input tokens.
+The case loop took 8.01 seconds including provenance and local validation,
+not pure inference time or a general report-latency measurement. Currency cost,
+semantic support and dependency completeness remain unknown.
+
+The retained Git-ignored result
+`output/proposal-development-results-20260926-a.json` has SHA-256
+`52b939fff9c4bb9b9389b21df153ed97899dcaec1a0c7935b02a9d75271f8198`;
+the fixed `output/proposal-development-v1.calls.jsonl` journal has SHA-256
+`dc20c76b6f475064a7db1130a31aa23114036f862e4b5af83d40fba04e255d14`.
+Its original `manual_raw_response_review=not_performed` field is preserved;
+subsequent model-assisted source observations are separate from that machine
+summary and do not substitute for human/domain review.
+
+Independent model-assisted source review did not reproduce D3's earlier
+empty-selection free-text or undeclared second-unit behavior in these new
+given-basis responses. This changed task does not establish a general reduction
+in unsupported content. D2's equipment proposal retains inspection, recall and
+the exclusion; its training proposal retains readiness and suspension, while
+the access requirement appears in the communication proposal and the copied
+source. Omission of that repeated sentence in section 12 alone is not sufficient
+to diagnose condition loss, but neither section is a complete stand-alone
+operational instruction. D1 distinguishes general arrangements from local
+unknowns, and D4 returns only evidence requests. Review did not identify filled-in
+local names, quantities or confirmed statuses in these four responses; this is
+not a hallucination-free or safety finding. No further request, holdout use or
+production activation followed this batch.
 
 ## Integrity and prompt-injection controls
 
