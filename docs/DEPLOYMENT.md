@@ -541,15 +541,18 @@ artifacts with results from a different model or dirty worktree.
 | Complete Linux image build and startup | CI passed with synthetic corpus; full private Railway deployment SUCCESS and application started |
 | `/data` ownership initialization followed by non-root execution | CI passed, including actual PID 1 UID/GID; live Railway still pending |
 | CPU RAG retrieval evaluation and rejection cases | Local CPU diagnostics recorded separately; CI offline warmup passed |
-| Real DeepSeek generation, revision and governed quality checks | September 11 synthetic generation plus wording revision on d847dbd passed the 19/19 deterministic check; file/visual/restart boundaries are recorded in the follow-up above |
-| PDF/DOCX/ZIP exports, including Chinese reviewer names | Original package integrity passed; local fixed PDF visually checked and exporter deployed; live fixed export, Word visual render and Chinese reviewer acceptance pending |
-| Authorization on report download requests | Fix deployed; old public ZIP returns 404; authenticated delivery and anonymous denial pass separate-context browser CI; authenticated live export acceptance pending |
+| Real DeepSeek generation, revision and governed quality checks | September 27 on cab29ea: one synthetic generation, targeted wording revision and draft-only review record verified; governance checks are not semantic accuracy |
+| PDF/DOCX/ZIP exports, including Chinese reviewer names | September 27: actual cloud package 14 files/13 hashes verified and all 13 PDF pages visually checked; standalone Markdown/DOCX match the package, PDF differs only in creation metadata for this sample; Word visual render and Chinese reviewer acceptance remain pending |
+| Authorization on report download requests | Separate-context delivery/anonymous-denial browser CI remains historical evidence; September 27 authenticated live Markdown/PDF/DOCX/ZIP downloads verified; anonymous live denial and relogin were not retested in that run |
 | Two-browser session isolation and separate administrator access | Separate-context private-download E2E passed locally; full live isolation and administrator checks pending |
 | Concurrent-call rejection and persisted daily allowance | Unit tests and CI passed; September 12 real Railway historical-day allowance remained 2 across different deployments; live contention pending |
 | Restart with saved audit/trace/quota and reused index generation | September 11 authorized readback verified saved Markdown, three linked audit events and two Traces; September 12 separately verified historical-day SQLite allowance 2→2 on the same volume; private index reused |
 | Railway HTTPS, deployment health and browser interaction | Passed for HTTPS, health 200, authenticated generation and revision |
 | External user pilot | Not performed |
 
+The [September 15 and 27 delivery record](LAUNCH_READINESS_2026-09-15.md) binds
+the latest synthetic flow to its actual deployment, downloads and audit lineage.
+It distinguishes the inspected cloud PDF from the still-unrendered Word file.
 The controlled demo is deployed, but the remaining acceptance items are still
 open and no new version has been released. See the existing
 [evaluation guide](evaluation_and_observability.md) and [RAG design](rag.md) for

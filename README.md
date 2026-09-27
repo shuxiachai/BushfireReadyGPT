@@ -50,7 +50,7 @@ All examples are demonstration drafts, not emergency plans or operational instru
 
 The current tagged release is **v0.6.0**. Its release-specific, historical validation evidence belongs to clean-source commit [`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7), not to every later maintenance change. The release record and immutable benchmark artifacts are linked below.
 
-Maintenance after v0.6.0 is documented separately. It includes ongoing hardening and controlled-demo acceptance work, but does **not** declare a newer release, complete production acceptance, or new historical benchmark results. Read the [September 15 content and delivery review](docs/LAUNCH_READINESS_2026-09-15.md) and [September 12 implementation record](docs/LAUNCH_READINESS_2026-09-12.md) before relying on current cloud claims.
+Maintenance after v0.6.0 is documented separately. It includes ongoing hardening and controlled-demo acceptance work, but does **not** declare a newer release, complete production acceptance, or new historical benchmark results. Read the [September 15 and 27 content and delivery review](docs/LAUNCH_READINESS_2026-09-15.md) and [September 12 implementation record](docs/LAUNCH_READINESS_2026-09-12.md) before relying on current cloud claims.
 
 This is a governed portfolio MVP / controlled-pilot prototype. It is not ready for operational emergency management, public life-safety decisions, government procurement or commercial deployment without independent legal, security, privacy, data/licence and domain review. There are no completed external pilot claims: [the pilot evidence register](docs/pilot_results.md) records the current status.
 
