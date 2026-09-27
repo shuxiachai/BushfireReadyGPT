@@ -912,6 +912,65 @@ After the loader fix, the complete non-E2E suite passed 2,697 tests (7 skipped,
 tests. Independent review and repository static/security checks passed again
 before any real dispatch.
 
+Execution on `986b12c` on 2026-09-27 completed exactly four new requests,
+without retries or repairs. Both seen synthetic cases completed their actual
+selection-to-proposal chains: **2/2 contract-valid cases, 4/4 validated stages
+and 6/6 structurally evaluable final slots**. There were no failed or skipped
+cases/stages. These are structural and binding results, not selection accuracy,
+semantic support, independent generalisation or full-report quality.
+
+| Actual selection and final proposal | D2 | D3 |
+| --- | --- | --- |
+| Primary refs for sections 7 / 11 / 12 | 001 / 002 / 002 | null / 001 / null |
+| Final `draft_for_review` slots | 3, each declaring one unit | 1, declaring units 001 and 002 |
+| Final `requires_evidence` slots | 0 | 2, both with null primary |
+
+Across both cases, four non-null primaries became drafts (three single-unit,
+one multi-unit); both null primaries remained fixed evidence requests. This
+particular run did not exercise a non-null primary returning `requires_evidence`.
+There are no target-agreement or semantic-accuracy scores for this campaign.
+
+Parent offline recomputation and independent read-only review reconstructed
+both SDK requests per case, typed validations, actual selection mappings,
+handoffs and completed projections from the unchanged source and raw responses.
+The original scenario/focus/catalog matched; first-stage proposal, explanation
+and local-unknown text did not enter the second-stage request. All ten source,
+code and settings checks were stable. The nine journal events matched four
+reservations, acquired slots, consumed allowances and started SDK invocations.
+The existing SQLite record for UTC 2026-09-26 remained at 12; the 2026-09-27
+record moved from 0 to 4. This remote experiment sequence totals 27 invocations;
+it is not a count of all model use across the project.
+
+Separate AI-assisted source review found useful limits rather than a semantic
+pass: D2 section 7 changes the source's `unless a recall is active` to `except
+when a recall is active`. The exception's scope remains potentially ambiguous;
+neither string alone proves an intended operational rule or a definite polarity
+reversal. D2 sections 11 and 12 both retain readiness, suspension and unresolved
+access conditions, but are near-duplicates with weak section-specific emphasis.
+D3's first-stage null slots still propose using unspecified general guidance;
+those free-text suggestions are excluded from stage two, whose corresponding
+slots correctly request evidence. D3's final communication draft explicitly
+declares both the accessible-format unit and the local-verification unit.
+These observations are not domain-expert adjudication or a semantic benchmark.
+The original machine artifact remains unchanged, including
+`manual_raw_response_review=not_performed` and unknown semantic support and
+dependency completeness; this separate review must not overwrite that record.
+
+Provider-reported usage totalled 4,403 input plus 1,155 output tokens (5,558
+total), including 3,584 cache-hit input tokens. Stage elapsed times totalled
+9.15 seconds; the 10.27-second batch also included local checks. Neither is a
+general performance or cost estimate. The requested model was
+`deepseek-v4-flash`; the provider reported `deepseek-flash` and fingerprint
+`aeb56401ca74e127821c4f9126dcb669`, not an immutable model digest. Currency cost
+remains unknown. No further request was made after the four-call budget.
+
+The ignored local result `output/selection-proposal-chain-results-20260927-a.json`
+has SHA256 `bb84be928ee055a308cb12346bd4e0ddd456b51f0e69cc2f00ad0ba7bc21dc2f`;
+`output/selection-proposal-chain-v1.calls.jsonl` has SHA256
+`f7311aab094896262af3f9af780e3a0fb6f1e633f5829cc0f54cd4534d5c1fc5`.
+This closed campaign did not read or run the holdout, activate production,
+rerun browser/cloud delivery acceptance, or replace the v0.6.0 release evidence.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
