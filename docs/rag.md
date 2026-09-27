@@ -971,6 +971,72 @@ has SHA256 `bb84be928ee055a308cb12346bd4e0ddd456b51f0e69cc2f00ad0ba7bc21dc2f`;
 This closed campaign did not read or run the holdout, activate production,
 rerun browser/cloud delivery acceptance, or replace the v0.6.0 release evidence.
 
+### Offline proposal review clues
+
+`scripts/proposal_evidence_advisory.py` adds an explicitly invoked, offline
+review alongside the proposal contract; it does not change the frozen selection
+or proposal prompts, bridge outputs, campaign records or production generation.
+`review_proposals(raw, request)` accepts the original JSON text/bytes and the
+typed request from `proposal_evidence_contract.build_request`. It revalidates
+structure and references first, then binds its separate observations to the
+request, raw response and evidence pack hashes. `render_advisory(raw, request)`
+recomputes that review and escapes untrusted text, rather than accepting an
+editable review dictionary as an authority.
+
+The review compares English negation, condition and qualifier markers against
+**each declared dependency separately**, retaining its whole visible text.
+Markers in another dependency cannot cancel a difference. An `unless` or
+`except` mention prompts an exception-scope check even when the proposal copies
+the source verbatim. Neither observation means a condition was definitely lost
+or reversed: the source itself can be ambiguous, and its other conditions may
+belong to an action the proposal does not discuss.
+
+Cross-section drafts also receive a deterministic lexical comparison. The v1
+rule uses casefolded word-token sequences and `SequenceMatcher` with autojunk
+disabled, requiring at least 12 tokens in each draft and a ratio of at least
+0.85 for a repetition clue. This ratio is not a content-quality score. Shared
+disclaimers can trigger false alarms; short repeats, paraphrases and changes of
+logical scope can escape these checks. `requires_evidence` slots participate in
+neither comparison and never acquire draft text from another section.
+
+All rows still require manual review, whether clues appear or not. Semantic
+support, condition preservation and dependency completeness remain unknown.
+The separate output reports **zero additional calls and no new capture**, not
+that an input response was originally generated offline. It does not attest a
+historical SDK request or provider response. These are development diagnostics,
+not an independent benchmark, a production rejection rule or evidence that the
+model's generation quality has improved. Changing diagnostic rules or thresholds
+requires a new diagnostic version, not rewriting the historical experiment.
+
+An offline replay of the unchanged 2026-09-27 chain result reconstructed both
+typed proposal requests and matched them to their saved SDK payloads before
+running this separate advisory. D2 prompted exception-scope review in sections
+7, 11 and 12; sections 11 and 12 triggered the repetition clue with 57 and 59
+tokens and a lexical ratio of `0.896551724137931`. D3 had no exception or
+repetition clue, and its sections 7 and 12 remained `requires_evidence`.
+Shared source IDs do not exempt drafts from comparison. These are observations
+on already-seen inputs, not a new model run or a measurement of diagnostic
+precision/recall. The fixed threshold was not changed for this replay. No new
+API request or saved model-result rewrite occurred, and the original result
+SHA256 remained `bb84be928ee055a308cb12346bd4e0ddd456b51f0e69cc2f00ad0ba7bc21dc2f`.
+
+Verification on 2026-09-27: 19 new synthetic regression cases passed within a
+176-test related run. They cover removed and retained conditions, same markers
+with changed scope, independent dependency comparisons, same-source duplicates,
+the minimum-length boundary and ratios 0.80/0.85/0.90, shared-disclaimer false
+alarms, fixed evidence requests, input tampering and escaped rendering. An
+initial same-source exemption was removed rather than exempting the motivating
+case. Two subsequent test defects were corrected: a missing dictionary level,
+and a purported duplicate fixture whose ratio was below the unchanged threshold.
+These authored development tests are not unseen evaluation labels. Independent
+read-only review found no remaining actionable issue; repository Ruff checks,
+format checks and Bandit completed successfully.
+The final full non-E2E suite passed **2,716 tests**, with 7 skipped, 6 deselected
+and **89.64% src coverage**, in 207.41 seconds. This turn did not rerun browser
+E2E, cloud delivery acceptance or any model generation; the remote experiment
+sequence remains at 27 calls. The added script tests do not expand the `src`
+coverage measurement to include experimental scripts.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
