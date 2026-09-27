@@ -385,6 +385,48 @@ def test_cli_auth_precedes_source_read_and_other_context_arguments_rejected(cli_
             runner.main(cli_args(tmp_path / "none.json") + extra)
 
 
+@pytest.mark.parametrize("missing_flag", [None, "--run-model", "--allow-external-deepseek"])
+@pytest.mark.parametrize("credential_present", [False, True])
+def test_chain_cli_loads_dotenv_only_after_authorization_and_preserves_environment(
+    cli_environment, tmp_path, monkeypatch, missing_flag, credential_present
+):
+    import dotenv
+
+    synthetic_env = tmp_path / ".env"
+    synthetic_env.write_text("DEEPSEEK_API_KEY=synthetic-dotenv-key\n", encoding="utf-8")
+    monkeypatch.setattr(runner.previous, "PROJECT_ROOT", tmp_path)
+    monkeypatch.delenv("PYTHON_DOTENV_DISABLED", raising=False)
+    if credential_present:
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "synthetic-existing-key")
+    else:
+        monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    loaded, real_loader = [], dotenv.load_dotenv
+
+    def synthetic_loader(path, *, override):
+        assert path == synthetic_env and override is False
+        loaded.append(path)
+        return real_loader(path, override=override)
+
+    monkeypatch.setattr(dotenv, "load_dotenv", synthetic_loader)
+    harness = Harness()
+    monkeypatch.setattr(runner, "chain_usage_snapshot", harness.snapshot)
+    monkeypatch.setattr(adapter, "create_sdk", lambda _: harness.factory())
+    original_run = chain.run_suite
+    monkeypatch.setattr(
+        chain, "run_suite", lambda *args, **kwargs: original_run(*args, **kwargs, invoke=harness.invoke)
+    )
+    args = cli_args(tmp_path / "result.json")
+    if missing_flag is not None:
+        args.remove(missing_flag)
+    assert runner.main(args) == (0 if missing_flag is None else 2)
+    assert loaded == ([synthetic_env] if missing_flag is None else [])
+    assert len(harness.calls) == (4 if missing_flag is None else 0)
+    expected = (
+        "synthetic-existing-key" if credential_present else "synthetic-dotenv-key" if missing_flag is None else None
+    )
+    assert runner.os.environ.get("DEEPSEEK_API_KEY") == expected
+
+
 def test_fixed_ledger_never_reopens_when_output_changes(cli_environment, tmp_path, monkeypatch):
     harness = Harness()
     monkeypatch.setattr(runner, "chain_usage_snapshot", harness.snapshot)

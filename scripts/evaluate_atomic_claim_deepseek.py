@@ -738,7 +738,6 @@ def main(argv=None):
             run_model=args.run_model,
             allow_external_deepseek=args.allow_external_deepseek,
             model_arg=args.model,
-            **({"dotenv_loader": lambda *_args, **_kwargs: False} if chain_mode else {}),
         )
         bundle = (
             chain.load_dataset(EXTRACTIVE_DATASET_PATH, args.expected_dataset_sha256)

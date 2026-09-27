@@ -898,6 +898,20 @@ was relaxed. An additional temporary mock-only run checked multi-source drafts
 and non-null primaries returning `requires_evidence`; it is separate from the
 committed test count. These checks are not real-model content results.
 
+The first local launch on `bd4f093` stopped before dispatch with
+`deepseek_credential_missing`: the new CLI branch mistakenly supplied a no-op
+dotenv loader. No SDK request, campaign journal or result file was created,
+and the UTC-day quota remained zero. Removing that special case restored the
+existing two-flag admission followed by `load_dotenv(..., override=False)`.
+Six synthetic-environment regressions cover missing authorization and existing
+environment credentials; a single related run then passed 218 tests. The
+configuration-only check using the normal entry path succeeded without creating
+a client. This local preflight failure is not a model response or a budget reset.
+After the loader fix, the complete non-E2E suite passed 2,697 tests (7 skipped,
+6 deselected; 89.64% src coverage); the chain-specific group now contains 46
+tests. Independent review and repository static/security checks passed again
+before any real dispatch.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.
