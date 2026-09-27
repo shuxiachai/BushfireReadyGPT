@@ -851,6 +851,53 @@ came from positional section lookup; tests now address the intended section ID
 without relaxing the contract or expected failure. No new model or browser E2E
 run was performed, and no production path was changed.
 
+### Bounded real selection-to-proposal chain
+
+The fixed `selection-proposal-chain-v1` campaign uses only the already-seen D2
+and D3 synthetic cases, in that order. D2 exercises prerequisites and exceptions;
+D3 exercises empty choices and possible cross-unit dependencies. These are
+focused development inputs, not an independent benchmark. Each case has one
+selection request and, only after that succeeds, one proposal request: at most
+four new SDK invocations, with no automatic retry or repair. Existing campaigns
+and their call journals are not reset or reclassified.
+
+The second request uses the actual validated first response to derive primaries
+through the offline bridge. It uses the same source scenario, section focus and
+catalog, not the previous given-basis campaign's manually fixed selection map.
+First-stage proposals, explanations and local-unknown text are not propagated.
+Both actual SDK captures retain case/scene and evidence bindings; the second
+also binds the first invocation, raw response and handoff digests. The recorded
+association is at the application SDK boundary, not a provider signature or
+proof of the model's internal reasoning. The result does not inherit the
+bridge's offline/zero-call envelope or use its offline renderer.
+
+All two cases, four planned stages and six final section slots stay in the
+denominators. A normal selection contract/length failure skips its dependent
+proposal and may allow the next fixed case; a normal proposal failure fails that
+case. Transport, authentication, quota, timeout, capture/binding, input drift or
+journal failure stops the batch. Existing raw responses and captures survive
+failure where available. A first-stage success is not a completed chain, and
+skipped stages are not successful evidence requests.
+
+A separate fixed, exclusively created journal prevents rerunning the campaign
+under another output name. Source/code/settings provenance and frozen in-memory
+inputs are checked around each stage and at the end. UTC quota day and usage
+are checked separately from constant provenance; a date change or unavailable
+quota state stops dispatch. Daily windows do not reset the campaign budget or
+erase the previous day's records. The original single-stage callers, contracts,
+prompts, source data and production generation remain unchanged apart from the
+existing CLI's explicit dispatch into this bounded coordinator.
+
+Pre-execution checks on 2026-09-27: 40 dedicated mock tests passed within a
+single 212-test related run. The full non-E2E suite passed 2,691 tests, with
+7 skipped, 6 deselected and 89.64% src coverage; independent read-only review
+and repository Ruff/Bandit checks passed. Review and regression work tightened
+global invalidation after drift, preserved captures on journal-close failure,
+and made a Windows test read its result explicitly as UTF-8. No acceptance rule
+was relaxed. An additional temporary mock-only run checked multi-source drafts
+and non-null primaries returning `requires_evidence`; it is separate from the
+committed test count. These checks are not real-model content results.
+
 ## Integrity and prompt-injection controls
 
 - Catalog entries require unique IDs, HTTPS URLs, bounded local paths and source metadata.

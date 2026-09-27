@@ -18,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts import atomic_claim_adapter as adapter  # noqa: E402
 from scripts import evaluate_body_evidence_deepseek as previous  # noqa: E402
+from scripts import selection_proposal_development as chain  # noqa: E402
 from scripts.atomic_claim_contract import build_evidence_pack  # noqa: E402
 from scripts.evaluation_artifacts import sha256_file  # noqa: E402
 from src.model_evidence import json_sha256, text_sha256  # noqa: E402
@@ -55,6 +56,7 @@ _JOURNAL_KEYS = {
     "protocol",
     "dataset_file_sha256",
     "app_context_file_sha256",
+    "stage",
 }
 
 
@@ -249,6 +251,22 @@ def extractive_journal_path():
 
 def proposal_journal_path():
     return PROJECT_ROOT / "output/proposal-development-v1.calls.jsonl"
+
+
+def chain_journal_path():
+    return PROJECT_ROOT / "output/selection-proposal-chain-v1.calls.jsonl"
+
+
+def chain_usage_snapshot():
+    from src.model_limits import load_model_limits, read_model_usage
+
+    limits = load_model_limits()
+    return {
+        **read_model_usage(limits=limits),
+        "process_daily_call_limit": limits.daily_calls,
+        "process_concurrency_limit": limits.concurrency,
+        "quota_database_path_sha256": text_sha256(str(limits.database)),
+    }
 
 
 def load_proposal_dataset(expected_source_sha256, expected_context_sha256):
@@ -661,7 +679,7 @@ def _run_case_loop(
 
 
 def _validate_protocol_args(parser, args):
-    development_mode = args.protocol in {EXTRACTIVE_PROTOCOL, PROPOSAL_PROTOCOL}
+    development_mode = args.protocol in {EXTRACTIVE_PROTOCOL, PROPOSAL_PROTOCOL, chain.PROTOCOL}
     if development_mode:
         if (
             args.prepared
@@ -679,9 +697,11 @@ def _validate_protocol_args(parser, args):
         or args.expected_context_sha256
     ):
         parser.error("atomic selection requires prepared arguments without dataset/context arguments")
-    maximum = {EXTRACTIVE_PROTOCOL: MAX_EXTRACTIVE_CALLS, PROPOSAL_PROTOCOL: MAX_PROPOSAL_CALLS}.get(
-        args.protocol, MAX_CALLS
-    )
+    maximum = {
+        EXTRACTIVE_PROTOCOL: MAX_EXTRACTIVE_CALLS,
+        PROPOSAL_PROTOCOL: MAX_PROPOSAL_CALLS,
+        chain.PROTOCOL: chain.MAX_CALLS,
+    }.get(args.protocol, MAX_CALLS)
     args.max_calls = maximum if args.max_calls is None else args.max_calls
     if not 1 <= args.max_calls <= maximum:
         parser.error(f"--max-calls must be between 1 and {maximum} for this protocol")
@@ -691,7 +711,9 @@ def _validate_protocol_args(parser, args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--protocol", default=adapter.WIRE_SCHEMA, choices=[adapter.WIRE_SCHEMA, EXTRACTIVE_PROTOCOL, PROPOSAL_PROTOCOL]
+        "--protocol",
+        default=adapter.WIRE_SCHEMA,
+        choices=[adapter.WIRE_SCHEMA, EXTRACTIVE_PROTOCOL, PROPOSAL_PROTOCOL, chain.PROTOCOL],
     )
     parser.add_argument("--prepared", type=Path)
     parser.add_argument("--expected-prepared-file-sha256")
@@ -710,12 +732,18 @@ def main(argv=None):
     args = parser.parse_args(argv)
     development_mode = _validate_protocol_args(parser, args)
     proposal_mode = args.protocol == PROPOSAL_PROTOCOL
+    chain_mode = args.protocol == chain.PROTOCOL
     try:
         settings = previous.admit_environment(
-            run_model=args.run_model, allow_external_deepseek=args.allow_external_deepseek, model_arg=args.model
+            run_model=args.run_model,
+            allow_external_deepseek=args.allow_external_deepseek,
+            model_arg=args.model,
+            **({"dotenv_loader": lambda *_args, **_kwargs: False} if chain_mode else {}),
         )
         bundle = (
-            load_proposal_dataset(args.expected_dataset_sha256, args.expected_context_sha256)
+            chain.load_dataset(EXTRACTIVE_DATASET_PATH, args.expected_dataset_sha256)
+            if chain_mode
+            else load_proposal_dataset(args.expected_dataset_sha256, args.expected_context_sha256)
             if proposal_mode
             else load_extractive_dataset(args.expected_dataset_sha256)
             if development_mode
@@ -727,7 +755,9 @@ def main(argv=None):
             else None
         )
         ledger = (
-            proposal_journal_path()
+            chain_journal_path()
+            if chain_mode
+            else proposal_journal_path()
             if proposal_mode
             else extractive_journal_path()
             if development_mode
@@ -737,6 +767,10 @@ def main(argv=None):
         )
 
         def provenance():
+            if chain_mode:
+                return chain.execution_provenance(
+                    PROJECT_ROOT, EXTRACTIVE_DATASET_PATH, args.expected_dataset_sha256, settings, args.model
+                )
             if proposal_mode:
                 return proposal_provenance(
                     args.expected_dataset_sha256, args.expected_context_sha256, settings, args.model
@@ -757,6 +791,7 @@ def main(argv=None):
         if args.output.resolve() in protected:
             raise previous.ExperimentBlocked("output_path_collision")
         with args.output.open("x", encoding="utf-8") as output:
+            result = None
             try:
                 with ledger.open("x", encoding="utf-8") as handle:
                     journal = Journal(handle)
@@ -788,7 +823,13 @@ def main(argv=None):
                         ),
                     )
                     run = (
-                        run_proposal_suite if proposal_mode else run_extractive_suite if development_mode else run_suite
+                        chain.run_suite
+                        if chain_mode
+                        else run_proposal_suite
+                        if proposal_mode
+                        else run_extractive_suite
+                        if development_mode
+                        else run_suite
                     )
                     result = run(
                         bundle,
@@ -796,20 +837,38 @@ def main(argv=None):
                         journal,
                         max_calls=args.max_calls,
                         provenance=provenance,
+                        **(
+                            {
+                                "client_factory": lambda: adapter.create_sdk(settings),
+                                "usage_snapshot": chain_usage_snapshot,
+                            }
+                            if chain_mode
+                            else {}
+                        ),
                     )
                     result["journal_path"] = str(ledger)
                     if follow_up:
                         result["follow_up"] = follow_up
             except Exception as error:
-                result = {
-                    "schema": args.protocol.replace("-v1", "-results-v1") if development_mode else RESULT_SCHEMA,
-                    **({"protocol": args.protocol, "data_origin": "synthetic_development"} if development_mode else {}),
-                    **_flags(),
-                    "valid": False,
-                    "error_code": error.code
-                    if isinstance(error, previous.ExperimentBlocked)
-                    else "run_or_journal_failed",
-                }
+                code = error.code if isinstance(error, previous.ExperimentBlocked) else "run_or_journal_failed"
+                if chain_mode and result is not None:
+                    result = chain.invalidate_result(result, code, finalization=True)
+                elif chain_mode:
+                    result = chain.empty_result(code, settings=settings, max_calls=args.max_calls)
+                else:
+                    result = {
+                        "schema": args.protocol.replace("-v1", "-results-v1") if development_mode else RESULT_SCHEMA,
+                        **(
+                            {"protocol": args.protocol, "data_origin": "synthetic_development"}
+                            if development_mode
+                            else {}
+                        ),
+                        **_flags(),
+                        "valid": False,
+                        "error_code": error.code
+                        if isinstance(error, previous.ExperimentBlocked)
+                        else "run_or_journal_failed",
+                    }
             json.dump(result, output, ensure_ascii=False, indent=2)
             output.write("\n")
             output.flush()
