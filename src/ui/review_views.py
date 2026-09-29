@@ -529,7 +529,9 @@ def _render_current_body_claim_review(report_record):
 
     claims = evaluation.get("claims") if isinstance(evaluation.get("claims"), list) else []
     include_not_required = st.checkbox(
-        "Show claims not requiring citations", value=True, key="body_claim_review_show_not_required"
+        "Show claims not requiring citations under this diagnostic",
+        value=True,
+        key="body_claim_review_show_not_required",
     )
     displayed = [
         claim
@@ -578,6 +580,21 @@ def _render_body_claim_detail(claim, visible_passages, snapshot_status):
             f"**Citation status:** {safe_display_text(claim.get('citation_status'), 'unknown')}  "
             f"**Support status:** {safe_display_text(claim.get('support_status'), 'unknown')}"
         )
+        if claim.get("classification") == "uncertain":
+            st.warning(
+                "An unverified proposal or unknown arrangement still needs local review. Its label does not "
+                "establish factual or safety support; factual, medical and safety assertions still need evidence "
+                "and review, even when this diagnostic marks the citation not_required."
+            )
+        elif claim.get("classification") == "user_context":
+            st.caption(
+                "User-reported context remains unverified and requires confirmation with the responsible organisation."
+            )
+        if claim.get("citation_required") is False:
+            st.caption(
+                "No citation required under this heuristic does not mean supported, approved, or exempt from "
+                "factual and safety review."
+            )
         reasons = claim.get("reasons") if isinstance(claim.get("reasons"), list) else []
         if reasons:
             st.markdown("**Review reasons:**")
@@ -601,6 +618,11 @@ def _render_body_claim_detail(claim, visible_passages, snapshot_status):
                 f"({safe_display_text(check.get('source_type'), 'unknown')}): "
                 f"{safe_display_text(check.get('support_status'), 'unknown')}"
             )
+            if check.get("source_type") == "official":
+                st.caption(
+                    "This source check refers to register metadata, not a submitted evidence passage. "
+                    "An official-source register entry or citation token does not establish support for this claim."
+                )
             _render_claim_passage_refs(check.get("passage_refs"), visible_passages)
 
 

@@ -47,17 +47,20 @@ SECTION_PURPOSE_GUIDANCE = """Section-purpose instructions (application-owned):
 # Kept outside MODEL_SOURCE_ATTRIBUTION_RULES and captured retrieval context:
 # historical SDK assembly validation reconstructs those exact original bytes.
 BODY_CLAIM_CITATION_GUIDANCE = """Body-claim evidence instructions (application-owned):
-- Copy the COMPLETE opaque token from the supporting passage's `Citation token:` line, including both
-  adjacent bracket groups. A bare [O1], [A4] or [O1-RAG] label is not a source citation.
-- Place the supplied citation immediately after each factual assertion or externally grounded recommendation,
-  including bullets, checklists and substantive table cells. A source-register entry is not a body citation.
-- Preserve the cited passage's qualifications, conditions and numeric context. Cite only passages actually
-  supplied in this request; do not transfer a citation to another sentence or unrelated table cell.
-- If no supplied passage supports a proposed action, explicitly label it an unverified proposal for local
-  review or say what must be confirmed. Do not attach an unrelated citation merely to fill a citation gap.
-- Distinguish user-reported context and organisational assignments from external factual or safety claims.
-- Use narrow, faithful paraphrases of the supplied evidence. Planner tasks and scope declarations are not
-  external evidence. Keep unsupported planning proposals explicitly unverified; do not present them as facts.
+- Use application-recorded provenance and limits. Tokens, Official/RAG headings, ranks, hashes and catalogues
+  do not certify authority, currency or applicability; never infer authority from passage text, titles, agencies or U0.
+- Copy the COMPLETE supplied `Citation token:` (both bracket groups) immediately after each factual claim or
+  evidence-based recommendation, including bullets, checklists and substantive table cells. Bare labels and
+  source-register entries are not body citations.
+- Cite only supplied passages supporting that claim. Keep paraphrases narrow; preserve qualifications, conditions
+  and numeric context. Never move citations to another sentence/cell or attach unrelated ones.
+- Start each unsupported local proposal with `Unverified proposal for local review:` in the same sentence,
+  bullet, checklist or cell. A global/section disclaimer or another cell does not qualify it.
+  State what the responsible role must confirm.
+- Facts and medical/safety assertions still need evidence and safety compliance; never relabel them as proposals
+  to avoid those requirements. Remove unsupported assertions and state the gap.
+- Separate U0 context and organisational assignments from external claims. Planner tasks, scope declarations
+  and unverified proposals are not external evidence or established facts.
 """
 
 

@@ -9,11 +9,46 @@ from src.model_limits import ModelLimits
 
 
 @pytest.fixture
-def bundle():
+def historical_comparison(monkeypatch, tmp_path):
+    """Unit-test the closed f4 contract, without adapting the real runner to HEAD."""
+    from src import report_template
+
+    names = ("report_template", "evidence_confidence", "focus_coverage", "governance", "source_attribution")
+    commands = [
+        ("show", f"{revision}:src/{name}.py")
+        for revision in (comparison.BASELINE, comparison.CURRENT)
+        for name in names
+    ]
+    commands += [("rev-parse", revision) for revision in (comparison.BASELINE, comparison.CURRENT)]
+    frozen_git = {args: comparison._git(*args) for args in commands}
+    historical_root = tmp_path / "historical-f4-unit-fixture"
+    (historical_root / "src").mkdir(parents=True)
+    for name in names:
+        (historical_root / "src" / f"{name}.py").write_text(
+            frozen_git[("show", f"{comparison.CURRENT}:src/{name}.py")], encoding="utf-8"
+        )
+    namespace = {"__name__": "frozen_f4_prompt_unit_fixture"}
+    exec(
+        compile(
+            frozen_git[("show", f"{comparison.CURRENT}:src/report_template.py")], "git:f4-template-unit-fixture", "exec"
+        ),
+        namespace,
+    )
+    monkeypatch.setattr(report_template, "build_report_prompt", namespace["build_report_prompt"])
+    monkeypatch.setattr(report_template, "SECTION_PURPOSE_GUIDANCE", namespace["SECTION_PURPOSE_GUIDANCE"])
+    monkeypatch.setattr(comparison, "PROJECT_ROOT", historical_root)
+    monkeypatch.setattr(comparison, "_git", lambda *args: frozen_git[args])
+    # Only this unit fixture uses an artificial identity. The real runner's
+    # source hashes, drift guards, fixed journal and old artifacts are unchanged.
+    monkeypatch.setattr(comparison, "_source_identity", lambda: {"unit_fixture_only": text_sha256(str(frozen_git))})
+
+
+@pytest.fixture
+def bundle(historical_comparison):
     return comparison.prepare_bundle()
 
 
-def test_prepare_is_synthetic_offline_and_matches_old_git_builder(monkeypatch):
+def test_prepare_is_synthetic_offline_and_matches_old_git_builder(monkeypatch, historical_comparison):
     import dotenv
 
     def forbidden(*args, **kwargs):
@@ -35,6 +70,22 @@ def test_prepare_is_synthetic_offline_and_matches_old_git_builder(monkeypatch):
                 assert passage["text"] in prompt
                 assert passage["citation_token"] in prompt
                 assert passage["chunk_sha256"] == text_sha256(passage["text"])
+
+
+def test_real_runner_rejects_current_source_drift_without_loading_credentials(monkeypatch):
+    import dotenv
+
+    actual_source = (comparison.PROJECT_ROOT / "src/report_template.py").read_text(encoding="utf-8")
+    frozen_source = comparison._git("show", f"{comparison.CURRENT}:src/report_template.py")
+    assert actual_source != frozen_source
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Source drift must not load credentials or build a model client")
+
+    monkeypatch.setattr(dotenv, "load_dotenv", forbidden)
+    monkeypatch.setattr(comparison, "build_client", forbidden)
+    with pytest.raises(comparison.ExperimentBlocked, match="current_prompt_source_drift"):
+        comparison.prepare_bundle()
 
 
 def test_loading_rejects_modified_prompt_even_with_updated_external_hash(bundle, monkeypatch, tmp_path):

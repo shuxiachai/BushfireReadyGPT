@@ -64,7 +64,7 @@ renaming outputs or deleting journals must not reopen a completed campaign.
 | Whole-unit selection | [extractive_basis_prototype.py](extractive_basis_prototype.py), [extractive_development.py](extractive_development.py) |
 | Proposal dependencies and review | [proposal_evidence_contract.py](proposal_evidence_contract.py), [proposal_development.py](proposal_development.py), [proposal_evidence_advisory.py](proposal_evidence_advisory.py) |
 | Selection-to-proposal handoff | [selection_proposal_bridge.py](selection_proposal_bridge.py), [selection_proposal_development.py](selection_proposal_development.py) |
-| Fixed section-purpose comparison | [section_scope_comparison.py](section_scope_comparison.py): three synthetic conditions, two prompts, at most six single-attempt DeepSeek requests; no repairs or holdout evaluation. |
+| Fixed section-purpose comparison | [section_scope_comparison.py](section_scope_comparison.py): frozen `3a00f3c` → `f4ae47c` synthetic campaign, now closed. Later source changes intentionally fail its provenance checks; the existing journal must not be reopened. |
 
 [Current project status](../docs/project_reassessment.md) separates these
 development results from production behaviour and release acceptance.

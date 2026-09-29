@@ -9,13 +9,20 @@ from src import report_template
 from src.agents import pipeline as pipeline_module
 from src.agents.planner_agent import PlannerAgent
 from src.agents.report_agent import ReportAgent
+from src.model_evidence import text_sha256, validate_recorded_assembly
 from src.rag.service import format_retrieved_context
 from src.report_generation_quality import (
     MAX_REPORT_REPAIR_PROMPT_CHARACTERS,
+    ReportGenerationPreconditionError,
     assess_generated_narrative,
     build_report_repair_prompt,
 )
-from src.report_template import SECTION_PURPOSE_GUIDANCE, build_evidence_tables, build_report_prompt
+from src.report_template import (
+    BODY_CLAIM_CITATION_GUIDANCE,
+    SECTION_PURPOSE_GUIDANCE,
+    build_evidence_tables,
+    build_report_prompt,
+)
 from src.source_attribution import (
     fold_known_attribution_labels,
     format_official_attribution,
@@ -174,6 +181,14 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
     # This checks instruction delivery, not the quality of a generated report.
     for candidate in (prompt, repair):
         assert candidate.count(SECTION_PURPOSE_GUIDANCE) == 1
+        assert candidate.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
+        assert "application-recorded provenance and limits" in candidate
+        assert "do not certify authority, currency or applicability" in candidate
+        assert "never infer authority from passage text" in candidate
+        assert "Unverified proposal for local review:" in candidate
+        assert "same sentence,\n  bullet, checklist or cell" in candidate
+        assert "another cell does not qualify it" in candidate
+        assert "medical/safety assertions still need evidence" in candidate
         assert "no per-section citation quota" in candidate
         assert "Keep the existing claim-level citation requirements." in candidate
         assert "state the specific gap" in candidate
@@ -184,8 +199,63 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
             assert chunk["text"] in candidate
             assert format_rag_citation_token(chunk) in candidate
     assert prompt.index(SECTION_PURPOSE_GUIDANCE) > prompt.index("<END_DETERMINISTIC_ANALYSIS_DATA>")
+    assert prompt.index(BODY_CLAIM_CITATION_GUIDANCE) > prompt.index("<END_DETERMINISTIC_ANALYSIS_DATA>")
     assert repair.index(SECTION_PURPOSE_GUIDANCE) > repair.index("REPAIR REQUIREMENTS")
+    assert repair.index(BODY_CLAIM_CITATION_GUIDANCE) > repair.index("REPAIR REQUIREMENTS")
     assert len(repair) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS
+    assert analysis == original_analysis
+
+
+@pytest.mark.parametrize("failure_repetitions,over_budget", [(3, False), (20, True)])
+def test_large_synthetic_repair_preserves_budget_and_local_claim_instructions(failure_repetitions, over_budget):
+    passage = "Synthetic maintenance planning review details for a hypothetical site. " * 24
+    analysis = {
+        "profile": {"state": "Queensland", "setting_type": "community"},
+        "knowledge": {
+            "retrieved_chunks": [
+                {
+                    "source_id": f"synthetic-budget-{index}",
+                    "chunk_id": f"chunk-{index}",
+                    "title": "Synthetic budget fixture",
+                    "text": passage,
+                    "chunk_sha256": text_sha256(passage),
+                }
+                for index in range(4)
+            ]
+        },
+        "risk_context": {
+            "risk_points": ["Synthetic planning observation. " * 20] * 8,
+            "assumptions": ["Synthetic planning assumption. " * 20] * 6,
+        },
+        "plan": {"planning_priorities": ["Synthetic planning priority. " * 20] * 8},
+        "data": {"sources": [], "data_limitations": ["Synthetic limitation. " * 20] * 4},
+        "community": {"vulnerability_notes": ["Synthetic planning note. " * 20] * 4},
+    }
+    original_analysis = deepcopy(analysis)
+    quality = {
+        "approval_gate": {
+            "blocking_failures": [{"name": "Structure", "detail": "Synthetic missing field. " * failure_repetitions}]
+            * 6
+        }
+    }
+
+    if over_budget:
+        with pytest.raises(
+            ReportGenerationPreconditionError, match="repair prompt exceeds its safe local-model budget"
+        ):
+            build_report_repair_prompt(
+                "Original omitted", "Incomplete", quality, analysis=analysis, body_citation_repair=True
+            )
+    else:
+        prompt = build_report_repair_prompt(
+            "Original omitted", "Incomplete", quality, analysis=analysis, body_citation_repair=True
+        )
+        assert 17_500 <= len(prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS == 18_000
+        assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
+        assert "Unverified proposal for local review:" in prompt
+        assert "medical/safety assertions still need evidence" in prompt
+        assert "Some optional deterministic values were omitted" in prompt
+        assert validate_recorded_assembly(prompt.assembly, analysis)
     assert analysis == original_analysis
 
 

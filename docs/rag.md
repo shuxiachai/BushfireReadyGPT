@@ -16,6 +16,14 @@ from static Australian government preparedness material before report
 generation. It does not read live incidents, warnings, fire bans, evacuation
 orders or confirmed safe routes.
 
+"Official" describes the project's maintained source catalogue, not an
+independent publisher-authentication or factual-verification result. Catalogue
+and document hashes bind retrieved bytes to the registered records; they do
+not independently certify government authority, current applicability or support
+for a report statement. Missing or conflicting source identity still needs
+human verification. A citation token, retrieval rank or generic evidence heading
+must not promote synthetic or user-provided text into official guidance.
+
 ## Runtime flow
 
 Since the September 12 maintenance, structured forms retain their admitted base
@@ -166,6 +174,26 @@ may supply visible support. Missing or invalid capture means unknown support,
 not zero risk or a reconstructed claim of what the model received. The review
 UI pairs each statement with its submitted passage and review reasons, without
 rewriting the recorded historical diagnostic or audit event.
+
+The maintained generation, revision and repair instructions ask for an
+unsupported local arrangement to be labelled `Unverified proposal for local
+review:` in the same statement, bullet, checklist item or substantive table
+cell. A disclaimer elsewhere, including another table column, does not locally
+qualify that action. Factual, medical and safety assertions must not be renamed
+as proposals to bypass evidence or safety requirements; missing support should
+remain an explicit gap rather than an invented fact.
+
+The current diagnostic uses lexical prefixes, not semantic understanding, to
+classify uncertainty and user context. Even a factual assertion following an
+"unverified proposal" prefix can receive `uncertain` / `not_required`; that is
+not evidence of correctness, support or approval. The review UI explains this
+per item and distinguishes official-register metadata from submitted passage
+evidence. The classifier, metrics, historical validation and quality gate are
+unchanged. These prompt and display changes do not establish improved model
+behaviour or justify an accuracy claim from lower missing-citation counts.
+The shared instructions consume the existing repair-prompt budget. Its 18,000
+character cap and context-assembly limits are unchanged; very large combinations
+can reach the fail-closed boundary earlier rather than receiving a larger budget.
 
 Negation, qualifiers and numeric-context flags are conservative heuristics, not
 semantic entailment. The independently authored synthetic challenge and its

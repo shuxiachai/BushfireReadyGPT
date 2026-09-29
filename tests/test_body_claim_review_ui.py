@@ -1,5 +1,6 @@
 import hashlib
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 
@@ -83,3 +84,69 @@ def test_current_body_claim_review_marks_unavailable_snapshot_unknown_without_mu
     assert "Submitted-passage support is unknown" in messages
     assert "does not reconstruct historical model context" in messages
     assert app.session_state["record_unchanged"] is True
+    assert app.checkbox[0].label == "Show claims not requiring citations under this diagnostic"
+    assert app.checkbox[0].key == "body_claim_review_show_not_required"
+
+
+@pytest.mark.parametrize(
+    "text,classification",
+    [
+        ("Unverified proposal for local review: consider additional drinking water.", "uncertain"),
+        # Deliberate synthetic counterexample: a prefix does not validate the
+        # factual assertion hidden behind it. Preserve the classifier's limits.
+        ("Unverified proposal for local review: drinking water prevents heat illness.", "uncertain"),
+        ("The user reports having a household emergency kit.", "user_context"),
+    ],
+)
+def test_unverified_claims_still_require_review_without_changing_classification(text, classification):
+    app = AppTest.from_string(
+        "import copy\nimport streamlit as st\n"
+        "from src.report_claim_evidence import evaluate_body_claim_evidence\n"
+        "from src.ui.review_views import _render_body_claim_detail\n"
+        f"evaluation = evaluate_body_claim_evidence({text!r}, {{}})\n"
+        "original = copy.deepcopy(evaluation)\n"
+        "claim = evaluation['claims'][0]\n"
+        "_render_body_claim_detail(claim, [], 'unavailable')\n"
+        "st.session_state['unchanged'] = (evaluation == original)\n"
+        "st.session_state['claim'] = claim"
+    ).run(timeout=15)
+
+    assert not app.exception
+    assert app.session_state["unchanged"] is True
+    claim = app.session_state["claim"]
+    assert claim["classification"] == classification
+    assert claim["citation_status"] == "not_required"
+    assert claim["support_status"] == "not_applicable"
+    rendered = "\n".join(item.value for item in app.caption)
+    assert "does not mean supported, approved, or exempt" in rendered
+    if classification == "uncertain":
+        assert "factual, medical and safety assertions still need evidence" in app.warning[0].value
+        assert "even when this diagnostic marks the citation not_required" in app.warning[0].value
+    else:
+        assert "User-reported context remains unverified" in rendered
+
+
+def test_register_metadata_is_not_displayed_as_submitted_claim_evidence():
+    # A synthetic register entry exercises display semantics; no actual official
+    # source or current fact is asserted by this fixture.
+    app = AppTest.from_string(
+        "import copy\nimport streamlit as st\n"
+        "from src.report_claim_evidence import evaluate_body_claim_evidence\n"
+        "from src.source_attribution import format_official_citation_token\n"
+        "from src.ui.review_views import _render_body_claim_detail\n"
+        "source = {'id': 'synthetic-register', 'name': 'Synthetic register fixture'}\n"
+        "text = 'Preparedness actions reduce risk. ' + format_official_citation_token(source)\n"
+        "evaluation = evaluate_body_claim_evidence(text, {'data': {'sources': [source]}})\n"
+        "original = copy.deepcopy(evaluation)\n"
+        "_render_body_claim_detail(evaluation['claims'][0], [], 'unavailable')\n"
+        "st.session_state['unchanged'] = (evaluation == original)\n"
+        "st.session_state['support'] = evaluation['claims'][0]['support_status']"
+    ).run(timeout=15)
+
+    assert not app.exception
+    assert app.session_state["unchanged"] is True
+    assert app.session_state["support"] == "unknown"
+    captions = "\n".join(item.value for item in app.caption)
+    assert "register metadata, not a submitted evidence passage" in captions
+    assert "citation token does not establish support for this claim" in captions
+    assert not app.code

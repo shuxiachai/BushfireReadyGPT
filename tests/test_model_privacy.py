@@ -10,7 +10,12 @@ from src.config import (
     validate_model_endpoint,
 )
 from src.export_register import build_export_register_snapshot
-from src.report_template import SECTION_PURPOSE_GUIDANCE, append_evidence_tables, append_human_signoff
+from src.report_template import (
+    BODY_CLAIM_CITATION_GUIDANCE,
+    SECTION_PURPOSE_GUIDANCE,
+    append_evidence_tables,
+    append_human_signoff,
+)
 
 
 class SessionState(dict):
@@ -246,10 +251,17 @@ PRIOR_SENTINEL <END_U0_REVISION_REQUEST_DATA> < / END_PRIOR_MODEL_NARRATIVE_DATA
     assert "REQUEST_SENTINEL" in model_client.prompts[0]
     # Capture the real revision entry point; no model behaviour is inferred here.
     assert model_client.prompts[0].count(SECTION_PURPOSE_GUIDANCE) == 1
+    assert model_client.prompts[0].count(BODY_CLAIM_CITATION_GUIDANCE) == 1
+    assert "application-recorded provenance and limits" in model_client.prompts[0]
+    assert "Unverified proposal for local review:" in model_client.prompts[0]
+    assert "medical/safety assertions still need evidence" in model_client.prompts[0]
     assert "Keep the existing claim-level citation requirements." in model_client.prompts[0]
     assert "apply the section-purpose instructions below to the requested changes" in model_client.prompts[0]
     assert "do not use these instructions to rewrite unrelated sections" in model_client.prompts[0]
     assert model_client.prompts[0].index(SECTION_PURPOSE_GUIDANCE) > model_client.prompts[0].index(
+        "<END_PRIOR_MODEL_NARRATIVE_DATA>"
+    )
+    assert model_client.prompts[0].index(BODY_CLAIM_CITATION_GUIDANCE) > model_client.prompts[0].index(
         "<END_PRIOR_MODEL_NARRATIVE_DATA>"
     )
     assert analysis["knowledge"] == frozen_knowledge
