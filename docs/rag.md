@@ -203,7 +203,11 @@ repair/call limits and token budget remain unchanged. Synthetic tests can
 verify that the rules reach each prompt path without changing evidence; they
 cannot establish that a real model now follows the rules or that citation
 coverage/semantic accuracy has improved. See [current status](project_reassessment.md)
-for the recorded validation boundary.
+for the recorded validation boundary. A later
+[six-request synthetic comparison](experiments/evidence-generation.md#section-purpose-prompt-comparison-2026-09-29)
+did not reproduce section-12 maintenance contamination in either prompt arm.
+It observed clearer unknowns in one condition, but also source-identity errors
+and unsupported additions. This is not a demonstrated general improvement.
 
 The following headings preserve older links. Their full experimental records,
 including failures and provenance, are archived separately and are not production

@@ -916,3 +916,76 @@ non-E2E suite passed 2,737 tests, with 7 skipped, 6 deselected and 89.64% src
 coverage, in 226.92 seconds. Ruff, format checks and Bandit passed, and an
 independent read-only code review found no actionable issue. This validation
 does not cover real responses or measure experimental-script coverage.
+
+### Recorded execution and findings
+
+Executed from `e2e1f02022a8066750a2a0e3bc97fa9e29a04cff` on September 29,
+09:23:24–09:24:22 UTC, after explicit approval to send these synthetic payloads
+to DeepSeek. An earlier command was blocked before process creation and made no
+request. The fixed journal records six SDK submissions and then closes; all six
+responses finished with `stop`. No retry, repair, retrieval or extra DeepSeek
+judging request was made. The default local quota database was previously uninitialised, not evidence
+of zero historical usage; normal request admission created it and recorded six
+calls for this UTC day, exhausting the run's six-call limit. `.env` was not changed.
+
+The requested model was `deepseek-v4-flash`; responses reported `deepseek-flash`.
+This is alias metadata, not an immutable-weight attestation. Each request used
+temperature 0.2, a 2,300 output-token ceiling and disabled thinking. Provider usage
+totalled 28,298 tokens (18,528 input, 9,770 output). Summed governed-call elapsed
+time was 54.41 seconds; the whole campaign took 58.08 seconds. These are one-run
+observations, not a price calculation or a general performance comparison.
+
+| Synthetic condition | Baseline → current observations | Cited / heuristically citation-requiring claims |
+| --- | --- | --- |
+| Maintenance only | Both kept maintenance out of section 12. Current listed missing procedures, credentials and schedule more explicitly, but also added an unsupported exercise recommendation without a nearby proposal qualifier. | 2/64 → 1/73 |
+| Mixed maintenance and first-aid training | Both used the relevant coordinator/debrief passage in section 12. Current placed maintenance in section 7; baseline placed it in section 6. The motivating first-aid contamination was absent in both. | 2/76 → 2/61 |
+| No related evidence | Baseline proposed at least one pre-season exercise and a Week 5 exercise; current explicitly asserted no schedule and retained local confirmation. Current nevertheless added an unsupported maintenance recommendation in section 7 referring to section 13, where no matching action appeared. | 0/112 → 0/84 |
+
+The maintenance-only current response also called the synthetic passage an
+official retrieval reference in its summary, while its limitations admitted
+there were no real official excerpts. A valid citation token does not resolve
+that source-identity contradiction. Synthetic passages reused the existing RAG
+framing, so this fixture cannot isolate a production official-source labelling
+defect. This remains an observed response problem, not a verified production
+root cause. Genuine maintenance-related training was not tested remotely: the
+mixed fixture contains a first-aid exercise, not a maintenance exercise.
+
+The six submitted prompts, source assemblies and raw/cleaned response bindings
+were checked offline. Raw capture objects precede narrative binding; replay
+used the existing `bind_normalized_narrative` on an in-memory copy before the
+strict snapshot validator and claim diagnostic. Original result bytes were not
+rewritten. The claim counts above are conservative automated diagnostics, not
+human annotations: explicit unknowns and unverified proposals must not all be
+interpreted as unsupported factual errors. Lexical matches are not semantic
+support. In the baseline mixed response, the maintenance sentence retained the
+inspection/cleaning actions but added "not a statement of local condition";
+the diagnostic flagged possible negation mismatch and no lexical match. That
+flag does not itself establish that the maintenance action was negated. Its
+separate training citation did receive a lexical match.
+
+These are initial narratives, not completed production exports. Running the
+unchanged governed assessment on these synthetic pre-publication narratives
+blocked all six: there is no valid official-source register, and the cited
+fixtures also retain raw attribution/provenance issues. Six completed requests
+must not be reported as six quality-gate passes. Human/domain approval, revision,
+repair and current cloud delivery were not tested in this campaign.
+
+Independent AI-assisted qualitative review agreed that the original section-12
+maintenance failure was not reproduced in either arm. It found a useful local
+difference in missing-evidence handling, alongside the residual examples above;
+this does not establish overall improvement or generalisation. Preserve the
+current prompt correction without further tuning to these six responses. The
+next content priority remains supported body claims and clear local proposal
+labelling, before replacement release samples. The earlier 27-call campaign
+remains closed and unchanged; these six calls are accounted for separately.
+
+Local, ignored artifacts under `output/section-scope-comparison-20260929/`:
+
+- `prepared.json`: SHA256 `7581b79d2be3f191049fe8ccda33fdbe734efb771780c8798c02b4d6317f0594`.
+- `results.json`: SHA256 `98f14114dd45b6655a497b0879a2faa506793afd817704447299d3a303aa0460`.
+- `campaign.calls.jsonl`: SHA256 `0bb3377ab0bc3caf5209878d1f28d10ef4ec5dbc4124c3a111efb678404248ff`.
+
+The original per-call `request-01`–`request-06`, `response-01`–`response-06` and
+`result-01`–`result-06` JSON files are retained alongside them. These local raw
+artifacts are not published release samples; the hashes identify the preserved
+run but do not give visitors access to its unpublished bytes.
