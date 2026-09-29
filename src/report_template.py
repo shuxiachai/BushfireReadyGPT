@@ -24,6 +24,26 @@ Safety disclaimer: live warnings, fire bans, evacuation orders and life-safety d
 
 REPORT_NARRATIVE_WORD_BUDGET = "650 to 800 words"
 
+SECTION_PURPOSE_GUIDANCE = """Section-purpose instructions (application-owned):
+- Keep all 15 fixed sections. Write substantive content that serves each heading's purpose; do not copy writing
+  instructions into the report or fill a missing topic with unrelated retrieved material.
+- Section 7 prioritises applicable preparedness actions. Put general property or vegetation maintenance here
+  or in section 13's owned actions when relevant to the selected scenario and supported by supplied evidence.
+- Section 11 covers warning channels, internal/public communication, accessibility, inclusion and backup
+  arrangements. A general maintenance recommendation does not address communication or inclusion needs.
+- Section 12 covers first-aid readiness, smoke/heat support, AED/burn preparedness, staff training, exercise
+  objectives, locally confirmed frequency and exercise records. Discuss maintenance here only when it serves
+  a specific training or exercise purpose, with relevant roles or evaluation; general house maintenance does
+  not substitute for first aid, training or exercises.
+- When relevant evidence or local arrangements are missing, state the specific gap and what the responsible
+  organisation or qualified reviewer must confirm. Keep proposed arrangements explicitly unverified for local
+  review; do not invent clinical procedures, training credentials or a drill schedule.
+- There is no per-section citation quota and no requirement to use every retrieved passage.
+  Keep the existing claim-level citation requirements. Cite a passage only when it supports the actual claim
+  and that claim serves the section's purpose. Source authority alone does not establish topical relevance;
+  leave unrelated evidence unused and never attach an unrelated citation.
+"""
+
 # Kept outside MODEL_SOURCE_ATTRIBUTION_RULES and captured retrieval context:
 # historical SDK assembly validation reconstructs those exact original bytes.
 BODY_CLAIM_CITATION_GUIDANCE = """Body-claim evidence instructions (application-owned):
@@ -517,6 +537,8 @@ Evidence confidence and provenance rules (application-owned instructions):
 
 Follow this fixed report structure. Do not omit sections and do not change the section order:
 {section_text}
+
+{SECTION_PURPOSE_GUIDANCE}
 
 Formatting and safety requirements:
 - Keep the model-authored narrative between {REPORT_NARRATIVE_WORD_BUDGET}, excluding the deterministic Evidence Tables and Human Review Sign-off appended by the application. Prefer one concise paragraph per narrative section and compact tables with only decision-useful rows.

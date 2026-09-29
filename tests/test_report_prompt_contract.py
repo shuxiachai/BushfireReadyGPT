@@ -1,6 +1,7 @@
 import inspect
 import json
 import re
+from copy import deepcopy
 
 import pytest
 
@@ -14,7 +15,7 @@ from src.report_generation_quality import (
     assess_generated_narrative,
     build_report_repair_prompt,
 )
-from src.report_template import build_evidence_tables, build_report_prompt
+from src.report_template import SECTION_PURPOSE_GUIDANCE, build_evidence_tables, build_report_prompt
 from src.source_attribution import (
     fold_known_attribution_labels,
     format_official_attribution,
@@ -125,6 +126,67 @@ def test_initial_prompt_uses_positive_risk_reduction_language_without_priming_ab
     assert "use only non-absolute risk-reduction wording" in normalised
     assert "built with `support`, `verify`, `reduce risk` or `maintain`" in normalised
     assert not re.search(r"\b(?:ensure|guarantee|assure)(?:s|d|ing)?\b", prompt, re.IGNORECASE)
+
+
+@pytest.mark.parametrize(
+    "passages",
+    [
+        [],
+        ["Inspect roofing and gutters; remove debris from underfloor spaces."],
+        ["During a maintenance exercise, staff practise reporting hazards and record a training debrief."],
+        [
+            "Inspect roofing and gutters; remove debris from underfloor spaces.",
+            "During a first-aid exercise, staff practise contacting the first-aid coordinator and record a debrief.",
+        ],
+    ],
+    ids=["no-related-evidence", "maintenance-only", "maintenance-training", "mixed-evidence"],
+)
+def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewriting_evidence(passages):
+    analysis = _analysis_with_attributed_sources()
+    analysis["knowledge"]["retrieved_chunks"] = [
+        {
+            "source_id": f"synthetic-scope-{index}",
+            "chunk_id": f"scope-chunk-{index}",
+            "title": f"Synthetic section-purpose passage {index}",
+            "chunk_sha256": str(index + 1) * 64,
+            "text": passage,
+        }
+        for index, passage in enumerate(passages)
+    ]
+    analysis["prompt_context"] = ReportAgent().run(
+        {"state": "Queensland", "setting_type": "community"},
+        analysis["data"],
+        {"risk_points": [], "assumptions": []},
+        {"planning_priorities": []},
+        knowledge_result=analysis["knowledge"],
+    )
+    original_analysis = deepcopy(analysis)
+
+    prompt = _build_prompt(analysis)
+    repair = build_report_repair_prompt(
+        prompt,
+        "Incomplete synthetic draft",
+        {"approval_gate": {"blocking_failures": [{"name": "Structure", "detail": "Missing sections."}]}},
+        analysis=analysis,
+        body_citation_repair=True,
+    )
+
+    # This checks instruction delivery, not the quality of a generated report.
+    for candidate in (prompt, repair):
+        assert candidate.count(SECTION_PURPOSE_GUIDANCE) == 1
+        assert "no per-section citation quota" in candidate
+        assert "Keep the existing claim-level citation requirements." in candidate
+        assert "state the specific gap" in candidate
+        assert "only when it serves\n  a specific training or exercise purpose" in candidate
+        for title, _requirement in report_template.REPORT_TEMPLATE_SECTIONS:
+            assert title in candidate
+        for chunk in analysis["knowledge"]["retrieved_chunks"]:
+            assert chunk["text"] in candidate
+            assert format_rag_citation_token(chunk) in candidate
+    assert prompt.index(SECTION_PURPOSE_GUIDANCE) > prompt.index("<END_DETERMINISTIC_ANALYSIS_DATA>")
+    assert repair.index(SECTION_PURPOSE_GUIDANCE) > repair.index("REPAIR REQUIREMENTS")
+    assert len(repair) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS
+    assert analysis == original_analysis
 
 
 def test_dynamic_evidence_confidence_values_remain_json_data_not_prompt_rules():

@@ -1,7 +1,8 @@
 # Current project status
 
-Updated 2026-09-29 for documentation organisation. This page is the single
-maintained status summary; the dated evidence below was not rerun for this edit.
+Updated 2026-09-29 for the section-purpose prompt correction. This page is the
+single maintained status summary; historical model and cloud results below are
+not new evaluations of the changed prompts.
 Start with the [documentation index](README.md) for instructions rather than
 reading historical logs as setup steps.
 
@@ -42,7 +43,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Evidence | Recorded result | What it does not establish |
 | --- | --- | --- |
 | v0.6.0 release, `44d0c3f` | Frozen samples and RAG/report/red-team artifacts; [release record](releases/v0.6.0.md). | Current cloud or maintained-source accuracy. |
-| Latest recorded non-E2E suite, 2026-09-27, `cab29ea` | 2,716 passed; 7 skipped; 6 deselected; 89.64% **src** coverage. | Experimental-script coverage, a new six-case browser run, or domain correctness. |
+| Latest recorded non-E2E suite, 2026-09-29, section-purpose correction | 2,723 passed; 7 skipped; 6 deselected; 89.64% **src** coverage; 186.14 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
 | Full eight-scenario model run, 2026-09-15, `0378229` | 7/8 governed checks passed; the suite did not pass overall. | The historical release's 8/8 cannot replace this result. |
 | Synthetic cloud delivery, 2026-09-27, `cab29ea` | Generation, one targeted revision, draft-only review and four download formats checked; ZIP 14 files/13 hashes; all 13 actual cloud PDF pages inspected. | Word page-layout approval, semantic accuracy, restart/concurrency coverage or real-user feedback. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
@@ -57,7 +58,9 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 1. **Report content.** The latest cloud sample had 4 cited claims among 93
    requiring citations; its first-aid section also included home-maintenance
-   material. Structural checks and the new lexical advisory do not close this gap.
+   material. Shared purpose and missing-evidence instructions now reach generation,
+   revision and structural repair; structural checks and lexical advice still do
+   not verify topic relevance. Real-model improvement remains unmeasured.
 2. **Word page layout.** Actual DOCX delivery/structure was checked, but the
    bundled renderer was unavailable. PDF inspection is not Word inspection.
 3. **External validation.** [The pilot register](pilot_results.md) still records
@@ -77,9 +80,12 @@ emergency decisions is not a required next feature.
 
 ## Optimisations Completed In This Review
 
-This September 29 edit reorganises documentation only. It does not add runtime
-capabilities or new model/acceptance measurements. Previous implementation
-lists and subjective maturity scores remain in the
+After the September 29 documentation reorganisation, the maintained prompts
+received shared section-purpose and missing-evidence guidance. Revision scope,
+frozen evidence, v6 gate outputs and call budgets remain unchanged. This change
+does not automatically move paragraphs, add citations or validate semantics;
+no new real-model or cloud acceptance is claimed. Previous implementation lists
+and subjective maturity scores remain in the
 [earlier project assessment](history/pre-reorganisation-project-reassessment.md)
 and [historical commercial assessment](history/commercial_gap_assessment.md);
 their former “current” statements are not the maintained status ledger.

@@ -19,6 +19,7 @@ from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
     REPORT_NARRATIVE_WORD_BUDGET,
     REPORT_TEMPLATE_SECTIONS,
+    SECTION_PURPOSE_GUIDANCE,
     append_evidence_tables,
     append_human_signoff,
     apply_governance_notice,
@@ -659,6 +660,8 @@ Body citation feedback:
 
 Fixed heading sequence (each exactly once, in this order):
 {heading_sequence}
+
+{SECTION_PURPOSE_GUIDANCE}
 
 - Preserve one real `## 5. Data Sources and Limitations` heading with visible human-readable limitations. The
   application installs canonical official-source and retrieval-provenance lines after generation.

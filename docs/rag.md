@@ -175,6 +175,36 @@ runs and false positives. They are separate from retrieval recall and the old
 12-target visibility diagnostic. Their offline processing latency must not be
 reported as real retrieval, embedding or model latency.
 
+## Section purpose in model prompts
+
+The maintained generator uses one application-owned `SECTION_PURPOSE_GUIDANCE`
+block for initial generation, user-requested revision and structural repair.
+It distinguishes preparedness priorities, communication/inclusion, and first-aid
+readiness/training/exercises. A relevant citation does not by itself make a
+paragraph relevant to the section where it appears.
+
+Ordinary property-maintenance advice must not fill the first-aid section merely
+because maintenance passages are available. Genuinely related training or
+exercise content remains possible; this is not a keyword blacklist. If the
+provided evidence does not cover a section's purpose, retain the section and
+state the specific matters needing evidence or responsible local confirmation,
+rather than borrowing unrelated material or inventing procedures and facts.
+There is no citation quota for each section.
+
+Structural repairs use compact context rather than replaying the original
+writing instructions, so they receive the same purpose rules explicitly.
+Revisions apply them within the requested edit scope; they do not authorise
+silently rewriting unrelated parts of an existing report. Retrieved evidence,
+its recorded assembly and historical reports are not reassigned or rewritten.
+
+This is a prompt-contract correction, not a new semantic validator or automatic
+paragraph mover. The existing v6 quality policy, audit-quality dictionaries,
+repair/call limits and token budget remain unchanged. Synthetic tests can
+verify that the rules reach each prompt path without changing evidence; they
+cannot establish that a real model now follows the rules or that citation
+coverage/semantic accuracy has improved. See [current status](project_reassessment.md)
+for the recorded validation boundary.
+
 The following headings preserve older links. Their full experimental records,
 including failures and provenance, are archived separately and are not production
 guidance. Use [current project status](project_reassessment.md) for maintained conclusions.
