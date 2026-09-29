@@ -1,3 +1,5 @@
+> Historical snapshot from commit `08f4254`, preserved during the 2026-09-29 documentation reorganisation. Statements labelled current and subjective maturity scores below belong to that earlier assessment; they are not the current acceptance ledger. See [current project status](../project_reassessment.md).
+
 # Project Maturity And Commercial Gap Assessment
 
 ## Current Stage

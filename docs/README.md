@@ -1,112 +1,54 @@
-# Documentation Index
+# Documentation
 
-This folder contains project explanation, demo, governance and commercial-readiness materials for BushfireReadyGPT.
+## Start here
 
-## Fast Reading Path
+- [Project overview](project_overview.md): purpose, workflow and safety boundary.
+- [Current project status](project_reassessment.md): the single maintained summary of completed checks and remaining gaps.
+- [Local demo walkthrough](demo_walkthrough.md): demonstrate the Ollama path.
+- [Docker and Railway](DEPLOYMENT.md): run the separate password-protected cloud path.
+- [Historical v0.6.0 samples](../examples/v0.6.0/): frozen release files, not current-main or current-cloud outputs.
 
-If you only have a few minutes, read these in order:
+## Browse by purpose
 
-1. `project_overview.md` - what the project is and what it is not.
-2. `demo_walkthrough.md` - how to demonstrate the app.
-3. `../examples/v0.6.0/` - current Markdown, PDF, DOCX and governed package.
-4. `commercial_gap_assessment.md` - what remains before commercial or government use.
-
-## Start Here
-
-| File | Purpose |
+| Section | Contents |
 | --- | --- |
-| `showcase_package.md` | Main entry point for presentation and portfolio materials. Read this first before preparing a demo. |
-| `project_overview.md` | Plain project explanation for someone seeing the project for the first time. |
-| `demo_walkthrough.md` | Step-by-step live demonstration flow. Use this when presenting the app. |
-| `showcase_checklist.md` | Pre-presentation checklist for setup, demo flow, exports and safety boundary. |
+| [Guides](guides/README.md) | Demonstration scenarios, walkthrough and presentation checklist. |
+| [Pilot materials](pilot/README.md) | Protocol, feedback, anonymous measurement and the pending participant register. |
+| [Architecture](architecture.md) | Deterministic components, model boundary and data flow. |
+| [RAG design](rag.md) | Current retrieval setup, evidence handling and trust limits. |
+| [Evaluation and observability](evaluation_and_observability.md) | Diagnostic definitions, runtime Trace and measurement boundaries. |
+| [Experiments](experiments/README.md) | Evidence-layout, structured selection and proposal development records; non-production. |
+| [History](history/README.md) | Dated audits, deployment/acceptance records and superseded assessments. |
+| [Release records](releases/) | Scope and limitations of each named release. |
+| [Benchmark evidence](benchmarks/README.md) | Version-bound engineering artifacts, not report-accuracy or user-validation claims. |
+| [Diagnostic artifacts](diagnostics/) | Existing machine-readable diagnostic runs, retained unchanged. |
+| [Data documentation](../data_australia/README.md) | Data preparation, files and provenance. |
+| [Script navigator](../scripts/README.md) | Deployment, data, evaluation, release and experimental entry points. |
 
-## Product And Pilot Materials
+[Licence notes](licence_register.md), [upstream attribution](../UPSTREAM.md) and
+[the licence](../LICENSE) remain part of the project boundary. The
+[commercial checklist](commercial_readiness_checklist.md) preserves earlier
+implementation criteria; consult current status for maintained progress.
 
-| File | Purpose |
-| --- | --- |
-| `../examples/v0.6.0/` | Current v0.6.0 local-Ollama sample in Markdown, PDF and DOCX plus its `pilot-export-v4` package. |
-| `../examples/v0.5.0/README.md` | Historical v0.5.0 governed sample retained for comparison. |
-| `../examples/v0.3.0/README.md` | Historical governed sample retained for comparison. |
-| `assets/bushfire-ready-gpt-demo.webm` | 89-second local product demonstration. |
-| `pilot_pitch.md` | One-page pilot pitch for councils, schools or community stakeholders. |
-| `pilot_feedback_form.md` | Structured feedback form for a controlled stakeholder pilot. |
-| `pilot_protocol.md` | Privacy-minimised 3-5 person controlled-pilot procedure and completion gate. |
-| `pilot_results.md` | Anonymised result register; it remains explicitly pending until real sessions run. |
-| `pilot_evaluation_template.json` | Strict repository-safe schema template for anonymous measures and Bad Case references. |
-| `demo_scenarios.md` | Written reference for the built-in demo scenarios. |
+## How to read the evidence
 
-## Technical And Governance Materials
+- **Formal release:** v0.6.0 artifacts and samples belong to source `44d0c3f`.
+- **Maintained source/cloud:** use dated acceptance records linked by current status.
+- **Experiments:** retain failures and unknown semantic support; they are not production capabilities.
+- **User validation:** the [pilot register](pilot_results.md) remains pending.
 
-| File | Purpose |
-| --- | --- |
-| `architecture.md` | Technical architecture, agent responsibilities and data flow. |
-| `LAUNCH_READINESS_2026-09-15.md` | Body-claim evidence work, independent synthetic challenge boundary and updated delivery checks. |
-| `LAUNCH_READINESS_2026-09-12.md` | Maintained-source sentence windows, actual SDK-evidence binding, paired diagnostics and deployment acceptance boundaries. |
-| `diagnostics/form-context-comparison-ac70710-2026-09-12.json` | Clean-source, metadata-only comparison of legacy prefixes, sentence windows and base-preserving focused retrieval; not a release accuracy claim. |
-| `rag.md` | Local official-knowledge RAG build, evaluation, integrity and trust boundary. |
-| `evaluation_and_observability.md` | Report evidence-alignment evaluation, pilot metrics and privacy-minimised runtime Trace. |
-| `project_reassessment.md` | Current project status, gaps and recommended next build order. |
-| `commercial_gap_assessment.md` | Commercial and government-readiness gap assessment. |
-| `commercial_readiness_checklist.md` | Checklist of what is done and what remains before commercial positioning. |
-| `licence_register.md` | Explanation of licence assumptions tracked in `data_australia/licence_register.yml`. |
-| `releases/v0.1.0.md` | Scope, highlights, validation and limitations for the first public MVP release. |
-| `releases/v0.2.0.md` | RAG, local setup, safety hardening and validation notes for the portfolio release. |
-| `releases/v0.2.1.md` | Launcher, performance, model-runtime, UI and test hardening maintenance release. |
-| `releases/v0.3.0.md` | Data-quality, scenario benchmark, sample package, visual QA and pilot-readiness release. |
-| `releases/v0.4.0.md` | Evidence-alignment, anonymous pilot measurement and privacy-minimised runtime Trace release. |
-| `releases/v0.5.0.md` | Reproducible release evidence, governed quality-policy binding and offline verification release. |
-| `releases/v0.6.0.md` | Trusted-input coverage, repair isolation and prompt-injection hardening release. |
-| `benchmarks/rag-retrieval-v0.6.0.json` | Current Top-8 release gate and Top-5 diagnostic with dataset, model, index and Git provenance. |
-| `benchmarks/report-generation-v0.6.0.json` | Current eight-scenario governed real-Ollama release gate with grounding diagnostics. |
-| `benchmarks/report-red-team-v0.6.0.json` | Current six-scenario prompt-injection diagnostic gate. |
-| `benchmarks/rag-retrieval-v0.5.0.json` | Historical v0.5.0 retrieval release evidence. |
-| `benchmarks/report-generation-v0.5.0.json` | Historical v0.5.0 report release evidence. |
-| `benchmarks/report-generation-v0.3.0.json` | Historical eight-case real-Ollama regression result. |
-| `benchmarks/report-generation-v0.4.0.json` | Historical grounding-diagnostic regression result. |
+Do not combine these into one accuracy figure or treat a governance gate as
+professional approval.
 
-## Current Release Evidence
+## Compatibility paths
 
-v0.6.0 is bound to clean source commit `44d0c3f`. Local validation records 885
-passing tests (884 non-E2E plus one Chromium E2E) and 86.95% coverage. The RAG
-release gate evaluates 73 structured Top-8 questions; the free-text Top-5
-diagnostic evaluates all 84 questions. The product report release gate passes
-all eight scenarios, while the separate diagnostic gate passes all six
-prompt-injection red-team scenarios. All three artifacts bind the same clean
-source commit and shared RAG index. The retrieval artifact separately binds the
-embedding identity; the two report artifacts bind the generation-model identity
-and `governed-report-v6` fingerprint. See the v0.6.0 JSON files,
-`releases/v0.6.0.md` and `../examples/v0.6.0/` for exact measurements and
-limitations. The v0.5.0 evidence remains unchanged as historical proof.
+Seven full-text files stay at their existing locations because the application
+previews and downloads them: the demo walkthrough, four pilot Markdown files,
+evaluation/observability and the commercial checklist. The JSON pilot template
+also stays in place. Category pages link to those originals, not duplicate copies.
 
-## Removed Redundant Docs
-
-The older `demo_guide.md` and `demo_script.md` files were removed because their content is now covered more clearly by:
-
-- `demo_walkthrough.md`
-- `showcase_package.md`
-- `showcase_checklist.md`
-
-## Recommended Use
-
-For an internship or coursework presentation:
-
-1. Read `project_overview.md`.
-2. Use `demo_walkthrough.md` during the live demo.
-3. Check `showcase_checklist.md` before presenting.
-4. Use `project_reassessment.md` to explain what is still missing before commercial use.
-
-For a stakeholder or pilot discussion:
-
-1. Start with `pilot_pitch.md`.
-2. Demonstrate using `demo_walkthrough.md`.
-3. Run sessions with `pilot_protocol.md` and collect feedback with `pilot_feedback_form.md`.
-4. Record anonymised evidence in `pilot_results.md`.
-5. Discuss maturity using `commercial_gap_assessment.md`.
-
-For GitHub reviewers:
-
-1. Start from the root `README.md`.
-2. Open the current sample output in `examples/v0.6.0/`.
-3. Read `architecture.md` only if they want implementation details.
-4. Read `rag.md` for the retrieval design and evaluation story.
-5. Read `commercial_gap_assessment.md` to understand current limits.
+Four old audit/readiness paths retain heading-preserving links into history.
+RAG and deployment pages also retain their former experiment/history headings.
+New navigation uses the canonical locations; old public links still have an entry
+point. Frozen release, benchmark, diagnostic, media and example files have not
+been relocated or rewritten.

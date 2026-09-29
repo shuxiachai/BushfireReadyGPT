@@ -13,7 +13,7 @@ Demonstration and historical release assets:
 - `docs/benchmarks/report-generation-v0.6.0.json` — historical eight-scenario real-model product gate;
 - `docs/benchmarks/report-red-team-v0.6.0.json` — historical six-scenario adversarial prompt-injection diagnostic gate; its release gate is inactive by design.
 
-These are not current-main acceptance claims. For maintained-source and controlled-demo context, read the [September 15 content and delivery review](LAUNCH_READINESS_2026-09-15.md). Historical samples and benchmark versions remain preserved release evidence and must not be presented as a replacement for current-main or cloud validation.
+These are not current-main acceptance claims. For maintained-source and controlled-demo context, start with [current project status](../project_reassessment.md), then its dated delivery records. Historical samples and benchmark versions remain preserved release evidence and must not be presented as a replacement for current-main or cloud validation.
 
 ## v0.6.0 Evidence Snapshot
 
@@ -36,15 +36,15 @@ provenance, not proof that every narrative claim has a correct claim-level citat
 
 | Purpose | Document | Use it for |
 | --- | --- | --- |
-| First-time project explanation | `docs/project_overview.md` | Explain what the project is, what changed from the original open-source project, and what it can do now. |
-| Live demo preparation | `docs/demo_walkthrough.md` | Follow a clear step-by-step demo flow during a presentation. |
-| Commercial / pilot positioning | `docs/pilot_pitch.md` | Explain the problem, solution, target users, pilot scope and governance boundary. |
-| Technical architecture | `docs/architecture.md` | Explain the Streamlit app, eight-role deterministic component pipeline, data flow and model runtime. |
-| Current maturity and gaps | `docs/project_reassessment.md` | Explain what is already working and what is still missing before commercial use. |
-| Commercial readiness | `docs/commercial_gap_assessment.md` | Discuss the gap between the MVP and a procurement-ready product. |
-| Feedback collection | `docs/pilot_feedback_form.md` | Collect structured feedback from a school, council or community reviewer. |
-| Controlled pilot execution | `docs/pilot_protocol.md` | Run a consistent, privacy-minimised 3-5 person evaluation. |
-| Pilot evidence status | `docs/pilot_results.md` | Record anonymised measures and clearly distinguish pending from completed validation. |
+| First-time project explanation | [Project overview](../project_overview.md) | Explain the purpose and workflow. |
+| Live demo preparation | [Demo walkthrough](../demo_walkthrough.md) | Follow the local presentation flow. |
+| Pilot positioning | [Pilot pitch](../pilot_pitch.md) | Explain the audience, scope and governance boundary. |
+| Technical architecture | [Architecture](../architecture.md) | Explain the deterministic components, data and model boundaries. |
+| Current progress and gaps | [Current project status](../project_reassessment.md) | Use the maintained acceptance summary, not an old scorecard. |
+| Earlier commercial assessment | [Historical assessment](../history/commercial_gap_assessment.md) | Background only; its scores and deployment gaps are not current measurements. |
+| Feedback collection | [Feedback form](../pilot_feedback_form.md) | Collect structured observations. |
+| Controlled pilot execution | [Pilot protocol](../pilot_protocol.md) | Follow the privacy-minimised 3-5 person procedure. |
+| Pilot evidence status | [Results register](../pilot_results.md) | Distinguish pending from completed external validation. |
 
 ## Suggested Presentation Structure
 

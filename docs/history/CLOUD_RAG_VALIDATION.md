@@ -1,7 +1,9 @@
+<a id="record-001"></a>
 # CPU RAG validation for cloud deployment
 
 The CPU embedding implementation has been exercised locally with the existing corpus. The structured retrieval-configuration profile passes its configured thresholds, but those historical runs sent question-set text rather than complete application forms. Free-text retrieval passes the original calibrated question set but misses one of four answerable questions in an additional diagnostic. These are development diagnostics, not a cloud deployment acceptance result or release evidence.
 
+<a id="record-002"></a>
 ## Model and corpus identity
 
 The runs below were performed on Windows on 2026-09-10. They used local CPU inference; no report-generation API was called.
@@ -27,9 +29,10 @@ The model identity digest covers provider, model, dimension, repository revision
 
 The model is downloaded only by explicit preparation. Runtime construction uses the prepared directory with `local_files_only=True` and reuses one model instance per process. A local smoke check produced two 384-dimensional vectors in approximately 0.842 seconds including initial loading; a subsequent call took approximately 0.046 seconds. These timings are observations on the development machine, not Railway performance estimates.
 
+<a id="record-003"></a>
 ## Calibration on the existing question set
 
-The original [84-question set](../data_australia/rag/evaluation.json) was unchanged. Its file SHA256 was `7b796a87676f9bb9f17573ae1f1e8d7e1cceec127eba8b70dd6cb0d4c14e6654`.
+The original [84-question set](../../data_australia/rag/evaluation.json) was unchanged. Its file SHA256 was `7b796a87676f9bb9f17573ae1f1e8d7e1cceec127eba8b70dd6cb0d4c14e6654`.
 
 Reusing the Ollama free-text semantic threshold of 0.45 with BGE produced only 50% abstention on the 16 negative questions. BGE cosine scores have a different distribution. The FastEmbed free-text semantic threshold was therefore calibrated to **0.70** on this existing set. The Ollama default remains 0.45. This calibration set cannot also establish independent generalization.
 
@@ -44,9 +47,10 @@ Top-k is the number of passages requested. Top-1 accuracy measures how often the
 
 The calibrated run used warmup. Observed mean / p95 retrieval latency was 83.55 / 95.69 ms for structured planning and 86.05 / 98.97 ms for free text. These include local retrieval processing and are not report-generation latency.
 
+<a id="record-004"></a>
 ## Additional diagnostic after calibration
 
-The [additional 16-question fixture](../tests/fixtures/rag_cpu_holdout.json) was authored after fixing the threshold at 0.70. It contains four answerable paraphrases and twelve medical, legal, financial, or unrelated questions. It was not used to select that threshold, and the threshold was not retuned after this result. Its file SHA256 was `9cf0877a5ab4c893f8a12a67e00c671d80e4701faf027271d8ed7d0166369ceb`.
+The [additional 16-question fixture](../../tests/fixtures/rag_cpu_holdout.json) was authored after fixing the threshold at 0.70. It contains four answerable paraphrases and twelve medical, legal, financial, or unrelated questions. It was not used to select that threshold, and the threshold was not retuned after this result. Its file SHA256 was `9cf0877a5ab4c893f8a12a67e00c671d80e4701faf027271d8ed7d0166369ceb`.
 
 | Free-text Top-5 result | Observation |
 | --- | --- |
@@ -63,6 +67,7 @@ The expected source was `qld_evacuation_plan`, with the terms `local council` an
 
 The additional diagnostic was small and author-written, with all four positive examples from Queensland. It supplies evidence about these questions only; it is not external user validation or broad geographic/generalization evidence. Its latency included a cold model load and is not directly comparable with the warmed calibration run.
 
+<a id="record-005"></a>
 ## Evidence status and interpretation
 
 The local output files are `output/rag-cpu-predeployment-diagnostic.json` (before calibration), `output/rag-cpu-calibrated-diagnostic.json`, and `output/rag-cpu-holdout-diagnostic.json`. They are local generated artifacts, excluded from Git by the existing `output/` rule. Their recorded Git base was `0df58d76a6a6795a1c3be5b8f1be7608dbd659ea`, with `working_tree_dirty=true`; that base commit alone does not identify the uncommitted CPU implementation used during the runs.
@@ -71,6 +76,7 @@ All three outputs have an inactive release gate. The calibration output used `--
 
 The corpus above used the existing locally downloaded official documents. A Docker image that downloads those public pages again can receive changed page content or a different extracted corpus even when the source catalog URL is unchanged. Model revision pinning does not pin third-party preparedness webpages. Compare the new source-artifact hashes, corpus hash, chunk count, and index identity, then rerun both question sets inside the actual image. Windows timing and these local scores do not establish Railway startup, memory, Linux inference, or online report-generation behavior.
 
+<a id="record-006"></a>
 ## Reproduction
 
 From the repository root in PowerShell, install the optional cloud dependencies and explicitly prepare the model:

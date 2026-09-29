@@ -35,7 +35,7 @@ they are sensitive exports containing source excerpts and report content. Public
 CLI evaluation rows contain only a versioned status/count/hash summary, while
 Trace retains no Prompt or official passage body. The historical v6 quality policy
 and existing benchmark files are unchanged. See the
-[current validation and limitations](LAUNCH_READINESS_2026-09-12.md).
+[current validation and limitations](project_reassessment.md).
 
 ## v0.6.0 Release Evidence Contract
 

@@ -1,5 +1,9 @@
 # BushfireReadyGPT Project Overview
 
+For maintained-source test results, cloud acceptance and outstanding work, use
+[current project status](project_reassessment.md). This page explains the product;
+the validation figures in its named release section remain historical.
+
 ## What This Project Is
 
 BushfireReadyGPT is an Australia-focused bushfire preparedness planning MVP. It helps a user produce a structured draft preparedness report from a selected location, audience, scenario, planning focus and review context.
@@ -79,7 +83,7 @@ Large raw files and geospatial boundary files are ignored by Git and kept as loc
 - Evidence provenance labels that separate official references, processed data, deterministic inference, AI prose and unverified inputs.
 - Export to Markdown, PDF, DOCX and pilot package zip.
 - Visible source-period, source-age, freshness and geographic-match warnings in the report and Evidence Trail.
-- A current Cairns Council sample package, product screenshots and a short demonstration video.
+- A frozen v0.6.0 Cairns Council sample package, product screenshots and a recorded local demonstration video.
 - Commercial gap and project maturity assessment.
 
 ## Published Release Validation (`v0.6.0`)
@@ -105,7 +109,7 @@ These figures are release regression signals, not production accuracy, claim-lev
 - It does not issue evacuation orders or fire bans.
 - It does not confirm safe routes or safe assembly points.
 - It does not replace official emergency services.
-- It does not yet include authentication, role-based approvals or production deployment hardening.
+- The private cloud has a shared access password and deployment controls, but no individual user accounts, verified reviewer identities or role-based approvals.
 - Its governed structure/safety checks and lexical evidence-alignment review do not establish factual, legal or operational correctness.
 - Browser state is isolated in memory by default; optional JSON persistence is single-user only and is not a multi-user database.
 - It still requires legal, licence, security, privacy and user testing before commercial or government use.

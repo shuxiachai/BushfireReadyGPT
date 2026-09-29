@@ -1,5 +1,11 @@
 # Commercial Readiness Checklist
 
+> Historical implementation checklist retained in full for the application's
+> document preview/download. Its earlier checkmarks are not the current
+> deployment or acceptance ledger, nor professional approval. In particular,
+> Docker/Railway work subsequently superseded the unchecked deployment tasks.
+> Consult [current project status](project_reassessment.md) for maintained progress.
+
 This checklist describes what should be completed before BushfireReadyGPT is positioned as a commercial or government-ready product.
 
 ## 1. Product Scope

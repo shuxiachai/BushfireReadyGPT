@@ -1,166 +1,45 @@
+> Archived dated record. The canonical document is [docs/history/AUDIT_FOLLOWUP_2026-09-11.md](history/AUDIT_FOLLOWUP_2026-09-11.md).
+
 # 审计后续：表单 RAG、索引身份与审计恢复（2026-09-11）
 
-> 后续状态见[受控演示上线复核](LAUNCH_READINESS_2026-09-11.md)：本次合成报告、
-> 三条关联审计和两条 Trace 已通过 Railway Agent 只读取回并独立验证。
-> 下文的“尚无读取入口/待读回”保留为当时记录，不再代表这些文件的最新状态；
-> 线上配额、完整下载包和 Word 视觉检查仍须单独区分。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-001).
 
 ## 范围与判断
 
-本轮核对的是用户截图中的五项任务，对应上一份[外部审计复核](EXTERNAL_AUDIT_TRIAGE_2026-09-10.md)尚未处理的 #8/#9/#10/#14/#15，以及 #20 的真实云端验收。五项都有价值，但工程修改、真实运行结果和正式发布不能相互替代。
-
-- P1：真实表单与模型可见上下文的 RAG 诊断；Ollama 建库摘要绑定；审计提交后安全重试。
-- P2：审计读取与发现预算；独立云端验收；使用修正数据口径的新样例与发布。
-- 领域专家事实/语义审查和真实用户闭环仍是外部审计 #19 的人工缺口，本轮不虚构完成。
-
-修改前源为 `d847dbded9017fc0c0e42a7d86260567954add7d`。版本仍是 `v0.6.0`；维护提交与自动部署不等于发布新版本。历史题库、数据、索引、`examples/v0.5.0`、`examples/v0.6.0` 和 `docs/benchmarks` 原件不覆盖。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-002).
 
 ## 历史证据澄清
 
-旧 `structured_planning` 评测使用的是与应用一致的检索配置和信任范围，但输入仍是题库问句，不是实际表单拼装出的查询。旧 Recall@K 评价完整检索段落，不能说明相关文本一定保留在截断后的模型上下文中。相关说明已纠正，旧分数原样保留。
-
-Ollama v2 索引没有记录建库时模型 digest。现在查询模型得到的 digest 不能回填为历史建库事实。旧发布评测中记录的运行时模型摘要，也不补足这个建库时间边界。CPU v3 的独立身份绑定不因 Ollama 迁移而重建。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-003).
 
 ## P1：表单与可见上下文诊断
 
-新增 `scripts/evaluate_form_rag.py` 与 `data_australia/rag/form_evaluation_v1.json`，独立于原 84 题检索评测。固定合成表单覆盖六个应用场景、四种时间范围，经过实际 Profile / 分析 Pipeline 和共享官方查询构造器。自由附加说明不会进入检索查询。
-
-上下文装配沿用生产预算：每段最多 2,200 个字符，总块最多 8,000 个字符；计量单位是 Unicode 码点，不是 Token 或 UTF-8 字节。记录原始/清洗后/可见片段哈希、段落 ID、排名、截断及丢弃原因、在初始 Prompt 中的位置。
-
-结果分别统计来源命中、完整检索段落中的目标短语命中、实际保留在初始 Prompt 中的短语命中，以及已评估关注点的覆盖。没有目标标签的关注点明确记为未评估，不算通过。所有目标短语要求来自预期来源的同一段落；这只是词面锚点诊断，不证明语义蕴含、事实正确或报告有用。
-
-该 CLI 构造但不发送初始报告 Prompt，不调用报告模型，不评估结构修复/修订 Prompt 或服务端内部 Token 处理。每案前后核对题集、源提交、模型和索引身份；输出仅包含哈希、偏移、短语位置和指标，不复制官方原文。离线校验能重算行/汇总一致性，不能只凭无签名 JSON 独立证明短语真的存在；内容复核仍需用同一索引重放。发布门禁始终 inactive。
-
-已有配置准备好的环境可运行：
-
-```powershell
-poetry run python scripts/evaluate_form_rag.py --output output/form-context-<new-run-id>.json
-```
-
-结果文件必须是新路径。表单与短语锚点是项目作者构造的工程诊断，并非新招募用户提供的独立相关性标签。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-004).
 
 ### 真实 CPU 诊断：保留失败，不调整题目或预算
 
-在干净提交 `03f1bf1dd65bdf8eee7b0c933f54a6d80416e551` 上运行，复用本地 FastEmbed / BAAI/bge-small-en-v1.5 CPU 模型与既有 v3 索引（9 来源、28 段，manifest `065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39`），未下载、重建或调用报告模型。时间为 2026-09-11 13:51:46–13:51:52（UTC+10）。
-
-新增[原始诊断 JSON](diagnostics/form-context-cpu-2026-09-11.json)，SHA-256 为 `27b73424a023ace063924b8537d876fd04ecf7e40611135bc80e435406328aa3`。该文件只复制本次新产物，不替换历史 benchmarks。已对本地原始资料、索引和模型文件交叉复核身份，并重算 13 条召回记录与 40 个短语位置；文件不含官方长段落、凭据或绝对私密路径。
-
-| 诊断项目 | 观察值 |
-| --- | --- |
-| 表单 / 词面目标 | 6 / 12 |
-| 来源命中 / 完整段落命中 | 10/12 / 10/12 |
-| 初始 Prompt 可见命中 | 9/12 |
-| 所有目标可见的表单 | 4/6 |
-| 关注点 | 19 个；12 个有标签，7 个未评估 |
-| 召回 / 可见段落 | 13 / 11；4 段单段截断，2 段因总预算丢弃 |
-
-`tas_school_7day` 的 `tas_not_centres` 在未裁剪检索块中词面命中；原文零基偏移为 2255，清理后为 2280，超出清理后文本的 2200 字符单段预算（后续复核澄清这两个坐标系，未修改原始诊断）。`nt_workshop_season` 的两个目标均为 `no_match`。这些失败原样保留，不据此增加预算、修改标签或调低阈值。它们是后续检索/上下文优化的诊断起点，不是语义质量、独立留出集成绩或发布通过证明。线上 CPU 索引的 manifest 不同，不能把这个本地分数当作线上分数。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-005).
 
 ## P1：Ollama v2 → v4 的显式迁移
 
-新 Ollama 索引使用 `bushfire-rag-index-v4`，绑定配置名、规范化 tag、建库时实际 digest、嵌入编码协议和返回向量维度。运行时核对同一身份；模型同名但权重摘要改变时，旧向量不能继续作为 ready 索引查询。
-
-Ollama 的模型列表提供摘要，嵌入响应提供模型名；实现分别检查两处身份。[模型列表](https://docs.ollama.com/api/tags)、[嵌入接口](https://docs.ollama.com/api/embed)。检查发生在建库/检索及嵌入批次边界，不宣称能发现完全藏在一次 HTTP 请求内部的 A→B→A 替换，也不是对本地管理员的防篡改认证。
-
-旧 v2 运行时返回 `rag_index_migration_required`。只读历史核验保留，默认建库不能覆盖它。下面示例假定旧索引仍是默认 `data_australia/rag/index`，新目录尚不存在、本地源文件及 Ollama 嵌入模型已准备好：
-
-```powershell
-# 只创建新目录，不修改 .env，不切换当前运行索引，也不下载源网页。
-poetry run python scripts/build_rag_index.py --new-index-dir index-v4
-
-# 仅在当前 PowerShell 进程中选择新索引用于验证。
-$env:BUSHFIRE_RAG_INDEX_DIR = (Resolve-Path 'data_australia/rag/index-v4').Path
-poetry run python scripts/evaluate_rag.py --warmup --output output/rag-v4-<new-run-id>.json
-poetry run python scripts/evaluate_form_rag.py --output output/form-v4-<new-run-id>.json
-```
-
-新目录必须是当前索引的同级目录。自定义索引位置应传对应的新绝对路径。评测完成并检查失败项后，再由操作者把 `BUSHFIRE_RAG_INDEX_DIR` 写入本地配置并重启；上面的进程变量不会永久改变双击启动设置。若目录已存在，换一个新的明确目录，不删除旧证据来重试。缺少资料时下载是另外的显式动作，不能把重新下载的网页与旧快照当作同一语料。
-
-仓库忽略 `data_australia/rag/index-*/` 和 RAG 同级 `.*.lock.guard`，防止新版私有索引误提交或首次锁创建使评测 Git 口径漂移。其他自定义目录名应先配置对应忽略规则；不要使用 `git add -f` 上传原始语料。稳定 guard 文件不得手动删除来制造干净工作树。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-006).
 
 ## P1/P2：审计幂等恢复与读取预算
 
-已复现：审计 event/head 写入成功，但临时锁清理失败；客户端仍持有旧 tip。相同请求重试应返回已提交的同一事件，而不是新建事件或一概判过期。恢复仅接受唯一 tip 是原事件的直接后继，并逐项核对前驱 ID/哈希/文件、完整规范化 source payload、输入/地理/分析、正文、审核、上下文和质量绑定。不同输入即使正文相同也不算同一次请求。更深后继、分叉或变更请求仍失败关闭。
-
-审计读取、发现、链及祖先抓取共享外层操作预算，嵌套调用不能重置预算：
-
-| 项目 | 上限 |
-| --- | --- |
-| 单事件 JSON | 2 MiB |
-| head / revision claim 元数据 | 64 KiB |
-| 单次外层操作累计读取 | 64 MiB，包括重复读取 |
-| 目录发现条目 | 10,000，包括非审计条目 |
-| 单报告事件链 | 2,048 个事件 |
-| 修订祖先 | 64 层 |
-| JSON 形状 | 深度 64，节点 100,000；拒绝非有限数 |
-
-所有发现的 `audit_*.json` 先有界读取和验证，再按 report ID 过滤。不能用“不相关”文件名隐藏损坏或重命名分叉。遇到损坏、未知结构或超限时明确停止并要求操作者检查，不删历史、不截断、不悄悄忽略。正常其他报告的受支持 v4 事件可以共存。缺失 head 可从唯一有效图恢复，损坏的 head 不自动覆盖。各项上限还受累计预算共同约束，不承诺可同时达到所有最大值；它们也不是端到端时限、数据库索引、多实例存储、自动归档或对恶意本地操作者的完整文件系统防护。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-007).
 
 ## 新样例保护与发布边界
 
-样例脚本在调用模型前检查目标文件是否存在，并在写入前复查、使用独占创建；不提供覆盖旧证据的开关。包内隐私检查先在内存完成，再写出样例。失败的部分输出也不在下一次运行时静默覆盖，应使用新的明确目录。
-
-新的正式样例须使用修复后的分析路径，确认旧语言比例为未知、缺失值不是 0，记录源提交和模型/索引身份，并完成真实生成、MD/PDF/DOCX/ZIP 一致性、版面与数据事实复核。仅脚本改好不算“新版样例已发布”。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-008).
 
 ## 云端验收：与代码测试分开
 
-本轮开始时核实了 `d847dbd` 的 [GitHub 跨平台测试](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34462945718) 和 [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34462945786)，均成功。Railway 部署 `eafcb50c-df53-459f-a167-847059be758e` 的源提交也是 `d847dbd`，状态 `SUCCESS`，浏览器显示正常口令登录页。它们不证明本轮维护代码的远端状态，也不证明已完成登录后的报告验收。
-
-受控验收应只使用明确标注的合成机构/审核身份，不录入真实个人或事件资料，不将测试签审冒充真实机构批准：
-
-1. 记录本次部署 ID、源提交、模型、CPU 身份与实际 RAG manifest；用合成 Cairns 表单生成 Draft，保存报告/审计 ID、输入和证据哈希。
-2. 做一次限定文字修订，核对 parent lineage、输入/分析冻结绑定和修订目标；失败保留原版本，不隐藏失败重试。
-3. 用明确的合成审核者记录 Reviewed（非真实组织 Approved），核对预览、下载和新审计头一致。
-4. 从登录会话下载 MD/PDF/DOCX/ZIP，核对哈希、审计链、中文字符和页面布局；另用未登录会话验证无法取得受保护下载。完整正文及审计只保存到私有验收目录。
-5. 在重启前显式保存合成报告，记录其文件哈希、审计 tip、Trace、配额和索引身份；部署/重启后逐一读取并比较。`/data` 复用和健康 200 不能代替这些检查。
-
-默认云端没有持久化浏览器会话；重启后需要重新登录，未显式保存的表单/对话不承诺恢复。审计文件本身不是浏览器工作区恢复入口。不能为了通过验收关闭口令、导出私钥/密码，或凭健康页宣称全部数据恢复。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-009).
 
 ### 登录后的实际验收（仍为 d847dbd 部署）
 
-项目所有者在网页内登录后，使用 Cairns SA4 模板和明确的合成机构信息生成报告，再执行一次限定文字修订，最后记录 `Reviewed draft`。未选择组织批准，未勾选未经核验的官方来源审核项；中文测试身份与备注明确说明不代表真实机构审核。
-
-| 观察项 | 已确认结果 |
-| --- | --- |
-| 模型 / 索引 | 页面与审计元数据为 `deepseek-v4-flash`；CPU RAG manifest `f1d4587e0a0f3648190febac62be8ef358961a27701ab2efb292c6b79b677c45` |
-| 初稿 | v1，report ID `00bcc639d0624794abafdc4685c1b30e` |
-| 文字修订 | v2，report ID `96a66fccdde74ed6886d13d3e39bde19`；预览摘要新增明确的 synthetic acceptance 说明 |
-| 质量检查 | 修订/签审后的页面显示 19/19，warnings 0，needs fix 0；仅确定性 lint，不代表事实/安全性全面验证 |
-| 修订谱系 | 包清单绑定 v1 audit `b81fbed627694e07a51ff4eb41317b61`，record hash `5e06efa8fc71627bbe5a76225e62659d34c3b875577859134edc1d5e657c74ee` |
-| 最新审核事件 | `review.recorded`，audit ID `191b6a654aa24dcc9a42cc3065c14d16`，record hash `a9e1bc028a962b1a20bf18d6b2e53915bc8655533ff14ddf187ae9c22fb370cf` |
-| 当前正文摘要 | SHA-256 `ae46878df75d3608c9d7f00274e45fdefc230c1984cd15308956bbbd6753e3fc`；来自页面提供的审计数据，尚未与磁盘下载文件重算比对 |
-| 显式保存 | 页面确认 `Saved: bushfire_report_20260911-040407-264626_b06cf104.md`，不等于重启后已读回 |
-| 未登录隔离 | 独立新浏览器会话仅显示访问口令页，没有报告/导出控件；没有把页面隔离当作磁盘文件验收 |
-| 修正数据口径 | 正文语言比例及缺失老年人口比例均为 `To be confirmed`，语言支持等级 `unknown`；33 个 SA2 中仅 31 个有配对证据，不用子集冒充完整区域比例 |
-
-界面验收另外发现 Evidence Trail 对缺失百分比只显示 `%`，导出正文不存在此问题。本轮已修正显示层：缺失/NaN 为 `To be confirmed`，真实 `0%` 保留；不改原始数据和分析值。
-
-当前内置浏览器没有返回下载完成事件，页面导出也报告不支持；因此未取得可供磁盘重算和 PDF / DOCX 逐页视觉检查的文件。已只读查看登录会话提供的审计 JSON 与包清单，不能把它当作本地包验签/跨格式版面通过。此限制没有通过关闭口令或读取凭据绕过。也未据此创建或发布新版正式样例。
-
-现有 Railway 连接器没有远程文件读取/执行入口；`/data` 卷挂载本身已确认，历史两个部署的启动日志复用同一索引身份。审计旧 tip、Trace 和同日配额库的真实重启读回尚缺直接证据，继续标记待验证。后续可由已有授权的运维通道只读读取指定文件/SQLite，不能用健康 200 或重新生成的新记录代替旧记录恢复。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-010).
 
 ## 本地工程验证
 
-Windows、Python 3.13.9；未调用真实报告模型、未下载资料或重建旧索引：
-
-| 检查 | 结果 |
-| --- | --- |
-| 非 E2E 全量回归 | 1,808 passed、7 skipped、5 deselected；`src` 覆盖率 89.19%，137.51 秒 |
-| 两个真实 Windows 启动入口 | 2 passed，8.58 秒 |
-| Chromium 生成/地图/审核/下载（含口令保护） | 2 passed，33.33 秒 |
-| 独立 Chromium 双会话下载隔离 | 1 passed，2.90 秒 |
-| 静态/依赖元数据 | Ruff lint/format、Bandit、`pip check`、`poetry check --lock`、diff whitespace 检查通过 |
-
-合计 1,813 个独立用例通过；专项或重复运行不重复累加。全量中的 5 个 deselected 正是单独运行的 2 个启动用例和 3 个 E2E 用例。
-
-第一次全量中一个 Streamlit AppTest 在默认 3 秒内未完成；未出现业务断言失败。相关 19 个用例单独重跑通过，未放宽超时或修改该测试/生产 UI 代码；之后完整重跑得到上述全部通过结果。该本地超时保留在说明中，不隐藏成始终一次通过。历史发布离线核验和真实 CPU 诊断另按各自运行源记录，不与单元测试结果混算。
-
-随后真实 CPU 诊断首次尝试因新建 `.cpu-index-validation.lock.guard` 未被忽略而检测到 Git 状态漂移，按设计停止且没有写出成功结果。补充上述 Git 忽略规则及 7 个正反测试，全部通过；没有删除 guard 或启用 dirty override。含这 7 个新增用例，本轮本地已验证 1,820 个独立用例；这些新增测试在上述完整回归之后单独运行，完整回归表的历史数字不追改。
-
-最终补充 validator 的 run→row→index/model 一致性和原始题集字节绑定（26 个新回归），以及上述缺失值 UI 格式化（25 个新回归）。validator 只有显式提供 `suite_bytes` 才验证题集精确文件 SHA，CLI 强制提供；未提供时不声称验证过原始文件身份。原始 CPU 产物经增强校验仍通过，字节未修改。
-
-包含全部新增代码的最终非 E2E 全量运行：**1,866 passed、7 skipped、5 deselected；src 覆盖率 89.28%，167.53 秒**。另行通过的 2 个 Windows 启动测试和 3 个 Chromium E2E 计入后共 1,871 个独立用例；它们此前已通过，最后的 validator/百分比展示改动后未再跑这 5 项。Ruff lint/format、Bandit、pip check、diff 检查再次通过。
-
-历史 `v0.5.0` / `v0.6.0` 发布包已在干净 `03f1bf1` 上离线核验成功，`verified_offline=true`、`dirty_override_used=false`。它只证明旧证据包仍能正确核验，不把它们的旧生成内容宣称为此次修正后的样例。
-
-推送前还发现 Windows Git 自动换行会改变新诊断 JSON 的提交字节，因此对 `docs/diagnostics/*.json` 禁止换行转换，对表单题集固定 LF。4 个独立临时仓库检出测试覆盖 autocrlf true/false 及 CRLF 编辑副本，确认诊断 SHA 不变、题集始终 LF。这 4 项在上述全量之后单独运行；本轮共验证 1,875 个独立用例，不把不同时间的重复运行累加。已核对暂存诊断 blob 与原始运行产物的 SHA 完全一致。
+[Read this section in the canonical dated record](history/AUDIT_FOLLOWUP_2026-09-11.md#record-011).

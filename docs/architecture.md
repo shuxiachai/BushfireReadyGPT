@@ -9,7 +9,7 @@ acknowledgement, and local FastEmbed CPU embeddings. One Streamlit process owns
 the shared concurrency limit; SQLite stores daily actual model-call counts on
 the `/data` volume. Audit records, traces and content-versioned RAG snapshots
 persist there too. This is a single-instance controlled demo, not multi-tenant
-authentication or distributed task execution. See [CPU validation limitations](CLOUD_RAG_VALIDATION.md).
+authentication or distributed task execution. See [CPU validation limitations](history/CLOUD_RAG_VALIDATION.md) and [current project status](project_reassessment.md).
 
 ```mermaid
 flowchart LR

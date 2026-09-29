@@ -1,170 +1,41 @@
+> Archived dated record. The canonical document is [docs/history/LAUNCH_READINESS_2026-09-12.md](history/LAUNCH_READINESS_2026-09-12.md).
+
 # 受控演示证据可见性与上线验收
+
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-001).
 
 ## 范围与判断
 
-本轮从 `0fe36e265dbcd0b7f6ca9ad177d3818774de6b9f` 继续维护。
-截图建议有价值：应改进实际提交给模型的证据，而不只标记截断；
-也应将 Word、完整登录下载包、真实配额恢复作为明确的验收项目。
-此前 Railway Markdown、关联审计与 Trace 的真实重启读回继续有效，
-不因为还有其他验收项就否定已有证据。
-
-目标仍是共享口令保护、单实例的作品展示，不是应急决策、机构批准、
-真实用户效果或多租户生产系统。正式版本仍为 `v0.6.0`，维护提交不冒充新 Release。
-历史数据、索引、题库、诊断和 `examples/v0.5.0`、`examples/v0.6.0` 不覆盖。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-002).
 
 ## 代码调整
 
-- 表单关注点生成最多四条应用词汇表中的短查询，完整原查询仍先做实时/生命安全边界检查。
-  查询共用同一索引锁、模型身份与前后快照；保留相关性阈值、州别筛选、最终 Top-K 和每来源上限。
-  先保留原查询已准入的结果和顺序，再用关注点融合候选填剩余容量，避免多查询票数挤掉原证据。
-  不使用评测答案、来源 ID 或州别特判来选择证据。
-- 新 `rag-context-assembly-v2` 使用一个连续句子窗口，而非机械取原块前缀。
-  每原块正文最多 2,200 Unicode 字符，总上下文含说明与引用头最多 8,000 字符；
-  不将多片段预算叠加。窗口保留相邻上下文与可识别的限定语，容不下的窗口明确省略。
-  原索引已丢失段落边界，所以只称连续句窗，不称完整段落或语义完整证据。
-- 记录初始、协议重试、结构修复和文字修订各自的证据边界。
-  修复保留较小的 3,500/900 预算；修订使用冻结证据，不重新检索或把旧模型正文当成官方原文。
-  最终结果只绑定最后一次成功调用，不将此前尝试的证据合并为最终调用支持。
-- 原完整检索快照 grounding 保持原含义；另增实际 SDK 提交可见 RAG 对齐诊断。
-  SDK messages、响应、规范化叙事及片段 offsets/hash 各有绑定；缺失捕获的历史记录明确未知。
-  这仍是应用端提交记录与确定性词面检查，不证明供应商实际使用每个字符，更不证明语义蕴含。
-- 新导出可携带经过审计哈希绑定的可见证据诊断；完整包是敏感治理交付物，
-  不把用户正文、口令或完整 Prompt 放入 Trace。公开表单诊断仅含元数据，不含官方原文。
-- 配额新增单 UTC 日只读观测及提交后日志。缺库是 `not_initialized/null`，
-  有效库缺当日行才是 `ready/0`；损坏、超预算或不支持格式明确不可用，不自动修复。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-003).
 
 ## 新旧诊断
 
-`scripts/compare_form_rag.py` 在同一份既有六表单、十二个固定词面目标上比较：
-原查询加 v1 前缀、原查询加 v2 句窗、关注点检索加 v2 句窗。
-另运行固定实时请求负例，并用单元测试检查限定语、否定、预算和篡改。
-这是构建实际初始 Prompt 的诊断，不调用报告模型；运行时真实调用记录是另一个证据范围。
-七个未标注关注点仍未评估，不能把十二个词面目标推广为整个应用的回答准确率。
-
-正式新诊断要求干净源提交、固定 CPU 模型和索引，独占新输出文件；
-本轮探索结果和中途失败不得回填旧诊断或旧正式发布指标。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-004).
 
 ## 配额恢复操作
 
-默认启动仅记录当前 UTC 日。需要跨午夜核对同一历史验收日时，可显式使用：
-
-```text
-python scripts/start_container.py --observe-usage-day 2026-09-11
-```
-
-该参数额外只读一个指定日的全局调用次数，不读取报告/用户，不创建或重置配额库，
-也不改变模型调用按当前 UTC 日计数的规则。生产日志固定为
-`event=model_usage`、`phase=startup|call_committed`、`status/day/calls` 与 schema。
-先记录非零基线，再真实重启，对比同日计数，并绑定不同 deployment ID 与启动时间。
-完成观测后恢复默认启动命令；不可用、缺库或换日的零值不是恢复成功证据。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-005).
 
 ## 验收边界与后续记录
 
-本轮本地实现与验证已完成；远端 CI、部署和完整云端流程按下方实际回执分别记录。
-线上维护部署的健康接口与登录页可达；隔离浏览器仍需要现有访问口令。
-此前 Railway OAuth 连接只返回变量名、不提供口令值；续验时连接工具不再可用，
-Railway 浏览器入口也没有登录态。不关闭登录、不创建免登录下载通道。
-
-文档验收运行时 `26.909.12148` 在此 Windows 主机没有绑定的 LibreOffice。
-规范 Word 渲染未完成；结构/文本检查和旧本地 PDF 重现不能替代 Word 逐页验收。
-因此暂不将新样例称为已完成全部跨格式检查的正式发布证据。
-
-后续测试、独立诊断、远端 CI、实际部署和只读恢复结果在此逐项追加，
-未完成的登录下载与 Word 项目继续明确保留，不以健康 200 代替。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-006).
 
 ## 干净源验证：ac70710
 
-实现源提交为 `ac70710468c4e33c4951aabf3b6528785eb22848`。
-最终本地回归：2,141 passed、7 skipped、6 deselected，src 覆盖率 89.42%；
-另 6 个 Chromium E2E 通过，不重复累加不同平台的同一用例。
-Ruff、格式、Bandit、依赖锁一致性、pip check、pip-audit 均通过；
-`v0.5.0` 和 `v0.6.0` 的不可变正式发布证据在干净新源上离线复核通过。
-
-新 [成对 CPU 诊断](diagnostics/form-context-comparison-ac70710-2026-09-12.json)
-在 2026-09-12 06:04:34–06:04:45 UTC 运行，源与索引前后稳定。
-文件 SHA-256：`f147e7d516896cfb69f9fef974df58590d86d468fa6ea0b7960796b19a70146e`。
-CPU 索引 manifest：`065abb2b2827aa353016ef803c9297863e624130f08991b49d56e88edcffcb39`。
-
-| 固定六表单、十二词面目标 | 完整检索块命中 | 初始 Prompt 可见命中 | 相比基线可见退化 |
-| --- | --- | --- | --- |
-| 原查询 + v1 前缀 | 10/12 | 9/12 | 基线 |
-| 原查询 + v2 句窗 | 10/12 | 10/12 | 0 |
-| 保留原结果 + 关注点补充 + v2 句窗 | 12/12 | 12/12 | 0 |
-
-三条固定实时请求负例均为 out_of_scope、零检索块。最终方案仍有两个预算省略块，
-七个关注点仍未标注评估。六表单的查询嵌入数量从 6 增至 25，不能称作零成本提升。
-以上只证明本批固定词面目标在应用构建的初始上下文中可见，不是回答准确率、
-全语义限定完整性或供应商实际阅读证明。中途融合曾挤掉 ACT 原查询证据；
-现通过保留原已准入结果解决，未回填失败记录或调整目标答案。
-
-同一干净源另运行一个真实本地 Ollama 合成学校场景：治理门禁通过、一次生成、
-未触发修复，实际 SDK 捕获状态为 captured，4 个检索块中实际提交 2 个可见片段。
-该报告没有可评估的逐句 RAG 引用，因此可见支持率为 null/not_applicable，
-完整来源 grounding 仍要求人工复核；不能把捕获成功写成内容事实通过。
-此单例不是八场景正式回归，也不是新的 DeepSeek 云端用户流程。
-真实调用诊断保留本地，不随公开仓库上传；其文件 SHA-256 为
-`f7c925edee776338165d9ed2a7f04f71299da52c5e16718a7aac29821d2beb9d`。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-007).
 
 ## 完整本地模型回归与远端检查：b89d80c
 
-随后完整八场景回归绑定干净提交 `b89d80ce3202abbe16edb05ea5afc62e77e59d85`，
-使用已有本地 Ollama `bushfire-ready-qwen` 与上述 CPU 索引。
-模型、索引、场景原字节及源提交稳定性检查通过，v4 JSON 独立校验通过。
-八场景治理、结构、预期 RAG 行为与安全检查全部通过；六例初次通过，
-Council 修复一次、WA Farm 修复两次，共十一轮生成尝试。
-最终成功调用捕获均为 captured：六个 initial、两个 structural_repair。
-实时路线请求为 out_of_scope、无 RAG 场景为 disabled，均符合原题集预期。
-
-不能将以上结果写成事实正确率或可见 grounding 通过：八例全来源词面对齐均为
-review_required，共 82 条待审声明；八例可见 RAG 检查均未识别到可评估的
-RAG 行内引用声明，状态 not_applicable、support_rate=null。
-运行文件仅存最终捕获的摘要与哈希，不足以从文件重建全部十一轮 SDK 消息，
-也不证明供应商收件或使用证据。它不是本轮真实 DeepSeek 云端下载流程。
-
-完整回归文件保留本地、不上传公开仓库；33,391 bytes，SHA-256：
-`1cd54ee0d60b80c00acd2e2e1f9604ed28fb2eacaea40a586cf78aec50297200`。
-这是一份维护源完整模型回归，不覆盖 `v0.6.0` 正式发布证据或生成新的正式样例。
-
-对应提交的 [Tests 34677431901](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34677431901)
-与 [Docker 34677431900](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/34677431900)
-全部通过。Linux 3.11 / 3.13 各 2,132 passed、16 skipped，覆盖率分别 89.58% / 89.59%；
-Windows 2,147 passed、1 skipped，另 Chromium 6 passed，不跨平台累加重复用例。
-Docker 隔离合成卷验证 UID 10001、审计 2 条、Trace 1 条、配额 1→2，
-actual_restart_verified=true，且重启前后索引/语料 manifest 不变。
-此处 Docker CI 不是 Railway 私有卷或真实模型调用证据。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-008).
 
 ## 真实 Railway 历史配额恢复
 
-同一源 `b89d80c`、同一服务 `b887a7e5-8eff-4b6d-b4bd-3126fddc1e23`、
-同一 production 环境 `1cb003ac-b604-4ad7-b061-cacfb70cdefd`，
-`/data` 挂载卷 `1f939cbb-54c2-4013-ba13-cddc4c9fa20f`。
-两次部署均启动成功；从各自部署的独立日志属性读取：
-
-| 观测 | Deployment ID | 平台日志 UTC 时间 | 指定 UTC 日 | 状态 | calls |
-| --- | --- | --- | --- | --- | --- |
-| 基线 | 5bf58f84-ee46-4421-ba22-c234e4671d8d | 2026-09-12T06:12:44.215900512Z | 2026-09-11 | ready | 2 |
-| 实际重新部署后 | ff0a4d1b-ccdb-4465-b15b-eacd7c0c715b | 2026-09-12T06:13:45.387476234Z | 2026-09-11 | ready | 2 |
-
-两条均为 event=model_usage、phase=startup、schema_version=1。
-独立校验部署 ID 与时间不同、日期相同、非零整数计数相同；不是同次启动重复日志，
-也没有用次日 ready/0 冒充恢复成功。由此补齐该历史日聚合配额的真实云端恢复证据。
-计数不是成功报告数、某用户调用数或费用；观察操作没有调用报告模型或改写计数。
-正常启动仍会执行权限探针与索引预热，不能称整个部署流程完全不写文件。
-原私有 RAG manifest 保持
-`f1d4587e0a0f3648190febac62be8ef358961a27701ab2efb292c6b79b677c45`。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-009).
 
 ## 恢复默认启动与尚未完成项目
 
-配额验证后，服务设置已改回 `python scripts/start_container.py`。
-但随后对旧部署执行 Redeploy 得到的 `f0fab700-4b46-4111-a5a2-fb2af2737000`
-仍在 06:14:57 UTC 输出历史日期记录，因此未将此步骤写成参数恢复成功。
-[Railway 官方说明](https://docs.railway.com/deployments/deployment-actions)指出，
-Redeploy 复用所选部署的代码和构建/部署配置；应用最新服务设置应触发新提交部署
-或 Deploy Latest Commit，而不是再次复用旧部署快照。
-本次同步将触发一次新提交自动部署；需要其新日志确认仅输出当前日期，
-在缺少 Railway 日志连接时，GitHub 部署 success 不能单独证明参数已经移除。
-
-剩余验收仍明确保留：现有口令登录后的完整云端下载包、Word 全页渲染及
-临时观察参数移除的新部署日志。当前依赖包仍为 26.909.12148、没有绑定 LibreOffice，
-没有擅用桌面渲染器、关闭登录或公开敏感下载地址。网站可继续用于受控演示；
-不据此发布新正式版本、声称全部交付验收完成或真实用户试点通过。
+[Read this section in the canonical dated record](history/LAUNCH_READINESS_2026-09-12.md#record-010).

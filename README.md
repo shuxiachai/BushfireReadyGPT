@@ -50,7 +50,7 @@ All examples are demonstration drafts, not emergency plans or operational instru
 
 The current tagged release is **v0.6.0**. Its release-specific, historical validation evidence belongs to clean-source commit [`44d0c3f`](https://github.com/shuxiachai/BushfireReadyGPT/commit/44d0c3f1f8c78af4291f79b090eb3fc53da95ea7), not to every later maintenance change. The release record and immutable benchmark artifacts are linked below.
 
-Maintenance after v0.6.0 is documented separately. It includes ongoing hardening and controlled-demo acceptance work, but does **not** declare a newer release, complete production acceptance, or new historical benchmark results. Read the [September 15 and 27 content and delivery review](docs/LAUNCH_READINESS_2026-09-15.md) and [September 12 implementation record](docs/LAUNCH_READINESS_2026-09-12.md) before relying on current cloud claims.
+Use [current project status](docs/project_reassessment.md) for maintained-source results, cloud acceptance and remaining gaps. Its dated evidence is separate from v0.6.0 and does **not** declare a newer release, complete production acceptance or replacement benchmark results.
 
 This is a governed portfolio MVP / controlled-pilot prototype. It is not ready for operational emergency management, public life-safety decisions, government procurement or commercial deployment without independent legal, security, privacy, data/licence and domain review. There are no completed external pilot claims: [the pilot evidence register](docs/pilot_results.md) records the current status.
 
@@ -115,9 +115,9 @@ For Docker/Railway, CPU embeddings, private-corpus handling and the controlled-d
 
 ## Documentation and history
 
-Start with the [documentation index](docs/README.md), [plain-language project overview](docs/project_overview.md), [architecture](docs/architecture.md), [RAG guide](docs/rag.md), and [demo walkthrough](docs/demo_walkthrough.md).
+Start with the [documentation index](docs/README.md), [plain-language project overview](docs/project_overview.md), [architecture](docs/architecture.md) and [RAG guide](docs/rag.md).
 
-For governance, readiness and commercial positioning, use the [September 12 readiness record](docs/LAUNCH_READINESS_2026-09-12.md), [deployment status](docs/DEPLOYMENT.md), [commercial gap assessment](docs/commercial_gap_assessment.md), [commercial-readiness checklist](docs/commercial_readiness_checklist.md), and [pilot evidence register](docs/pilot_results.md).
+Browse [demonstration guides](docs/guides/README.md), [pilot materials](docs/pilot/README.md), [experimental work](docs/experiments/README.md), [historical audits and acceptance](docs/history/README.md), or the [script navigator](scripts/README.md). Only [current project status](docs/project_reassessment.md) is the maintained progress summary; historical assessments are not current acceptance claims.
 
 Historical release scope, validation and limitations are retained in [v0.3.0](docs/releases/v0.3.0.md), [v0.4.0](docs/releases/v0.4.0.md), [v0.5.0](docs/releases/v0.5.0.md), and [v0.6.0](docs/releases/v0.6.0.md). The v0.6.0 [report-generation](docs/benchmarks/report-generation-v0.6.0.json), [red-team](docs/benchmarks/report-red-team-v0.6.0.json), and [RAG-retrieval](docs/benchmarks/rag-retrieval-v0.6.0.json) artifacts are historical release evidence, not a guarantee for maintained or cloud deployments.
 
