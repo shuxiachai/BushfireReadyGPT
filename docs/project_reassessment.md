@@ -1,8 +1,8 @@
 # Current project status
 
-Updated 2026-09-29 for source-identity and proposal-review guidance. This page is the
-single maintained status summary; historical model and cloud results below are
-not new evaluations of the changed prompts.
+Updated 2026-09-29 after the current-production school delivery check. This page
+is the single maintained status summary; each model and cloud result below is
+bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
 reading historical logs as setup steps.
 
@@ -44,9 +44,11 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | --- | --- | --- |
 | v0.6.0 release, `44d0c3f` | Frozen samples and RAG/report/red-team artifacts; [release record](releases/v0.6.0.md). | Current cloud or maintained-source accuracy. |
 | Latest recorded non-E2E suite, 2026-09-29, source/proposal guidance update | 2,744 passed; 7 skipped; 6 deselected; 89.73% **src** coverage; 214.18 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
+| CI on `2ac6774`, 2026-09-29 | Tests and Docker cloud smoke passed; Chromium E2E: 6 passed, 2,751 deselected, 69.14 seconds. | Real-model accuracy, live cloud user testing or Word layout approval. |
 | Section-purpose comparison, 2026-09-29, `e2e1f02` | Six single-attempt DeepSeek completions comparing `3a00f3c` and `f4ae47c`; no section-12 maintenance contamination in either arm. | A reproduced fix, generalisation, six quality-gate passes, subsequent proposal-guidance validation or new cloud acceptance. |
 | Full eight-scenario model run, 2026-09-15, `0378229` | 7/8 governed checks passed; the suite did not pass overall. | The historical release's 8/8 cannot replace this result. |
 | Synthetic cloud delivery, 2026-09-27, `cab29ea` | Generation, one targeted revision, draft-only review and four download formats checked; ZIP 14 files/13 hashes; all 13 actual cloud PDF pages inspected. | Word page-layout approval, semantic accuracy, restart/concurrency coverage or real-user feedback. |
+| School cloud delivery, 2026-09-29, `2ac6774` | Real registered evidence with a synthetic school form; generation took 2 attempts, revision 1; only section 8 changed; four formats downloaded; v2 ZIP 13 files/12 hashes verified; 11 PDF pages inspected with one orphaned label. | Full content acceptance, flawless PDF layout, Word page layout, professional sign-off or new release approval. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -57,19 +59,20 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Main Gaps
 
-1. **Report content.** The latest cloud sample had 4 cited claims among 93
-   requiring citations; its first-aid section also included home-maintenance
-   material. Shared purpose and missing-evidence instructions now reach generation,
-   revision and structural repair; structural checks and lexical advice still do
-   not verify topic relevance. A six-request synthetic comparison found more
-   explicit unknowns in one condition but did not reproduce the original failure
-   in either arm; source-identity errors and unsupported additions remain.
-   Later prompt and UI guidance distinguishes registered identity from authority
-   verification and local proposals from supported claims; this later change
-   has not received a new real-model evaluation. Prefix-based classification
-   remains heuristic and can misclassify a fact labelled as a proposal.
+1. **Report content.** The latest school cloud check had 6/64 cited/citation-requiring
+   claims before revision and 5/64 after it, under the heuristic diagnostic. A
+   targeted revision removed household destination advice but still expanded
+   `household` to `household or campus group` with the same source citation.
+   The actual submitted evidence retained the household scope: visibility and
+   valid attribution did not ensure appropriate use. Other fourteen sections
+   stayed unchanged, not necessarily correct. The earlier 4/93 cloud result and
+   six-request synthetic comparison are separate evidence, not comparable accuracy
+   scores. Prefix classification and lexical matching remain advisory.
 2. **Word page layout.** Actual DOCX delivery/structure was checked, but the
    bundled renderer was unavailable. PDF inspection is not Word inspection.
+   The latest PDF also leaves the data-quality-warning label alone at the end of
+   page 7. The missing language-indicator basis warning needs clearer deterministic
+   presentation; do not restore the intentionally withheld legacy ABS percentage.
 3. **External validation.** [The pilot register](pilot_results.md) still records
    no completed external participants. Automated or synthetic runs are not user
    or domain-expert validation.
@@ -112,6 +115,13 @@ repair case now occupies 17,831 characters, while oversized cases still stop at
 the unchanged 18,000-character cap. Very large inputs can reach that boundary
 earlier. Independent review and repository lint/format/security checks passed;
 there was no browser E2E, model or cloud acceptance rerun in this update.
+
+The subsequent [school delivery check](history/LAUNCH_READINESS_2026-09-15.md#record-021)
+used the deployed `2ac6774` source and three recorded model attempts. Both
+downloaded packages and the parent/version bindings passed the existing verifier.
+The report remains a draft: source applicability, the PDF pagination finding
+and unverified Word layout prevent claiming complete acceptance. Historical
+samples and formal release v0.6.0 remain unchanged.
 
 ## Bottom Line
 
