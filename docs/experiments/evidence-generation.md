@@ -875,3 +875,44 @@ and **89.64% src coverage**, in 207.41 seconds. This turn did not rerun browser
 E2E, cloud delivery acceptance or any model generation; the remote experiment
 sequence remains at 27 calls. The added script tests do not expand the `src`
 coverage measurement to include experimental scripts.
+
+## Section-purpose prompt comparison (2026-09-29)
+
+This separately authorised development comparison evaluates the shared prompt
+guidance introduced in `f4ae47c`, against the preceding `3a00f3c` prompt. It is
+not a continuation or reopening of the closed 27-call experimental sequence.
+Three fixed synthetic evidence conditions are used: maintenance only, mixed
+maintenance and first-aid/training, and no relevant evidence. These passages
+are test fixtures, not newly retrieved official guidance or independent
+held-out evaluation material.
+
+The comparison is limited to six initial-generation requests, one per condition
+and prompt version, using identical per-condition inputs and evidence. There
+are no SDK retries, structural repairs or extra report-provider judging calls. Revision
+and repair remain offline-tested paths, not real-model acceptance in this run.
+Prompts, actual submitted requests, raw completions and call accounting must be
+preserved, including failures; changing output names must not reopen the budget.
+
+Before inspecting responses, the review questions are fixed as follows:
+
+- Does section 12 contain unrelated property maintenance, or does maintenance
+  genuinely serve an explicit training/exercise purpose, with roles or evaluation?
+- Do missing evidence and local arrangements remain specific unknowns, rather
+  than invented clinical procedures, credentials or fixed exercise schedules?
+- Do sections 7, 11 and 12 address their own purposes without using an unrelated
+  citation as a substitute for relevant content?
+- Which externally grounded statements lack citations, cite a passage that does
+  not support them, or have visible supporting evidence? Keep these separate from
+  locally unverified proposals and statements not requiring external evidence.
+
+Structural/lexical diagnostics are supplementary. A qualitative AI-assisted
+reading against the saved passages is not domain-expert approval or a semantic
+accuracy benchmark. One response per cell cannot establish statistical improvement,
+and an unchanged provider model alias is not an immutable model-weight identity.
+No replacement release sample or production quality threshold follows automatically.
+
+Before remote execution, 14 dedicated offline contract tests passed. The full
+non-E2E suite passed 2,737 tests, with 7 skipped, 6 deselected and 89.64% src
+coverage, in 226.92 seconds. Ruff, format checks and Bandit passed, and an
+independent read-only code review found no actionable issue. This validation
+does not cover real responses or measure experimental-script coverage.
