@@ -53,6 +53,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Synthetic cloud delivery, 2026-09-27, `cab29ea` | Generation, one targeted revision, draft-only review and four download formats checked; ZIP 14 files/13 hashes; all 13 actual cloud PDF pages inspected. | Word page-layout approval, semantic accuracy, restart/concurrency coverage or real-user feedback. |
 | School cloud delivery, 2026-09-29, `2ac6774` | Real registered evidence with a synthetic school form; generation took 2 attempts, revision 1; only section 8 changed; four formats downloaded; v2 ZIP 13 files/12 hashes verified; 11 PDF pages inspected with one orphaned label. | Full content acceptance, flawless PDF layout, Word page layout, professional sign-off or new release approval. |
 | Export follow-up, 2026-09-30 | The original downloaded DOCX was rendered by Microsoft Word and all 17 pages inspected. Offline same-font PDF replay reproduced the old 7/8-page label separation; fixed/new-warning preview: all 12 pages inspected. A 17-page Word preview with the warning was also checked. | A new live model run, changed cloud download hashes, semantic correctness or a replacement release sample. |
+| Development source review, 2026-09-30, reference `d79162f` | All 74 school-report items reviewed, including the 64 historically requiring citations; original 5 cited / 59 missing preserved. Actual final request included 2 of 3 retrieved passages. | An independently labelled benchmark, professional approval, revised production output or a corrected accuracy/citation score. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -74,6 +75,14 @@ denominators; they must not be merged into a report-accuracy percentage.
    the report text or establish general applicability. The earlier 4/93 cloud result and
    six-request synthetic comparison are separate evidence, not comparable accuracy
    scores. Prefix classification and lexical matching remain advisory.
+   A subsequent AI-assisted development review covered all 74 items without
+   editing that output. Its proposed handling groups identify scope statements,
+   local review tasks, processed-data provenance, configured considerations and
+   mixed/unsubstantiated wording; these are not corrected runtime labels or
+   confirmed support. Household scope, a broad maintenance conclusion, causal
+   risk statements and proposed assessment criteria still need changes or
+   evidence. The submitted home passage also contains a semantic-direction
+   ambiguity that needs original-source verification, not silent rewriting.
 2. **New-release content acceptance.** The September 29 DOCX layout gap is now
    closed by native Word rendering of that exact file. The PDF label and fixed
    language-basis warning have offline regression and visual checks; original
@@ -94,6 +103,13 @@ Evaluate new content cases separately from seen development
 fixtures, and retain unknowns and human review. Real stakeholder feedback is a
 separate activity, not something synthetic testing can supply. Adding live
 emergency decisions is not a required next feature.
+The next bounded implementation should start from the
+[school source review](history/LAUNCH_READINESS_2026-09-15.md#record-023):
+verify the ambiguous home-source wording, separate source descriptions from
+unverified campus application, and preserve internal-data/configuration
+provenance without using it as external proof. The old diagnostic remains
+unchanged; a later classifier revision needs its own version and false-positive
+checks. Do not attach unrelated citations to raise the current coverage number.
 
 ## Optimisations Completed In This Review
 
