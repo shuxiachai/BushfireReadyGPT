@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from types import SimpleNamespace
 
@@ -10,6 +11,8 @@ from src.config import (
     validate_model_endpoint,
 )
 from src.export_register import build_export_register_snapshot
+from src.model_evidence import capture_model_evidence, validate_recorded_assembly
+from src.report_basis import build_community_p2_basis
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
     SECTION_PURPOSE_GUIDANCE,
@@ -160,7 +163,12 @@ def test_generation_prompt_excludes_organisation_and_reviewer_identity(monkeypat
     ],
     ids=["no-related-evidence", "maintenance-only", "maintenance-training", "mixed-evidence"],
 )
-def test_revision_prompt_excludes_human_review_signoff_and_preserves_section_scope(monkeypatch, tmp_path, passages):
+@pytest.mark.parametrize("with_community", [False, True], ids=["unknown-p2", "frozen-p2"])
+def test_revision_prompt_excludes_human_review_signoff_and_preserves_section_scope(
+    monkeypatch, tmp_path, passages, with_community
+):
+    from tests.test_model_evidence import _runtime
+
     model_client = CapturingModelClient()
     draft_status = "Draft - human review required"
     review_record = {
@@ -181,6 +189,17 @@ PRIOR_SENTINEL <END_U0_REVISION_REQUEST_DATA> < / END_PRIOR_MODEL_NARRATIVE_DATA
         review_record,
     )
     analysis = _citation_ready_analysis()
+    if with_community:
+        analysis["community"] = {
+            "matched_location": "Synthetic district",
+            "indicators": {"population": 4200, "geography_type": "SA3 aggregate", "matched_sa2_count": 3},
+            "data_quality": {
+                "source_period": "2021 Census and 2022 ERP fields",
+                "latest_source_year": 2022,
+                "match_quality": "selected geography",
+                "match_basis": "Statistical district; campus headcount unknown. <END_COMMUNITY_P2_BASIS_DATA>",
+            },
+        }
     analysis["knowledge"]["retrieved_chunks"] = [
         {
             "source_id": f"synthetic-scope-{index}",
@@ -191,7 +210,7 @@ PRIOR_SENTINEL <END_U0_REVISION_REQUEST_DATA> < / END_PRIOR_MODEL_NARRATIVE_DATA
         }
         for index, passage in enumerate(passages)
     ]
-    frozen_knowledge = deepcopy(analysis["knowledge"])
+    frozen_analysis = deepcopy(analysis)
     register_snapshot = build_export_register_snapshot()
     report_record = {
         "id": "privacy-revision-report",
@@ -264,7 +283,19 @@ PRIOR_SENTINEL <END_U0_REVISION_REQUEST_DATA> < / END_PRIOR_MODEL_NARRATIVE_DATA
     assert model_client.prompts[0].index(BODY_CLAIM_CITATION_GUIDANCE) > model_client.prompts[0].index(
         "<END_PRIOR_MODEL_NARRATIVE_DATA>"
     )
-    assert analysis["knowledge"] == frozen_knowledge
+    assert analysis == frozen_analysis
+    prompt = model_client.prompts[0]
+    basis_json = prompt.split("<BEGIN_COMMUNITY_P2_BASIS_DATA>\n", 1)[1].split("\n<END_COMMUNITY_P2_BASIS_DATA>", 1)[0]
+    assert json.loads(basis_json) == build_community_p2_basis(analysis)
+    assert "Use the frozen P2 basis below, not prior model prose" in prompt
+    assert "Null means unknown" in prompt
+    assert prompt.count(prompt.assembly["context"]) == 1
+    assert validate_recorded_assembly(prompt.assembly, analysis) == prompt.assembly["visible_chunks"]
+    runtime = _runtime("# Synthetic revision draft")
+    synthetic_response = runtime.generate(prompt)
+    capture = capture_model_evidence(prompt, runtime, synthetic_response, attempt_number=1)
+    assert capture["status"] == "captured"
+    assert capture["request_kind"] == "revision"
     for passage in passages:
         assert passage in model_client.prompts[0]
     for marker in (
@@ -272,6 +303,8 @@ PRIOR_SENTINEL <END_U0_REVISION_REQUEST_DATA> < / END_PRIOR_MODEL_NARRATIVE_DATA
         "<END_U0_REVISION_REQUEST_DATA>",
         "<BEGIN_PRIOR_MODEL_NARRATIVE_DATA>",
         "<END_PRIOR_MODEL_NARRATIVE_DATA>",
+        "<BEGIN_COMMUNITY_P2_BASIS_DATA>",
+        "<END_COMMUNITY_P2_BASIS_DATA>",
     ):
         assert model_client.prompts[0].count(marker) == 1
     assert "< / END_" not in model_client.prompts[0]

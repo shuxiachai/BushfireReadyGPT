@@ -188,6 +188,17 @@ support score or a general applicability check. Unselected wording remains
 unverified. It does not change `body_claim_evidence_v1`, audited metrics,
 historical records or generation gates.
 
+Generation, revision and repair now receive a shared bounded community P2 JSON
+object from the frozen analysis: values, source period and geographic aggregation
+limits remain together. Missing, malformed or oversized values are null rather
+than truncated facts; no current data or assessment year is silently substituted.
+R3 threshold notes and Planner tasks are separate planning cues, not external
+support. Instructions preserve the source's audience and conditions in a narrow
+source-description sentence, with any cross-audience application in a separate
+unverified local proposal. Contradictory source wording must be flagged rather
+than silently corrected; risk-reduction wording does not establish effectiveness.
+These are input and prompt contracts, not demonstrated model adherence.
+
 The maintained generation, revision and repair instructions ask for an
 unsupported local arrangement to be labelled `Unverified proposal for local
 review:` in the same statement, bullet, checklist item or substantive table

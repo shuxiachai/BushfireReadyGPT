@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-09-30 after export and source-applicability review improvements. This page
+Updated 2026-10-01 after source-text verification and three-path provenance-input hardening. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -32,6 +32,9 @@ Upstream attribution remains in [UPSTREAM.md](../UPSTREAM.md).
 - A separate limited audience-scope advisory pairs household-to-campus
   evacuation-support wording with the final submitted source sentence. It
   neither approves applicability nor changes historical diagnostic metrics.
+- Generation, revision and repair receive frozen P2 values with their period
+  and geographic limits. R3/Planner cues remain distinct from external evidence;
+  source descriptions and unverified cross-audience applications must be separate.
 - Report/review/version bindings, hash-linked file audits, protected downloads
   and Markdown/PDF/DOCX/ZIP exports.
 - Docker/Railway packaging, health checks, bounded model calls and SQLite daily
@@ -46,7 +49,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Evidence | Recorded result | What it does not establish |
 | --- | --- | --- |
 | v0.6.0 release, `44d0c3f` | Frozen samples and RAG/report/red-team artifacts; [release record](releases/v0.6.0.md). | Current cloud or maintained-source accuracy. |
-| Latest recorded non-E2E suite, 2026-09-30, export/applicability update | 2,787 passed; 7 skipped; 6 deselected; 89.49% **src** coverage; 229.57 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
+| Latest recorded non-E2E suite, 2026-10-01, provenance-input update | 2,806 passed; 7 skipped; 6 deselected; 89.76% **src** coverage; 262.95 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
 | CI on `2ac6774`, 2026-09-29 | Tests and Docker cloud smoke passed; Chromium E2E: 6 passed, 2,751 deselected, 69.14 seconds. | Real-model accuracy, live cloud user testing or Word layout approval. |
 | Section-purpose comparison, 2026-09-29, `e2e1f02` | Six single-attempt DeepSeek completions comparing `3a00f3c` and `f4ae47c`; no section-12 maintenance contamination in either arm. | A reproduced fix, generalisation, six quality-gate passes, subsequent proposal-guidance validation or new cloud acceptance. |
 | Full eight-scenario model run, 2026-09-15, `0378229` | 7/8 governed checks passed; the suite did not pass overall. | The historical release's 8/8 cannot replace this result. |
@@ -54,6 +57,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | School cloud delivery, 2026-09-29, `2ac6774` | Real registered evidence with a synthetic school form; generation took 2 attempts, revision 1; only section 8 changed; four formats downloaded; v2 ZIP 13 files/12 hashes verified; 11 PDF pages inspected with one orphaned label. | Full content acceptance, flawless PDF layout, Word page layout, professional sign-off or new release approval. |
 | Export follow-up, 2026-09-30 | The original downloaded DOCX was rendered by Microsoft Word and all 17 pages inspected. Offline same-font PDF replay reproduced the old 7/8-page label separation; fixed/new-warning preview: all 12 pages inspected. A 17-page Word preview with the warning was also checked. | A new live model run, changed cloud download hashes, semantic correctness or a replacement release sample. |
 | Development source review, 2026-09-30, reference `d79162f` | All 74 school-report items reviewed, including the 64 historically requiring citations; original 5 cited / 59 missing preserved. Actual final request included 2 of 3 retrieved passages. | An independently labelled benchmark, professional approval, revised production output or a corrected accuracy/citation score. |
+| Source-text and prompt-contract follow-up, 2026-09-30 to 2026-10-01 | Frozen HTML and a fresh official-page download contain the same questioned wording; no missing-prefix extraction defect was found. Final 108 targeted tests pass; normal repair fixture 17,965 characters accepted, 19,201 rejected. | Author intent, source correctness, real-model adherence or content acceptance. No model requests or corpus/index changes. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -79,10 +83,12 @@ denominators; they must not be merged into a report-accuracy percentage.
    editing that output. Its proposed handling groups identify scope statements,
    local review tasks, processed-data provenance, configured considerations and
    mixed/unsubstantiated wording; these are not corrected runtime labels or
-   confirmed support. Household scope, a broad maintenance conclusion, causal
-   risk statements and proposed assessment criteria still need changes or
-   evidence. The submitted home passage also contains a semantic-direction
-   ambiguity that needs original-source verification, not silent rewriting.
+   confirmed support. New input/wording constraints address household scope,
+   data provenance and unverified effects, but the original report has not been
+   rewritten or re-generated. The questioned home wording is present in both
+   frozen HTML and the fresh official-page download, not introduced by the
+   extractor. Its intended meaning and applicability remain unresolved; it
+   must not be silently corrected or treated as verified advice.
 2. **New-release content acceptance.** The September 29 DOCX layout gap is now
    closed by native Word rendering of that exact file. The PDF label and fixed
    language-basis warning have offline regression and visual checks; original
@@ -103,13 +109,14 @@ Evaluate new content cases separately from seen development
 fixtures, and retain unknowns and human review. Real stakeholder feedback is a
 separate activity, not something synthetic testing can supply. Adding live
 emergency decisions is not a required next feature.
-The next bounded implementation should start from the
-[school source review](history/LAUNCH_READINESS_2026-09-15.md#record-023):
-verify the ambiguous home-source wording, separate source descriptions from
-unverified campus application, and preserve internal-data/configuration
-provenance without using it as external proof. The old diagnostic remains
-unchanged; a later classifier revision needs its own version and false-positive
-checks. Do not attach unrelated citations to raise the current coverage number.
+The bounded input changes from the
+[school source review](history/LAUNCH_READINESS_2026-09-15.md#record-023) are now
+covered by offline contracts; the next content step is a separately scoped
+model comparison before claiming better source use or issuing new samples.
+Do not reopen closed model-call campaigns. The questioned source wording remains
+flagged for qualified source review. The old diagnostic remains unchanged; a
+later classifier revision needs its own version and false-positive checks.
+Do not attach unrelated citations to raise the current coverage number.
 
 ## Optimisations Completed In This Review
 

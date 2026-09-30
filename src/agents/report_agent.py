@@ -49,10 +49,10 @@ class ReportAgent:
             "Profile Agent:",
             *profile_lines,
             "",
-            "Risk Context Agent:",
+            "Risk Context Agent (R3 rule-derived planning cues, not external factual evidence):",
             *[f"- {item}" for item in risk_context.get("risk_points", [])],
             "",
-            "Community Vulnerability Agent:",
+            "Community Vulnerability Agent (P2 processed indicators; R3 interpretations identified below):",
             *community_lines,
             "",
             "Australian Data Agent:",
@@ -72,7 +72,7 @@ class ReportAgent:
             *self._format_rag_context_coverage(rag_summary),
             rag_assembly["context"],
             "",
-            "Planner Agent:",
+            "Planner Agent (R3 planning tasks, not external factual evidence):",
             *[f"- {item}" for item in plan_result.get("planning_priorities", [])],
             "",
             "Application-recognised focus areas (cover each one in the report):",
@@ -134,7 +134,6 @@ class ReportAgent:
                     f"- Population: {format_evidence_value(indicators.get('population'))}",
                     f"- Older people percentage: {format_evidence_value(indicators.get('older_people_pct'), '%')}",
                     f"- No-car households percentage: {format_evidence_value(indicators.get('no_car_households_pct'), '%')}",
-                    f"- Language support need: {format_evidence_value(indicators.get('language_support_needed'))}",
                 ]
             )
             if "language_other_than_english_pct" in indicators:
@@ -147,6 +146,8 @@ class ReportAgent:
             if indicators.get("matched_sa2_count"):
                 lines.append(f"- Matched SA2 count: {indicators.get('matched_sa2_count')}")
 
+        lines.append("R3 threshold interpretation and planning notes (not P2 measurements or O1 evidence):")
+        lines.append(f"- Language support need: {format_evidence_value(indicators.get('language_support_needed'))}")
         lines.extend(f"- {note}" for note in community_result.get("vulnerability_notes", []))
         return lines
 

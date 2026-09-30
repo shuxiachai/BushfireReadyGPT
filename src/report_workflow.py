@@ -51,6 +51,7 @@ from src.input_validation import (
 from src.model_evidence import EvidencePrompt, EvidenceResponse, capture_model_evidence
 from src.model_response import ModelResponseError, validate_operational_directions
 from src.model_runtime import ModelServiceError
+from src.report_basis import format_community_p2_basis
 from src.report_claim_evidence import evaluate_body_claim_evidence
 from src.report_generation_quality import (
     ReportGenerationPreconditionError,
@@ -822,6 +823,9 @@ the selected geography, community indicators, official-source selection or deter
 the edit request. Those inputs must be changed in the form and regenerated through the analysis pipeline.
 Keep the model-authored narrative between {REPORT_NARRATIVE_WORD_BUDGET}. The application will restore the
 deterministic Evidence Tables and Human Review Sign-off after the revised narrative passes its quality gate.
+
+Use the frozen P2 basis below, not prior model prose, for community values and their limits. Null means unknown.
+{format_community_p2_basis(analysis)}
 
 The following official-reference passages are supplied again from the frozen retrieval snapshot, without
 performing new retrieval. Prior model wording is not independent official evidence. Use an O1-RAG citation

@@ -805,9 +805,14 @@ def test_repair_prompt_gives_an_absolute_safety_replacement_without_replaying_th
     )
 
     assert "ABSOLUTE-SAFETY REWRITE" in prompt
-    assert "These preparedness measures reduce risk" in prompt
-    assert "subject to current official advice and responsible human review" in prompt
-    assert "use only support, verify, reduce risk or maintain" in prompt
+    assert (
+        'Replace the failing claim exactly with: "This report aims to support preparedness planning. '
+        "Proposed measures' effects and applicability remain unverified and require confirmation by the "
+        'responsible organisation."'
+    ) in prompt
+    assert "These preparedness measures reduce risk" not in prompt
+    assert "confirm them against relevant evidence and current official advice" in " ".join(prompt.split())
+    assert "keep the draft and human-review boundaries" in prompt
     assert "absolute-outcome wording detected" in prompt
     assert "absolute_safety_guarantee" not in prompt
     assert "This plan guarantees everyone's safety." not in prompt
