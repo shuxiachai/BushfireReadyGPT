@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-09-29 after the current-production school delivery check. This page
+Updated 2026-09-30 after export and source-applicability review improvements. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -29,6 +29,9 @@ Upstream attribution remains in [UPSTREAM.md](../UPSTREAM.md).
   stateless and tool-free. They are not eight autonomous LLM agents.
 - Hybrid RAG, recorded submitted evidence, data-age/geographic warnings and
   human-review diagnostics. Retrieval or lexical matches do not establish truth.
+- A separate limited audience-scope advisory pairs household-to-campus
+  evacuation-support wording with the final submitted source sentence. It
+  neither approves applicability nor changes historical diagnostic metrics.
 - Report/review/version bindings, hash-linked file audits, protected downloads
   and Markdown/PDF/DOCX/ZIP exports.
 - Docker/Railway packaging, health checks, bounded model calls and SQLite daily
@@ -43,12 +46,13 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Evidence | Recorded result | What it does not establish |
 | --- | --- | --- |
 | v0.6.0 release, `44d0c3f` | Frozen samples and RAG/report/red-team artifacts; [release record](releases/v0.6.0.md). | Current cloud or maintained-source accuracy. |
-| Latest recorded non-E2E suite, 2026-09-29, source/proposal guidance update | 2,744 passed; 7 skipped; 6 deselected; 89.73% **src** coverage; 214.18 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
+| Latest recorded non-E2E suite, 2026-09-30, export/applicability update | 2,787 passed; 7 skipped; 6 deselected; 89.49% **src** coverage; 229.57 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
 | CI on `2ac6774`, 2026-09-29 | Tests and Docker cloud smoke passed; Chromium E2E: 6 passed, 2,751 deselected, 69.14 seconds. | Real-model accuracy, live cloud user testing or Word layout approval. |
 | Section-purpose comparison, 2026-09-29, `e2e1f02` | Six single-attempt DeepSeek completions comparing `3a00f3c` and `f4ae47c`; no section-12 maintenance contamination in either arm. | A reproduced fix, generalisation, six quality-gate passes, subsequent proposal-guidance validation or new cloud acceptance. |
 | Full eight-scenario model run, 2026-09-15, `0378229` | 7/8 governed checks passed; the suite did not pass overall. | The historical release's 8/8 cannot replace this result. |
 | Synthetic cloud delivery, 2026-09-27, `cab29ea` | Generation, one targeted revision, draft-only review and four download formats checked; ZIP 14 files/13 hashes; all 13 actual cloud PDF pages inspected. | Word page-layout approval, semantic accuracy, restart/concurrency coverage or real-user feedback. |
 | School cloud delivery, 2026-09-29, `2ac6774` | Real registered evidence with a synthetic school form; generation took 2 attempts, revision 1; only section 8 changed; four formats downloaded; v2 ZIP 13 files/12 hashes verified; 11 PDF pages inspected with one orphaned label. | Full content acceptance, flawless PDF layout, Word page layout, professional sign-off or new release approval. |
+| Export follow-up, 2026-09-30 | The original downloaded DOCX was rendered by Microsoft Word and all 17 pages inspected. Offline same-font PDF replay reproduced the old 7/8-page label separation; fixed/new-warning preview: all 12 pages inspected. A 17-page Word preview with the warning was also checked. | A new live model run, changed cloud download hashes, semantic correctness or a replacement release sample. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -65,14 +69,17 @@ denominators; they must not be merged into a report-accuracy percentage.
    `household` to `household or campus group` with the same source citation.
    The actual submitted evidence retained the household scope: visibility and
    valid attribution did not ensure appropriate use. Other fourteen sections
-   stayed unchanged, not necessarily correct. The earlier 4/93 cloud result and
+   stayed unchanged, not necessarily correct. The new limited advisory selects
+   this archived audience-extension case in an offline replay; it does not fix
+   the report text or establish general applicability. The earlier 4/93 cloud result and
    six-request synthetic comparison are separate evidence, not comparable accuracy
    scores. Prefix classification and lexical matching remain advisory.
-2. **Word page layout.** Actual DOCX delivery/structure was checked, but the
-   bundled renderer was unavailable. PDF inspection is not Word inspection.
-   The latest PDF also leaves the data-quality-warning label alone at the end of
-   page 7. The missing language-indicator basis warning needs clearer deterministic
-   presentation; do not restore the intentionally withheld legacy ABS percentage.
+2. **New-release content acceptance.** The September 29 DOCX layout gap is now
+   closed by native Word rendering of that exact file. The PDF label and fixed
+   language-basis warning have offline regression and visual checks; original
+   cloud artifacts remain unchanged. A replacement sample still needs content
+   review and acceptance bound to its own source/version. The withheld legacy
+   ABS language percentage remains unknown rather than being restored.
 3. **External validation.** [The pilot register](pilot_results.md) still records
    no completed external participants. Automated or synthetic runs are not user
    or domain-expert validation.
@@ -82,8 +89,8 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Suggested Next Build Order
 
-Resolve content and Word delivery gaps before publishing replacement samples
-or a new release. Evaluate new content cases separately from seen development
+Resolve content gaps before publishing replacement samples or a new release.
+Evaluate new content cases separately from seen development
 fixtures, and retain unknowns and human review. Real stakeholder feedback is a
 separate activity, not something synthetic testing can supply. Adding live
 emergency decisions is not a required next feature.

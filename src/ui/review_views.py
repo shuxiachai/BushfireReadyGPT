@@ -497,11 +497,13 @@ def _render_current_body_claim_review(report_record):
     except (ImportError, AttributeError, TypeError, ValueError) as error:
         st.warning("The current body-claim diagnostic is unavailable; human source review remains required.")
         st.caption(safe_diagnostic_detail(error, "The review diagnostic could not be computed."))
+        _render_source_applicability_advisory({}, visible_passages, snapshot_status)
         return
     if not isinstance(evaluation, dict):
         st.warning(
             "The current body-claim diagnostic returned an invalid result; human source review remains required."
         )
+        _render_source_applicability_advisory({}, visible_passages, snapshot_status)
         return
 
     metrics = evaluation.get("metrics") if isinstance(evaluation.get("metrics"), dict) else {}
@@ -527,6 +529,8 @@ def _render_current_body_claim_review(report_record):
     else:
         st.warning("One or more body claims need human review; report generation was not blocked.")
 
+    _render_source_applicability_advisory(evaluation, visible_passages, snapshot_status)
+
     claims = evaluation.get("claims") if isinstance(evaluation.get("claims"), list) else []
     include_not_required = st.checkbox(
         "Show claims not requiring citations under this diagnostic",
@@ -544,6 +548,68 @@ def _render_current_body_claim_review(report_record):
 
     for limitation in evaluation.get("limitations", []):
         st.caption(safe_display_text(limitation))
+
+
+def _render_source_applicability_advisory(body_evaluation, visible_passages, snapshot_status):
+    """Render a separate, ephemeral audience-scope warning for submitted excerpts."""
+
+    st.markdown("#### Source applicability advisory")
+    st.caption(
+        "Independent advisory only: it compares a narrow audience wording rule against final submitted passages. "
+        "It does not verify the report, score source support, or determine local applicability."
+    )
+    try:
+        from src.source_applicability import build_source_applicability_advisory
+
+        advisory = build_source_applicability_advisory(
+            body_evaluation, visible_passages, snapshot_status=snapshot_status
+        )
+    except (ImportError, AttributeError, TypeError, ValueError) as error:
+        st.warning("The source applicability advisory is unavailable; local applicability remains unknown.")
+        st.caption(safe_diagnostic_detail(error, "The applicability advisory could not be computed."))
+        return
+
+    findings = advisory.get("findings") if isinstance(advisory.get("findings"), list) else []
+    unassessed = advisory.get("unassessed") if isinstance(advisory.get("unassessed"), list) else []
+    claims = body_evaluation.get("claims") if isinstance(body_evaluation, dict) else []
+    claim_by_id = {
+        claim.get("claim_id"): claim for claim in claims if isinstance(claim, dict) and claim.get("claim_id")
+    }
+    if snapshot_status != "captured":
+        st.info(
+            "Final submitted passages are unavailable or invalid, so local applicability is unassessed and unknown."
+        )
+    if not findings:
+        st.caption(
+            "No discrepancy was selected by this narrow rule. Applicability remains unknown and needs local confirmation."
+        )
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        claim = claim_by_id.get(finding.get("claim_id"), {})
+        claim_text = safe_display_text(claim.get("claim"), "No claim text was extracted.")
+        with st.expander(f"Applicability review: {claim_text[:160]}", expanded=False):
+            st.markdown(f"**Claim:** {claim_text}")
+            span = claim.get("span") if isinstance(claim.get("span"), dict) else {}
+            st.markdown(f"**Claim span:** characters {span.get('start', 'unknown')}–{span.get('end', 'unknown')}")
+            st.markdown(f"**Source:** {safe_display_text(finding.get('source_id'), 'unknown')}")
+            source_span = (
+                finding.get("source_sentence_span") if isinstance(finding.get("source_sentence_span"), dict) else {}
+            )
+            st.markdown(
+                "**Source local sentence:** "
+                f"{safe_display_text(finding.get('source_sentence'), 'No local source sentence was resolved.')} "
+                f"(characters {source_span.get('start', 'unknown')}–{source_span.get('end', 'unknown')})"
+            )
+            st.warning(safe_display_text(finding.get("reason"), "Confirm local applicability."))
+            _render_claim_passage_refs(finding.get("passage_refs"), visible_passages)
+    for item in unassessed:
+        if not isinstance(item, dict):
+            continue
+        st.caption(
+            "Unassessed applicability item "
+            f"{safe_display_text(item.get('claim_id'), 'claim')}: {safe_display_text(item.get('reason'), 'unknown reason')}."
+        )
 
 
 def _resolve_current_visible_passages(snapshot, analysis, report_text):

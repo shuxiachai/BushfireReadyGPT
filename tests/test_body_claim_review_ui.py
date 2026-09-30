@@ -150,3 +150,59 @@ def test_register_metadata_is_not_displayed_as_submitted_claim_evidence():
     assert "register metadata, not a submitted evidence passage" in captions
     assert "citation token does not establish support for this claim" in captions
     assert not app.code
+
+
+def test_source_applicability_advisory_is_visible_before_the_not_required_checkbox():
+    app = AppTest.from_string(
+        "from src.ui.review_views import _render_current_body_claim_review\n"
+        "report = {'text': 'Unverified proposal for local review: campus group will need support to evacuate.', "
+        "'analysis': {'knowledge': {'retrieved_chunks': []}, 'data': {'sources': []}}, "
+        "'grounding_evaluation': {'model_visible_rag': {'snapshot': {'schema': 'model-evidence-v1', "
+        "'status': 'unavailable', 'reason': 'not_recorded', 'attempt_number': None, 'request_kind': None}}}}\n"
+        "_render_current_body_claim_review(report)"
+    ).run(timeout=15)
+
+    assert not app.exception
+    headings = [item.value for item in app.markdown]
+    assert "#### Source applicability advisory" in headings
+    assert app.checkbox[0].key == "body_claim_review_show_not_required"
+    assert any("local applicability is unassessed and unknown" in item.value for item in app.info)
+
+
+def test_source_unknown_campus_wording_keeps_the_household_applicability_warning_visible():
+    passage = {
+        "source_id": "plan",
+        "chunk_id": "1",
+        "text": (
+            "If your household will need support to evacuate, contact the council. "
+            "Whether a campus group will need support to evacuate is unknown and requires local verification."
+        ),
+    }
+    claim = {
+        "claim_id": "claim-campus",
+        "claim": "If your campus group will need support to evacuate, contact the council [O1-RAG][source_id=plan]",
+        "source_checks": [
+            {
+                "source_id": "plan",
+                "source_type": "rag",
+                "passage_refs": [
+                    {
+                        "passage_index": 0,
+                        "source_id": "plan",
+                        "chunk_id": "1",
+                        "visible_text_sha256": hashlib.sha256(passage["text"].encode("utf-8")).hexdigest(),
+                    }
+                ],
+            }
+        ],
+    }
+    evaluation = {"claims": [claim]}
+    app = AppTest.from_string(
+        "from src.ui.review_views import _render_source_applicability_advisory\n"
+        f"_render_source_applicability_advisory({evaluation!r}, {[passage]!r}, 'captured')"
+    ).run(timeout=15)
+
+    assert not app.exception
+    assert any("Confirm local applicability" in item.value for item in app.warning)
+    assert any(claim["claim"] in item.value for item in app.markdown)
+    assert passage["text"] in "\n".join(item.value for item in app.code)

@@ -175,6 +175,19 @@ not zero risk or a reconstructed claim of what the model received. The review
 UI pairs each statement with its submitted passage and review reasons, without
 rewriting the recorded historical diagnostic or audit event.
 
+The current review view separately computes
+`source_applicability_advisory_v1` from those validated submitted passages. Its
+first rule flags a report extending a household evacuation-support sentence to
+a school or campus audience. Each prompt shows the full claim, character
+positions, the corresponding source sentence and submitted excerpt. Hiding
+claims classified as not requiring citations does not hide this advisory.
+Only a narrowly recognised conditional instruction in the same cited source can
+resolve this wording discrepancy; questions, negation, quoted examples and
+source-register metadata cannot. This is a limited review aid, not a semantic
+support score or a general applicability check. Unselected wording remains
+unverified. It does not change `body_claim_evidence_v1`, audited metrics,
+historical records or generation gates.
+
 The maintained generation, revision and repair instructions ask for an
 unsupported local arrangement to be labelled `Unverified proposal for local
 review:` in the same statement, bullet, checklist item or substantive table

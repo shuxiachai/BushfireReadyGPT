@@ -164,6 +164,65 @@ def test_blank_markdown_spacing_cannot_leave_table_title_at_previous_page_bottom
     assert "Row marker" in pages[1]
 
 
+@pytest.mark.parametrize(("spacer_height", "label_page"), [(650, 0), (680, 1)])
+def test_standalone_bold_label_stays_with_first_warning_without_locking_long_list(spacer_height, label_page):
+    styles = pdf_export._build_styles("Helvetica")
+    markdown = "# Synthetic warnings fixture\n\n**Data quality warnings**\n\n" + "\n".join(
+        f"- Warning {number:03} marker" for number in range(30)
+    )
+    warning_story = pdf_export._markdown_to_story(markdown, styles)
+    label_index = next(
+        index
+        for index, item in enumerate(warning_story)
+        if isinstance(item._content[0] if isinstance(item, KeepTogether) else item, Paragraph)
+        if (item._content[0] if isinstance(item, KeepTogether) else item).getPlainText() == "Data quality warnings"
+    )
+    # A4's usable frame is about 739 pt. After the preceding 21 pt paragraph,
+    # 680 pt leaves room for the 15 pt label but not its first 14 pt bullet.
+    # At 650 pt both fit, but the complete 30-item list cannot fit. It must start
+    # on this page and continue naturally, rather than move as one large group.
+    story = [
+        Paragraph("Previous body marker", styles["body"]),
+        Spacer(1, spacer_height),
+        *warning_story[label_index:],
+    ]
+
+    pages = _build_story(story)
+    extracted = "\n".join(pages)
+
+    assert len(pages) == 2
+    assert "Data quality warnings" in pages[label_page]
+    assert "Warning 000 marker" in pages[label_page]
+    assert "Warning 029 marker" in pages[1]
+    assert extracted.count("Data quality warnings") == 1
+    for number in range(30):
+        assert extracted.count(f"Warning {number:03} marker") == 1
+
+
+@pytest.mark.parametrize(
+    ("line", "is_label"),
+    [
+        ("**Standalone label**", True),
+        ("**Bold opening** and **bold closing**", False),
+        ("**Bold opening** with ordinary trailing text", False),
+        ("Ordinary opening with **bold closing**", False),
+    ],
+)
+def test_only_a_wholly_bold_markdown_line_becomes_a_standalone_label(line, is_label):
+    styles = pdf_export._build_styles("Helvetica")
+    story = pdf_export._markdown_to_story(
+        "# Synthetic label fixture\n\n" + line + "\n\nFollowing paragraph marker", styles
+    )
+    paragraphs = [
+        paragraph
+        for item in story
+        for paragraph in (item._content if isinstance(item, KeepTogether) else [item])
+        if isinstance(paragraph, Paragraph)
+    ]
+    parsed_line = next(paragraph for paragraph in paragraphs if paragraph.getPlainText() == line.replace("**", ""))
+    assert (parsed_line.style.name == "BushfireStandaloneLabel") is is_label
+
+
 @pytest.mark.parametrize(
     ("style_name", "spacer_height"),
     [("h1", 680), ("h2", 695)],
@@ -184,14 +243,15 @@ def test_blank_markdown_spacing_cannot_orphan_heading_from_following_paragraph(s
     assert "Following paragraph marker" in pages[1]
 
 
-def test_consecutive_headings_stay_with_the_first_substantive_paragraph():
+@pytest.mark.parametrize("child_style", ["h2", "standalone_label"])
+def test_consecutive_headings_stay_with_the_first_substantive_paragraph(child_style):
     styles = pdf_export._build_styles("Helvetica")
     story = [
         Paragraph("Previous body marker", styles["body"]),
         Spacer(1, 620),
         Paragraph("Parent heading marker", styles["h1"]),
         Spacer(1, 0.08 * cm),
-        Paragraph("Child heading marker", styles["h2"]),
+        Paragraph("Child heading marker", styles[child_style]),
         Spacer(1, 0.08 * cm),
         Paragraph("Substantive content marker. " + "Body text. " * 20, styles["body"]),
     ]
@@ -203,14 +263,15 @@ def test_consecutive_headings_stay_with_the_first_substantive_paragraph():
         assert marker in pages[1]
 
 
-def test_consecutive_headings_keep_the_first_table_row_and_allow_later_rows_to_paginate():
+@pytest.mark.parametrize("child_style", ["h2", "standalone_label"])
+def test_consecutive_headings_keep_the_first_table_row_and_allow_later_rows_to_paginate(child_style):
     styles = pdf_export._build_styles("Helvetica")
     story = [
         Paragraph("Previous body marker", styles["body"]),
         Spacer(1, 620),
         Paragraph("Parent table heading marker", styles["h1"]),
         Spacer(1, 0.08 * cm),
-        Paragraph("Child table heading marker", styles["h2"]),
+        Paragraph("Child table heading marker", styles[child_style]),
         Spacer(1, 0.08 * cm),
     ]
     pdf_export._append_table(
@@ -260,12 +321,13 @@ def test_oversized_first_paragraph_splits_without_losing_or_repeating_content():
 
 
 @pytest.mark.parametrize("explicit_break", [False, True])
-def test_heading_chain_without_content_preserves_the_end_or_explicit_page_break(explicit_break):
+@pytest.mark.parametrize("child_style", ["h2", "standalone_label"])
+def test_heading_chain_without_content_preserves_the_end_or_explicit_page_break(explicit_break, child_style):
     styles = pdf_export._build_styles("Helvetica")
     story = [
         Paragraph("Parent heading marker", styles["h1"]),
         Spacer(1, 0.08 * cm),
-        Paragraph("Child heading marker", styles["h2"]),
+        Paragraph("Child heading marker", styles[child_style]),
         Spacer(1, 0.08 * cm),
     ]
     if explicit_break:

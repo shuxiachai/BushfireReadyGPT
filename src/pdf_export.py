@@ -194,6 +194,15 @@ def _build_styles(font_name):
             firstLineIndent=-8,
             textColor=colors.HexColor("#18212f"),
         ),
+        "standalone_label": ParagraphStyle(
+            "BushfireStandaloneLabel",
+            parent=base_styles["BodyText"],
+            fontName=font_name,
+            fontSize=10,
+            leading=15,
+            textColor=colors.HexColor("#18212f"),
+            spaceAfter=6,
+        ),
         "record_heading": ParagraphStyle(
             "BushfireRecordHeading",
             parent=base_styles["Heading3"],
@@ -366,10 +375,10 @@ class _HeadingWithTable(KeepTogether):
 
 
 def _keep_heading_spacing(story):
-    """Keep consecutive Markdown headings with their first content flowable."""
+    """Keep Markdown headings and standalone labels with their first content flowable."""
     grouped = []
     index = 0
-    heading_styles = {"BushfireHeading1", "BushfireHeading2"}
+    heading_styles = {"BushfireHeading1", "BushfireHeading2", "BushfireStandaloneLabel"}
     while index < len(story):
         flowable = story[index]
         next_index = index + 1
@@ -469,6 +478,9 @@ def _markdown_to_story(markdown_text, styles):
         elif re.match(r"^\d+\.\s+", line):
             _flush_bullets(story, bullet_items, styles)
             story.append(Paragraph(_format_inline_markdown(line), styles["body"]))
+        elif re.fullmatch(r"\*\*.+?\*\*", line) and line.count("**") == 2:
+            _flush_bullets(story, bullet_items, styles)
+            story.append(Paragraph(_format_inline_markdown(line), styles["standalone_label"]))
         else:
             _flush_bullets(story, bullet_items, styles)
             story.append(Paragraph(_format_inline_markdown(line), styles["body"]))

@@ -6,6 +6,7 @@ from copy import deepcopy
 import pytest
 
 from src import report_template
+from src.abs_indicators import LANGUAGE_BASIS_WARNING
 from src.agents import pipeline as pipeline_module
 from src.agents.planner_agent import PlannerAgent
 from src.agents.report_agent import ReportAgent
@@ -454,6 +455,55 @@ def test_verified_urls_are_added_only_by_deterministic_evidence_tables():
     assert "https://official.example/qld-guide" in evidence_tables
     assert "[O1][source_id=qld-register] Queensland Official Register" in evidence_tables
     assert "[O1-RAG][source_id=qld-guide] Queensland Bushfire Preparation Guide" in evidence_tables
+
+
+@pytest.mark.parametrize("source", ["community", "indicators", "vulnerability_notes"])
+def test_evidence_table_seven_surfaces_only_the_canonical_legacy_language_basis_warning(source):
+    unrelated_note = "Unverified community wording must not become a limitation."
+    community = {"vulnerability_notes": [unrelated_note]}
+    if source == "vulnerability_notes":
+        community["vulnerability_notes"].append(LANGUAGE_BASIS_WARNING)
+    elif source == "indicators":
+        community["indicators"] = {"language_indicator_note": LANGUAGE_BASIS_WARNING}
+    else:
+        community["language_indicator_note"] = LANGUAGE_BASIS_WARNING
+
+    evidence_tables = build_evidence_tables({"community": community})
+
+    limitations = evidence_tables.split("### Evidence Table 7: Limitations Requiring Human Review", 1)[1]
+    assert limitations.count(LANGUAGE_BASIS_WARNING) == 1
+    assert unrelated_note not in limitations
+
+
+def test_evidence_table_seven_does_not_duplicate_existing_language_basis_warning():
+    evidence_tables = build_evidence_tables(
+        {
+            "community": {
+                "language_indicator_note": LANGUAGE_BASIS_WARNING,
+                "indicators": {"language_indicator_note": LANGUAGE_BASIS_WARNING},
+                "vulnerability_notes": [LANGUAGE_BASIS_WARNING],
+                "data_quality": {"warnings": [LANGUAGE_BASIS_WARNING]},
+            }
+        }
+    )
+    limitations = evidence_tables.split("### Evidence Table 7: Limitations Requiring Human Review", 1)[1]
+    assert limitations.count(LANGUAGE_BASIS_WARNING) == 1
+
+
+def test_evidence_table_seven_does_not_invent_basis_warning_or_promote_arbitrary_community_notes():
+    evidence_tables = build_evidence_tables(
+        {
+            "community": {
+                "language_indicator_note": "Unverified language note.",
+                "indicators": {"language_indicator_note": "Another unverified note."},
+                "vulnerability_notes": ["Unverified vulnerability note."],
+            }
+        }
+    )
+    limitations = evidence_tables.split("### Evidence Table 7: Limitations Requiring Human Review", 1)[1]
+    assert LANGUAGE_BASIS_WARNING not in limitations
+    assert "Unverified" not in limitations
+    assert "unverified" not in limitations
 
 
 def test_structure_repair_reuses_the_same_source_attribution_contract():

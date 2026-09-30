@@ -1,5 +1,6 @@
 import json
 
+from src.abs_indicators import LANGUAGE_BASIS_WARNING
 from src.evidence_confidence import (
     EVIDENCE_LEVELS,
     build_evidence_confidence_rows,
@@ -327,6 +328,13 @@ def build_evidence_tables(analysis):
     limitations.extend(geography_reference.get("limitations", []))
     limitations.extend(risk_context.get("assumptions", []))
     limitations.extend(knowledge.get("limitations", []))
+    language_indicator_notes = [
+        community.get("language_indicator_note"),
+        indicators.get("language_indicator_note"),
+        *community.get("vulnerability_notes", []),
+    ]
+    if LANGUAGE_BASIS_WARNING in language_indicator_notes and LANGUAGE_BASIS_WARNING not in limitations:
+        limitations.append(LANGUAGE_BASIS_WARNING)
     if community.get("data_source_note"):
         limitations.append(community.get("data_source_note"))
     for limitation in limitations:
