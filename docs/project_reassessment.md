@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-01 after provenance-input hardening and offline content-comparison preparation. This page
+Updated 2026-10-01 after offline content-comparison preparation and dependency-security maintenance. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -49,8 +49,9 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Evidence | Recorded result | What it does not establish |
 | --- | --- | --- |
 | v0.6.0 release, `44d0c3f` | Frozen samples and RAG/report/red-team artifacts; [release record](releases/v0.6.0.md). | Current cloud or maintained-source accuracy. |
-| Latest recorded non-E2E suite, 2026-10-01, offline comparison preparation | 2,838 passed; 7 skipped; 6 deselected; 89.76% **src** coverage; 190.99 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
+| Latest recorded non-E2E suite, 2026-10-01, after dependency repair | 2,838 passed; 7 skipped; 6 deselected; 89.76% **src** coverage; 192.65 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
 | CI on `f69e62f`, 2026-10-01 (Sydney) | [Windows, Python 3.11/3.13 and Chromium jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36732373978); [Docker cloud smoke passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36732373773). Chromium: 6 passed, 2,813 deselected, 78.50 seconds. | Real-model accuracy, live cloud user testing or a CI result for the later comparison-preparation commit. |
+| First preparation CI, `c79152c`, 2026-10-01 | Python 3.11, Chromium and Docker passed; [overall Tests failed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36798289291) because the Windows/Python 3.13 dependency audits detected six advisory entries in two locked packages. | An overall CI pass. The failure is retained, not replaced by the earlier `f69e62f` result. |
 | Section-purpose comparison, 2026-09-29, `e2e1f02` | Six single-attempt DeepSeek completions comparing `3a00f3c` and `f4ae47c`; no section-12 maintenance contamination in either arm. | A reproduced fix, generalisation, six quality-gate passes, subsequent proposal-guidance validation or new cloud acceptance. |
 | Full eight-scenario model run, 2026-09-15, `0378229` | 7/8 governed checks passed; the suite did not pass overall. | The historical release's 8/8 cannot replace this result. |
 | Synthetic cloud delivery, 2026-09-27, `cab29ea` | Generation, one targeted revision, draft-only review and four download formats checked; ZIP 14 files/13 hashes; all 13 actual cloud PDF pages inspected. | Word page-layout approval, semantic accuracy, restart/concurrency coverage or real-user feedback. |
@@ -158,6 +159,36 @@ downloaded packages and the parent/version bindings passed the existing verifier
 The report remains a draft: source applicability, the PDF pagination finding
 and unverified Word layout prevent claiming complete acceptance. Historical
 samples and formal release v0.6.0 remain unchanged.
+
+## Dependency Audit Follow-up (2026-10-01)
+
+The first preparation CI found three advisory entries each for Tornado 6.5.8
+and urllib3 2.7.0. The upstream first patched versions are
+[Tornado 6.5.9](https://github.com/tornadoweb/tornado/releases/tag/v6.5.9) and
+[urllib3 2.8.0](https://github.com/urllib3/urllib3/releases/tag/2.8.0).
+The maintained lock now selects Tornado **6.5.10** in dev only and urllib3
+**2.8.0** in the application dependencies. Both receive explicit safe lower
+bounds; the handwritten requirements list also receives the urllib3 bound.
+Only these two locked packages changed. No audit exception, CI threshold,
+production source, SDK or frozen release artifact was changed.
+
+Local tooling needed a separate correction: Poetry installed inside this
+project's `.venv` had an older virtualenv with known advisories. Updating that
+tool to 21.7.13 required python-discovery 1.6.1. Neither is added to the project
+lock or deployment dependencies, and global tools were not changed. This is
+not evidence that the cloud runtime contained that local toolchain finding.
+
+Poetry lock/install checks, `pip check`, the existing full quality-check entry
+point and installed-environment `pip-audit` now pass with no known vulnerabilities
+reported by that scan. Forty existing network/download/mock-SDK boundary tests
+pass; the prepared comparison's original SHA256 still rebuilds and validates.
+The complete post-upgrade non-E2E run passed 2,838 tests (7 skipped,
+6 deselected; 89.76% src coverage) in 192.65 seconds.
+Independent static review found no remaining actionable dependency finding.
+A clean scan is time-bound known-advisory evidence, not penetration testing or
+a guarantee that the application has no vulnerabilities. Future model execution
+must record the then-effective dependency identity separately from the frozen
+prompt-builder commits.
 
 ## Bottom Line
 

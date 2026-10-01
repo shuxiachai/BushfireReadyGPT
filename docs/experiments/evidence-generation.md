@@ -1081,3 +1081,12 @@ The complete non-E2E run then passed **2,838 tests**, with 7 skipped and
 included in the `src` coverage denominator. No real browser/cloud business flow,
 revision/repair generation, model request or replacement sample was performed
 in this preparation.
+
+The first `c79152c` CI did not pass overall: dependency auditing detected newly
+indexed advisories for the locked Tornado/urllib3 versions, although Python
+3.11, Chromium and Docker jobs passed. The separate
+[dependency-audit follow-up](../project_reassessment.md#dependency-audit-follow-up-2026-10-01)
+updates only two project packages and local tooling, without changing the
+prepared bundle or reopening a campaign. Its original SHA256 still validates.
+The source commits identify prompt builders, not immutable external libraries;
+any future execution must capture the effective dependency versions.
