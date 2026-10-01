@@ -1569,3 +1569,24 @@ The parent's combined group, also including CPU-preflight tests, passed
 static review passed. This isolates the seven fault-order tests from wall-clock
 scheduling; it is not evidence of a production timeout defect or the specific
 Windows delay's cause. New CI results follow separately; no API calls occurred.
+
+The isolated-test source `16e6375` passed all four
+[Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36863326267)
+and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36863326319):
+
+- Windows: **3,004 passed / 1 skipped / 6 deselected**, 308.15 seconds.
+- Linux Python 3.11/3.13: each **2,989 passed / 16 skipped / 6 deselected**;
+  src coverage **89.91% / 89.92%**, 274.26 / 202.32 seconds respectively.
+- Chromium: **6 passed / 3,005 deselected**, 61.77 seconds.
+
+The original failures are retained; this successful run verifies the maintained
+test isolation, not the former CI delays' root cause or real-model correctness.
+Historical v0.5.0/v0.6.0 evidence passed offline verification on the clean
+`16e6375` checkout. All production source, frozen experiment helpers, original
+outputs and historical samples remain unchanged by the two test follow-ups.
+The qualitative-review hash above also remains intact.
+
+Railway deployment `998fae23-0190-4723-9d40-dc9bf2ae135c` of `16e6375`
+succeeded; public health returned HTTP 200 / `ok`. Only deployment metadata
+and public health were read. The six-call campaign remains closed, with no
+logged-in business acceptance, new sample, new release or domain approval.
