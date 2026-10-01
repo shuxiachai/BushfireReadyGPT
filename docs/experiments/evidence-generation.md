@@ -1261,3 +1261,76 @@ successfully; public health returned HTTP 200 / `ok`. The earlier Windows
 failure is now closed by scoped repair and a passing Windows CI run, not erased
 or explained as a proven OS clock defect. There was no new login, business-flow
 acceptance, provider call, replacement sample or release in this follow-up.
+
+## Source/task/criterion prompt follow-up (2026-10-01)
+
+The subsequent maintenance step addresses two instruction gaps, not an asserted
+unique cause of the closed comparison's outputs: mixed sourced descriptions and
+local administrative tasks can share a citation, and section 9 previously
+required criteria without an explicit missing-standards branch.
+
+The bounded change is shared writing guidance for initial generation, revision
+and repair. Source descriptions retain their original scope and carry only
+supporting citations. Local confirmation tasks remain separate proposals with
+a responsible role and a stated confirmation need; R3 tasks are not discarded
+or assigned O1 citations. Evaluation standards need provided evidence and
+preserved scope. If appropriate criteria are not supplied, the section should
+state that gap and what must be obtained/reviewed, rather than inventing safety
+standards or leaving out the fixed heading. Proposed discussion questions are
+not established safety criteria, and no venue becomes confirmed safe.
+
+This does not add automatic citations, rewrite old reports, change a diagnostic
+classifier or introduce a semantic-truth gate. Evidence assembly, policies and
+model-call budgets remain separate. Offline tests can establish delivery of the
+instructions and preservation of source bytes, not model adherence or better
+content. There are **zero new model requests** in this maintenance step.
+
+After maintained source or the historical test code changes, the old
+`scoped_basis_comparison.py` current-checkout guard must reject rebuilding its
+fixed `f69e62f` experiment. It is not made compatible by updating an old SHA or
+relaxing source checks. Historical unit tests use explicitly isolated temporary
+Git-reference trees and still execute the real inventory/byte/tamper checks;
+those newly generated unit bundles are not the original prepared artifact or
+permission to reopen the campaign. Real current-checkout rejection is tested
+separately, and actual shared imported helpers must retain their checked
+historical identity. Original prepared, journal, responses, results and review
+bytes remain sealed.
+
+The revised body guidance is 1,385 characters and section-purpose guidance is
+1,694: together **3,079**, down from 3,136. The body limit remains 1,386 and the
+shared total does not grow. The section-9 heading is unchanged; its writing
+requirement now requests supported criteria or an explicit evidence gap rather
+than criteria regardless of evidence. Word and repair/context/RAG limits are
+not raised.
+
+The two targeted groups passed **109 prompt/privacy/P2 tests** in 5.25 seconds
+and **101 historical preparation/execution tests** in 17.66 seconds. The latter
+retains all 32 preparation and 64 execution cases, plus a real-current-checkout
+rejection test and four shared-helper/extractor/governance-constant negative
+cases. The new helper is explicitly test-only and does not register global or
+autouse fixtures. Its immutable Git-byte cache, actual helper origin/source
+checks and stable template extraction dependencies were independently reviewed;
+no production module or `sys.modules` entry is replaced.
+
+The representative repair is **17,908** characters (previously 17,965);
+the oversized fixture is **19,144** and remains rejected by the unchanged
+18,000-character guard. A synthetic initial prompt changed from 14,557 to
+14,530 characters; these are not provider tokens or latency results. The real
+old validate CLI returned `current_source_drift:src/report_template.py`, exit 2,
+with the original prepared SHA still intact. This expected rejection is not a
+failed request or an invitation to rebind the old experiment.
+
+Independent final static review found no actionable production or fixture issue.
+One static-check invocation named a nonexistent helper file and returned E902;
+the corrected path passed, without changing code or assertions to suppress the
+error. Targeted pytest runs had no failure. The existing full quality-check
+wrapper then passed, including the known-dependency vulnerability audit.
+
+The parent's final local non-E2E run passed **2,909 tests**, with 7 skipped and
+6 deselected, **89.76% src coverage**, in **244.69 seconds**. The new test helper
+is outside that coverage denominator. Navigation checks found no missing target
+among 316 local links in 56 tracked Markdown files. The prepared, journal and
+result SHA256 values above remain unchanged. No browser E2E, live model content
+run, logged-in cloud flow, replacement sample or new release was performed in
+this local maintenance validation; CI/deployment results require their own
+source-bound confirmation.

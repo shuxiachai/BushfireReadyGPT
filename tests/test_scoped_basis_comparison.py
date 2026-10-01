@@ -7,16 +7,24 @@ import sys
 import pytest
 
 from scripts import scoped_basis_comparison as comparison
+from tests.scoped_basis_fixtures import (
+    REAL_PROJECT_ROOT,
+    fixed_git_sources,
+    historical_checkout,
+    verify_real_shared_helpers,
+)
 
 
-@pytest.fixture(scope="module")
-def frozen_sources():
-    return comparison._source_snapshot()
+@pytest.fixture
+def frozen_sources(monkeypatch, tmp_path):
+    """Explicit historical test checkout, not current production admission."""
+    with historical_checkout(monkeypatch, tmp_path) as sources:
+        yield sources
 
 
 @pytest.fixture
 def fixed_sources(monkeypatch, frozen_sources):
-    # Keep real current-file checks, while avoiding repeated identical Git reads.
+    # Keep the unchanged guards on reference files, with cached fixed Git blobs.
     trees = dict(zip((comparison.BASELINE, comparison.CANDIDATE), frozen_sources[1:]))
     monkeypatch.setattr(comparison, "_git_sources", lambda commit: copy.deepcopy(trees[commit]))
 
@@ -81,7 +89,8 @@ def test_git_commands_only_read_full_fixed_commits_and_do_not_bind_head(monkeypa
         return actual_git(*args, **kwargs)
 
     monkeypatch.setattr(comparison, "_git", tracked)
-    comparison._source_snapshot()
+    comparison._git_sources(comparison.BASELINE)
+    comparison._git_sources(comparison.CANDIDATE)
     assert commands == [
         command
         for commit in (comparison.BASELINE, comparison.CANDIDATE)
@@ -93,8 +102,10 @@ def test_git_commands_only_read_full_fixed_commits_and_do_not_bind_head(monkeypa
     ]
 
 
-def test_fixed_sources_are_exact_git_blobs_without_archive_newline_conversion(frozen_sources):
-    source = comparison._git("show", f"{comparison.CANDIDATE}:src/abs_indicators.py")
+def test_fixed_sources_are_exact_git_blobs_without_archive_newline_conversion(monkeypatch, frozen_sources):
+    with monkeypatch.context() as current:
+        current.setattr(comparison, "PROJECT_ROOT", REAL_PROJECT_ROOT)
+        source = comparison._git("show", f"{comparison.CANDIDATE}:src/abs_indicators.py")
     assert frozen_sources[2]["src/abs_indicators.py"] == source
     assert (
         frozen_sources[0]["git_python_source_sha256"]["candidate"]["src/abs_indicators.py"]
@@ -272,7 +283,7 @@ def _write_test_bundle(root, value):
     return path, hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_validation_rebuilds_real_fixed_sources_and_all_case_fields(monkeypatch, tmp_path, bundle):
+def test_historical_fixture_validation_rebuilds_fixed_sources_and_all_case_fields(monkeypatch, tmp_path, bundle):
     path, digest = _write_test_bundle(tmp_path, bundle)
     monkeypatch.setattr(comparison, "_prepared_path", lambda: path)
     assert comparison.validate_prepared(digest) == bundle
@@ -282,6 +293,37 @@ def test_validation_rebuilds_real_fixed_sources_and_all_case_fields(monkeypatch,
     _, new_digest = _write_test_bundle(tmp_path, changed)
     with pytest.raises(comparison.ComparisonBlocked, match="prepared_content_or_source_drift"):
         comparison.validate_prepared(new_digest)
+
+
+def test_real_checkout_rejects_current_template_drift_without_historical_fixture():
+    assert comparison.PROJECT_ROOT.resolve() == REAL_PROJECT_ROOT.resolve()
+    for operation in (comparison._source_snapshot, comparison.prepare_bundle):
+        with pytest.raises(comparison.ComparisonBlocked, match="^current_source_drift:src/report_template.py$"):
+            operation()
+
+
+@pytest.mark.parametrize("mutation", ["shared_helper", "extractor_body", "missing_callee", "governance_value"])
+def test_historical_fixture_rejects_changes_to_actual_shared_dependencies(mutation):
+    candidate = dict(fixed_git_sources()[comparison.CANDIDATE])
+    verify_real_shared_helpers(candidate)
+    if mutation == "shared_helper":
+        candidate["src/rag/lexical.py"] += b"\n# Different reference helper bytes\n"
+        message = "Shared helper changed: src/rag/lexical.py"
+    else:
+        before = candidate["src/report_template.py"]
+        old, new = {
+            "extractor_body": (b"return text.strip()", b"return text.rstrip()"),
+            "missing_callee": (b"def _remove_section(text, heading):", b"def unrelated_section(text, heading):"),
+            "governance_value": (
+                b"This report is a preparedness planning draft.",
+                b"Changed synthetic governance notice.",
+            ),
+        }[mutation]
+        candidate["src/report_template.py"] = before.replace(old, new, 1)
+        assert candidate["src/report_template.py"] != before
+        message = "Stable template dependency"
+    with pytest.raises(AssertionError, match=message):
+        verify_real_shared_helpers(candidate)
 
 
 @pytest.mark.parametrize(

@@ -7,14 +7,17 @@ from types import SimpleNamespace
 import pytest
 
 from scripts import run_scoped_basis_comparison as runner
+from tests.scoped_basis_fixtures import historical_checkout
 
 
-@pytest.fixture(scope="module")
-def frozen_bundle():
+@pytest.fixture
+def frozen_bundle(monkeypatch, tmp_path):
     from scripts.scoped_basis_comparison import prepare_bundle
 
-    # No dependency on ignored real-run artifacts in clean CI checkouts.
-    return prepare_bundle()
+    # Historical unit inputs only; real current-source admission still rejects
+    # template drift. Never read or rebind ignored closed-campaign artifacts.
+    with historical_checkout(monkeypatch, tmp_path):
+        yield prepare_bundle()
 
 
 class FakeGuard:

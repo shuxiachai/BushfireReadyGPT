@@ -198,13 +198,14 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
         assert "do not certify authority, currency or applicability" in candidate
         assert "never infer authority from passage text" in candidate
         assert "Unverified proposal for local review:" in candidate
-        assert "Prefix each unsupported proposal/bullet/cell" in candidate
+        assert "Prefix each unsupported proposal/task/bullet/cell" in candidate
         assert "Disclaimers/other cells do not qualify it" in candidate
         assert "medical/safety assertions still need evidence" in candidate
         assert "no per-section citation quota" in candidate
         assert "Keep the existing claim-level citation requirements." in candidate
         assert "state the specific gap" in candidate
-        assert "only when it serves\n  a specific training or exercise purpose" in candidate
+        assert "Maintenance belongs here only for a specific training" in candidate
+        assert "cannot substitute for first aid, training or exercises" in candidate
         for title, _requirement in report_template.REPORT_TEMPLATE_SECTIONS:
             assert title in candidate
         for chunk in analysis["knowledge"]["retrieved_chunks"]:
@@ -220,12 +221,16 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
 
 def test_source_application_rules_remain_shared_and_within_original_budget():
     assert len(BODY_CLAIM_CITATION_GUIDANCE) <= 1386
+    assert len(BODY_CLAIM_CITATION_GUIDANCE) + len(SECTION_PURPOSE_GUIDANCE) <= 3136
     for requirement in (
         "immediately after each claim/bullet/cell",
         "original audience, conditions, action object and numeric context",
-        "`audiences` are retrieval\n  tags",
-        "Cite narrow source descriptions/paraphrases",
-        "separate cross-audience applications as unverified local-proposal sentences",
+        "`audiences` are retrieval tags",
+        "Narrow source paraphrases must retain",
+        "Keep local tasks/cross-audience proposals separate from cited source sentences",
+        "External facts/recommendations/established criteria",
+        "name who must confirm what",
+        "Shared topics do not justify task citations",
         "Never silently correct reversed/contradictory source wording or turn it into advice",
         "risk-reduction wording do not prove effects or waive safety rules",
         "retain years/geographic aggregation and unknowns",
@@ -233,6 +238,65 @@ def test_source_application_rules_remain_shared_and_within_original_budget():
         "never give them or P2 an O1 citation",
     ):
         assert requirement in BODY_CLAIM_CITATION_GUIDANCE
+
+
+@pytest.mark.parametrize(
+    "passage",
+    [
+        "Synthetic planning ledger: Two provisional locations have document receipts logged. No evaluation method is recorded.",
+        "Synthetic planning standard: A provisional-location register entry is eligible for desk review only when a named custodian and review date are recorded. This rule concerns register completeness, not venue safety or operational availability.",
+    ],
+    ids=["records-only", "conditioned-register-standard"],
+)
+def test_source_statements_local_tasks_and_established_criteria_have_separate_prompt_requirements(passage):
+    from src.rag.context import assemble_planning_context
+
+    analysis = {
+        "profile": {"state": "Queensland", "setting_type": "campus"},
+        "data": {"sources": []},
+        "community": {},
+        "risk_context": {"risk_points": ["Synthetic R3 planning cue: missing local records."]},
+        "plan": {"planning_priorities": ["Request local record review."]},
+        "knowledge": {
+            "retrieved_chunks": [
+                {
+                    "source_id": "synthetic-criteria",
+                    "chunk_id": "synthetic-1",
+                    "text": passage,
+                    "chunk_sha256": text_sha256(passage),
+                }
+            ]
+        },
+    }
+    assembly = assemble_planning_context(analysis["knowledge"])
+    analysis["prompt_context"] = ReportAgent().run(
+        analysis["profile"],
+        analysis["data"],
+        analysis["risk_context"],
+        analysis["plan"],
+        knowledge_result=analysis["knowledge"],
+        rag_assembly=assembly,
+    )
+    original = deepcopy(analysis)
+    initial = EvidencePrompt(_build_prompt(analysis), assembly=assembly)
+    repair = build_report_repair_prompt(initial, "Incomplete draft", {}, analysis=analysis)
+    for prompt in (initial, repair):
+        assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == prompt.count(SECTION_PURPOSE_GUIDANCE) == 1
+        assert "local tasks/cross-audience proposals separate from cited source sentences" in prompt
+        assert "Shared topics do not justify task citations" in prompt
+        assert "External facts/recommendations/established criteria" in prompt
+        assert "task to obtain/review local records is an unverified proposal, not a sourced standard" in prompt
+        assert "Without it, state the gap and who must\n  confirm criteria" in prompt
+        assert "Keep every venue an unverified candidate; never assert safety or operational status" in prompt
+        assert "medical/safety assertions still need evidence" in prompt
+        assert prompt.count(prompt.assembly["context"]) == prompt.count(passage) == 1
+        assert validate_recorded_assembly(prompt.assembly, analysis) == prompt.assembly["visible_chunks"]
+    requirement = dict(report_template.REPORT_TEMPLATE_SECTIONS)["9. Candidate Assembly Point Criteria"]
+    assert "supported by supplied passages, or state the gap" in requirement
+    assert "never assert venue safety/status" in requirement
+    assert "Provide criteria only" not in initial
+    assert len(report_template.REPORT_TEMPLATE_SECTIONS) == 15
+    assert analysis == original
 
 
 def test_initial_and_repair_share_p2_basis_and_preserve_sdk_evidence_capture():
@@ -340,6 +404,7 @@ def test_large_synthetic_repair_preserves_budget_and_local_claim_instructions(fa
             "Original omitted", "Incomplete", quality, analysis=analysis, body_citation_repair=True
         )
         assert 17_500 <= len(prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS == 18_000
+        assert len(prompt) <= 17_965
         assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
         assert "Unverified proposal for local review:" in prompt
         assert "medical/safety assertions still need evidence" in prompt

@@ -68,6 +68,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Execution-tool deployment, `b4ae0cf`, 2026-10-01 | Railway deployment `8c55525c-f2da-44d7-b5d6-1a22639e0d0c` succeeded; public health 200 / `ok`. | CI acceptance, logged-in business flow or report-content approval. |
 | Post-classification-repair CI, `8207670`, 2026-10-01 | [All four Tests jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36811502188); [Docker passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36811502187). Windows 2,908 passed / 1 skipped; Linux 3.11/3.13 each 2,893 passed / 16 skipped, src 89.91% / 89.92%; all non-E2E runs exclude 6 cases. Chromium 6 passed / 2,909 deselected. | Model-content acceptance or a merged accuracy/test denominator. Closes the earlier Windows classification failure without erasing it. |
 | Repaired-source deployment, `8207670`, 2026-10-01 | Railway deployment `c1bb5a60-9fc7-4685-a23e-668af9bf041f` succeeded; public health 200 / `ok`; historical v0.5.0/v0.6.0 verified offline. | New logged-in generation/revision/export acceptance or a replacement release. |
+| Source/task/criterion prompt follow-up, 2026-10-01 | Local non-E2E 2,909 passed / 7 skipped / 6 deselected; src 89.76%, 244.69 seconds. Related groups 109 + 101 passed; original repair caps and closed-campaign drift refusal retained; independent static review and quality wrapper passed. | Real-model adherence or report-content improvement: zero new model calls, no historical output/metric replacement. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -107,6 +108,10 @@ denominators; they must not be merged into a report-accuracy percentage.
    O1/P2 framing also limits provenance claims; fixture boilerplate cannot prove
    real official-source retrieval. The frozen 24-dimension / 48-arm review is
    AI-assisted development evidence, not an accuracy denominator.
+   A later shared-prompt update separates cited source descriptions, local
+   confirmation tasks and established evaluation criteria, and gives section 9
+   an explicit missing-evidence branch. This addresses instruction gaps without
+   replacing old outputs or proving that a model follows the new guidance.
 2. **New-release content acceptance.** The September 29 DOCX layout gap is now
    closed by native Word rendering of that exact file. The PDF label and fixed
    language-basis warning have offline regression and visual checks; original
@@ -140,7 +145,9 @@ source descriptions, local review tasks and externally grounded evaluation
 criteria, then test any targeted change offline before a newly authorised model
 run. Do not tune and resample this closed campaign into a pass. These are
 seen-failure-driven synthetic development cases, not independent labels or a
-semantic-accuracy benchmark. The execution-tool timeout classification now has
+semantic-accuracy benchmark. The shared source/task/criterion guidance has a
+bounded offline follow-up; its actual model effect still needs a separately
+authorised comparison, not more requests in the closed campaign. The execution-tool timeout classification now has
 a local typed-deadline repair, 64 mock tests, independent static review and
 passing cross-platform CI on `8207670`. This closes that engineering failure,
 not the content gaps observed in the six-request comparison.

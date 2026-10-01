@@ -65,7 +65,7 @@ renaming outputs or deleting journals must not reopen a completed campaign.
 | Proposal dependencies and review | [proposal_evidence_contract.py](proposal_evidence_contract.py), [proposal_development.py](proposal_development.py), [proposal_evidence_advisory.py](proposal_evidence_advisory.py) |
 | Selection-to-proposal handoff | [selection_proposal_bridge.py](selection_proposal_bridge.py), [selection_proposal_development.py](selection_proposal_development.py) |
 | Fixed section-purpose comparison | [section_scope_comparison.py](section_scope_comparison.py): frozen `3a00f3c` → `f4ae47c` synthetic campaign, now closed. Later source changes intentionally fail its provenance checks; the existing journal must not be reopened. |
-| Frozen provenance/scope comparison | [scoped_basis_comparison.py](scoped_basis_comparison.py): offline-only preparation and validation of three synthetic cases, `933d26b` → `f69e62f`. No model-run entry point or new call permission. |
+| Frozen provenance/scope comparison | [scoped_basis_comparison.py](scoped_basis_comparison.py): historical offline-only preparation and validation, `933d26b` → `f69e62f`. Later source maintenance intentionally fails its current-checkout provenance guard; historical test fixtures do not reopen the campaign. |
 | Authorised provenance/scope execution | [run_scoped_basis_comparison.py](run_scoped_basis_comparison.py): separate six-request, single-attempt execution of the unchanged frozen bundle; campaign now closed. The fixed claim prevents rerunning it. Flags do not authorise a new campaign. |
 
 [Current project status](../docs/project_reassessment.md) separates these

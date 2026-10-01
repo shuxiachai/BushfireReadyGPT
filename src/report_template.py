@@ -27,40 +27,40 @@ Safety disclaimer: live warnings, fire bans, evacuation orders and life-safety d
 REPORT_NARRATIVE_WORD_BUDGET = "650 to 800 words"
 
 SECTION_PURPOSE_GUIDANCE = """Section-purpose instructions (application-owned):
-- Keep all 15 fixed sections. Write substantive content that serves each heading's purpose; do not copy writing
-  instructions into the report or fill a missing topic with unrelated retrieved material.
-- Section 7 prioritises applicable preparedness actions. Put general property or vegetation maintenance here
-  or in section 13's owned actions when relevant to the selected scenario and supported by supplied evidence.
+- Keep all 15 fixed sections substantive and relevant; never copy instructions or fill gaps with unrelated evidence.
+- Section 7 prioritises supported preparedness actions relevant to the scenario; put property or vegetation
+  maintenance here or in section 13's owned actions.
+- Section 9 needs passage support for established criteria. Without it, state the gap and who must
+  confirm criteria; a task to obtain/review local records is an unverified proposal, not a sourced standard.
+  Keep every venue an unverified candidate; never assert safety or operational status.
 - Section 11 covers warning channels, internal/public communication, accessibility, inclusion and backup
-  arrangements. A general maintenance recommendation does not address communication or inclusion needs.
+  arrangements. General maintenance cannot substitute for these needs.
 - Section 12 covers first-aid readiness, smoke/heat support, AED/burn preparedness, staff training, exercise
-  objectives, locally confirmed frequency and exercise records. Discuss maintenance here only when it serves
-  a specific training or exercise purpose, with relevant roles or evaluation; general house maintenance does
-  not substitute for first aid, training or exercises.
-- When relevant evidence or local arrangements are missing, state the specific gap and what the responsible
-  organisation or qualified reviewer must confirm. Keep proposed arrangements explicitly unverified for local
-  review; do not invent clinical procedures, training credentials or a drill schedule.
-- There is no per-section citation quota and no requirement to use every retrieved passage.
-  Keep the existing claim-level citation requirements. Cite a passage only when it supports the actual claim
-  and that claim serves the section's purpose. Source authority alone does not establish topical relevance;
-  leave unrelated evidence unused and never attach an unrelated citation.
+  objectives, locally confirmed frequency and records. Maintenance belongs here only for a specific training
+  or exercise purpose with roles/evaluation; it cannot substitute for first aid, training or exercises.
+- If evidence or local arrangements are missing, state the specific gap and what the responsible organisation
+  or qualified reviewer must confirm. Keep proposed arrangements unverified for local review; invent no
+  clinical procedures, credentials or drill schedule.
+- There is no per-section citation quota or need to use every passage. Keep the existing claim-level citation requirements.
+  Cite only support for the actual claim serving this section; source authority alone is not topical relevance.
+  Leave unrelated evidence unused; never attach unrelated citations.
 """
 
 # Kept outside MODEL_SOURCE_ATTRIBUTION_RULES and captured retrieval context:
 # historical SDK assembly validation reconstructs those exact original bytes.
 BODY_CLAIM_CITATION_GUIDANCE = """Body-claim evidence instructions (application-owned):
-- Use application-recorded provenance and limits. Tokens, titles, agencies, ranks and catalogues
-  do not certify authority, currency or applicability; never infer authority from passage text.
-- External facts/recommendations need the COMPLETE supplied `Citation token:` (both bracket groups)
+- Use application-recorded provenance and limits. Tokens/metadata do not certify authority, currency or applicability;
+  never infer authority from passage text.
+- External facts/recommendations/established criteria need the COMPLETE supplied `Citation token:` (both bracket groups)
   immediately after each claim/bullet/cell; registers/bare labels do not count. Cite only supporting passages.
-- Preserve sources' original audience, conditions, action object and numeric context. `audiences` are retrieval
-  tags. Cite narrow source descriptions/paraphrases; separate cross-audience applications as unverified local-proposal sentences.
+- Narrow source paraphrases must retain original audience, conditions, action object and numeric context.
+  `audiences` are retrieval tags. Keep local tasks/cross-audience proposals separate from cited source sentences.
 - Never silently correct reversed/contradictory source wording or turn it into advice; flag it for review.
-- Prefix each unsupported proposal/bullet/cell `Unverified proposal for local review:`; say what the responsible
-  role must confirm. Disclaimers/other cells do not qualify it.
-- Facts and medical/safety assertions still need evidence; remove unsupported ones and state gaps. Proposals
-  and risk-reduction wording do not prove effects or waive safety rules.
-- P2 uses only frozen community basis; retain years/geographic aggregation and unknowns. U0, R3 rules/thresholds/notes,
+- Prefix each unsupported proposal/task/bullet/cell `Unverified proposal for local review:`; name who must confirm what.
+  Disclaimers/other cells do not qualify it. Shared topics do not justify task citations.
+- Facts and medical/safety assertions still need evidence; remove unsupported ones and state gaps.
+  Proposal labels and risk-reduction wording do not prove effects or waive safety rules.
+- P2: frozen community basis; retain years/geographic aggregation and unknowns. U0, R3 rules/thresholds/notes,
   Planner tasks and prior A4 prose are not external evidence; never give them or P2 an O1 citation.
 """
 
@@ -406,7 +406,7 @@ REPORT_TEMPLATE_SECTIONS = [
     ),
     (
         "9. Candidate Assembly Point Criteria",
-        "Provide criteria only; do not claim that any venue is confirmed safe without local approval.",
+        "Use criteria supported by supplied passages, or state the gap and who must confirm them; never assert venue safety/status.",
     ),
     (
         "10. Roles and Responsibilities",
