@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-01 after source-text verification and three-path provenance-input hardening. This page
+Updated 2026-10-01 after provenance-input hardening and offline content-comparison preparation. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -49,8 +49,8 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Evidence | Recorded result | What it does not establish |
 | --- | --- | --- |
 | v0.6.0 release, `44d0c3f` | Frozen samples and RAG/report/red-team artifacts; [release record](releases/v0.6.0.md). | Current cloud or maintained-source accuracy. |
-| Latest recorded non-E2E suite, 2026-10-01, provenance-input update | 2,806 passed; 7 skipped; 6 deselected; 89.76% **src** coverage; 262.95 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
-| CI on `2ac6774`, 2026-09-29 | Tests and Docker cloud smoke passed; Chromium E2E: 6 passed, 2,751 deselected, 69.14 seconds. | Real-model accuracy, live cloud user testing or Word layout approval. |
+| Latest recorded non-E2E suite, 2026-10-01, offline comparison preparation | 2,838 passed; 7 skipped; 6 deselected; 89.76% **src** coverage; 190.99 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
+| CI on `f69e62f`, 2026-10-01 (Sydney) | [Windows, Python 3.11/3.13 and Chromium jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36732373978); [Docker cloud smoke passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36732373773). Chromium: 6 passed, 2,813 deselected, 78.50 seconds. | Real-model accuracy, live cloud user testing or a CI result for the later comparison-preparation commit. |
 | Section-purpose comparison, 2026-09-29, `e2e1f02` | Six single-attempt DeepSeek completions comparing `3a00f3c` and `f4ae47c`; no section-12 maintenance contamination in either arm. | A reproduced fix, generalisation, six quality-gate passes, subsequent proposal-guidance validation or new cloud acceptance. |
 | Full eight-scenario model run, 2026-09-15, `0378229` | 7/8 governed checks passed; the suite did not pass overall. | The historical release's 8/8 cannot replace this result. |
 | Synthetic cloud delivery, 2026-09-27, `cab29ea` | Generation, one targeted revision, draft-only review and four download formats checked; ZIP 14 files/13 hashes; all 13 actual cloud PDF pages inspected. | Word page-layout approval, semantic accuracy, restart/concurrency coverage or real-user feedback. |
@@ -58,6 +58,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Export follow-up, 2026-09-30 | The original downloaded DOCX was rendered by Microsoft Word and all 17 pages inspected. Offline same-font PDF replay reproduced the old 7/8-page label separation; fixed/new-warning preview: all 12 pages inspected. A 17-page Word preview with the warning was also checked. | A new live model run, changed cloud download hashes, semantic correctness or a replacement release sample. |
 | Development source review, 2026-09-30, reference `d79162f` | All 74 school-report items reviewed, including the 64 historically requiring citations; original 5 cited / 59 missing preserved. Actual final request included 2 of 3 retrieved passages. | An independently labelled benchmark, professional approval, revised production output or a corrected accuracy/citation score. |
 | Source-text and prompt-contract follow-up, 2026-09-30 to 2026-10-01 | Frozen HTML and a fresh official-page download contain the same questioned wording; no missing-prefix extraction defect was found. Final 108 targeted tests pass; normal repair fixture 17,965 characters accepted, 19,201 rejected. | Author intent, source correctness, real-model adherence or content acceptance. No model requests or corpus/index changes. |
+| Offline provenance/scope comparison preparation, 2026-10-01 | Three synthetic cases, two Git-bound initial prompt builders, matching logical-input/RAG hashes; 32 dedicated tests within a 127-test related run. Prepared bundle rebuilt and hash-validated; zero model calls. | Actual SDK submissions, model content, an independent benchmark or a new release sample. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -113,6 +114,11 @@ The bounded input changes from the
 [school source review](history/LAUNCH_READINESS_2026-09-15.md#record-023) are now
 covered by offline contracts; the next content step is a separately scoped
 model comparison before claiming better source use or issuing new samples.
+The [three-case offline preparation](experiments/evidence-generation.md#frozen-provenancescope-comparison-preparation-2026-10-01)
+binds each arm's initial prompt construction to `933d26b` / `f69e62f`, with the
+same logical inputs and RAG bytes. It fixes the review questions but contains
+no model runner or new call approval. These are seen-failure-driven synthetic
+development cases, not independent labels or a semantic-accuracy benchmark.
 Do not reopen closed model-call campaigns. The questioned source wording remains
 flagged for qualified source review. The old diagnostic remains unchanged; a
 later classifier revision needs its own version and false-positive checks.

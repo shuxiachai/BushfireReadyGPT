@@ -989,3 +989,95 @@ The original per-call `request-01`–`request-06`, `response-01`–`response-06`
 `result-01`–`result-06` JSON files are retained alongside them. These local raw
 artifacts are not published release samples; the hashes identify the preserved
 run but do not give visitors access to its unpublished bytes.
+
+## Frozen provenance/scope comparison preparation (2026-10-01)
+
+The separate `scoped-basis-comparison-v1` development preparation uses
+[`scoped_basis_comparison.py`](../../scripts/scoped_basis_comparison.py).
+It has **only offline prepare and validate commands**, no remote runner, dotenv
+loading, client construction or call journal. The earlier 27-call sequence and
+September 29 six-call campaign remain closed. Preparing files does not authorise
+new calls or assert that any model received these prompts.
+
+Three inline synthetic cases exercise household-to-campus scope, historical P2
+data with geographic/denominator limits and missing values, and questioned
+source wording with independently usable narrow content and unknown local
+arrangements. The passages and figures are authored fixtures, not official
+excerpts, actual community statistics or an independent held-out benchmark.
+They are motivated by already-seen development failures; no holdout is read.
+
+The baseline is `933d26b`; the candidate is `f69e62f`. Each arm uses its own
+Git-bound ReportAgent and full initial prompt builder, rather than inserting
+candidate-derived context into the baseline. Both share the same logical form,
+profile, community, rules, plan and byte-identical RAG assembly. Changed derived
+contexts and prompts are recorded separately. This compares a combined input
+and instruction change, not a single-variable experiment. It does not test
+revision, repair, retrieval selection, production exports or cloud delivery.
+
+Before seeing any new response, the bundle fixes per-case review questions:
+
+- Separate narrow source descriptions from unverified cross-audience applications;
+  a valid citation or proposal prefix does not prove local applicability or effects.
+- Preserve P2 years, approximate aggregation, numeric denominators and unknowns;
+  do not convert area statistics into school counts or R3/Planner cues into facts.
+- Do not silently correct contradictory source wording or turn it into advice.
+  Retain usable narrow content and useful local confirmation tasks; deleting all
+  substantive content is not automatically a better result.
+
+Future qualitative judgements must retain output spans, actual submitted
+evidence spans and reasons, including partial support, insufficient evidence
+and unassessable/missing output. Citation presence, lexical overlap and semantic
+support/applicability remain distinct. No automatic accuracy score is defined.
+One response per arm cannot establish stable improvement or generalisation;
+AI-assisted reading is not domain-expert approval.
+
+The proposed future ceiling is six initial-generation requests, one per arm
+and case, with no retries, repair or extra model judging and a stop on the first
+request failure. Temperature 0.2, 2,300 output tokens and disabled thinking are
+planned settings, not observations. Provider/model identity, SDK submission,
+usage and latency remain unobserved. Any later execution needs a separately
+approved scope and a bounded, durable execution journal; the offline bundle
+alone is not dispatch authority. Historical samples and production gates stay
+unchanged.
+
+The offline commands require a Git checkout containing both fixed commits;
+a source ZIP cannot reconstruct the historical arm. Run `poetry run python
+scripts/scoped_basis_comparison.py prepare` once, then `validate
+--expected-prepared-file-sha256 <the printed SHA256>` through the same script.
+Preparation exclusively creates `output/scoped-basis-comparison-v1/prepared.json`;
+validation is read-only and rebuilds all frozen fields.
+
+On 2026-10-01, preparation and validation both completed with zero model calls.
+The ignored local bundle has SHA256
+`6e5be79446840dba636451df8217ec79372dce0a8dde0992ad9cfdfbba2c8d7a`.
+Its two arms have identical logical-input and RAG hashes in all three cases;
+the default production planning assembly includes 2 / 1 / 2 synthetic passages.
+
+| Synthetic case | Baseline / candidate initial-prompt characters |
+| --- | --- |
+| Household conditions and campus records | 17,974 / 18,810 |
+| Historical periods, denominators and approximate area | 18,353 / 19,532 |
+| Conflicting summary and narrow maintenance record | 17,838 / 18,674 |
+
+These are prepared initial prompts, not the separate 18,000-character repair
+budget, measured provider input tokens or actual submitted payloads. Future
+latency and token usage must be measured separately rather than inferred here.
+
+Independent pre-review removed a source sentence that gave away the campus
+answer, made the fixtures relevant to preparedness, separated citation presence
+from support, and fixed the planned stop-on-first-failure rule. Initial static
+checks twice found test import-order issues. The first dedicated pytest run
+then stopped in setup: Windows `git archive` transformed line endings, causing
+a false source-drift finding. The script now reads original `ls-tree` / `cat-file`
+blobs and separately records checkout bytes; no Git configuration or production
+source was changed. Raw-blob equality and drift-rejection regressions passed.
+The final related group passed **127 tests**, including **32 new dedicated
+tests**, in 7.14 seconds. Independent final static review found no remaining
+actionable issue; full-repository Ruff/format and Bandit checks passed. These
+are offline contract results, not model-content acceptance.
+
+The complete non-E2E run then passed **2,838 tests**, with 7 skipped and
+6 deselected, **89.76% src coverage**, in 190.99 seconds. Script tests are not
+included in the `src` coverage denominator. No real browser/cloud business flow,
+revision/repair generation, model request or replacement sample was performed
+in this preparation.

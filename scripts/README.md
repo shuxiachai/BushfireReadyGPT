@@ -65,6 +65,7 @@ renaming outputs or deleting journals must not reopen a completed campaign.
 | Proposal dependencies and review | [proposal_evidence_contract.py](proposal_evidence_contract.py), [proposal_development.py](proposal_development.py), [proposal_evidence_advisory.py](proposal_evidence_advisory.py) |
 | Selection-to-proposal handoff | [selection_proposal_bridge.py](selection_proposal_bridge.py), [selection_proposal_development.py](selection_proposal_development.py) |
 | Fixed section-purpose comparison | [section_scope_comparison.py](section_scope_comparison.py): frozen `3a00f3c` → `f4ae47c` synthetic campaign, now closed. Later source changes intentionally fail its provenance checks; the existing journal must not be reopened. |
+| Frozen provenance/scope comparison | [scoped_basis_comparison.py](scoped_basis_comparison.py): offline-only preparation and validation of three synthetic cases, `933d26b` → `f69e62f`. No model-run entry point or new call permission. |
 
 [Current project status](../docs/project_reassessment.md) separates these
 development results from production behaviour and release acceptance.
