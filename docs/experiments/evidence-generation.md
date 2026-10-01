@@ -1334,3 +1334,19 @@ result SHA256 values above remain unchanged. No browser E2E, live model content
 run, logged-in cloud flow, replacement sample or new release was performed in
 this local maintenance validation; CI/deployment results require their own
 source-bound confirmation.
+
+Maintained source `b74cdd8` passed all four
+[Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36821348694)
+and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36821348655).
+Linux Python 3.11/3.13: each 2,900 passed / 16 skipped / 6 deselected;
+src coverage 89.91% / 89.92%, 254.96 / 250.75 seconds respectively.
+Windows: 2,915 passed / 1 skipped / 6 deselected, 227.90 seconds.
+Chromium: 6 passed / 2,916 deselected, 60.40 seconds. Different platform counts
+are retained rather than merged. Historical v0.5.0/v0.6.0 evidence also passed
+offline verification on the clean maintained commit.
+
+Railway deployed `b74cdd8` as `9d06acfb-7d9a-43e1-88c6-fd3f89407f88`
+successfully; public health returned 200 / `ok`. Only deployment metadata and
+the public health endpoint were read. This confirms deployment of the writing
+rules, not real-model adherence, authenticated cloud report acceptance, domain
+approval or a new formal release. The six-call campaign remains closed.

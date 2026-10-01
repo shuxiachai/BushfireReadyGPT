@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-01 after the bounded synthetic content comparison and execution-tool CI review. This page
+Updated 2026-10-01 after the bounded synthetic comparison and source/task/criterion prompt maintenance. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -69,6 +69,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Post-classification-repair CI, `8207670`, 2026-10-01 | [All four Tests jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36811502188); [Docker passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36811502187). Windows 2,908 passed / 1 skipped; Linux 3.11/3.13 each 2,893 passed / 16 skipped, src 89.91% / 89.92%; all non-E2E runs exclude 6 cases. Chromium 6 passed / 2,909 deselected. | Model-content acceptance or a merged accuracy/test denominator. Closes the earlier Windows classification failure without erasing it. |
 | Repaired-source deployment, `8207670`, 2026-10-01 | Railway deployment `c1bb5a60-9fc7-4685-a23e-668af9bf041f` succeeded; public health 200 / `ok`; historical v0.5.0/v0.6.0 verified offline. | New logged-in generation/revision/export acceptance or a replacement release. |
 | Source/task/criterion prompt follow-up, 2026-10-01 | Local non-E2E 2,909 passed / 7 skipped / 6 deselected; src 89.76%, 244.69 seconds. Related groups 109 + 101 passed; original repair caps and closed-campaign drift refusal retained; independent static review and quality wrapper passed. | Real-model adherence or report-content improvement: zero new model calls, no historical output/metric replacement. |
+| Prompt-maintenance CI/deployment, `b74cdd8`, 2026-10-01 | [All four Tests jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36821348694); [Docker passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36821348655). Windows 2,915 passed / 1 skipped; Linux each 2,900 passed / 16 skipped, src 89.91% / 89.92%; non-E2E runs exclude 6. Chromium 6 passed / 2,916 deselected. Railway deployment `9d06acfb-7d9a-43e1-88c6-fd3f89407f88` succeeded, public health 200 / `ok`. | Real-model adherence, logged-in report acceptance or domain approval. Historical release/source metrics remain separate. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
