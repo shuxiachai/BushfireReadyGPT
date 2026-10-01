@@ -1099,3 +1099,56 @@ Railway deployed that exact commit successfully; its public health check returne
 questions. Model calls remain zero for this preparation; no replacement report,
 new formal release, holdout evaluation or authenticated cloud business-flow
 acceptance was added.
+
+## Separately authorised provenance/scope execution (2026-10-01)
+
+The user explicitly authorised this new six-request comparison after preparation
+and dependency verification. It is separate from all closed campaigns above.
+[`run_scoped_basis_comparison.py`](../../scripts/run_scoped_basis_comparison.py)
+executes only the existing three cases and six planned cells; the original
+prepare/validate script, its tests and bundle remain unchanged. The authorised
+prepared SHA256 is
+`6e5be79446840dba636451df8217ec79372dce0a8dde0992ad9cfdfbba2c8d7a`.
+Inputs are fictional school/area forms and synthetic passages, not real user
+records or newly retrieved official sources. No holdout is read.
+
+The separate execution boundary requires explicit model/external-run flags,
+the official HTTPS DeepSeek endpoint, unchanged frozen parameters and the
+existing default shared SQLite quota with concurrency 1 and daily limit 6.
+The fixed campaign claim is created exclusively and flushed before dispatch;
+renaming outputs, changing dates or a failed request cannot reopen it. No retry,
+repair, revision, substitute sample or provider judging call is allowed. The
+first request, capture, binding, persistence, cleanup or provenance failure
+stops dispatch, preserving remaining cells as not run.
+
+Reservations, SQLite allowance consumption and SDK starts are different events.
+Actual SDK messages/parameters and raw responses are stored before response
+admission, along with response/model metadata, usage and timings. The governed
+client's existing `strip()` transformation is recorded: the prepared prompt's
+hash and the actual SDK user-message hash are distinct bindings, not permission
+to add or alter instructions. Planned RAG visibility never substitutes for an
+actual submission capture. A timed-out request remains failed/uncertain; a late
+capture may preserve evidence, not make it successful or resume dispatch.
+
+Completed requests do not imply production quality-gate passes. The frozen
+rubric is reviewed against captured text separately, without automated semantic
+scores or extra DeepSeek judging calls. This remains a single-attempt,
+seen-failure-driven development comparison, not independent domain approval,
+statistical evidence of generalisation or an automatic new release/sample.
+
+Before dispatch, 59 dedicated offline mock tests passed in 3.17 seconds;
+the complete non-E2E suite passed **2,897 tests**, with 7 skipped,
+6 deselected and **89.76% src coverage**, in 246.17 seconds. The existing
+quality-check entry point passed, including the installed-environment known
+vulnerability audit, and independent final static review found no remaining
+actionable issue. Original preparation/source/dependency files and bundle bytes
+were not changed. No request had yet been made at this verification stage.
+
+Pre-review corrected raw-response persistence before protocol parsing and a
+definition-time real-client factory binding. Initial static checks found an
+import-order issue and a swallowed exception; the first mock run then exposed
+`ConnectionError` being classified as disk I/O because it inherits `OSError`.
+All were corrected with regression coverage, not by relaxing failure/stop
+assertions. Configuration preflight returned the official endpoint, requested
+legacy `deepseek-v4-flash` alias, frozen parameters, ready UTC-day usage 0/6,
+and no existing claim/execution directory; this does not verify provider access.
