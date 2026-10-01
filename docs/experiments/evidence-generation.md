@@ -1350,3 +1350,75 @@ successfully; public health returned 200 / `ok`. Only deployment metadata and
 the public health endpoint were read. This confirms deployment of the writing
 rules, not real-model adherence, authenticated cloud report acceptance, domain
 approval or a new formal release. The six-call campaign remains closed.
+
+## Separately authorised citation/task/criterion comparison (2026-10-01)
+
+After the prompt maintenance, the user explicitly authorised a new comparison.
+The fixed `citation-criteria-comparison-v1` campaign is separate from the closed
+six-call provenance/scope campaign. It compares complete initial prompts from
+`3199c7d` and `b74cdd8`; their `src` trees differ only in `report_template.py`.
+Logical inputs, derived analysis and assembled RAG bytes are identical within
+each pair. No corpus retrieval, embedding, real user record, private business
+material or holdout is used.
+
+Three fresh authored fixtures examine an archive of 27 blank contact templates
+versus a local contact-list task, receipt records without venue-evaluation
+standards, and conditional documentary audit criteria with a legacy-file
+exception. They are development cases motivated by known failures, not an
+independent human benchmark. Before freezing, an ambiguous `unless withdrawn`
+clause was supplemented with an explicit fictional exclusion sentence; this
+clarified the authored fixture, not an official source or an observed output.
+
+The rubric is frozen outside model prompts: 6 + 6 + 7 dimensions, **38 planned
+arm judgments**, with separate source support, applicability, absence and useful
+retained content. Omission is not automatically success. The existing synthetic
+O1/P2 framing remains a fixture limitation and cannot attest official source
+identity or an actual index query.
+
+New prepare/run entry points compose the prior recorder, journal, per-cell and
+deadline components without changing their globals or invoking old campaign
+orchestration. The original scripts, source, dependencies, CI, old prepared
+file and old journal/results are unchanged. A fixed exclusive new claim, raw
+responses saved before admission, actual SDK-message bindings, first-failure
+stop and late-worker safeguards apply. Six initial calls are the maximum, one
+per arm/case; retry, repair, revision, replacement and model-judge calls are
+disabled.
+
+Normal authorised credential loading occurs only after explicit run flags and
+validated preparation. A read-only preflight found the official DeepSeek
+endpoint, requested `deepseek-v4-flash`, temperature 0.2, 2,300 output tokens,
+180-second timeout, local configured daily/concurrency limits 0, and the default
+SQLite counter ready at 6 for UTC 2026-10-01. No SDK or model request was made
+in that preflight. The independent CLI tightens disabled limits to starting
+usage + 6 and concurrency 1. An existing positive limit with fewer than six
+remaining allowances blocks before claim; a sufficient positive limit is also
+tightened, never raised. No `.env`, counter reset, alternative database or day
+override is used. A pending worker keeps this finite overlay until CLI exit.
+The SQLite aggregate is not proof of complete history while accounting was
+previously disabled.
+
+The requested legacy alias is still documented as accepted, but is served by
+the newer Flash model; requested names and response fingerprints do not prove
+immutable weights. [DeepSeek model documentation](https://api-docs.deepseek.com/quick_start/pricing/)
+also differs from SDK-submitted sampling fields: the documented non-thinking
+mode fixes effective `top_p` at 1.0 despite a submitted 0.8. This is documentation,
+not effective-server attestation; actual responses/settings are recorded
+separately. [Thinking-mode parameters](https://api-docs.deepseek.com/guides/thinking_mode/)
+
+Independent pre-review corrected an initial-runtime identity that could have
+adopted edits after prepared validation; initial hashes/inventory now bind
+directly to prepared source/helper/new-file hashes and the disk/memory packet.
+Positive daily-limit tightening was also made explicit. The first static run
+found import-order/duplicate-fixture-import issues, corrected without relaxing
+assertions. All **78 dedicated offline tests** passed in 14.69 seconds;
+the parent's complete non-E2E suite passed **2,987 tests**, with 7 skipped,
+6 deselected, **89.76% src coverage**, in 224.61 seconds. Static checks, known
+dependency auditing and independent final read-only review passed. These are
+engineering results, not model-content acceptance.
+
+The write-once prepared file has SHA256
+`9fb41bb59162165c01358720cd16d7f5436df579a97e0614dd9ff11cbf746247`;
+read-only rebuild validation passed. Initial prompt characters are 18,232 /
+18,205; 18,289 / 18,262; and 18,634 / 18,607 (baseline / candidate). These are
+initial-prompt sizes, not repair-budget sizes or measured token usage. At this
+preparation stage, model calls are zero and no execution claim exists.
