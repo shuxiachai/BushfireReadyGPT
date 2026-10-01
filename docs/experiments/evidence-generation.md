@@ -1090,3 +1090,12 @@ updates only two project packages and local tooling, without changing the
 prepared bundle or reopening a campaign. Its original SHA256 still validates.
 The source commits identify prompt builders, not immutable external libraries;
 any future execution must capture the effective dependency versions.
+
+The corrected code/dependency commit `88746b1` subsequently passed all four
+[Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36799682192)
+and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36799682220).
+Railway deployed that exact commit successfully; its public health check returned
+200 / `ok`. This closes the dependency-audit failure, not the report-content
+questions. Model calls remain zero for this preparation; no replacement report,
+new formal release, holdout evaluation or authenticated cloud business-flow
+acceptance was added.
