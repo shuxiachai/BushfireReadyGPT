@@ -1422,3 +1422,105 @@ read-only rebuild validation passed. Initial prompt characters are 18,232 /
 18,205; 18,289 / 18,262; and 18,634 / 18,607 (baseline / candidate). These are
 initial-prompt sizes, not repair-budget sizes or measured token usage. At this
 preparation stage, model calls are zero and no execution claim exists.
+
+### Execution and bounded content review
+
+The prepared campaign ran once on `6bd5eb7`, from 11:27:59 to 11:28:55 UTC
+on 2026-10-01 (21:27–21:28 Sydney). All **six initial SDK requests** completed
+with `finish_reason=stop`; no retry, repair, revision, replacement or model
+judge occurred. There was no execution failure, incomplete recording or
+pending worker. The campaign is **closed**; its claim and journal must not be
+deleted or renamed to enable another run.
+
+The default SQLite aggregate advanced **6 → 12** under temporary daily limit
+12 / concurrency 1, then the original process policy was restored. This is
+the campaign's six counted dispatches, not proof of complete earlier usage.
+Provider-reported usage totals **22,479 input + 10,320 output = 32,799 tokens**,
+including 5,632 input cache-hit tokens. Batch elapsed time was 55.71 seconds;
+summed SDK-call time was 52.96 seconds. Different inputs, ordering and cache
+hits prevent attributing those times to prompt performance. Monetary cost is
+not calculated.
+
+All responses reported `deepseek-flash`, fingerprint
+`aeb56401ca74e127821c4f9126dcb669`, for the submitted legacy alias. Neither
+immutable model weights nor effective server sampling settings are attested.
+Independent read-only recalculation verified all 82 source and 9 experiment /
+helper bindings, exact submitted prompts and passage spans, response/cleaned
+hashes, and all 26 journal events. Raw and cleaned report strings match in all
+six cases. These captures prove application-side submission, not model
+attention, correct interpretation or production report acceptance.
+
+Original outputs and requests remain under ignored
+`output/citation-criteria-comparison-v1/`. SHA256 bindings:
+
+| Artifact | SHA256 |
+| --- | --- |
+| Prepared packet | `9fb41bb59162165c01358720cd16d7f5436df579a97e0614dd9ff11cbf746247` |
+| Call journal | `11e9fcb1b72756dc0550ca55f634da4648a2477886154a69cf3d3c9e2cdb6f8d` |
+| Execution snapshot | `4de428d3e2da5f4234b7e696fc58cddfb465a4275faf9adfd71118c708a0dcfa` |
+| Results | `65c5864c5603b7d0fce90ee8bb15bf58906ad6e1899ee95f737ece6d83dc157b` |
+
+All reports were read against the frozen **19 dimensions / 38 arm judgments**,
+with an independent AI-assisted review. The local review artifact retains
+exact code-point spans, absence searches and separate `supported`,
+`partial_or_scope_changed`, `insufficient`, and
+`not_generated_or_unassessable` decisions. They are not an accuracy denominator
+or a domain-expert benchmark.
+
+| Paired case | Observed difference | Acceptance boundary |
+| --- | --- | --- |
+| Catalogue, baseline R01 / candidate R02 | Baseline preserves the narrow archive description but attaches its citation to a mixed local inventory task; candidate omits the description and body citation. Neither retains 27. | Omission is not successful citation separation or corrected numerical scope. |
+| Receipt ledger, R04 / R03 | Baseline supplies unsupported physical criteria; candidate explicitly states the criteria gap, responsible confirmer and document-review proposal. | One synthetic local improvement, not general source-use success. |
+| Documentary D-7, R05 / R06 | Both retain necessary conditions, withdrawn-file exclusion and the limited legacy exception. Candidate separates documentary checks from missing physical criteria; baseline invents physical criteria. | Condition retention was already present in baseline; improvement concerns the physical/documentary boundary. |
+
+Proposal qualification remains inconsistent in repeated action-table entries.
+Some outputs call synthetic passages official or the index verified; the shared
+production O1/P2 framing is a fixture confound, not isolated proof of a
+production defect. Whitespace word counts for R01–R06 are **1,550, 1,033,
+1,460, 1,291, 1,377, 1,478**, all exceeding the requested 650–800. The governed
+quality gate was **not executed** in this initial-completion experiment; these
+are descriptive counts, not six accepted report versions. No overall content
+acceptance, new cloud business check, replacement sample or release is claimed.
+
+The same source's [Tests CI](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36855441949)
+failed overall: Windows timed out after 20 seconds while collecting the
+isolated CPU-launcher guard test; 1 failed / 2,992 passed / 1 skipped /
+6 deselected. Linux 3.11/3.13 and Chromium passed, as did
+[Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36855442012).
+This unrelated test failure does not invalidate the six captured responses,
+but prevents calling that commit's CI clean. Local original-test reproduction
+passed 10 tests in 2.03 seconds; the timeout's cause is not established.
+The test-only follow-up retains the 20-second limit and all original guard
+assertions while improving output collection and bounded phase diagnostics.
+
+Railway deployment `71b91f03-70a2-4ebc-bb78-12712aef57ce` of `6bd5eb7`
+succeeded; public health returned HTTP 200 / `ok`. Only deployment metadata
+and public health were read, not credentials, environment values or user data.
+This is deployment/health evidence, not logged-in report-content acceptance.
+
+### Windows test collection follow-up
+
+Only `tests/test_windows_cpu_preflight.py` changes in this follow-up; production
+launcher, CPU readiness guard, CI, dependencies and all experiment scripts /
+captures remain unchanged. A module fixture starts one PowerShell process,
+parses the AST once, and runs the original five inputs in separate child
+scopes. Expected results stay in Python. All original count, block and
+error-guidance assertions remain; there is no additional skip or retry.
+
+Stdout/stderr use temporary files rather than PIPE readers. A fixed 15-record
+phase sequence and bounded UTF-8 five-case results must be complete, with
+unique case IDs, valid types and process exit 0. The unchanged **20-second**
+timeout covers the whole batch. Failure diagnostics retain the last complete
+phase and 2 KiB output tails; missing phase records leave the stage unknown.
+This removes a collection dependency and improves diagnostics, but does not
+prove the original CI timeout's cause.
+
+The author ran **21 tests** in 0.67 seconds, including the original ten and
+eleven collection-protocol mocks; actual batch setup took 0.45 seconds.
+Independent final read-only review found no actionable issue. The parent's
+complete non-E2E run passed **2,998 tests / 7 skipped / 6 deselected**, src
+coverage **89.76%**, in **224.82 seconds**. The existing quality-check wrapper
+passed, including a scan reporting no known installed-dependency advisories;
+320 local link targets across 56 tracked Markdown files exist. These are local
+engineering checks; new CI confirmation is recorded separately. The original
+CI failure remains in the ledger and no more model requests were made.

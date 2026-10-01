@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-01 after the bounded synthetic comparison and source/task/criterion prompt maintenance. This page
+Updated 2026-10-01 after the separate citation/task/criterion comparison. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -70,6 +70,10 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Repaired-source deployment, `8207670`, 2026-10-01 | Railway deployment `c1bb5a60-9fc7-4685-a23e-668af9bf041f` succeeded; public health 200 / `ok`; historical v0.5.0/v0.6.0 verified offline. | New logged-in generation/revision/export acceptance or a replacement release. |
 | Source/task/criterion prompt follow-up, 2026-10-01 | Local non-E2E 2,909 passed / 7 skipped / 6 deselected; src 89.76%, 244.69 seconds. Related groups 109 + 101 passed; original repair caps and closed-campaign drift refusal retained; independent static review and quality wrapper passed. | Real-model adherence or report-content improvement: zero new model calls, no historical output/metric replacement. |
 | Prompt-maintenance CI/deployment, `b74cdd8`, 2026-10-01 | [All four Tests jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36821348694); [Docker passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36821348655). Windows 2,915 passed / 1 skipped; Linux each 2,900 passed / 16 skipped, src 89.91% / 89.92%; non-E2E runs exclude 6. Chromium 6 passed / 2,916 deselected. Railway deployment `9d06acfb-7d9a-43e1-88c6-fd3f89407f88` succeeded, public health 200 / `ok`. | Real-model adherence, logged-in report acceptance or domain approval. Historical release/source metrics remain separate. |
+| Citation/task/criterion tool validation, 2026-10-01 | 78 dedicated offline tests; local non-E2E 2,987 passed / 7 skipped / 6 deselected, src 89.76%, 224.61 seconds; static/dependency checks and independent review passed. | Model adherence, report accuracy or passing subsequent Windows CI. |
+| Separate citation/task/criterion comparison, `6bd5eb7`, 2026-10-01 | Six successful initial DeepSeek completions, no retry/repair/judge; exact SDK and response bindings verified; SQLite 6→12. Frozen 19-dimension / 38-arm AI-assisted review found a local missing-criteria/boundary improvement. | Overall citation/content success: catalogue omission, repeated unqualified proposals, synthetic provenance and excessive length remain. Governed report gate was not run. |
+| First new-comparison CI/deployment, `6bd5eb7`, 2026-10-01 | [Tests failed overall](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36855441949): Windows CPU-guard test collection timed out at 20 seconds; 1 failed / 2,992 passed / 1 skipped / 6 deselected. Linux/Chromium and [Docker passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36855442012). Railway deployment `71b91f03-70a2-4ebc-bb78-12712aef57ce` succeeded, health 200 / `ok`. | A clean cross-platform result, confirmed timeout cause, new logged-in business acceptance or new release. No model campaign was reopened. |
+| Windows collection follow-up, 2026-10-01 | Test-only one-process/five-case collector, unchanged 20-second limit and original assertions; 21 targeted tests passed. Full local non-E2E 2,998 passed / 7 skipped / 6 deselected, src 89.76%, 224.82 seconds; quality checks and independent static review passed. | Proven original timeout cause or new CI confirmation. Production launcher and experiment captures are unchanged. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -112,7 +116,13 @@ denominators; they must not be merged into a report-accuracy percentage.
    A later shared-prompt update separates cited source descriptions, local
    confirmation tasks and established evaluation criteria, and gives section 9
    an explicit missing-evidence branch. This addresses instruction gaps without
-   replacing old outputs or proving that a model follows the new guidance.
+   replacing old outputs. A separately authorised six-request comparison now
+   shows an explicit missing-physical-criteria branch in two candidate reports.
+   Both arms already preserve the documentary conditions in the positive
+   control. The catalogue candidate omits its fact and body citation, so
+   silence cannot count as better citation binding. Repeated proposal
+   qualification, synthetic provenance and length remain limitations;
+   no overall source-use or production-content pass is established.
 2. **New-release content acceptance.** The September 29 DOCX layout gap is now
    closed by native Word rendering of that exact file. The PDF label and fixed
    language-basis warning have offline regression and visual checks; original
@@ -141,14 +151,15 @@ The [three-case offline preparation](experiments/evidence-generation.md#frozen-p
 binds each arm's initial prompt construction to `933d26b` / `f69e62f`, with the
 same logical inputs and RAG bytes. Its original prepare-only helper and frozen
 questions remain unchanged; a separate bounded runner recorded six actual
-submissions and paired counterexamples. The next content step is to distinguish
-source descriptions, local review tasks and externally grounded evaluation
-criteria, then test any targeted change offline before a newly authorised model
-run. Do not tune and resample this closed campaign into a pass. These are
-seen-failure-driven synthetic development cases, not independent labels or a
-semantic-accuracy benchmark. The shared source/task/criterion guidance has a
-bounded offline follow-up; its actual model effect still needs a separately
-authorised comparison, not more requests in the closed campaign. The execution-tool timeout classification now has
+submissions and paired counterexamples. The shared source/task/criterion
+guidance now has offline validation and a
+[separate six-request comparison](experiments/evidence-generation.md#execution-and-bounded-content-review).
+Next content work is useful retained facts, citation/task separation and
+consistent qualification, assessed together rather than rewarded for omission.
+First use offline counterexamples; any future external run needs its own
+authority and bound campaign. Do not tune and resample either closed campaign
+into a pass. These are seen-failure-driven synthetic development cases, not
+independent labels or a semantic-accuracy benchmark. The execution-tool timeout classification now has
 a local typed-deadline repair, 64 mock tests, independent static review and
 passing cross-platform CI on `8207670`. This closes that engineering failure,
 not the content gaps observed in the six-request comparison.
