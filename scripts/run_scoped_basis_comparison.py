@@ -531,6 +531,26 @@ class RecordingSDK:
                 self.state.recording_incomplete = True
 
 
+def _governed_runtime(**kwargs):
+    """Keep the runtime's deadline decision typed across its worker boundary.
+
+    Event.wait and a second elapsed-time observation need not agree at a
+    timeout boundary. Do not infer the runtime's decision from recorder clocks.
+    Imports stay behind the CLI's explicit environment-admission boundary.
+    """
+    from src.model_response import ModelServiceError
+    from src.model_runtime import GovernedModelClient
+
+    class DeadlineStopped(RunStopped, ModelServiceError):
+        pass
+
+    class DeadlineClient(GovernedModelClient):
+        def _deadline_error(self):
+            return DeadlineStopped("timeout")
+
+    return DeadlineClient(**kwargs)
+
+
 def _client(settings, state, row, prompt):
     from openai import OpenAI
 
@@ -558,7 +578,7 @@ def _client(settings, state, row, prompt):
             raise
 
     try:
-        return build_client(settings, sdk_factory=factory)
+        return build_client(settings, sdk_factory=factory, runtime_factory=_governed_runtime)
     except Exception as error:
         state.stop(_reason(error))
         for observer in owned:
@@ -598,14 +618,6 @@ def _run_cell(state, row, factory):
         )
     except (Exception, KeyboardInterrupt) as error:
         code = _reason(error)
-        if (
-            observer is not None
-            and not observer.done.is_set()
-            and not isinstance(error, RunStopped)
-            and generation_started is not None
-            and time.monotonic() - generation_started >= state.settings["timeout_seconds"]
-        ):
-            code = "timeout"
         state.stop(code)
         row.update(status="failed", reason=state.stop_reason)
     finally:

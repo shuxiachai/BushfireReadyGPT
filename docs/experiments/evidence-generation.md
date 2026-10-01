@@ -1152,3 +1152,96 @@ All were corrected with regression coverage, not by relaxing failure/stop
 assertions. Configuration preflight returned the official endpoint, requested
 legacy `deepseek-v4-flash` alias, frozen parameters, ready UTC-day usage 0/6,
 and no existing claim/execution directory; this does not verify provider access.
+
+### Captured execution and qualitative outcome
+
+The authorised run used source `b4ae0cf` and completed exactly **six** initial
+generation requests, with no retry, repair, revision or judge request. UTC start
+and finish were `2026-10-01T03:07:52.380271+00:00` and
+`2026-10-01T03:08:51.999141+00:00`. The default shared SQLite allowance changed
+from 0 to 6 for that UTC day; remaining allowance was 0. The fixed campaign is
+closed. Its 26 journal events distinguish reservations, allowance consumption,
+SDK starts and completed cells. No execution failure, incomplete recording or
+pending worker was reported.
+
+All six provider responses ended with `stop`. They reported `deepseek-flash`
+and fingerprint `aeb56401ca74e127821c4f9126dcb669`, rather than the requested
+legacy alias. This does not establish immutable weights or effective server
+parameters. The actual submissions contained 2 / 2 / 1 / 1 / 2 / 2 passages in
+the planned cell order. Independent read-only review verified request, raw
+response, cleaned text, source/RAG and result bindings, including the captured
+source/dependency snapshot; no binding mismatch was found.
+
+Usage was **22,598 input + 10,493 output = 33,091 tokens**, including 384 reported
+cache-hit input tokens. Total SDK time was 55.33 seconds; the 59.62-second batch
+also includes local safeguards. Currency cost and general performance remain
+unknown. Completion and capture integrity are not production quality-gate or
+report-content acceptance.
+
+All six captured texts were reviewed against the frozen rubric: eight questions
+per case, **24 case-level dimensions / 48 arm judgments**, not a claim-accuracy
+denominator. The ignored local `qualitative-review-v1.json` stores each state,
+reason and Unicode output / actual SDK evidence positions without modifying the
+prepared rubric or captured outputs. It is an AI-assisted development review,
+with independent read-only counterexample/binding review, not domain approval.
+
+| Frozen case | Paired observation | Remaining boundary |
+| --- | --- | --- |
+| Household conditions and campus records | Baseline §8 expands the household record to a “household or campus member”; candidate §7 retains the household condition/self-report limit and separates a comparable-campus-record proposal. | A local observed improvement, not overall source-use acceptance. Both reports still supply assembly criteria not established by either passage. |
+| Historical periods, denominators and approximate area | Both retain the 2021/2023 synthetic periods, approximate two-row area, distinct resident/household denominators and unknown language measurement. | Baseline attaches the catalogue citation to warning-channel/profile-definition tasks; candidate still mixes a local-contact proposal with that citation. Candidate omits population 1,800: not a corrected number or evidence of superiority. |
+| Conflicting summary and narrow maintenance record | Both flag opposing maintenance effects and retain the wall-panel/request record with completion unrecorded. | Baseline already handles the motivating contradiction, so no new fix is demonstrated here. Candidate additionally proposes campus maintenance scheduling and exercise-evaluation use without a supplied basis. |
+
+Across the six reports, the no-safe-venue disclaimer does not substantiate §9's
+assembly-point evaluation standards. Administrative assignments and R3 planning
+tasks must also not all be classified as external factual errors. These two
+categories need separate review rather than mechanically raising citation counts.
+
+The baseline maintenance report also describes synthetic input as official RAG
+from a verified index. These authored fixtures use production O1/P2 framing;
+neither their tokens nor generated boilerplate attest official source identity,
+actual index retrieval or an isolated production root cause. This fixture
+limitation is retained, not silently corrected into stronger evidence.
+
+Immutable local artifact SHA256 values:
+
+| Artifact under `output/scoped-basis-comparison-v1/` | SHA256 |
+| --- | --- |
+| `campaign.calls.jsonl` | `64ada9281f9bce86930295c3b5d843c04e312d4bf04bec9292a7399e6922815f` |
+| `execution-v1/snapshot.json` | `31fdc103143045d185f455328c3585665cd0607d8b8e7b0e3881aa234cd3427a` |
+| `execution-v1/results.json` | `e2d399727a1d68f08dcc67f3840cee5e7d50ba5d1fb72747a3ebb814bfc1c6db` |
+
+These files remain local/ignored; no historical release sample, archived school
+report, diagnostic metric, holdout or cloud business-flow result was replaced.
+No new release is approved by this comparison, and no further model call is
+authorised within this campaign.
+
+### Execution-tool CI follow-up
+
+The first execution-tool commit `b4ae0cf` passed Linux Python 3.11/3.13,
+Chromium and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36809008808),
+but [Tests failed overall](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36809008751).
+Windows recorded 1 failed / 2,902 passed / 1 skipped / 6 deselected in 209.97
+seconds: the delayed-worker timeout mock expected `timeout` but received
+`service_or_deadline_failure`. This is a separate offline timing/classification
+failure, not a failed provider request or permission to reopen the six-call run.
+Railway deployed `b4ae0cf` successfully and public health returned 200 / `ok`;
+health/deployment metadata do not replace the failed CI or constitute logged-in
+content acceptance.
+
+The separate repair removes a second-clock elapsed-time guess from the runner's
+failure classifier. Its local governed-client adapter retains the runtime's
+typed deadline decision across both main and worker paths; production runtime,
+quotas, cancellation, late-capture rules and original campaign files are not
+changed. A deterministic coarse-recorder-clock regression reproduces the wrong
+classification without calling a provider. All 64 execution-tool mocks pass,
+including non-deadline service errors with long recorded elapsed time; blocked
+workers are released in `finally` even if assertions fail. Independent static
+review found no remaining actionable issue. This establishes the repaired
+classification path, not the exact unrecorded Windows CI clock/scheduling cause.
+
+After the repair, the complete local non-E2E suite passed **2,902 tests**,
+with 7 skipped and 6 deselected, in **147.46 seconds**. This final run did not
+remeasure coverage; the earlier 2,897-test run's 89.76% src coverage remains
+bound to that earlier run. The existing full quality-check wrapper passed,
+including the known-dependency advisory scan. A read-only navigation check found
+no missing targets among 316 local links in 56 tracked Markdown files.

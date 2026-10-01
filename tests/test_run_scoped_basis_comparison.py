@@ -88,6 +88,7 @@ def campaign(monkeypatch, tmp_path, frozen_bundle):
         behavior=None,
         configure=None,
         close_failure=False,
+        runtime_kwargs={},
         settings={"model": "fixture-request-alias", "endpoint": "https://api.deepseek.com", "timeout_seconds": 1.0},
     )
 
@@ -106,12 +107,13 @@ def campaign(monkeypatch, tmp_path, frozen_bundle):
         state.observers.append(observer)
         if state.configure:
             state.configure(observer)
-        client = model_runtime.GovernedModelClient(
+        client = runner._governed_runtime(
             completion_client=observer,
             model_name=settings["model"],
             provider="deepseek",
             is_local=False,
             timeout_seconds=settings["timeout_seconds"],
+            **state.runtime_kwargs,
         )
         return client, observer
 
@@ -128,6 +130,17 @@ def _events(campaign):
 
 def _saved(campaign, name):
     return json.loads((campaign.base / "execution-v1" / name).read_bytes())
+
+
+def _synchronise_worker_start(monkeypatch, entered):
+    original = threading.Thread.start
+
+    def start_and_wait(thread):
+        original(thread)
+        if thread.name == "governed-model-completion":
+            assert entered.wait(3)
+
+    monkeypatch.setattr(threading.Thread, "start", start_and_wait)
 
 
 def test_flags_reject_before_any_bundle_or_environment_access(monkeypatch):
@@ -469,9 +482,78 @@ def test_client_close_failure_preserves_first_reason_and_stops(campaign, finish,
         assert "client_close_failed" in result["secondary_errors"]
 
 
-def test_timeout_keeps_worker_resource_and_late_capture_cannot_promote_result(campaign):
+def test_local_deadline_adapter_preserves_runtime_exception_boundary(campaign):
+    from src.model_response import ModelServiceError
+    from src.model_runtime import GovernedModelClient
+
+    client = runner._governed_runtime(completion_client=object(), timeout_seconds=1)
+    error = client._deadline_error()
+    assert isinstance(client, GovernedModelClient)
+    assert isinstance(error, ModelServiceError) and isinstance(error, runner.RunStopped)
+    assert runner._reason(error) == "timeout"
+    # The production/shared runtime's error constructor remains untouched.
+    assert not isinstance(GovernedModelClient(completion_client=object())._deadline_error(), runner.RunStopped)
+    assert campaign.requests == []
+
+
+def test_production_client_factory_uses_the_local_deadline_adapter(campaign, monkeypatch):
+    from scripts import evaluate_body_evidence_deepseek as helpers
+
+    observed = {}
+
+    def build(settings, **kwargs):
+        observed.update(kwargs)
+        return "synthetic runtime", "synthetic observer"
+
+    monkeypatch.setattr(helpers, "build_client", build)
+    assert runner._client(campaign.settings, None, None, None) == ("synthetic runtime", "synthetic observer")
+    assert observed["runtime_factory"] is runner._governed_runtime
+    assert campaign.requests == []
+
+
+def test_worker_deadline_stays_timeout_after_sdk_completion(campaign, monkeypatch):
+    # The worker's own clock expires after the response. The observer clock is
+    # intentionally uninformative; it must not determine the error category.
+    campaign.settings["timeout_seconds"] = 10
+    campaign.runtime_kwargs["clock"] = iter((0.0, 20.0)).__next__
+    monkeypatch.setattr(runner, "time", SimpleNamespace(monotonic=lambda: 100.0))
+    result = campaign.run()
+    assert result["stop_reason"] == "timeout" and len(campaign.requests) == 1
+    assert result["rows"][0]["worker_pending"] is False
+    assert result["rows"][0]["governed_elapsed_seconds"] == 0.0
+    assert all(row["status"] == "not_run" for row in result["rows"][1:])
+    assert _saved(campaign, "response-01.json")["raw_response"]["choices"]
+
+
+def test_long_observed_elapsed_does_not_reclassify_an_unrelated_service_error(campaign, monkeypatch):
+    from src.model_response import ModelServiceError
+
+    ticks = iter((0.0, 0.0, 100.0, 100.0))
+    monkeypatch.setattr(runner, "time", SimpleNamespace(monotonic=lambda: next(ticks, 100.0)))
+
+    def factory(*args):
+        client, observer = campaign.factory(*args)
+
+        def fail(_prompt):
+            raise ModelServiceError("Synthetic non-deadline failure")
+
+        client.generate = fail
+        return client, observer
+
+    try:
+        result = runner.execute(campaign.bundle, campaign.settings, campaign.guard, factory=factory)
+    finally:
+        for observer in campaign.observers:
+            observer.close()  # This synthetic generate never created a worker.
+    assert result["stop_reason"] == "service_or_deadline_failure"
+    assert result["rows"][0]["governed_elapsed_seconds"] > campaign.settings["timeout_seconds"]
+    assert campaign.requests == [] and campaign.guard.calls == 0
+
+
+def test_timeout_keeps_worker_resource_and_late_capture_cannot_promote_result(campaign, monkeypatch):
     arrived, release = threading.Event(), threading.Event()
     campaign.settings["timeout_seconds"] = 0.05
+    _synchronise_worker_start(monkeypatch, arrived)
 
     def behavior(*_):
         arrived.set()
@@ -479,22 +561,30 @@ def test_timeout_keeps_worker_resource_and_late_capture_cannot_promote_result(ca
         return response()
 
     campaign.behavior = behavior
-    result = campaign.run()
-    assert arrived.is_set() and result["stop_reason"] == "timeout"
-    assert result["rows"][0]["worker_pending"] is True and campaign.close_calls == []
-    saved = (campaign.base / "execution-v1/results.json").read_bytes()
-    ledger = (campaign.base / "campaign.calls.jsonl").read_bytes()
-    release.set()
-    assert campaign.guard.released.wait(3)
+    try:
+        result = campaign.run()
+        assert arrived.is_set() and result["stop_reason"] == "timeout"
+        assert result["rows"][0]["worker_pending"] is True and campaign.close_calls == []
+        saved = (campaign.base / "execution-v1/results.json").read_bytes()
+        ledger = (campaign.base / "campaign.calls.jsonl").read_bytes()
+    finally:
+        release.set()
+        assert campaign.guard.released.wait(3)
     assert campaign.close_calls == [1] and len(campaign.requests) == 1
     assert _saved(campaign, "response-01.json")["after_stop"] is True
     assert (campaign.base / "execution-v1/results.json").read_bytes() == saved
     assert (campaign.base / "campaign.calls.jsonl").read_bytes() == ledger
 
 
-def test_delayed_worker_never_starts_sdk_after_timeout(campaign):
+@pytest.mark.parametrize("coarse_clock", [False, True], ids=["normal-clock", "coarse-observer-clock"])
+def test_delayed_worker_never_starts_sdk_after_timeout(campaign, monkeypatch, coarse_clock):
     entered, release = threading.Event(), threading.Event()
     campaign.settings["timeout_seconds"] = 0.05
+    _synchronise_worker_start(monkeypatch, entered)
+    if coarse_clock:
+        # Only the recorder's observation is coarse. The real governed client
+        # and Event.wait retain their real clocks and deadline decision.
+        monkeypatch.setattr(runner, "time", SimpleNamespace(monotonic=lambda: 100.0))
 
     def configure(observer):
         original = observer.with_options
@@ -507,16 +597,21 @@ def test_delayed_worker_never_starts_sdk_after_timeout(campaign):
         observer.with_options = delayed
 
     campaign.configure = configure
-    result = campaign.run()
-    assert entered.is_set() and result["stop_reason"] == "timeout"
-    release.set()
-    assert campaign.guard.released.wait(3)
+    try:
+        result = campaign.run()
+        if coarse_clock:
+            assert result["rows"][0]["governed_elapsed_seconds"] == 0.0
+        assert entered.is_set() and result["stop_reason"] == "timeout"
+    finally:
+        release.set()
+        assert campaign.guard.released.wait(3)
     assert campaign.requests == [] and campaign.guard.calls == 0 and campaign.close_calls == [1]
 
 
-def test_timeout_during_post_consume_guard_cannot_write_closed_journal_or_dispatch(campaign):
+def test_timeout_during_post_consume_guard_cannot_write_closed_journal_or_dispatch(campaign, monkeypatch):
     entered, release = threading.Event(), threading.Event()
     campaign.settings["timeout_seconds"] = 0.05
+    _synchronise_worker_start(monkeypatch, entered)
     original = campaign.guard.check
     waiting = False
 
@@ -529,12 +624,14 @@ def test_timeout_during_post_consume_guard_cannot_write_closed_journal_or_dispat
         return original(expected)
 
     campaign.guard.check = delayed
-    result = campaign.run()
-    assert entered.is_set() and result["stop_reason"] == "timeout"
-    assert campaign.requests == [] and campaign.guard.calls == 1
-    ledger = (campaign.base / "campaign.calls.jsonl").read_bytes()
-    release.set()
-    assert campaign.guard.released.wait(3)
+    try:
+        result = campaign.run()
+        assert entered.is_set() and result["stop_reason"] == "timeout"
+        assert campaign.requests == [] and campaign.guard.calls == 1
+        ledger = (campaign.base / "campaign.calls.jsonl").read_bytes()
+    finally:
+        release.set()
+        assert campaign.guard.released.wait(3)
     assert campaign.requests == [] and campaign.close_calls == [1]
     assert _saved(campaign, "late-boundary-01.json")["quota"]["calls"] == 1
     assert (campaign.base / "campaign.calls.jsonl").read_bytes() == ledger

@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-01 after offline content-comparison preparation and dependency-security maintenance. This page
+Updated 2026-10-01 after the bounded synthetic content comparison and execution-tool CI review. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -49,7 +49,8 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Evidence | Recorded result | What it does not establish |
 | --- | --- | --- |
 | v0.6.0 release, `44d0c3f` | Frozen samples and RAG/report/red-team artifacts; [release record](releases/v0.6.0.md). | Current cloud or maintained-source accuracy. |
-| Latest recorded non-E2E suite, 2026-10-01, after dependency repair | 2,838 passed; 7 skipped; 6 deselected; 89.76% **src** coverage; 192.65 seconds. | Experimental-script coverage, a new six-case browser run, real-model improvement or domain correctness. |
+| Pre-comparison local non-E2E suite, 2026-10-01 | 2,897 passed; 7 skipped; 6 deselected; 89.76% **src** coverage; 246.17 seconds; 59 dedicated execution-tool mock tests. | Experimental-script coverage, a new six-case browser run or domain correctness; does not replace later Windows CI failure. |
+| Post-classification-repair local non-E2E suite, 2026-10-01 | 2,902 passed; 7 skipped; 6 deselected; 147.46 seconds; 64 dedicated mocks. Quality wrapper/advisory scan passed; no missing local Markdown targets. | Fresh coverage (not remeasured), new Windows CI acceptance, a provider rerun or content correctness. |
 | CI on `f69e62f`, 2026-10-01 (Sydney) | [Windows, Python 3.11/3.13 and Chromium jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36732373978); [Docker cloud smoke passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36732373773). Chromium: 6 passed, 2,813 deselected, 78.50 seconds. | Real-model accuracy, live cloud user testing or a CI result for the later comparison-preparation commit. |
 | First preparation CI, `c79152c`, 2026-10-01 | Python 3.11, Chromium and Docker passed; [overall Tests failed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36798289291) because the Windows/Python 3.13 dependency audits detected six advisory entries in two locked packages. | An overall CI pass. The failure is retained, not replaced by the earlier `f69e62f` result. |
 | Post-repair CI, `88746b1`, 2026-10-01 | [All Windows, Python 3.11/3.13 and Chromium jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36799682192); [Docker cloud smoke passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36799682220). Chromium: 6 passed, 2,845 deselected, 82.82 seconds. | Real-model content acceptance or CI evidence for a later source change. |
@@ -62,6 +63,9 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Development source review, 2026-09-30, reference `d79162f` | All 74 school-report items reviewed, including the 64 historically requiring citations; original 5 cited / 59 missing preserved. Actual final request included 2 of 3 retrieved passages. | An independently labelled benchmark, professional approval, revised production output or a corrected accuracy/citation score. |
 | Source-text and prompt-contract follow-up, 2026-09-30 to 2026-10-01 | Frozen HTML and a fresh official-page download contain the same questioned wording; no missing-prefix extraction defect was found. Final 108 targeted tests pass; normal repair fixture 17,965 characters accepted, 19,201 rejected. | Author intent, source correctness, real-model adherence or content acceptance. No model requests or corpus/index changes. |
 | Offline provenance/scope comparison preparation, 2026-10-01 | Three synthetic cases, two Git-bound initial prompt builders, matching logical-input/RAG hashes; 32 dedicated tests within a 127-test related run. Prepared bundle rebuilt and hash-validated; zero model calls. | Actual SDK submissions, model content, an independent benchmark or a new release sample. |
+| Separately authorised provenance/scope execution, 2026-10-01, `b4ae0cf` | Exactly six DeepSeek completions, no retry/repair/judge; submission/response bindings verified; SQLite 0→6. Household-to-campus extension occurs in baseline and is separated into a proposal in candidate. | Overall content acceptance, independent generalisation or source correctness: irrelevant/mixed citations and unsupported assembly criteria remain. |
+| First execution-tool CI, `b4ae0cf`, 2026-10-01 | Linux Python 3.11/3.13, Chromium and [Docker passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36809008808); [Tests failed overall](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36809008751): Windows delayed-worker error-category assertion, 1 failed / 2,902 passed / 1 skipped / 6 deselected. | A clean cross-platform pass; the failure is separate from the six successful provider requests. |
+| Execution-tool deployment, `b4ae0cf`, 2026-10-01 | Railway deployment `8c55525c-f2da-44d7-b5d6-1a22639e0d0c` succeeded; public health 200 / `ok`. | CI acceptance, logged-in business flow or report-content approval. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -93,6 +97,14 @@ denominators; they must not be merged into a report-accuracy percentage.
    frozen HTML and the fresh official-page download, not introduced by the
    extractor. Its intended meaning and applicability remain unresolved; it
    must not be silently corrected or treated as verified advice.
+   The subsequent six-request synthetic comparison shows a local improvement in
+   household audience preservation, not an overall pass. Both arms already
+   handle source contradiction and preserve the tested period/denominator limits.
+   Catalogue citations still accompany unsupported or mixed local tasks, and
+   all six reports supply assembly criteria without a provided basis. Synthetic
+   O1/P2 framing also limits provenance claims; fixture boilerplate cannot prove
+   real official-source retrieval. The frozen 24-dimension / 48-arm review is
+   AI-assisted development evidence, not an accuracy denominator.
 2. **New-release content acceptance.** The September 29 DOCX layout gap is now
    closed by native Word rendering of that exact file. The PDF label and fixed
    language-basis warning have offline regression and visual checks; original
@@ -115,13 +127,20 @@ separate activity, not something synthetic testing can supply. Adding live
 emergency decisions is not a required next feature.
 The bounded input changes from the
 [school source review](history/LAUNCH_READINESS_2026-09-15.md#record-023) are now
-covered by offline contracts; the next content step is a separately scoped
-model comparison before claiming better source use or issuing new samples.
+covered by offline contracts; a separately authorised model comparison has now
+been completed without retrying or issuing new samples.
 The [three-case offline preparation](experiments/evidence-generation.md#frozen-provenancescope-comparison-preparation-2026-10-01)
 binds each arm's initial prompt construction to `933d26b` / `f69e62f`, with the
-same logical inputs and RAG bytes. It fixes the review questions but contains
-no model runner or new call approval. These are seen-failure-driven synthetic
-development cases, not independent labels or a semantic-accuracy benchmark.
+same logical inputs and RAG bytes. Its original prepare-only helper and frozen
+questions remain unchanged; a separate bounded runner recorded six actual
+submissions and paired counterexamples. The next content step is to distinguish
+source descriptions, local review tasks and externally grounded evaluation
+criteria, then test any targeted change offline before a newly authorised model
+run. Do not tune and resample this closed campaign into a pass. These are
+seen-failure-driven synthetic development cases, not independent labels or a
+semantic-accuracy benchmark. The execution-tool timeout classification now has
+a local typed-deadline repair, 64 mock tests and independent static review;
+new Windows CI still needs confirmation before claiming cross-platform closure.
 Do not reopen closed model-call campaigns. The questioned source wording remains
 flagged for qualified source review. The old diagnostic remains unchanged; a
 later classifier revision needs its own version and false-positive checks.
