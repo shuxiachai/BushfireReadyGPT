@@ -1459,6 +1459,7 @@ Original outputs and requests remain under ignored
 | Call journal | `11e9fcb1b72756dc0550ca55f634da4648a2477886154a69cf3d3c9e2cdb6f8d` |
 | Execution snapshot | `4de428d3e2da5f4234b7e696fc58cddfb465a4275faf9adfd71118c708a0dcfa` |
 | Results | `65c5864c5603b7d0fce90ee8bb15bf58906ad6e1899ee95f737ece6d83dc157b` |
+| Local qualitative review | `bf493aa904a1c647f89b361f8f2759ac64e02395321d2e09363fcabfc3f04829` |
 
 All reports were read against the frozen **19 dimensions / 38 arm judgments**,
 with an independent AI-assisted review. The local review artifact retains
@@ -1524,3 +1525,47 @@ passed, including a scan reporting no known installed-dependency advisories;
 320 local link targets across 56 tracked Markdown files exist. These are local
 engineering checks; new CI confirmation is recorded separately. The original
 CI failure remains in the ledger and no more model requests were made.
+
+On `93236a8`, [Tests](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36861131003)
+still failed overall, but all CPU-preflight cases passed. A **different**
+Windows case, `test_drift_after_return_stops_before_next_cell[quota_unavailable]`,
+expected the injected drift and instead observed `timeout`: 1 failed /
+3,003 passed / 1 skipped / 6 deselected, 304.20 seconds. Linux 3.11/3.13 each
+passed 2,989 / 16 skipped / 6 deselected, src coverage 89.91% / 89.92%,
+237.81 / 255.78 seconds. Chromium passed 6 / 3,005 deselected, 77.52 seconds;
+[Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36861131116)
+also passed. Original and subsequent failures remain separate.
+
+Read-only diagnosis found the test allows a real deadline to race its intended
+post-return fault: its fake SDK sets the drift, but the recording wrapper still
+saves the response/details before returning, and only then does the runner
+check drift. The fixture's one-second worker/foreground deadlines can win
+first. Preserving timeout as first failure is correct production behaviour;
+the precise CI delay and triggering timeout channel remain unconfirmed. The
+original seven cases passed once locally in 2.10 seconds. The targeted
+test-only remedy separates completed-request fault injection from wall-clock
+scheduling, without changing production failure precedence or timeout limits.
+
+Railway deployment `cb82d07b-dadb-484e-8e4d-137fa67f229f` of `93236a8`
+succeeded, with public health HTTP 200 / `ok`. This does not turn the failed
+CI into a pass or establish a new authenticated business/content acceptance.
+
+The remedy changes only `tests/test_run_scoped_basis_comparison.py`. An
+explicit fixture applies to the seven post-return drift cases: a fixed logical
+clock and local `model_runtime.threading` facade synchronously run the original
+worker target, which naturally sets the real completion Event. The facade
+accepts only the expected completion thread; global `threading.Thread` and
+`Event.wait` are untouched. Actual governed generation, SDK recording,
+protocol checks and evidence capture still run. Strict drift assertions remain,
+with extra checks for saved raw/details, completed worker, released allowance,
+one dispatch and five unrun rows. All dedicated deadline, typed-deadline,
+late-worker and concurrency cases keep real threads and original deadlines /
+barriers. Production runtime, helper bytes, CI and closed campaigns are unchanged.
+
+The author ran seven cases successfully in 2.15 seconds, then all 64 historical
+runner tests plus 78 new comparison tests: **142 passed**, 24.17 seconds.
+The parent's combined group, also including CPU-preflight tests, passed
+**163 tests** in 24.77 seconds. Repository Ruff/format checks and independent
+static review passed. This isolates the seven fault-order tests from wall-clock
+scheduling; it is not evidence of a production timeout defect or the specific
+Windows delay's cause. New CI results follow separately; no API calls occurred.

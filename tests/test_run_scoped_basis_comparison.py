@@ -356,6 +356,31 @@ def test_unexpected_actual_sdk_parameters_are_blocked(campaign, field, value):
     assert campaign.guard.calls == 1
 
 
+@pytest.fixture
+def inline_drift_completion(campaign, monkeypatch):
+    """Only drift assertions use logical time; deadline/concurrency tests stay real."""
+    from src import model_runtime
+
+    completed = []
+
+    class InlineThread:
+        def __init__(self, *, target, name, daemon):
+            assert name == "governed-model-completion" and daemon is True
+            self.target, self.started = target, False
+
+        def start(self):
+            assert not self.started
+            self.started = True
+            self.target()
+            completed.append("governed-model-completion")
+
+    campaign.runtime_kwargs["clock"] = lambda: 0.0
+    # Patch this module reference only, never the global threading module or
+    # Event.wait. The original target sets its real completed Event naturally.
+    monkeypatch.setattr(model_runtime, "threading", SimpleNamespace(Event=threading.Event, Thread=InlineThread))
+    return completed
+
+
 @pytest.mark.parametrize(
     "drift",
     [
@@ -368,7 +393,7 @@ def test_unexpected_actual_sdk_parameters_are_blocked(campaign, field, value):
         "quota_unavailable",
     ],
 )
-def test_drift_after_return_stops_before_next_cell(campaign, drift):
+def test_drift_after_return_stops_before_next_cell(campaign, drift, inline_drift_completion):
     def behavior(*_):
         campaign.guard.failure = drift
         return response()
@@ -378,6 +403,12 @@ def test_drift_after_return_stops_before_next_cell(campaign, drift):
     assert result["stop_reason"] == drift and len(campaign.requests) == 1
     assert result["rows"][0]["status"] == "failed"
     assert all(row["status"] == "not_run" for row in result["rows"][1:])
+    assert len(result["rows"]) == 6 and campaign.guard.calls == 1
+    assert result["rows"][0]["worker_pending"] is False
+    assert campaign.observers[0].done.is_set() and campaign.guard.released.is_set()
+    assert inline_drift_completion == ["governed-model-completion"]
+    assert _saved(campaign, "response-01.json")["raw_response"]["choices"][0]["finish_reason"] == "stop"
+    assert _saved(campaign, "response-details-01.json")["model_evidence"]["status"] == "captured"
 
 
 @pytest.mark.parametrize(
