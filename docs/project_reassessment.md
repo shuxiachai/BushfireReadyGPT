@@ -50,7 +50,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | --- | --- | --- |
 | v0.6.0 release, `44d0c3f` | Frozen samples and RAG/report/red-team artifacts; [release record](releases/v0.6.0.md). | Current cloud or maintained-source accuracy. |
 | Pre-comparison local non-E2E suite, 2026-10-01 | 2,897 passed; 7 skipped; 6 deselected; 89.76% **src** coverage; 246.17 seconds; 59 dedicated execution-tool mock tests. | Experimental-script coverage, a new six-case browser run or domain correctness; does not replace later Windows CI failure. |
-| Post-classification-repair local non-E2E suite, 2026-10-01 | 2,902 passed; 7 skipped; 6 deselected; 147.46 seconds; 64 dedicated mocks. Quality wrapper/advisory scan passed; no missing local Markdown targets. | Fresh coverage (not remeasured), new Windows CI acceptance, a provider rerun or content correctness. |
+| Post-classification-repair local non-E2E suite, 2026-10-01 | 2,902 passed; 7 skipped; 6 deselected; 147.46 seconds; 64 dedicated mocks. Quality wrapper/advisory scan passed; no missing local Markdown targets. | Fresh local coverage (not remeasured), a provider rerun or content correctness. |
 | CI on `f69e62f`, 2026-10-01 (Sydney) | [Windows, Python 3.11/3.13 and Chromium jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36732373978); [Docker cloud smoke passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36732373773). Chromium: 6 passed, 2,813 deselected, 78.50 seconds. | Real-model accuracy, live cloud user testing or a CI result for the later comparison-preparation commit. |
 | First preparation CI, `c79152c`, 2026-10-01 | Python 3.11, Chromium and Docker passed; [overall Tests failed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36798289291) because the Windows/Python 3.13 dependency audits detected six advisory entries in two locked packages. | An overall CI pass. The failure is retained, not replaced by the earlier `f69e62f` result. |
 | Post-repair CI, `88746b1`, 2026-10-01 | [All Windows, Python 3.11/3.13 and Chromium jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36799682192); [Docker cloud smoke passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36799682220). Chromium: 6 passed, 2,845 deselected, 82.82 seconds. | Real-model content acceptance or CI evidence for a later source change. |
@@ -66,6 +66,8 @@ See [architecture](architecture.md), [RAG](rag.md) and
 | Separately authorised provenance/scope execution, 2026-10-01, `b4ae0cf` | Exactly six DeepSeek completions, no retry/repair/judge; submission/response bindings verified; SQLite 0→6. Household-to-campus extension occurs in baseline and is separated into a proposal in candidate. | Overall content acceptance, independent generalisation or source correctness: irrelevant/mixed citations and unsupported assembly criteria remain. |
 | First execution-tool CI, `b4ae0cf`, 2026-10-01 | Linux Python 3.11/3.13, Chromium and [Docker passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36809008808); [Tests failed overall](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36809008751): Windows delayed-worker error-category assertion, 1 failed / 2,902 passed / 1 skipped / 6 deselected. | A clean cross-platform pass; the failure is separate from the six successful provider requests. |
 | Execution-tool deployment, `b4ae0cf`, 2026-10-01 | Railway deployment `8c55525c-f2da-44d7-b5d6-1a22639e0d0c` succeeded; public health 200 / `ok`. | CI acceptance, logged-in business flow or report-content approval. |
+| Post-classification-repair CI, `8207670`, 2026-10-01 | [All four Tests jobs passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36811502188); [Docker passed](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36811502187). Windows 2,908 passed / 1 skipped; Linux 3.11/3.13 each 2,893 passed / 16 skipped, src 89.91% / 89.92%; all non-E2E runs exclude 6 cases. Chromium 6 passed / 2,909 deselected. | Model-content acceptance or a merged accuracy/test denominator. Closes the earlier Windows classification failure without erasing it. |
+| Repaired-source deployment, `8207670`, 2026-10-01 | Railway deployment `c1bb5a60-9fc7-4685-a23e-668af9bf041f` succeeded; public health 200 / `ok`; historical v0.5.0/v0.6.0 verified offline. | New logged-in generation/revision/export acceptance or a replacement release. |
 | Seen selection/proposal development | Two real synthetic chains structurally valid, followed by 19 offline advisory regression cases. | Independent generalisation, semantic support or production activation. |
 
 The [September delivery record](history/LAUNCH_READINESS_2026-09-15.md)
@@ -139,8 +141,9 @@ criteria, then test any targeted change offline before a newly authorised model
 run. Do not tune and resample this closed campaign into a pass. These are
 seen-failure-driven synthetic development cases, not independent labels or a
 semantic-accuracy benchmark. The execution-tool timeout classification now has
-a local typed-deadline repair, 64 mock tests and independent static review;
-new Windows CI still needs confirmation before claiming cross-platform closure.
+a local typed-deadline repair, 64 mock tests, independent static review and
+passing cross-platform CI on `8207670`. This closes that engineering failure,
+not the content gaps observed in the six-request comparison.
 Do not reopen closed model-call campaigns. The questioned source wording remains
 flagged for qualified source review. The old diagnostic remains unchanged; a
 later classifier revision needs its own version and false-positive checks.

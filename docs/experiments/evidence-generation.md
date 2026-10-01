@@ -1245,3 +1245,19 @@ remeasure coverage; the earlier 2,897-test run's 89.76% src coverage remains
 bound to that earlier run. The existing full quality-check wrapper passed,
 including the known-dependency advisory scan. A read-only navigation check found
 no missing targets among 316 local links in 56 tracked Markdown files.
+
+The repaired source `8207670` subsequently passed all four
+[Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36811502188)
+and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/36811502187).
+Windows: 2,908 passed / 1 skipped / 6 deselected, 209.58 seconds.
+Linux Python 3.11/3.13: each 2,893 passed / 16 skipped / 6 deselected;
+src coverage was 89.91% / 89.92%, in 190.72 / 233.81 seconds respectively.
+Chromium: 6 passed / 2,909 deselected, 80.79 seconds. These platform-specific
+results are not interchangeable with the local suite or model-content judgments.
+Offline v0.5.0/v0.6.0 release verification passed on the clean repaired commit.
+
+Railway deployed `8207670` as `c1bb5a60-9fc7-4685-a23e-668af9bf041f`
+successfully; public health returned HTTP 200 / `ok`. The earlier Windows
+failure is now closed by scoped repair and a passing Windows CI run, not erased
+or explained as a proven OS clock defect. There was no new login, business-flow
+acceptance, provider call, replacement sample or release in this follow-up.
