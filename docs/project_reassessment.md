@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-01 after the separate citation/task/criterion comparison. This page
+Updated 2026-10-03 for the resumed offline-content and dependency follow-up. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -45,6 +45,16 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+The resumed local follow-up is implemented and independently reviewed:
+87 dedicated / 450 related checks passed, followed by the parent's final
+3,085-test non-E2E run (7 skipped / 6 deselected; src 89.76%; 275.41 seconds).
+The package-only pypdf 6.19.0 upgrade passed 242 PDF/RAG/core/sample tests and
+an audit of 158 dependencies with zero known vulnerabilities. The full quality
+wrapper passed. Earlier failures remain recorded rather than relabelled.
+New source-bound CI/deployment evidence is recorded separately; this pure
+helper is not production-enabled or a model-quality verdict. See the
+[parent validation record](experiments/evidence-generation.md#parent-local-validation-completed-2026-10-03).
 
 | Evidence | Recorded result | What it does not establish |
 | --- | --- | --- |
@@ -157,9 +167,13 @@ questions remain unchanged; a separate bounded runner recorded six actual
 submissions and paired counterexamples. The shared source/task/criterion
 guidance now has offline validation and a
 [separate six-request comparison](experiments/evidence-generation.md#execution-and-bounded-content-review).
-Next content work is useful retained facts, citation/task separation and
-consistent qualification, assessed together rather than rewarded for omission.
-First use offline counterexamples; any future external run needs its own
+The next offline helper uses explicit source/report spans and caller-declared
+literal targets to avoid silently dropping absent content from review. Its
+same-unit probes, visible citation observations and per-occurrence task
+qualification are not semantic verdicts or production report checks. See the
+[bounded content-target advisory](experiments/evidence-generation.md#explicit-report-content-target-advisory-2026-10-02).
+Useful facts, citation/task separation and consistent qualification must still
+be reviewed together, without rewarding omission. Any future external run needs its own
 authority and bound campaign. Do not tune and resample either closed campaign
 into a pass. These are seen-failure-driven synthetic development cases, not
 independent labels or a semantic-accuracy benchmark. The execution-tool timeout classification now has

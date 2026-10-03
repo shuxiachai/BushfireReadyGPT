@@ -1590,3 +1590,144 @@ Railway deployment `998fae23-0190-4723-9d40-dc9bf2ae135c` of `16e6375`
 succeeded; public health returned HTTP 200 / `ok`. Only deployment metadata
 and public health were read. The six-call campaign remains closed, with no
 logged-in business acceptance, new sample, new release or domain approval.
+
+## Explicit report-content target advisory (2026-10-02)
+
+The next bounded offline step addresses a diagnostic blind spot: checking only
+generated claims cannot observe a wholly omitted target. The new pure helper
+`scripts/report_content_advisory.py` takes caller-declared fact probes and
+local-action spans; it neither selects important facts nor rewrites reports.
+It does not extend the existing proposal contract, whose fixed 7/11/12 sections
+and primary-reference requirement do not fit uncited R3 administrative tasks.
+
+Each fact target binds a supplied evidence-pack passage, exact source quote,
+literal probes and exact report search range. Complete extracted sentences,
+list items and table cells are examined independently: a number in one cell
+cannot join an object or citation in another. A target remains present even
+when its strings are not observed. That is not proof of omission: a faithful
+paraphrase may also lack the exact strings. Same-unit co-occurrence and source
+identity association remain observations, never support or factual-accuracy
+verdicts. Hashes bind caller-supplied bytes, not official origin or SDK delivery.
+
+Local tasks require caller-marked complete units. Each occurrence checks its
+own literal `Unverified proposal for local review:` prefix; neighbouring
+sentences, cells or other repeated tasks cannot supply it. Explicit same-group
+marker comparisons have no twelve-word minimum and do not infer semantic
+equivalence. An uncited R3 administrative task is not automatically a missing
+citation error. A task label also cannot exempt a co-located fact or effect
+assertion from review.
+
+Visibility handling is deliberately bounded static-markup processing, not a
+browser renderer. Hidden text, source bindings, HTML attributes and link
+destinations cannot supply literal or citation observations. Unreliably bounded
+markup is unassessed, not a positive match or definite absence. The result
+always leaves semantics/conditions unknown and manual review required, with
+production disabled and zero additional model calls. No prompts, production
+diagnostic labels, policy gates, historical response bytes or closed campaign
+allowances are changed. This step tests the checker, not model adherence or
+general report quality; no new sample or release is authorised by it.
+
+### Verification still open (2026-10-03)
+
+The initial strong implementation recorded 65 dedicated cases and 377 related
+passes. The parent's pre-repair full non-E2E run subsequently passed 3,063
+tests / 7 skipped / 6 deselected, src coverage 89.76%, in 300.69 seconds.
+That does **not** close final acceptance: independent review found two remaining
+metadata leaks, both reproduced in a bounded diagnostic. A right parenthesis
+inside a quoted Markdown link title could expose title text, and an unclosed
+HTML attribute split across sentences could lose its unassessed status.
+These require targeted fixes and renewed independent review.
+
+The quality wrapper also failed its dependency audit: installed/locked
+`pypdf 6.16.1` has eight reported advisory entries, with the highest required
+patched version 6.19.0. The upstream
+[advisory](https://github.com/py-pdf/pypdf/security/advisories/GHSA-v247-6f48-mgcj)
+and [release](https://github.com/py-pdf/pypdf/releases/tag/6.19.0) confirm that
+patch boundary. This is version-level advisory evidence, not proof of
+exploitation or reachability of every affected API in this application.
+
+Shared agent usage exhaustion interrupted both authorised strong repair tasks
+before file changes. Read-only state verification confirmed that the two new
+files retain their earlier frozen hashes, the lock still selects 6.16.1, and
+HEAD remains `0dad782`. The new helper and documentation edits remain local,
+uncommitted and unpushed. Final review, dependency repair, full quality checks
+and CI are still required; no additional model call or release occurred.
+
+### Resumed repair evidence (2026-10-03)
+
+After resumption, the two reviewed leaks were reproduced before repair.
+Quoted link titles now retain their quote boundary rather than treating an
+internal closing parenthesis as the link end. An unclosed HTML opener marks
+the affected suffix unassessed across extracted sentences. The bounded new
+group passed **81 dedicated tests** and **444 tests across eleven related
+files**; these are later runs, not replacements for the earlier 65/377 record.
+Another review found a related unknown-citation title boundary crossing units;
+that follow-up and final acceptance remain open until separately recorded.
+
+The PDF security fix is deliberately package-only: `pypdf>=6.19.0,<7.0` in
+both dependency manifests and locked 6.19.0 in Poetry. Structural comparison
+found only pypdf changed among 136 locked packages, and only pypdf changed in
+the project virtual environment. Official PyPI file hashes and the downloaded
+wheel matched the lock. No global tool, SDK, other package or advisory
+exception changed. Existing calls use PdfReader and extraction APIs, not
+custom overrides of the upstream configuration limits.
+
+The dependency author passed lock consistency and installed-package checks,
+then **242 PDF/RAG/core/sample tests / 6 skipped** in 12.99 seconds. The skips
+were existing Windows symlink-permission cases. Reading the historical sample
+through the current RAG loader succeeded for 15 pages / 25,320 characters;
+the original PDF was not rewritten. The installed-environment audit covered
+158 dependencies and reported zero known vulnerabilities. Independent
+read-only review confirmed the manifest-only diff, wheel hash, test XML and
+audit JSON. This is time-bound known-advisory and compatibility evidence,
+not full security certification, visual page-layout review or content approval.
+
+### Final directed repair and review (2026-10-03)
+
+The remaining citation-title boundary was reproduced for an unknown source
+title spanning sentences and a complete known label split by table cells.
+The new helper now resolves known display labels on the entire metadata
+shadow before projecting to existing body units, assigning a citation only
+to its starting unit. An unknown citation with no reliable title boundary
+marks the remaining suffix unassessed. This can conservatively exclude real
+later prose; the result explicitly records that limitation rather than
+reporting it absent or supported. The production extractor is unchanged.
+
+The final frozen helper passed **87 dedicated cases** in 0.30 seconds and
+**450 related tests across eleven files** in 3.77 seconds. Six new directed
+cases, not the earlier provisional count of seven, cover the last boundary.
+Repository lint/format checks passed. Independent final read-only review
+found no remaining actionable issue in the helper, regression tests or the
+package-only dependency fix; it did not execute those tests itself.
+
+Failed attempts remain recorded: two environment/setup attempts preceded use
+of the existing project interpreter and workspace temporary directory; two
+test-fixture validation failures involved spans not matching complete units;
+two format-check failures were corrected with the formatter. The separate
+dependency audit failure above is retained. No assertion, policy, timeout,
+advisory exemption or campaign allowance was relaxed to turn those into passes.
+
+Frozen SHA256: helper
+`1ce51d51e396821171dad294754ab1fc9f6d0f4cf4b4977af1f6989e770c8238`;
+tests `36c06f8b0d55bcb002b39d370efb76f39d739cae2826cfa7ea880a91b99c3a22`.
+Final parent full-suite, quality and CI confirmation follow separately.
+
+### Parent local validation completed (2026-10-03)
+
+With the final helper and pypdf upgrade frozen, the parent's complete non-E2E
+run passed **3,085 tests / 7 skipped / 6 deselected**, src coverage **89.76%**,
+in **275.41 seconds**. This coverage denominator is production `src`, not the
+new experimental helper. The existing full quality-check wrapper passed lock
+and installed-package consistency, Ruff lint/format, Bandit and the dependency
+audit, with no known vulnerabilities reported. No audit exceptions were added.
+The five sealed citation-comparison packet/journal/snapshot/result/review
+hashes are unchanged. All 323 checked local links in 56 tracked Markdown files
+resolve. These are engineering results, not model-content or live-user acceptance.
+
+Production source, prompts, old experiment entry points, CI and historical
+samples are unchanged. The only application dependency update is pypdf;
+locked and installed dependency identities therefore differ from historical
+model captures and must not be retroactively rebound to them. There were
+zero remote model requests, no corpus/index regeneration, replacement sample
+or new formal release. Source-bound CI and deployment confirmation follow
+separately.
