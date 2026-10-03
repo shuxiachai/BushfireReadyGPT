@@ -46,15 +46,15 @@ See [architecture](architecture.md), [RAG](rag.md) and
 
 ## Recorded validation
 
-The resumed local follow-up is implemented and independently reviewed:
-87 dedicated / 450 related checks passed, followed by the parent's final
-3,085-test non-E2E run (7 skipped / 6 deselected; src 89.76%; 275.41 seconds).
-The package-only pypdf 6.19.0 upgrade passed 242 PDF/RAG/core/sample tests and
-an audit of 158 dependencies with zero known vulnerabilities. The full quality
-wrapper passed. Earlier failures remain recorded rather than relabelled.
-New source-bound CI/deployment evidence is recorded separately; this pure
-helper is not production-enabled or a model-quality verdict. See the
-[parent validation record](experiments/evidence-generation.md#parent-local-validation-completed-2026-10-03).
+The resumed follow-up is complete as a bounded engineering change: 87 dedicated /
+450 related checks, final local 3,085-test non-E2E regression (src 89.76%),
+independent static review and the full quality wrapper passed. The package-only
+pypdf 6.19.0 upgrade passed 242 PDF/RAG/core/sample tests and an audit of 158
+dependencies with zero known vulnerabilities. Commit `4a94a1b` passed all four
+Tests jobs and Docker smoke, verified historical releases offline, and deployed
+successfully to Railway with public health 200 / `ok`. Earlier failures remain
+recorded; the pure helper stays offline-only and is not a model-quality verdict.
+See the [source-bound closure](experiments/evidence-generation.md#source-bound-ci-and-deployment-closure-2026-10-03).
 
 | Evidence | Recorded result | What it does not establish |
 | --- | --- | --- |

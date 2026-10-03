@@ -1731,3 +1731,26 @@ model captures and must not be retroactively rebound to them. There were
 zero remote model requests, no corpus/index regeneration, replacement sample
 or new formal release. Source-bound CI and deployment confirmation follow
 separately.
+
+### Source-bound CI and deployment closure (2026-10-03)
+
+Maintained commit `4a94a1b` passed all four
+[Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37092881245)
+and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37092881244):
+
+- Windows: 3,091 passed / 1 skipped / 6 deselected, 311.91 seconds.
+- Linux Python 3.11/3.13: each 3,076 passed / 16 skipped / 6 deselected;
+  src coverage 89.91% / 89.92%, 173.22 / 257.20 seconds respectively.
+- Chromium: 6 passed / 3,092 deselected, 83.87 seconds.
+
+Historical v0.5.0/v0.6.0 release evidence passed offline verification on the
+clean `4a94a1b` checkout with the upgraded PDF reader. Original sample and
+comparison artifacts remain unchanged; earlier failures are not erased.
+
+Railway deployed `4a94a1b` as `2483fbb7-af09-419c-9d7b-9eb910346d11`
+successfully; the public health endpoint returned HTTP 200 / `ok`. Only
+deployment metadata and public health were read, not credentials, environment
+values or user records. This closes the bounded engineering follow-up, not
+logged-in generation/revision/download acceptance or semantic content approval.
+The helper stays offline-only; formal release v0.6.0 and the closed six-call
+campaigns remain separate. No new sample, model request or release was made.
