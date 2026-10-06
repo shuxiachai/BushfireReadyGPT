@@ -1,6 +1,7 @@
 # Current project status
 
-Updated 2026-10-03 for the resumed offline-content and dependency follow-up. This page
+Updated 2026-10-06 to define the next bounded school-sample acceptance; no new
+model run, accepted sample or formal release is claimed by that preparation. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -156,6 +157,73 @@ Evaluate new content cases separately from seen development
 fixtures, and retain unknowns and human review. Real stakeholder feedback is a
 separate activity, not something synthetic testing can supply. Adding live
 emergency decisions is not a required next feature.
+
+### Next bounded deliverable: one current-version school draft
+
+Use the [recorded school form](history/LAUNCH_READINESS_2026-09-15.md#record-021):
+Cairns, Queensland; school administration and staff; School bushfire preparedness;
+a seven-day plan; First aid training, Communication channels and Evacuation.
+Do not select a map area or invent contacts, assembly places, qualifications or
+exercise frequency. This differs from the broader school demo card; it is one
+seen-case follow-up, not an independent generalisation benchmark.
+
+- **Useful content is retained.** Predeclare the relevant facts from the new
+  frozen P2 basis and submitted passages, without choosing targets to fit the
+  generated output. Afterwards verify their supporting text was included in the
+  final attempt and check both presence and limits in the report. If a repair
+  omits supporting text, retain the target and record a context-coverage gap,
+  not a model-omission error for unseen evidence. Omission is not successful
+  citation correction. Retain meaningful community context,
+  periods, approximate geography and unknown language measurement. Historical
+  values, every retrieved passage and unrelated household details are not
+  mandatory facts for a new school report.
+- **Sources and local tasks are separate.** External facts, recommendations and
+  established criteria need directly supporting, actually submitted text and a
+  complete adjacent citation. P2 values use frozen processed-data provenance,
+  not an O1 token. A household description retains its household audience;
+  campus application is a separate local-review proposal. Registers, omitted
+  retrieval passages, R3/Planner output and prior model prose do not supply
+  external support. Do not silently correct contradictory source wording.
+- **Conditions and unknowns survive.** Preserve audience, conditions, action
+  objects, years, denominators and approximate boundaries. P2 is processed
+  community context, not current campus population or an O1 quotation. Do not
+  restore the unverified legacy language percentage/need label. Local contacts,
+  venues, qualifications, frequency and unsupported physical assembly criteria
+  stay subject to confirmation; supplied evidence does not establish school
+  evacuation routes or destinations.
+- **Every proposed task is qualified.** Each unsupported task, bullet or table
+  cell, including repetitions in the action plan, starts with
+  `Unverified proposal for local review:` and identifies who must confirm what.
+  Another cell or general disclaimer does not qualify it. That label cannot
+  legitimise unsupported causal, medical, safety or effectiveness assertions;
+  remove such assertions and identify the evidence gap.
+- **All 15 sections remain useful within 650–800 narrative words.** Keep bounded
+  geography/evidence and school-planning context; separate priorities,
+  evacuation-planning gaps and supported or missing assembly criteria. Provide
+  proposed owners, internal/parent communication and inclusion, first-aid and
+  training confirmation needs, and a seven-day action plan with explicit Day 1.
+  Retain review requirements and the safety boundary. Property maintenance
+  cannot substitute for communications or first-aid/training; do not invent
+  clinical procedures, fixed drill schedules or verified venues.
+- **Acceptance is report-specific and remains pending.** Review the complete
+  narrative, tables and checklists against these requirements using the new
+  report's version, frozen inputs and final submitted-evidence capture. Existing
+  diagnostics and the detached literal-target helper locate issues; they do not
+  decide semantic correctness. Keep the old 74-item review and 5/64 diagnostic
+  unchanged. Only after content review can that report's Markdown/PDF/DOCX/ZIP
+  bindings and actual layouts be accepted for a new draft sample. A failure is
+  retained, not resampled into a pass. This establishes neither domain-expert
+  approval nor user validation or a new formal release.
+
+External generation needs separate permission and an actual report-model-call
+budget including automatic repairs. Both six-call campaigns remain closed.
+The existing showcase builder requires local Ollama and defaults to
+`examples/v<project version>`, which may already contain frozen artifacts.
+Use a fresh explicit output path for a new sample; do not bypass cloud consent
+or replace old artifacts.
+
+### Existing development evidence and boundaries
+
 The bounded input changes from the
 [school source review](history/LAUNCH_READINESS_2026-09-15.md#record-023) are now
 covered by offline contracts; a separately authorised model comparison has now
