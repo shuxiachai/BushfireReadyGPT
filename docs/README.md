@@ -14,7 +14,7 @@
 | --- | --- |
 | [Guides](guides/README.md) | Demonstration scenarios, walkthrough and presentation checklist. |
 | [Pilot materials](pilot/README.md) | Protocol, feedback, anonymous measurement and the pending participant register. |
-| [Architecture](architecture.md) | Deterministic components, model boundary and data flow. |
+| [Architecture and file map](architecture.md#current-file-map) | Running entry points, caller relationships, representative tests, model boundary and data flow. |
 | [RAG design](rag.md) | Current retrieval setup, evidence handling and trust limits. |
 | [Evaluation and observability](evaluation_and_observability.md) | Diagnostic definitions, runtime Trace and measurement boundaries. |
 | [Experiments](experiments/README.md) | Evidence-layout, structured selection and proposal development records; non-production. |
@@ -23,7 +23,7 @@
 | [Benchmark evidence](benchmarks/README.md) | Version-bound engineering artifacts, not report-accuracy or user-validation claims. |
 | [Diagnostic artifacts](diagnostics/) | Existing machine-readable diagnostic runs, retained unchanged. |
 | [Data documentation](../data_australia/README.md) | Data preparation, files and provenance. |
-| [Script navigator](../scripts/README.md) | Deployment, data, evaluation, release and experimental entry points. |
+| [Script navigator](../scripts/README.md) | Runnable tools versus importable helpers, side effects and closed experimental campaigns. |
 
 [Licence notes](licence_register.md), [upstream attribution](../UPSTREAM.md) and
 [the licence](../LICENSE) remain part of the project boundary. The

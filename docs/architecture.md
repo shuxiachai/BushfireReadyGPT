@@ -1,5 +1,48 @@
 # BushfireReadyGPT Architecture
 
+## Current file map
+
+Paths below are relative to the repository root. “Current application” identifies
+the maintained execution path, not production readiness. The tests are navigation
+references, not a new validation result; this is a responsibility map, not an
+exhaustive list of every module.
+
+| Layer / files | Responsibility and caller relationship | Representative tests |
+| --- | --- | --- |
+| [Windows launcher](../Start%20BushfireReadyGPT.bat) → [start_app.ps1](../start_app.ps1) | Environment/service/model preflight, then launches Streamlit at `src/wildfireChat.py`. | [Launcher](../tests/test_windows_launcher.py), [CPU preflight](../tests/test_windows_cpu_preflight.py) |
+| [Dockerfile](../Dockerfile) → [start_container.py](../scripts/start_container.py) → [container_runtime.py](../src/container_runtime.py) | Container configuration, volume and corpus preparation, then the same Streamlit application. | [Runtime](../tests/test_container_runtime.py), [Private corpus](../tests/test_container_private_corpus.py) |
+| [wildfireChat.py](../src/wildfireChat.py), [report_views.py](../src/ui/report_views.py), [review_views.py](../src/ui/review_views.py) | Compose workspace, form, preview and review/export controls; delegate generation and revision to the workflow. | [UI workflow](../tests/test_streamlit_workflow.py), [Body-claim review](../tests/test_body_claim_review_ui.py) |
+| [report_workflow.py](../src/report_workflow.py) | Validate input/provider permission; orchestrate analysis, prompt and bounded generation; finalise versions, evidence, review state and audit binding. | [Core pipeline](../tests/test_core_pipeline.py), [Revision boundaries](../tests/test_governed_revision_boundaries.py) |
+| [pipeline.py](../src/agents/pipeline.py), [report_agent.py](../src/agents/report_agent.py) | Run deterministic profile/data/community/knowledge/risk/planner stages; assemble planning context for the prompt. The Report Agent does not call a model. | [Core pipeline](../tests/test_core_pipeline.py), [Planning context](../tests/test_planning_context_v2.py) |
+| [data_paths.py](../src/data_paths.py), [data_artifacts.py](../src/data_artifacts.py), [RAG service](../src/rag/service.py), [RAG context](../src/rag/context.py) | Resolve/verify data, retrieve verified passages and assemble bounded context for the pipeline. RAG is optional locally; cloud generation requires available verified infrastructure. | [Data integrity](../tests/test_data_artifacts.py), [Retrieval](../tests/test_rag_pipeline.py), [Cloud availability](../tests/test_cloud_report_availability.py) |
+| [report_template.py](../src/report_template.py), [source_attribution.py](../src/source_attribution.py) | Build prompts from supplied analysis; provide opaque citation tokens, deterministic attribution expansion, notices, evidence tables and sign-off. Prompt construction does not rerun analysis. | [Prompt contract](../tests/test_report_prompt_contract.py), [Repair flow](../tests/test_report_repair_flow.py) |
+| [model_runtime.py](../src/model_runtime.py), [model_evidence.py](../src/model_evidence.py) | Execute bounded stateless requests and bind submitted evidence context to responses, through the workflow's model callback. | [Model runtime](../tests/test_model_runtime.py), [Evidence capture](../tests/test_model_evidence.py) |
+| [report_generation_quality.py](../src/report_generation_quality.py), [report_quality_agent.py](../src/agents/report_quality_agent.py), [safety_boundary.py](../src/safety_boundary.py) | Share the deterministic governed gate and bounded replacement-repair policy across lifecycle stages. | [Repair flow](../tests/test_report_repair_flow.py), [Safety](../tests/test_safety_boundary.py), [Policy binding](../tests/test_quality_policy_audit.py) |
+| [report_grounding.py](../src/report_grounding.py), [report_claim_evidence.py](../src/report_claim_evidence.py), [source_applicability.py](../src/source_applicability.py) | Provide evidence/body-claim diagnostics and a limited review-time source-applicability advisory; none establishes semantic truth or local applicability. | [Grounding](../tests/test_report_grounding.py), [Body claims](../tests/test_report_claim_evidence.py), [Review disposition](../tests/test_review_evidence_disposition.py) |
+| [audit.py](../src/audit.py), [export_register.py](../src/export_register.py), [export_package.py](../src/export_package.py), [PDF](../src/pdf_export.py), [DOCX](../src/docx_export.py), [downloads.py](../src/ui/downloads.py) | Bind versions/review events and frozen registers; verify package eligibility, render formats and deliver exports through the UI. | [Audit](../tests/test_audit_governance.py), [Core pipeline](../tests/test_core_pipeline.py), [Private downloads](../tests/test_private_downloads.py) |
+| [session_store.py](../src/session_store.py), [revision_state.py](../src/revision_state.py), [runtime_trace.py](../src/runtime_trace.py) | Manage session state, recoverable revision requests and privacy-minimised stage observations around the workflow. | [Session validation](../tests/test_session_store_hardening.py), [Revision recovery](../tests/test_revision_recovery.py), [Trace](../tests/test_runtime_trace.py) |
+
+Generation follows UI → workflow preconditions → deterministic analysis → prompt
+assembly → bounded model/repair attempts → deterministic finalisation and audit.
+Review and export are separate later actions; revision uses the bound report
+context rather than silently rerunning the analysis. The diagrams below show
+component relationships, not the exact call order.
+
+The [script navigator](../scripts/README.md) distinguishes deployment/data tools,
+evaluation entry points, importable helpers and closed experimental campaigns.
+A file under `scripts/` is not automatically an application stage, and an
+evaluator is not automatically offline or free of model calls. [Experiments](experiments/README.md)
+retain their provenance and journal boundaries; file maintenance does not reopen
+them. [Benchmarks](benchmarks/README.md), [diagnostics](diagnostics/), [release records](releases/)
+and [versioned samples](../examples/README.md) retain their historical source bindings.
+
+The [data guide](../data_australia/README.md) separates committed core data and
+fixtures from locally prepared downloads/indexes. Ignored runtime outputs,
+session files, private deployment corpora and Python caches are not additional
+tracked application modules. Ignored does not mean disposable: outputs can
+contain audit records or frozen experiment evidence, so this map is not a
+cleanup instruction.
+
 ## System Architecture
 
 The default local path below is preserved. The optional [cloud deployment](DEPLOYMENT.md)
@@ -145,7 +188,14 @@ grounding methods and audit results are not silently recalculated in place.
 See the [content evaluation record](LAUNCH_READINESS_2026-09-15.md) for measured
 failures and remaining acceptance limits.
 
-The RAG path is optional and fail-closed. Its source catalog restricts downloads to declared HTTPS URLs and local paths, requires page-level licence and verification metadata, and covers all eight states and territories. HTML extraction can target one or more declared ID elements, and PDF/HTML signatures are checked before atomic publication. Builds use deterministic chunk IDs, local Ollama embeddings, a canonical document snapshot and a staged Qdrant directory. The manifest binds the catalog, exact source bytes, document snapshot, chunk corpus, model and dimensions. Build, inspection and retrieval operations for the same resolved index acquire one fixed process-then-file lock order, coordinating embedded Qdrant both within the app and with a separate local build process. A build captures an immutable private catalog/source snapshot, verifies it before publication and rolls back to the previous index if live inputs drift in the publication window. Retrieval validates the index at entry and exit, filters by jurisdiction, then combines dense candidates with BM25 through weighted reciprocal-rank fusion, bounded metadata boosts and a per-source diversity cap. It also validates the Qdrant point count and every returned point ID/text hash before adding passages to the prompt. Component scores, ranks and rerank reasons are exposed for review; retrieved text is delimited as untrusted evidence, never as instructions, and is excluded from privacy-minimised audit events. Live/life-safety queries and unsupported free-text queries deterministically abstain. A missing, stale or corrupt index results in zero RAG passages while the deterministic pipeline continues.
+The RAG path is optional locally and fail-closed. Its source catalog restricts downloads to declared HTTPS URLs and local paths, requires page-level licence and verification metadata, and covers all eight states and territories. HTML extraction can target one or more declared ID elements, and PDF/HTML signatures are checked before atomic publication. Builds use deterministic chunk IDs, local Ollama embeddings, a canonical document snapshot and a staged Qdrant directory. The manifest binds the catalog, exact source bytes, document snapshot, chunk corpus, model and dimensions. Build, inspection and retrieval operations for the same resolved index acquire one fixed process-then-file lock order, coordinating embedded Qdrant both within the app and with a separate local build process. A build captures an immutable private catalog/source snapshot, verifies it before publication and rolls back to the previous index if live inputs drift in the publication window. Retrieval validates the index at entry and exit, filters by jurisdiction, then combines dense candidates with BM25 through weighted reciprocal-rank fusion, bounded metadata boosts and a per-source diversity cap. It also validates the Qdrant point count and every returned point ID/text hash before adding passages to the prompt. Component scores, ranks and rerank reasons are exposed for review; retrieved text is delimited as untrusted evidence, never as instructions, and is excluded from privacy-minimised audit events. Live/life-safety queries and unsupported free-text queries deterministically abstain. A missing, stale or corrupt index results in zero RAG passages while the deterministic analysis pipeline continues locally.
+
+Cloud generation requires the current analysis's knowledge status to be `ready`,
+`no_match` or `out_of_scope`; unavailable or unverifiable retrieval infrastructure
+otherwise stops it before a report-model request. Cloud revision applies that
+status check to the report's frozen, audit-bound analysis, without probing the
+live index or rerunning retrieval. Valid abstentions may continue without RAG
+passages; a frozen ready context does not establish current index availability.
 
 Cross-process locks store a PID plus an unpredictable owner token. Unlocking
 requires the same token, so a delayed owner cannot remove its successor's lock.
@@ -155,10 +205,12 @@ threshold; a valid record is reclaimed only when its PID is confirmed dead.
 This conservative rule is shared by audit and RAG paths.
 
 Retrieved metadata is normalised before prompt assembly. Model-authored claims
-must cite the canonical `[O1-RAG][source_id=...] <title>` label and are forbidden
-from writing, inferring or retyping URLs. The application appends verified URLs
-from frozen deterministic metadata in Evidence Table 4 and Evidence Table 5, so
-model prose is never the link authority.
+must copy the supplied opaque `[O1-RAG][ref=...]` citation token, not a source
+title or an invented token. After generation, the application expands recognised
+tokens to verified `[O1-RAG][source_id=...] <title>` display labels. Model prose
+may not write, infer or retype URLs; verified URLs are appended from frozen
+deterministic metadata in Evidence Table 4 and Evidence Table 5, so model prose
+is never the link authority.
 
 `DataPaths` is the single source of active data locations for the map, status views and every pipeline agent. Explicit map selection is resolved into one effective geography before downstream analysis; an unknown form-level state inherits the selected state, while a known cross-state conflict fails closed. The bundled core is checked against `data_australia/manifest.json` before use, nested YAML artifacts are schema-validated with field-level errors, and provenance digests are compared again after analysis so a concurrent refresh cannot silently relabel an analysis. Validated downloader outputs are staged and published as recoverable multi-file transactions; writers of the shared core manifest use one publication lock and recovery journal. The optional nationwide map additionally requires matching profile/boundary structure and a hash-valid bundle sidecar before selection, report generation or organisational approval.
 

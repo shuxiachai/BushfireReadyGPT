@@ -115,7 +115,7 @@ For Docker/Railway, CPU embeddings, private-corpus handling and the controlled-d
 
 ## Documentation and history
 
-Start with the [documentation index](docs/README.md), [plain-language project overview](docs/project_overview.md), [architecture](docs/architecture.md) and [RAG guide](docs/rag.md).
+Start with the [documentation index](docs/README.md), [plain-language project overview](docs/project_overview.md), [architecture and file map](docs/architecture.md#current-file-map) and [RAG guide](docs/rag.md).
 
 Browse [demonstration guides](docs/guides/README.md), [pilot materials](docs/pilot/README.md), [experimental work](docs/experiments/README.md), [historical audits and acceptance](docs/history/README.md), or the [script navigator](scripts/README.md). Only [current project status](docs/project_reassessment.md) is the maintained progress summary; historical assessments are not current acceptance claims.
 
