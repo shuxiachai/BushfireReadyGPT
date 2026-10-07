@@ -60,7 +60,7 @@ The earlier validation records below retain their own dates, sources and scopes.
 
 README now separates the deployed v8 engineering baseline from the frozen
 v0.6.0 release and earlier v7 report evidence. The local interview handbook was
-condensed to 14,256 characters, preserving failure records and metric denominators;
+condensed to fewer than 15,000 characters, preserving failure records and metric denominators;
 it remains Git-ignored rather than a new public release artifact.
 
 The read-only [runtime maintenance check](../scripts/check_runtime_maintenance.py)
@@ -82,10 +82,24 @@ returned HTTP 200 / `ok`; no logged-in report-generation flow was run.
 Read-only Railway metadata confirms one replica and the existing 1,024-MB volume
 mounted at `/data`; observed current disk usage was 0.03208 GB. DeepSeek's official
 balance endpoint returned account availability without a generation request;
-no credentials or account amounts are recorded. Native backup IDs/schedules,
-effective live quota values and workspace monetary controls remain unverified
-pending Railway web login. No settings, cloud data, backups or budget amounts
-were changed. See [maintenance boundaries](DEPLOYMENT.md#maintenance-checks-and-backup-recovery).
+no credentials or account amounts are recorded.
+
+The subsequent authenticated check used deployment
+`3fd84ab0-6650-403e-bc41-cb52b1f48cd4`, source `899c9ec`. The read-only CLI
+returned `ready`: cloud mode, daily ceiling 100, concurrency 1, output cap 2,300,
+SDK retries 0, available selected-day SQLite usage and audit/trace/quota paths
+within `/data`. The aggregate count is retained privately, not a model-success
+metric or a backup-recovery result.
+
+The service's Backups page explicitly showed **No Backups** and restricted
+backup creation to Pro; this workspace currently uses Hobby. No native backup
+or production restore is therefore claimed. Workspace Usage displayed a
+separate Agent hard limit, but no Compute limit indicator. The limits form had
+empty fields, including Agent despite its displayed limit; blank fields alone
+do not prove a setting is absent. No Compute monetary ceiling or email alert
+has been confirmed. No credentials, account amounts or other projects' costs
+are recorded. No settings, cloud data, backups or budget amounts were changed.
+See [maintenance boundaries](DEPLOYMENT.md#maintenance-checks-and-backup-recovery).
 
 The resumed follow-up is complete as a bounded engineering change: 87 dedicated /
 450 related checks, final local 3,085-test non-E2E regression (src 89.76%),

@@ -320,7 +320,14 @@ the database. Check other retained days too. A rollback or missing independently
 retained count requires keeping model traffic stopped while the operator
 reconciles usage. Do not silently restore an earlier quota as new allowance.
 
-Use the volume's native backup list/schedule to record backup IDs, timestamps,
+Check the current plan's backup eligibility before assuming creation or
+scheduling is available. The authenticated Hobby workspace checked on
+2026-10-07 showed no backups and a Pro-only creation notice; this deployment
+does not have a verified native backup. A subscription upgrade or a separate
+offsite backup workflow is an operator choice, not part of a read-only check.
+Restart persistence and local synthetic restore tests do not close that gap.
+
+Use an eligible volume's native backup list/schedule to record backup IDs, timestamps,
 expiry and state. Railway's documented UI restore flow stages a new volume;
 applying it redeploys the service. The old volume is retained but unmounted;
 verify the proposed destination and keep it for rollback. The restored volume
