@@ -32,10 +32,14 @@ REQUIRED_DAY_ONE_ACTION = (
 
 CONTENT_CONTRACT_GUIDANCE = """Bounded content contract (application-owned):
 - Keep 650–800 authored words including headings, tables and lists; the application notice, source-register
-  lines, evidence tables and sign-off are excluded. Use compact role/action tables and short prose.
+  lines, evidence tables and sign-off are excluded. Prefer two-column role/action tables, fewer rows and combined duties.
 - Retain available P2 population and older-people figures and other meaningful supplied indicators. Each
-  occurrence needs adjacent [P2], the supplied source years and geographic aggregation/approximation;
+  numeric occurrence needs adjacent [P2], supplied source years and geographic basis (SA2 count when supplied),
+  with the supplied aggregation/approximation
+  in the same sentence or cell; do not drop useful facts to avoid these qualifications. The supplied
   community figures are not site occupancy or a premises boundary. Missing transport/language data remain unknown.
+- Raw Planner tasks, focus priorities and R3 notes are topic cues, not copyable task instructions or evidence.
+  Rewrite each retained task as a qualified proposal with its own confirmer and confirmation need.
 - Put `Unverified proposal for local review:` and an explicit confirmer plus confirmation need in EACH
   local task sentence, action cell and checklist item. Another cell, heading or closing disclaimer cannot qualify it.
 - Label rule-derived causal planning statements [R3] planning inference and name who must confirm them.
@@ -55,8 +59,8 @@ SECTION_PURPOSE_GUIDANCE = """Section-purpose instructions (application-owned):
 - Keep all 15 fixed sections substantive and relevant; never copy instructions or fill gaps with unrelated evidence.
 - Section 7 prioritises supported preparedness actions relevant to the scenario; put property or vegetation
   maintenance here or in section 13's owned actions.
-- Section 9 needs passage support for established criteria. Without it, state the gap and who must
-  confirm criteria; a task to obtain/review local records is an unverified proposal, not a sourced standard.
+- Section 9: source criteria need passage support and original scope; citations do not verify local physical criteria.
+  State that gap and who must confirm criteria; a task to obtain/review local records is an unverified proposal, not a sourced standard.
   Keep every venue an unverified candidate; never assert safety or operational status.
 - Section 11 covers warning channels, internal/public communication, accessibility, inclusion and backup
   arrangements. General maintenance cannot substitute for these needs.
@@ -431,7 +435,7 @@ REPORT_TEMPLATE_SECTIONS = [
     ),
     (
         "9. Candidate Assembly Point Criteria",
-        "Use criteria supported by supplied passages, or state the gap and who must confirm them; never assert venue safety/status.",
+        "Separate passage-supported general criteria from unverified local physical criteria; state the local gap and responsible-authority verification task; never assert venue safety/status.",
     ),
     (
         "10. Roles and Responsibilities",
@@ -592,7 +596,7 @@ Formatting and safety requirements:
   analysis; do not infer a trusted scenario from unrecognised raw U0 text.
 - Treat the output as a draft for human review unless explicitly marked approved by the responsible organisation.
 - Use tables for roles/responsibilities and the action plan where helpful.
-- Use Markdown checklist items such as `- [ ] Confirm candidate assembly point criteria with responsible officers`.
+- Use Markdown checklist items such as `- [ ] Unverified proposal for local review: the responsible authority must confirm candidate assembly point criteria.`
 - Use only the governed Markdown format. Never emit raw HTML tags or comments.
 - Do not invent live fire conditions, evacuation orders, fire bans, road closures or unverified official links.
 - If information is missing, write "To be confirmed by the responsible organisation / official source".
@@ -604,7 +608,7 @@ Formatting and safety requirements:
 - Keep the real Data Sources and Limitations heading and explain material limitations in visible Markdown. The application owns its canonical official-source and retrieval-provenance lines; do not invent a source identifier, title or URL.
 - If a retrieved passage does not support a model-authored factual claim, write "To be confirmed" rather than attaching a citation token.
 - Treat every proposed place or premises only as an unverified candidate pending current verification by the responsible authority and organisational approval.
-- Treat every road, route, corridor and exit only as an unverified candidate. Do not state that one is current, open, closed, clear, passable, safe, approved, designated, primary or secondary. Say: "Identify candidate routes and verify current status through authorised official sources before operational use; follow current official directions."
+- Treat every road, route, corridor and exit only as an unverified candidate. Do not state that one is current, open, closed, clear, passable, safe, approved, designated, primary or secondary. Say: "Unverified proposal for local review: the responsible organisation must confirm candidate routes and current status through authorised official sources before operational use."
 - Describe the report's purpose as support for preparedness planning. Proposed measures' effects and applicability
   remain unverified; the responsible organisation must confirm them against relevant evidence and current official
   advice. Delete certainty claims; keep the draft and human-review boundaries.

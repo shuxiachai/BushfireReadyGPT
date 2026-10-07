@@ -149,16 +149,21 @@ def test_advisory_gap_retains_passing_candidate_and_missing_citation_diagnostic(
 
 
 @pytest.mark.parametrize(
-    "code, prompt_marker",
+    "check_name, code, prompt_marker",
     [
-        ("absolute_safety_guarantee", "ABSOLUTE-SAFETY REWRITE"),
-        ("missing_required_section", "missing_required_section"),
+        ("Safety boundary assertions", "absolute_safety_guarantee", "ABSOLUTE-SAFETY REWRITE"),
+        ("Required sections", "missing_required_section", "- Required sections"),
+        (
+            "Unrecognized private check",
+            "absolute_safety_guarantee PRIVATE_REPAIR_DETAIL",
+            "- Complete every required section with substantive content.",
+        ),
     ],
 )
-def test_mandatory_failures_still_share_original_repair_ceiling(monkeypatch, code, prompt_marker):
+def test_mandatory_failures_still_share_original_repair_ceiling(monkeypatch, check_name, code, prompt_marker):
     analysis = _analysis(_chunk("Families prepare household emergency supplies."))
     report = "Families should prepare household emergency supplies."
-    fixed = {"approval_gate": {"passed": False, "blocking_failures": [{"name": "Mandatory check", "detail": code}]}}
+    fixed = {"approval_gate": {"passed": False, "blocking_failures": [{"name": check_name, "detail": code}]}}
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: copy.deepcopy(fixed))
     monkeypatch.setattr(quality, "_normalise_generation_response", lambda response, _: str(response))
     monkeypatch.setattr(quality, "validate_narrative_ending", lambda *_: None)
@@ -168,6 +173,10 @@ def test_mandatory_failures_still_share_original_repair_ceiling(monkeypatch, cod
         attempts.append(number)
         if is_repair:
             assert "BODY CITATION REPAIR" in prompt and prompt_marker in prompt
+            assert code not in prompt
+            if check_name == "Unrecognized private check":
+                assert check_name not in prompt
+                assert "ABSOLUTE-SAFETY REWRITE" not in prompt
         _, snapshot, *_ = _capture(
             analysis, response=report, attempt=number, kind="structural_repair" if is_repair else "initial"
         )

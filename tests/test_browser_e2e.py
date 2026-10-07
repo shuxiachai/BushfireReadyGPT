@@ -24,7 +24,7 @@ APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
 ARTIFACT_PARENT = PROJECT_ROOT / "output" / "playwright"
 
 # Synthetic response for the exact Cairns Council pilot and map fixture below.
-# No quality result is mocked: the offline preflight and UI use the real v7 gate.
+# No quality result is mocked: the offline preflight and UI use the current gate.
 MOCK_REPORT = """# Cairns Council Bushfire Preparedness Draft
 
 ## 2. Executive Summary
@@ -461,7 +461,7 @@ def _assert_fixture_governed_gate(environment):
         )
         assert attempts == 1
         assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]["blocking_failures"]
-        assert quality["quality_policy_version"] == "governed-report-v7"
+        assert quality["quality_policy_version"] == "governed-report-v8"
         return analysis, narrative, quality
 
 

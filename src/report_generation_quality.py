@@ -48,7 +48,7 @@ MAX_REPORT_REPAIR_PROMPT_CHARACTERS = 18_000
 _MAX_COMPACT_REPAIR_CONTEXT_CHARACTERS = 7_000
 _MAX_COMPACT_REPAIR_RAG_CHARACTERS = 3_500
 _MAX_COMPACT_REPAIR_ITEM_CHARACTERS = 360
-CURRENT_POLICY = "governed-report-v7"
+CURRENT_POLICY = "governed-report-v8"
 QUALITY_POLICY_VERSION = CURRENT_POLICY  # Backwards-compatible public alias.
 
 
@@ -150,6 +150,31 @@ KNOWN_QUALITY_POLICY_MANIFESTS = {
         "r3_causal_ruleset": "explicit-planning-inference-v1",
         "source_scope_ruleset": "final-submitted-scope-conflict-guard-v1",
         "assembly_criteria_ruleset": "local-physical-criteria-deferred-to-authority-v1",
+    },
+    "governed-report-v8": {
+        "fingerprint_schema": "quality-policy-manifest-v1",
+        "policy_version": "governed-report-v8",
+        "structural_ruleset": "report-quality-agent-v5",
+        "safety_boundary_ruleset": "markdown-normalized-safety-boundary-v4",
+        "rag_attribution_ruleset": "deterministic-source-block-v2",
+        "model_authored_url_ruleset": "verified-url-only-v1",
+        "model_markup_ruleset": "markdown-only-narrative-v2",
+        "prompt_boundary_ruleset": "typed-prompt-data-boundaries-v3",
+        "evidence_confidence_ruleset": "static-rules-json-current-use-v1",
+        "source_section_cardinality_ruleset": "exactly-one-visible-markdown-v1",
+        "unbound_attribution_ruleset": "residual-marker-rejection-v1",
+        "focus_area_coverage_ruleset": "allowlisted-composite-focus-coverage-v2",
+        "scenario_coverage_ruleset": "allowlisted-scenario-coverage-v1",
+        "coverage_declaration_ruleset": "canonical-copy-lines-v1",
+        "model_safety_prompt_ruleset": "qualified-planner-proposals-and-risk-language-v2",
+        "legacy_contract_migration_ruleset": "exact-allowlist-or-fail-closed-v1",
+        "narrative_budget_ruleset": "authored-650-800-words-v1",
+        "p2_content_ruleset": "occurrence-period-geography-retained-values-v2",
+        "local_proposal_ruleset": "occurrence-proposal-confirmer-v2",
+        "r3_causal_ruleset": "explicit-planning-inference-v1",
+        "source_scope_ruleset": "final-submitted-scope-conflict-guard-v1",
+        "assembly_criteria_ruleset": "local-physical-criteria-deferred-to-authority-v2",
+        "repair_feedback_ruleset": "allowlisted-content-codes-and-word-count-v1",
     },
 }
 _KNOWN_POLICY_FINGERPRINTS = {
@@ -599,20 +624,153 @@ def _serialise_compact_repair_payload(payload, *, character_budget):
         omitted = True
 
 
+_GENERIC_REPAIR_CHECK_NAMES = frozenset(
+    {
+        "Substantive narrative",
+        "Required sections",
+        "Official sources",
+        "Safety disclaimer",
+        "Emergency number 000",
+        "Action plan",
+        "Checklist",
+        "Roles and responsibilities",
+        "Assembly point wording",
+        "Safety boundary assertions",
+        "Model-authored URLs",
+        "Model-authored raw HTML",
+        "Unverified attribution markers",
+        "Evidence tables",
+        "Evidence confidence",
+        "Human review status",
+        "RAG source attribution",
+        "Selected focus-area coverage",
+        "Selected scenario coverage",
+    }
+)
+_CONTENT_REPAIR_CODES = {
+    "Processed community provenance": frozenset(
+        {
+            "p2_unknown_measurement_omitted",
+            "p2_unknown_measurement_promoted",
+            "p2_invalid_frozen_measurement",
+            "p2_available_fact_omitted",
+            "p2_value_mismatch",
+            "p2_adjacent_provenance_missing",
+            "p2_period_missing",
+            "p2_geographic_basis_missing",
+            "p2_aggregation_limit_missing",
+            "p2_community_not_campus_scope_missing",
+        }
+    ),
+    "Local proposal attribution": frozenset(
+        {"local_task_requires_own_proposal_and_confirmer", "proposal_confirmer_missing"}
+    ),
+    "Rule-derived causal qualification": frozenset(
+        {
+            "causal_planning_inference_unqualified",
+            "r3_inference_cannot_borrow_official_citation",
+            "unsupported_causal_effect_assertion",
+        }
+    ),
+    "Submitted passage scope and conflicts": frozenset(
+        {
+            "cited_passage_not_final_submitted",
+            "physical_assembly_criteria_require_authority_verification",
+            "household_source_scope_not_preserved",
+            "contradictory_source_used_as_advice",
+        }
+    ),
+    "Narrative word budget": frozenset({"narrative_word_budget"}),
+}
+_CONTENT_REPAIR_CORRECTIONS = {
+    "Processed community provenance": (
+        "- P2: Retain useful supplied values. In EACH numeric sentence/cell include adjacent [P2], source years, "
+        "supplied geographic basis (SA2 count when supplied), aggregation/approximation and community-not-site limits; "
+        "keep missing measurements unknown. "
+        "Use the frozen P2 basis, not prior model prose."
+    ),
+    "Local proposal attribution": (
+        "- TASK: Rewrite EACH retained Planner/role/action/checklist task with 'Unverified proposal for local review:' "
+        "and who must confirm what in that sentence/cell. Other rows, headings and disclaimers cannot qualify it. "
+        "Planner priorities and R3 notes are topic cues."
+    ),
+    "Rule-derived causal qualification": (
+        "- CAUSAL: Mark rule-derived causal statements '[R3] planning inference' with a confirmer; never borrow O1 "
+        "citations. Remove unsupported medical/effect claims; proposal wording is not evidence."
+    ),
+    "Submitted passage scope and conflicts": (
+        "- SOURCE/ASSEMBLY: Use only submitted passages; retain audience, conditions and action object. Flag reversed "
+        "wording as a cited unresolved source conflict. Local physical criteria stay unverified even if cited; "
+        "state the gap and authority-verification task."
+    ),
+    "Narrative word budget": (
+        "- LENGTH: Keep 650–800 authored words and all 15 sections with at least 300 prose words. Use two-column "
+        "role tables, fewer rows and combined duties; retain useful facts and their qualifications. "
+        "Count headings, tables and lists; exclude application appendices and source-register lines."
+    ),
+}
+_MAX_CONTENT_REPAIR_FEEDBACK_CHARACTERS = 1400
+_MAX_REPAIR_WORD_COUNT = 100_000
+
+
+def _content_repair_feedback(quality):
+    """Translate recognized structured findings into bounded application-owned instructions."""
+
+    checks = quality.get("checks")
+    if not isinstance(checks, list):
+        return ""
+    failed_names = set()
+    word_count = None
+    for check in checks:
+        if not isinstance(check, dict) or check.get("status") != "fail":
+            continue
+        name = check.get("name")
+        if not isinstance(name, str) or name not in _CONTENT_REPAIR_CODES:
+            continue
+        findings = check.get("findings")
+        if not isinstance(findings, list) or not any(
+            isinstance(finding, dict)
+            and isinstance(finding.get("code"), str)
+            and finding["code"] in _CONTENT_REPAIR_CODES[name]
+            for finding in findings
+        ):
+            continue
+        failed_names.add(name)
+        count = check.get("word_count")
+        if (
+            name == "Narrative word budget"
+            and word_count is None
+            and isinstance(count, int)
+            and not isinstance(count, bool)
+            and 0 <= count <= _MAX_REPAIR_WORD_COUNT
+        ):
+            word_count = count
+    lines = [text for name, text in _CONTENT_REPAIR_CORRECTIONS.items() if name in failed_names]
+    if word_count is not None:
+        lines[-1] += f" Measured authored words: {word_count}."
+    rendered = "\n".join(lines)
+    if len(rendered) > _MAX_CONTENT_REPAIR_FEEDBACK_CHARACTERS:
+        raise ReportGenerationPreconditionError("The content repair feedback exceeds its safe budget.")
+    return rendered
+
+
 def _compact_failure_lines(failures):
-    lines = []
-    for item in failures[:6]:
+    # Content checks use structured findings above. Free-text details can contain
+    # draft/user text; render only fixed known names for the remaining checks.
+    lines, seen = [], set()
+    for item in failures:
         if not isinstance(item, dict):
             continue
-        name = _bounded_repair_text(item.get("name"), limit=100) or "Governed check"
-        detail = _bounded_repair_text(item.get("detail"), limit=280)
-        detail = re.sub(
-            r"absolute_safety_guarantee",
-            "absolute-outcome wording detected",
-            detail,
-            flags=re.IGNORECASE,
-        )
-        lines.append(f"- {name}: {detail}" if detail else f"- {name}")
+        name = item.get("name")
+        if not isinstance(name, str) or name not in _GENERIC_REPAIR_CHECK_NAMES or name in seen:
+            continue
+        seen.add(name)
+        line = f"- {name}"
+        if name == "Roles and responsibilities":
+            line += ": Add audience-appropriate roles and their qualified proposed duties."
+        lines.append(line)
+        if len(lines) == 6:
+            break
     return "\n".join(lines)
 
 
@@ -621,6 +779,7 @@ def build_report_repair_prompt(
 ):
     failures = quality.get("approval_gate", {}).get("blocking_failures", [])
     failure_lines = _compact_failure_lines(failures)
+    content_feedback = _content_repair_feedback(quality)
     citation_feedback = (
         "BODY CITATION REPAIR: The previous complete draft contained claims requiring external evidence, but NONE "
         "of those claims had a recognised body citation. Source-register lines and citations on user-reported "
@@ -639,16 +798,19 @@ def build_report_repair_prompt(
         rag_sources=(analysis.get("knowledge") or {}).get("retrieved_chunks") or [],
     )
     failure_text = "\n".join(
-        f"{item.get('name', '')} {item.get('detail', '')}" for item in failures if isinstance(item, dict)
+        f"{item.get('name', '')} {item.get('detail', '')}"
+        for item in failures
+        if isinstance(item, dict)
+        and item.get("name") in ("Safety boundary assertions", "Assembly point wording", "Required sections")
     ).casefold()
     targeted_safety_rules = []
     if "road_status_assertion" in failure_text:
         targeted_safety_rules.append(
             "- ROAD/ROUTE REWRITE: Never state or imply that a road, route, corridor or exit is current, "
             "open, closed, clear, passable, safe, approved, designated, primary or secondary. Replace every "
-            'such statement, including table and checklist text, with: "Identify candidate routes and verify '
-            "current status through authorised official sources before operational use; follow current official "
-            'directions." Do not quote the rejected wording.'
+            'such statement, including table and checklist text, with: "Unverified proposal for local review: '
+            "the responsible organisation must confirm candidate routes and current status through authorised "
+            'official sources before operational use." Do not quote the rejected wording.'
         )
     if "premises_status_assertion" in failure_text or "assembly point wording" in failure_text:
         targeted_safety_rules.append(
@@ -659,7 +821,7 @@ def build_report_repair_prompt(
         )
     if "absolute_safety_guarantee" in failure_text:
         targeted_safety_rules.append(
-            '- ABSOLUTE-SAFETY REWRITE: Replace the failing claim exactly with: "This report aims to support '
+            '- ABSOLUTE-SAFETY REWRITE (absolute-outcome wording detected): Replace the failing claim exactly with: "This report aims to support '
             "preparedness planning. Proposed measures' effects and applicability remain unverified and require "
             'confirmation by the responsible organisation." Delete competing certainty or survival outcome claims, '
             "including in tables, checklists and examples, without quoting the rejected wording."
@@ -682,8 +844,9 @@ def build_report_repair_prompt(
     required_action_line = REQUIRED_DAY_ONE_ACTION
     heading_sequence = "\n".join(f"- {title}" for title, _instruction in REPORT_TEMPLATE_SECTIONS)
     requirements = f"""REPAIR REQUIREMENTS (application-owned instructions; apply these after reading the data above):
-Blocking checks:
-{failure_lines or "- Complete every required section with substantive content."}
+Blocking checks and content corrections:
+{failure_lines or ("" if content_feedback else "- Complete every required section with substantive content.")}
+{content_feedback}
 
 Targeted corrections:
 {targeted_safety_text}

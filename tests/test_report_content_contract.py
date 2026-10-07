@@ -135,6 +135,56 @@ def test_p2_positive_retains_useful_facts_without_external_evidence():
     assert _checks(_p2_text(), _community())["Processed community provenance"]["status"] == "pass"
 
 
+def _p2_basis_text():
+    return (
+        _p2_text()
+        .replace("population is", "population basis is")
+        .replace("older people represent", "older-people share is")
+    )
+
+
+def test_p2_population_basis_and_hyphenated_older_people_keep_exact_values_and_units():
+    assert _checks(_p2_basis_text(), _community())["Processed community provenance"]["status"] == "pass"
+
+
+@pytest.mark.parametrize(
+    "old,new",
+    [
+        ("172,888", "15.6"),
+        ("15.6%", "172,888%"),
+        ("172,888", "172,888%"),
+        ("15.6%", "15.6"),
+        ("172,888", "172,888 and population basis is 42"),
+    ],
+)
+def test_new_measure_labels_do_not_relax_value_or_unit_binding(old, new):
+    check = _checks(_p2_basis_text().replace(old, new), _community())["Processed community provenance"]
+    assert "p2_value_mismatch" in _codes(check)
+
+
+@pytest.mark.parametrize(
+    "body,expected",
+    [
+        (
+            "The matched geography is an approximate 22-SA2 aggregation [P2]. "
+            "The population basis is 172,888 and older-people share is 15.6%, "
+            "drawn from 2021 Census and 2022 ERP fields [P2].",
+            {"p2_geographic_basis_missing", "p2_aggregation_limit_missing"},
+        ),
+        (
+            "The population basis is 172,888 and older-people share is 15.6% in the approximate 22-SA2 aggregation. "
+            "The source period is 2021 Census and 2022 ERP [P2].",
+            {"p2_adjacent_provenance_missing", "p2_period_missing"},
+        ),
+    ],
+)
+def test_new_measure_labels_cannot_borrow_basis_from_adjacent_sentence(body, expected):
+    text = "## 4. Selected Geography and Key Assumptions\n" + body + " Transport and language remain unknown."
+    codes = _codes(_checks(text, _community())["Processed community provenance"])
+    assert "p2_available_fact_omitted" not in codes
+    assert expected <= codes
+
+
 @pytest.mark.parametrize(
     "old,new,code",
     [
@@ -199,6 +249,112 @@ def test_table_action_cell_has_its_own_qualification_and_no_heading_inheritance(
     assert _checks(invalid)["Local proposal attribution"]["status"] == "fail"
 
 
+@pytest.mark.parametrize(
+    "duty",
+    [
+        "Coordinates plan and review checkpoints",
+        "Tracks official Queensland channels",
+        "Maintains class lists and visitor records",
+        "Handles parent and guardian updates",
+    ],
+)
+def test_proposed_function_column_requires_each_third_person_duty_to_be_qualified(duty):
+    confirmer = "Unverified proposal for local review: the responsible authority must confirm this duty."
+    text = (
+        "## 10. Roles and Responsibilities\n| Role | Proposed function | Confirmation needed |\n"
+        "| --- | --- | --- |\n| Lead | " + duty + " | " + confirmer + " |"
+    )
+    check = _checks(text)["Local proposal attribution"]
+    assert check["findings"] == [{"code": "local_task_requires_own_proposal_and_confirmer", "count": 1}]
+    qualified = text.replace(
+        duty, "Unverified proposal for local review: " + duty + "; the responsible authority must confirm"
+    )
+    assert _checks(qualified)["Local proposal attribution"]["status"] == "pass"
+    same_cell_later_sentence = text.replace(duty, duty + ". " + confirmer)
+    assert _checks(same_cell_later_sentence)["Local proposal attribution"]["status"] == "fail"
+
+
+@pytest.mark.parametrize("role", ["responsible authority", "responsible organisation", "qualified reviewer"])
+def test_direct_confirmer_duty_qualifies_local_proposal(role):
+    text = (
+        "## 13. Action Plan\nUnverified proposal for local review: assign a review owner; the "
+        + role
+        + " must confirm."
+    )
+    assert _checks(text)["Local proposal attribution"]["status"] == "pass"
+
+
+@pytest.mark.parametrize(
+    "confirmer",
+    [
+        "the responsible authority must not confirm this task",
+        "the responsible authority will never confirm this task",
+        "the responsible authority does not need to confirm this task",
+        "no responsible authority must confirm this task",
+        "it is not true that the responsible authority must confirm this task",
+        "there is no requirement that the responsible authority must confirm this task",
+        "the responsible authority is unavailable, so the operator must confirm this task",
+        "if the responsible authority must confirm this task, it can be recorded",
+        "unless the responsible authority must confirm this task, it can be recorded",
+        "whether the responsible authority must confirm this task is unknown",
+        "hypothetically the responsible authority must confirm this task",
+        'the example reads "the responsible authority must confirm this task"',
+        "the note says 'the responsible authority must confirm this task'",
+        "the quoted instruction is ‘the responsible authority must confirm this task’",
+        "the responsible authority must confirm this task is not required",
+    ],
+)
+def test_non_asserted_or_negated_confirmer_does_not_qualify_a_local_task(confirmer):
+    text = "## 13. Action Plan\nUnverified proposal for local review: assign a review owner; " + confirmer + "."
+    codes = _codes(_checks(text)["Local proposal attribution"])
+    assert {"local_task_requires_own_proposal_and_confirmer", "proposal_confirmer_missing"} <= codes
+
+
+@pytest.mark.parametrize(
+    "confirmer",
+    [
+        "the responsible authority must confirm only if it chooses to",
+        "the responsible authority must confirm this task only if it chooses to",
+        "the responsible authority must confirm this task if it chooses to",
+        "the responsible authority must confirm this task only if convenient",
+        "the responsible authority must confirm this task only if requested",
+        "the responsible authority must confirm this task only if a later meeting occurs",
+        "the responsible authority must confirm this task unless the owner opts out",
+        "the responsible authority must confirm this task provided that funding remains",
+        "it is false that the responsible authority must confirm this task",
+    ],
+)
+def test_optional_or_false_confirmation_obligation_does_not_qualify_task(confirmer):
+    text = "## 13. Action Plan\nUnverified proposal for local review: assign a review owner; " + confirmer + "."
+    codes = _codes(_checks(text)["Local proposal attribution"])
+    assert {"local_task_requires_own_proposal_and_confirmer", "proposal_confirmer_missing"} <= codes
+
+
+@pytest.mark.parametrize(
+    "confirmation_object",
+    [
+        "whether the route has authorisation",
+        "if the route has authorisation",
+        "if the route has authorisation before use",
+        "this task before use",
+    ],
+)
+def test_confirmation_question_object_or_before_use_is_not_an_optional_obligation(confirmation_object):
+    text = (
+        "## 13. Action Plan\nUnverified proposal for local review: assign a review owner; "
+        "the responsible authority must confirm " + confirmation_object + "."
+    )
+    assert _checks(text)["Local proposal attribution"]["status"] == "pass"
+
+
+def test_quoted_example_does_not_hide_a_separate_direct_confirmer_in_the_same_unit():
+    text = (
+        '## 13. Action Plan\nUnverified proposal for local review: assign the task labelled "review owner"; '
+        "the responsible authority must confirm the appointment."
+    )
+    assert _checks(text)["Local proposal attribution"]["status"] == "pass"
+
+
 def test_action_column_can_precede_owner_and_nominal_review_context_is_not_a_task():
     action = "Unverified proposal for local review: the responsible organisation must confirm official contacts."
     text = (
@@ -217,6 +373,36 @@ def test_gap_does_not_excuse_concrete_criteria_later_in_same_sentence():
         "but shade and water should be included."
     )
     assert _checks(text)["Submitted passage scope and conflicts"]["status"] == "fail"
+
+
+_CRITERIA_NON_PROPOSAL = (
+    "The supplied passages do not establish criteria for shade, water, smoke or traffic at a candidate point, "
+    "so no such criteria are proposed here."
+)
+
+
+def test_complete_non_proposal_criteria_denial_is_not_a_task_or_physical_criterion():
+    checks = _checks("## 9. Candidate Assembly Point Criteria\n" + _CRITERIA_NON_PROPOSAL)
+    assert checks["Local proposal attribution"]["status"] == "pass"
+    assert checks["Submitted passage scope and conflicts"]["status"] == "pass"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        _CRITERIA_NON_PROPOSAL[:-1] + ", but shade and water should be included.",
+        _CRITERIA_NON_PROPOSAL[:-1] + "; use shade and water.",
+        _CRITERIA_NON_PROPOSAL[:-1] + ", and shade and water are proposed.",
+        _CRITERIA_NON_PROPOSAL + " Shade and water should be included.",
+        "| Evidence gap | Criteria |\n| --- | --- |\n| " + _CRITERIA_NON_PROPOSAL + " | Use shade and water. |",
+    ],
+)
+def test_non_proposal_criteria_denial_cannot_hide_appended_or_other_cell_advice(body):
+    checks = _checks("## 9. Candidate Assembly Point Criteria\n" + body)
+    assert checks["Local proposal attribution"]["status"] == "fail"
+    assert "physical_assembly_criteria_require_authority_verification" in _codes(
+        checks["Submitted passage scope and conflicts"]
+    )
 
 
 def test_repeated_task_and_long_independent_sentence_are_not_hidden_by_prior_prefix():

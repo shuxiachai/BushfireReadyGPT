@@ -1,7 +1,7 @@
 # Current project status
 
-Updated 2026-10-07 after offline corrective work passed local validation and a
-separately authorised v7 school check still failed content acceptance; no
+Updated 2026-10-07 after the separately authorised v7 school check failed
+content acceptance and offline v8 corrections passed local validation; no
 accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
@@ -355,11 +355,56 @@ downloaded DOCX. No current cloud-head or ZIP-byte verification is claimed for
 this blocked case. Original downloads, hashes, UI snapshots and the frozen
 contract/result remain in ignored `output/playwright/cloud-school-v7-20261007-a/`.
 
-Next work is offline: repair the bounded recognition errors with paired negative
-tests, improve proposal/length guidance and repair feedback, and complete Word
-layout inspection. Preserve this failure, prior artifacts and same-unit safeguards;
-any future external generation needs a separately bounded authorisation. Content
-and report-specific package acceptance are still required before a new release.
+#### Offline v8 corrections after the failed school check
+
+The current policy is now `governed-report-v8`, fingerprint
+`c163091ea93e1101fc6d441be68457ea06fa4e2c5c3383084670b40237404563`.
+Exact v6/v7 manifests remain unchanged and readable; historical passing results
+do not authorise a new current-policy approval or export. The frozen safety
+module and response-admission helper retain their source bytes. A current-only
+adapter recognises the complete recorded road-status denial, without excusing
+appended assertions or other finding categories.
+
+Bounded checks now recognise the observed P2 wording, responsible-authority
+confirmation and role-function cells. Explicitly negated, quoted or conditional
+confirmation wording has paired rejection tests; `confirm if/whether` questions
+remain distinct from a discretionary confirmation duty. Same-sentence/cell
+provenance and proposal requirements remain intact. This is not unrestricted
+natural-language inference.
+
+Generation, compact repair and scoped revision now share aligned content
+guidance. Planner strings are topic cues, not copyable instructions; literal
+task examples satisfy the same qualification check. Repair feedback maps
+allowlisted structured codes to fixed corrections and bounded word counts,
+without quoting failing prose. The tested maximum structured content-feedback
+subsection is 1,330 characters within its 1,400-character bound; generic failure
+and targeted safety instructions are additional. Total repair remains capped at 18,000 characters
+and two automatic replacement attempts. Revisions still cannot use the
+context-only structural replacement path.
+
+Final local validation: **3,304 non-E2E tests passed**, 7 skipped, 6 deselected,
+**89.99% src coverage**, 307.93 seconds. A separate local mock-model browser run
+passed all **6 E2E cases** in 50.41 seconds. Independent static review, Ruff,
+format, Bandit, lock/install checks and the dependency-advisory scan passed.
+Historical v0.5.0 and v0.6.0 export verification each passed 10 artifact hashes,
+explicitly as historical, not current-policy acceptance.
+
+The first integration run failed 5 tests with 3,298 passing: two fixtures used
+an artificial check name no longer eligible for repair feedback, and three new
+historical-policy cases had mismatched fixture report IDs. Test data were
+corrected while retaining retry/privacy/immutable-context assertions. Earlier
+temporary-directory permission failures, a corrected prompt-test assertion and
+the review-discovered conditional-confirmer failure remain failures, not extra
+passing trials. Fresh project-local test directories avoided the temp ACL issue
+without changing system permissions.
+
+A limited offline diagnostic still finds the frozen school's 1,124 words,
+12 unqualified tasks (8 sentences and 4 function cells), and missing local P2
+geographic/aggregation qualifiers. Its absent full final SDK snapshot prevents
+a complete replay. Original report/download hashes and the recorded v7 failed
+audit remain unchanged. No new model call, cloud business-flow acceptance,
+replacement sample or release is claimed. Native Word layout and a separately
+authorised new content/package acceptance remain open.
 
 ### Existing development evidence and boundaries
 

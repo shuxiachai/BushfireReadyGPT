@@ -325,10 +325,13 @@ def test_export_rejects_diagnostic_tampering_but_legacy_optional_call_is_unchang
     assert "governance/grounding_evaluation.json" not in package["manifest"]["included_files"]
 
 
-def test_legacy_v6_fingerprint_is_unchanged():
-    assert quality.QUALITY_POLICY_VERSION == "governed-report-v7"
+def test_legacy_v6_and_v7_fingerprints_are_unchanged():
+    assert quality.QUALITY_POLICY_VERSION == "governed-report-v8"
     assert quality._KNOWN_POLICY_FINGERPRINTS["governed-report-v6"] == (
         "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
+    )
+    assert quality._KNOWN_POLICY_FINGERPRINTS["governed-report-v7"] == (
+        "ef6c5efd26891c6bb7eab3fbd556e46dc296b4d283c4dec50d8f6140d92ab1bd"
     )
 
 

@@ -66,6 +66,7 @@ from src.report_grounding import (
 )
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
+    CONTENT_CONTRACT_GUIDANCE,
     REPORT_NARRATIVE_WORD_BUDGET,
     SECTION_PURPOSE_GUIDANCE,
     append_evidence_tables,
@@ -852,7 +853,10 @@ only where the substantive claim is supported by a passage actually present belo
 For this revision, apply the section-purpose instructions below to the requested changes and directly
 necessary consistency edits. Preserve other substantive content and its valid citation relationships;
 do not use these instructions to rewrite unrelated sections.
+Apply the bounded content instructions within that same revision scope.
 {SECTION_PURPOSE_GUIDANCE}
+
+{CONTENT_CONTRACT_GUIDANCE}
 """
             prompt = EvidencePrompt(prompt, assembly=revision_assembly, request_kind="revision")
             span.add_metrics(prompt_characters=len(prompt))

@@ -27,11 +27,28 @@ from src.source_attribution import (
 _WORD = re.compile(r"\b[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*\b")
 _PROPOSAL = re.compile(r"^Unverified proposal for local review:\s*", re.I)
 _NON_DIRECTIVE_DISCLAIMER = "this draft contains no direction about when or where people should move."
+_NON_PROPOSAL_CRITERIA_DISCLAIMER = (
+    "the supplied passages do not establish criteria for shade, water, smoke or traffic at a candidate point, "
+    "so no such criteria are proposed here."
+)
 _CONFIRMER = re.compile(
-    r"\b(?:responsible organisation|responsible organization|school leadership|local council|"
+    r"\b(?:responsible organisation|responsible organization|responsible authority|school leadership|local council|"
     r"emergency services|preparedness lead|first[- ]aid coordinator|qualified (?:reviewer|clinician)|"
-    r"(?:communications?|review|safety|training) (?:officer|coordinator|lead))\b.{0,100}"
-    r"\b(?:must|will|should|to)\s+(?:review and )?(?:confirm|verify|approve|review)\b",
+    r"(?:communications?|review|safety|training) (?:officer|coordinator|lead))\s+"
+    r"(?:must|will|should|to)\s+(?:review and )?(?:confirm|verify|approve|review)\b",
+    re.I,
+)
+_QUOTED_TEXT = re.compile(r'"[^"\n]*"|“[^”\n]*”|(?<!\w)\x27[^\x27\n]*\x27(?!\w)|‘[^’\n]*’')
+_NON_ASSERTED_CONFIRMER = re.compile(
+    r"\b(?:if|unless|whether|suppose|supposing|hypothetical(?:ly)?|example|quoted?|says?|said|reads?)\b|"
+    r"\b(?:not|never)\b.{0,45}\b(?:require|mean|state|say)\b|"
+    r"\b(?:no|not)\s+(?:the\s+)?$|\bnot\s+(?:true|correct|the case|required)\b|"
+    r"\bno\s+(?:requirement|need|obligation|instruction)\b|\b(?:false|untrue|incorrect)\s+that\b",
+    re.I,
+)
+_CONDITIONAL_CONFIRMER_DUTY = re.compile(
+    r"\b(?:only\s+if|unless|provided\s+that)\b|"
+    r"\bif\s+(?:it|they)\s+(?:chooses?|wishes?|wants?)\s+to\b",
     re.I,
 )
 _TASK_FRAME = re.compile(
@@ -70,7 +87,7 @@ _INFERENCE = re.compile(r"\b(?:planning inference|rule[- ]derived inference)\b",
 _UNKNOWN = re.compile(r"\b(?:unknown|unavailable|not supplied|not measured)\b", re.I)
 _FIELDS = {
     "population": re.compile(r"\b(?:population|residents)\b", re.I),
-    "older_people_pct": re.compile(r"\bolder (?:people|residents|adults)\b", re.I),
+    "older_people_pct": re.compile(r"\bolder[- ](?:people|residents|adults)\b", re.I),
     "no_car_households_pct": re.compile(r"\b(?:no[- ]car|transport)\b", re.I),
     "language_other_than_english_pct": re.compile(r"\b(?:language|linguistic)\b", re.I),
 }
@@ -106,6 +123,32 @@ def _claim_shadow(claim, analysis):
     return " ".join(_plain(claim, analysis).split())
 
 
+def _has_confirmer(text):
+    """Require a direct, unquoted confirmation duty in the same claim unit.
+
+    A role mention cannot borrow a later actor's modal or a hypothetical/example
+    duty. This remains bounded syntax recognition, not semantic verification.
+    """
+    shadow = _QUOTED_TEXT.sub(lambda match: " " * len(match[0]), text)
+    if shadow.rstrip().endswith("?"):
+        return False
+    for match in _CONFIRMER.finditer(shadow):
+        prefix = re.split(r"[;:]", shadow[: match.start()])[-1]
+        suffix = shadow[match.end() :]
+        if _NON_ASSERTED_CONFIRMER.search(prefix):
+            continue
+        if re.search(r"\b(?:is|was)\s+(?:not required|hypothetical|an? example)\b", suffix, re.I):
+            continue
+        # A post-predicate restriction leaves the confirmation duty conditional,
+        # regardless of what follows "only if", "unless" or "provided that".
+        # A direct question object ("confirm if/whether ...") and "before use"
+        # are not these restrictions. This is bounded syntax, not a full parse.
+        if _CONDITIONAL_CONFIRMER_DUTY.search(suffix):
+            continue
+        return True
+    return False
+
+
 def _measurements(text, field):
     """Bind explicit values to their own measure and percentage unit.
 
@@ -116,7 +159,7 @@ def _measurements(text, field):
     label = r"\bpopulation\b" if field == "population" else _FIELDS[field].pattern
     patterns = [
         label
-        + r"\s*(?:(?:is|was|of|estimate|percentage|share|represent|represents|account for)\s*|[:=]\s*){0,3}"
+        + r"\s*(?:(?:is|was|of|basis|estimate|percentage|share|represent|represents|account for)\s*|[:=]\s*){0,3}"
         + number
     ]
     preceding_label = r"\bresidents\b" if field == "population" else label
@@ -143,7 +186,11 @@ def _action_columns(narrative):
             continue
         cells = parse_markdown_table_row("|" + line.strip().strip("|") + "|") or []
         for number, cell in enumerate(cells, 1):
-            if re.search(r"\b(?:responsibilit\w*|actions?|tasks?|duties|what to do|checkpoints?)\b", cell, re.I):
+            if re.search(
+                r"\b(?:responsibilit\w*|actions?|tasks?|duties|proposed functions?|what to do|checkpoints?)\b",
+                cell,
+                re.I,
+            ):
                 columns.add((section, number))
     return columns
 
@@ -252,12 +299,16 @@ def evaluate_report_content_contract(report_text, analysis, *, model_evidence=No
         if not text:
             continue
         proposal = bool(_PROPOSAL.search(text))
-        confirmer = bool(_CONFIRMER.search(text))
+        confirmer = _has_confirmer(text)
         # A gap sentence cannot append criteria/advice in the same unit and
         # inherit an exemption from the first half of that sentence.
         gap = bool(_GAP.search(text)) and not re.search(
             r"\b(?:but|however|propos\w*|should|must|will|use|select|choose|adopt|include|recommend\w*)\b", text, re.I
         )
+        # This whole sentence denies proposing any listed criterion. Do not
+        # extend its exemption to appended advice, another cell or other checks.
+        if section == "candidate assembly point criteria" and text.casefold() == _NON_PROPOSAL_CRITERIA_DISCLAIMER:
+            gap = True
         cited = [entry["source_id"] for entry in unit["citations"] if entry["source_type"] == "rag"]
         submitted = [passage for source_id in cited for passage in by_source.get(source_id, [])]
         if any(source_id not in by_source for source_id in cited):

@@ -149,6 +149,97 @@ def test_initial_and_repair_state_planning_purpose_without_asserting_measure_eff
         assert not re.search(r"\b(?:ensure|guarantee|assure)(?:s|d|ing)?\b", prompt, re.IGNORECASE)
 
 
+def test_initial_and_repair_recast_planner_cues_and_each_numeric_p2_occurrence():
+    analysis = {"prompt_context": "Frozen analysis prompt context."}
+    initial = _build_prompt(analysis)
+    repair = build_report_repair_prompt(initial, "Incomplete draft", {}, analysis=analysis)
+    for prompt in (initial, repair):
+        assert prompt.count(CONTENT_CONTRACT_GUIDANCE) == 1
+        normalized = " ".join(prompt.split())
+        assert "Raw Planner tasks, focus priorities and R3 notes are topic cues" in normalized
+        assert "not copyable task instructions or evidence" in normalized
+        assert "Rewrite each retained task as a qualified proposal with its own confirmer" in normalized
+        assert "Each numeric occurrence needs adjacent [P2]" in normalized
+        assert "SA2 count when supplied" in normalized
+        assert "aggregation/approximation in the same sentence or cell" in normalized
+        assert "do not drop useful facts" in normalized
+        assert "two-column role/action tables, fewer rows and combined duties" in normalized
+        assert "at least 300 prose words" in normalized
+
+
+def test_literal_task_examples_pass_the_real_occurrence_contract():
+    from src.report_content_contract import evaluate_report_content_contract
+
+    analysis = {"prompt_context": "Frozen analysis prompt context."}
+    initial = _build_prompt(analysis)
+    repair = build_report_repair_prompt(
+        initial,
+        "Incomplete draft",
+        {
+            "approval_gate": {
+                "blocking_failures": [{"name": "Safety boundary assertions", "detail": "road_status_assertion"}]
+            }
+        },
+        analysis=analysis,
+    )
+    checklist = re.search(r"checklist items such as `([^`]+)`", initial).group(1)
+    initial_route = re.search(r'Say: "([^"]+)"', initial).group(1)
+    repair_route = re.search(r'such statement, including table and checklist text, with: "([^"]+)"', repair).group(1)
+    for section, text in [
+        ("14. Human Review and Approval Checklist", checklist),
+        ("8. Evacuation Planning", initial_route),
+        ("8. Evacuation Planning", repair_route),
+        ("13. Action Plan", REQUIRED_DAY_ONE_ACTION),
+    ]:
+        checks = {check["name"]: check for check in evaluate_report_content_contract(f"## {section}\n{text}", {})}
+        assert checks["Local proposal attribution"]["status"] == "pass", text
+        assert checks["Submitted passage scope and conflicts"]["status"] == "pass", text
+    assert initial_route == repair_route
+
+
+def test_revision_includes_content_guidance_once_under_existing_scope(monkeypatch):
+    from types import SimpleNamespace
+
+    from src import report_workflow
+
+    captured = []
+    record = {
+        "text": "# Frozen draft",
+        "analysis": {"knowledge": {"status": "no_match", "retrieved_chunks": []}},
+        "inputs": {},
+        "export_register_snapshot": {},
+        "audit_path": "synthetic-prompt-only-audit",
+    }
+    monkeypatch.setattr(report_workflow, "st", SimpleNamespace(session_state={"latest_report": record}))
+    monkeypatch.setattr(report_workflow, "validate_model_privacy_boundary", lambda: None)
+    monkeypatch.setattr(report_workflow, "canonical_export_register_snapshot", lambda value: value)
+    monkeypatch.setattr(report_workflow, "capture_current_audit_chain", lambda path: [{"record": {}}])
+    monkeypatch.setattr(report_workflow, "_report_matches_audit_snapshot", lambda *args: True)
+    monkeypatch.setattr(report_workflow, "_cloud_rag_availability_error", lambda analysis: None)
+
+    class PromptCaptured(Exception):
+        pass
+
+    def capture_without_model(prompt, analysis, generate_attempt, **kwargs):
+        captured.append(prompt)
+        assert kwargs["allow_structural_repair"] is False
+        raise PromptCaptured
+
+    monkeypatch.setattr(report_workflow, "generate_narrative_with_repairs", capture_without_model)
+    with pytest.raises(PromptCaptured):
+        report_workflow._revise_current_report("Clarify the existing action wording.", lambda: None)
+    prompt = captured[0]
+    assert prompt.count(CONTENT_CONTRACT_GUIDANCE) == 1
+    assert prompt.count(SECTION_PURPOSE_GUIDANCE) == 1
+    scope = prompt.index("For this revision, apply the section-purpose instructions")
+    assert scope < prompt.index(CONTENT_CONTRACT_GUIDANCE)
+    assert "necessary consistency edits" in prompt
+    assert "do not use these instructions to rewrite unrelated sections" in prompt
+    assert "Apply the bounded content instructions within that same revision scope" in prompt
+    assert prompt.request_kind == "revision"
+    assert record["text"] == "# Frozen draft"
+
+
 @pytest.mark.parametrize(
     "passages",
     [
@@ -290,13 +381,15 @@ def test_source_statements_local_tasks_and_established_criteria_have_separate_pr
         assert "Shared topics do not justify task citations" in prompt
         assert "External facts/recommendations/established criteria" in prompt
         assert "task to obtain/review local records is an unverified proposal, not a sourced standard" in prompt
-        assert "Without it, state the gap and who must\n  confirm criteria" in prompt
+        assert "citations do not verify local physical criteria" in prompt
+        assert "State that gap and who must confirm criteria" in prompt
         assert "Keep every venue an unverified candidate; never assert safety or operational status" in prompt
         assert "medical/safety assertions still need evidence" in prompt
         assert prompt.count(prompt.assembly["context"]) == prompt.count(passage) == 1
         assert validate_recorded_assembly(prompt.assembly, analysis) == prompt.assembly["visible_chunks"]
     requirement = dict(report_template.REPORT_TEMPLATE_SECTIONS)["9. Candidate Assembly Point Criteria"]
-    assert "supported by supplied passages, or state the gap" in requirement
+    assert "Separate passage-supported general criteria from unverified local physical criteria" in requirement
+    assert "state the local gap and responsible-authority verification task" in requirement
     assert "never assert venue safety/status" in requirement
     assert "Provide criteria only" not in initial
     assert len(report_template.REPORT_TEMPLATE_SECTIONS) == 15
@@ -1101,7 +1194,10 @@ def test_road_status_failure_adds_a_safe_exact_rewrite_without_previous_draft():
     )
 
     assert "ROAD/ROUTE REWRITE" in prompt
-    assert "Identify candidate routes and verify current status through authorised official sources" in prompt
+    assert (
+        '"Unverified proposal for local review: the responsible organisation must confirm candidate routes '
+        'and current status through authorised official sources before operational use."'
+    ) in prompt
     assert "Smith Road is open." not in prompt
     assert "school" not in prompt.casefold()
 

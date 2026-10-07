@@ -2,8 +2,8 @@ import hashlib
 import re
 from collections import defaultdict
 
+from src.current_safety_boundary import evaluate_current_safety_boundaries
 from src.report_template import REPORT_TEMPLATE_SECTIONS, extract_narrative_body
-from src.safety_boundary import evaluate_safety_boundaries
 from src.source_attribution import (
     canonical_official_labels,
     canonical_official_source_ids_on_plain_lines,
@@ -340,7 +340,7 @@ class ReportQualityAgent:
         )
 
     def _check_safety_boundaries(self, text):
-        evaluation = evaluate_safety_boundaries(text)
+        evaluation = evaluate_current_safety_boundaries(text)
         if evaluation["passed"]:
             return self._result(
                 "pass",
