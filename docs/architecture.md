@@ -151,11 +151,20 @@ to the deterministic `SafetyBoundaryEvaluator` in `src/safety_boundary.py`.
 The eight named agents are specialised, deterministic pipeline components; none
 is an independent language-model call or an autonomous multi-agent actor. One
 governed model call writes the report narrative; the canonical governed gate may
-request up to two stateless replacement attempts. The same `governed-report-v6`
+request up to two stateless replacement attempts. The same `governed-report-v7`
 gate is recomputed for generation, revision, organisational approval and
 governed pilot-package export. It combines fixed structure, source, markup and
 safety checks with allowlisted scenario/focus-area coverage and conditional RAG
-attribution. This keeps orchestration reproducible, reduces latency and makes
+attribution. V7 adds bounded narrative-budget, processed-data-scope and
+per-occurrence local-task checks. Only the hash-bound final SDK evidence snapshot
+can satisfy passage-dependent provenance and audience checks; a fresh lookup or
+retrieved-but-omitted passage cannot supply support. Contradictory wording in
+retrieved passages may additionally trigger a conflict-review requirement.
+Concrete local school assembly criteria
+remain blocked pending an applicable authority-verification mechanism; an
+explicit evidence gap and verification task can continue. These are narrow
+syntactic/provenance guards, not semantic entailment or domain approval.
+This keeps orchestration reproducible, reduces latency and makes
 the evidence trail inspectable while still demonstrating clear agent boundaries.
 
 Scenario and focus requirements are derived from trusted application IDs and
@@ -214,7 +223,21 @@ is never the link authority.
 
 `DataPaths` is the single source of active data locations for the map, status views and every pipeline agent. Explicit map selection is resolved into one effective geography before downstream analysis; an unknown form-level state inherits the selected state, while a known cross-state conflict fails closed. The bundled core is checked against `data_australia/manifest.json` before use, nested YAML artifacts are schema-validated with field-level errors, and provenance digests are compared again after analysis so a concurrent refresh cannot silently relabel an analysis. Validated downloader outputs are staged and published as recoverable multi-file transactions; writers of the shared core manifest use one publication lock and recovery journal. The optional nationwide map additionally requires matching profile/boundary structure and a hash-valid bundle sidecar before selection, report generation or organisational approval.
 
-Browser sessions are isolated in memory by default. Optional JSON persistence is intended only for an explicitly single-user local installation and can contain full report/sign-off data. Persisted state has a versioned, size-bounded and recursively validated schema; malformed or oversized state does not hydrate, and a failed clear cannot silently restore stale state in the running process. Report/revision fields also have backend character and byte budgets, and reviewed/approved records require a valid non-future review date. Governed model completions are stateless and tool-free, enforce one total streaming deadline and reject empty usable output; generation, revision and release evaluation share the same bounded replacement-repair implementation. External endpoints require an explicit privacy acknowledgement. Audit records are privacy-minimised, append-only and hash-linked at the application layer; new v4 events bind the current `governed-report-v6` quality policy and fingerprint, exact report, deterministic sign-off, quality, inputs, provider boundary, frozen register snapshot and recursive revision ancestry, while historical policy bindings remain readable. Ancestry verification is iterative so valid long histories do not depend on Python recursion depth. `pilot-export-v4` requires the current policy, a passing fresh gate and the complete analysis whose hash matches the audit. Legacy events remain readable. A `quality.reassessed` transition may update only the policy result while preserving the exact report, sign-off, status and package context; it explicitly records that no human review occurred and cannot be used as the export head until a later `review.recorded` event is appended. Clearing a session does not delete retained audit or saved-report files. The prototype has no authenticated multi-user database, digital signature, trusted timestamp or WORM store, so this local chain is tamper-evident rather than formally immutable.
+Browser sessions are isolated in memory by default. Optional JSON persistence is intended only for an explicitly single-user local installation and can contain full report/sign-off data. Persisted state has a versioned, size-bounded and recursively validated schema; malformed or oversized state does not hydrate, and a failed clear cannot silently restore stale state in the running process. Report/revision fields also have backend character and byte budgets, and reviewed/approved records require a valid non-future review date. Governed model completions are stateless and tool-free, enforce one total streaming deadline and reject empty usable output; generation, revision and release evaluation share the same bounded replacement-repair implementation. External endpoints require an explicit privacy acknowledgement. Audit records are privacy-minimised, append-only and hash-linked at the application layer; new v4 events bind the current `governed-report-v7` quality policy and fingerprint, exact report, deterministic sign-off, quality, inputs, provider boundary, frozen register snapshot and recursive revision ancestry, while historical policy bindings remain readable. Ancestry verification is iterative so valid long histories do not depend on Python recursion depth. `pilot-export-v4` requires the current policy, a passing fresh gate and the complete analysis whose hash matches the audit. Legacy events remain readable. A `quality.reassessed` transition may update only the policy result while preserving the exact report, sign-off, status and package context; it explicitly records that no human review occurred and cannot be used as the export head until a later `review.recorded` event is appended. Clearing a session does not delete retained audit or saved-report files. The prototype has no authenticated multi-user database, digital signature, trusted timestamp or WORM store, so this local chain is tamper-evident rather than formally immutable.
+
+Historical policy manifests and fingerprints remain readable and unchanged. Earlier drafts
+must satisfy a fresh current-policy assessment before current-policy
+organisational approval or pilot-package export; reassessment is not a new
+human approval or a model-content verdict. A standalone draft download is not
+that approval.
+
+Governed PDF/DOCX bytes are built from the verified report's creation-event UTC
+timestamp, rather than the download clock. A session-local, report/audit/renderer-
+bound artifact cache feeds both standalone downloads and pilot-package entries.
+PDF dates and ID, DOCX core properties and internal ZIP timestamps are deterministic;
+invalid cached bytes are rebuilt. The package still validates quality, analysis,
+register and audit bindings before using artifacts. This mechanism does not alter
+historical package bytes or authenticate a timestamp externally.
 
 The Windows launcher remains an orchestration boundary rather than a second
 application runtime. A fake-Ollama integration test exercises environment

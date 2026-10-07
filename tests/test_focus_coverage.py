@@ -8,6 +8,7 @@ from src.focus_coverage import (
     evaluate_focus_area_coverage,
     evaluate_scenario_coverage,
 )
+from tests.test_report_content_contract import _valid_report
 
 
 def _analysis(*concepts, ignored=0):
@@ -427,14 +428,17 @@ def test_council_reference_does_not_satisfy_council_scenario_coverage():
     assert result["status"] == "fail"
 
 
-def test_scenario_coverage_is_a_blocking_governed_check(monkeypatch):
-    monkeypatch.setattr(quality.ReportQualityAgent, "run", lambda *_args, **_kwargs: _passing_base_quality())
-    analysis = {"profile": {"scenario_concept": ProfileAgent.resolve_scenario_concept("Community workshop material")}}
+def test_scenario_coverage_is_a_blocking_governed_check():
+    narrative, analysis = _valid_report()
+    analysis["profile"] = {"scenario_concept": ProfileAgent.resolve_scenario_concept("Community workshop material")}
 
-    result = quality.evaluate_governed_report("Generic community planning text.", analysis)
+    result = quality.assess_generated_narrative(narrative, analysis)
 
-    assert result["summary"] == {"passed": 0, "warnings": 0, "failed": 1, "total": 1}
-    assert result["checks"][0]["name"] == "Selected scenario coverage"
+    assert result["summary"] == {"passed": 21, "warnings": 0, "failed": 1, "total": 22}
+    failed = [check for check in result["checks"] if check["status"] == "fail"]
+    assert [check["name"] for check in failed] == ["Selected scenario coverage"]
+    assert all(check["status"] == "pass" for check in result["checks"] if check not in failed)
+    assert result["approval_gate"]["blocking_failures"] == [{"name": failed[0]["name"], "detail": failed[0]["detail"]}]
     assert result["approval_gate"]["passed"] is False
 
 
@@ -493,41 +497,42 @@ def test_broad_scenario_exclusion_cues_require_a_separate_positive_reference(nar
     assert evaluate_scenario_coverage(narrative, analysis)["status"] == "fail"
 
 
-def test_focus_coverage_is_a_blocking_governed_check(monkeypatch):
-    monkeypatch.setattr(quality.ReportQualityAgent, "run", lambda *_args, **_kwargs: _passing_base_quality())
-    analysis = _analysis(_focus("emergency_kits"))
+def test_focus_coverage_is_a_blocking_governed_check():
+    narrative, analysis = _valid_report()
+    analysis.update(_analysis(_focus("emergency_kits")))
 
-    result = quality.evaluate_governed_report("The household will prepare its property.", analysis)
+    result = quality.assess_generated_narrative(narrative, analysis)
 
-    assert result["summary"] == {"passed": 0, "warnings": 0, "failed": 1, "total": 1}
-    assert result["checks"][0]["name"] == "Selected focus-area coverage"
+    assert result["summary"] == {"passed": 21, "warnings": 0, "failed": 1, "total": 22}
+    failed = [check for check in result["checks"] if check["status"] == "fail"]
+    assert [check["name"] for check in failed] == ["Selected focus-area coverage"]
+    assert all(check["status"] == "pass" for check in result["checks"] if check not in failed)
+    assert result["approval_gate"]["blocking_failures"] == [{"name": failed[0]["name"], "detail": failed[0]["detail"]}]
     assert result["approval_gate"]["passed"] is False
 
 
-def test_generation_repair_loop_closes_a_missing_focus_area(monkeypatch):
-    monkeypatch.setattr(quality.ReportQualityAgent, "run", lambda *_args, **_kwargs: _passing_base_quality())
-    analysis = _analysis(
-        _focus("property_preparation"),
-        _focus("emergency_kits"),
+def test_generation_repair_loop_closes_a_missing_focus_area():
+    complete_narrative, analysis = _valid_report()
+    analysis.update(
+        _analysis(
+            _focus("property_preparation"),
+            _focus("emergency_kits"),
+        )
     )
-    analysis["data"] = {
-        "sources": [
-            {"id": "official-one", "name": "Official source one"},
-            {"id": "official-two", "name": "Official source two"},
-        ]
-    }
     prompts = []
 
     def generate(prompt, attempt, is_repair):
         prompts.append((prompt, attempt, is_repair))
-        if is_repair:
-            return "Property preparation and emergency kits are both assigned to household members."
-        return "Property preparation is assigned to household members."
+        declared = analysis if is_repair else _analysis(_focus("property_preparation"))
+        declarations = "\n".join(canonical_coverage_declarations(declared))
+        return complete_narrative.replace("## 3. Purpose and Scope", "## 3. Purpose and Scope\n" + declarations)
 
     narrative, result, attempts = quality.generate_narrative_with_repairs("governed prompt", analysis, generate)
 
     assert attempts == 2
     assert result["approval_gate"]["passed"] is True
-    assert "emergency kits" in narrative
+    assert result["summary"] == {"passed": 22, "warnings": 0, "failed": 0, "total": 22}
+    assert all(check["status"] == "pass" for check in result["checks"])
+    assert "emergency kit" in narrative
     assert "Copy every supplied line below character-for-character" in prompts[1][0]
     assert "This draft includes emergency kit in its preparedness planning." in prompts[1][0]

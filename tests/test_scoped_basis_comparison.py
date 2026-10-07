@@ -3,11 +3,14 @@ import copy
 import hashlib
 import json
 import sys
+from pathlib import Path
 
 import pytest
 
 from scripts import scoped_basis_comparison as comparison
+from tests.citation_criteria_fixtures import _shared_dependency_paths
 from tests.scoped_basis_fixtures import (
+    _SHARED_DEPENDENCY_ROOTS,
     REAL_PROJECT_ROOT,
     fixed_git_sources,
     historical_checkout,
@@ -295,11 +298,44 @@ def test_historical_fixture_validation_rebuilds_fixed_sources_and_all_case_field
         comparison.validate_prepared(new_digest)
 
 
-def test_real_checkout_rejects_current_template_drift_without_historical_fixture():
+def test_real_checkout_rejects_current_source_inventory_without_historical_fixture():
     assert comparison.PROJECT_ROOT.resolve() == REAL_PROJECT_ROOT.resolve()
+    candidate = fixed_git_sources()[comparison.CANDIDATE]
+    inventory = {path.relative_to(REAL_PROJECT_ROOT).as_posix() for path in (REAL_PROJECT_ROOT / "src").rglob("*.py")}
+    assert "src/report_content_contract.py" in inventory - candidate.keys()
     for operation in (comparison._source_snapshot, comparison.prepare_bundle):
-        with pytest.raises(comparison.ComparisonBlocked, match="^current_source_drift:src/report_template.py$"):
+        with pytest.raises(comparison.ComparisonBlocked, match="^current_source_inventory_drift$"):
             operation()
+
+
+def test_unrelated_loaded_application_module_is_not_a_fixed_builder_dependency():
+    from src import report_content_contract
+
+    assert report_content_contract.__name__ in sys.modules
+    candidate = fixed_git_sources()[comparison.CANDIDATE]
+    assert "src/report_content_contract.py" not in _shared_dependency_paths(candidate, roots=_SHARED_DEPENDENCY_ROOTS)
+    verify_real_shared_helpers(candidate)
+
+
+def test_real_shared_dependency_bytes_still_reject_drift(monkeypatch):
+    original_read = Path.read_text
+    target = (REAL_PROJECT_ROOT / "src/rag/lexical.py").resolve()
+
+    def changed_dependency(path, *args, **kwargs):
+        content = original_read(path, *args, **kwargs)
+        return content + "\n# synthetic changed shared dependency\n" if path.resolve() == target else content
+
+    monkeypatch.setattr(Path, "read_text", changed_dependency)
+    with pytest.raises(AssertionError, match="Shared helper changed: src/rag/lexical.py"):
+        verify_real_shared_helpers(fixed_git_sources()[comparison.CANDIDATE])
+
+
+def test_real_shared_dependency_origin_still_rejects_drift(monkeypatch, tmp_path):
+    from src.rag import lexical
+
+    monkeypatch.setattr(lexical, "__file__", str(tmp_path / "unbound-lexical.py"))
+    with pytest.raises(AssertionError, match="Shared module origin changed: src.rag.lexical"):
+        verify_real_shared_helpers(fixed_git_sources()[comparison.CANDIDATE])
 
 
 @pytest.mark.parametrize("mutation", ["shared_helper", "extractor_body", "missing_callee", "governance_value"])

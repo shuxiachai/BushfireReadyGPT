@@ -56,7 +56,7 @@ This is a governed portfolio MVP / controlled-pilot prototype. It is not ready f
 
 Important governance qualifications:
 
-- Body-claim diagnostics distinguish missing citations, lexical matches and unknown support. The review view also flags a limited household-to-campus evacuation-support wording pattern against submitted excerpts. Neither diagnostic verifies a conclusion or local applicability; human content review remains necessary.
+- Body-claim diagnostics distinguish missing citations, lexical matches and unknown support. The maintained v7 quality policy also checks narrative length, useful data scope and per-task qualification, and blocks selected unsupported causal, school-assembly and household-to-campus claims using the recorded model-visible evidence. These bounded checks are not semantic verification or proof of local applicability; human content review remains necessary. Historical v6 samples retain their original policy.
 - Local audit records are application-level, tamper-evident evidence, not immutable government records. The local profile has no authenticated user identity, verified reviewer identity, digital signature, trusted timestamp, WORM retention or external transparency log.
 - The optional shared cloud demo adds controls described in its deployment documentation, but it is not a multi-tenant production emergency service and still needs privacy, security, retention and licence review.
 - Australian data is planning context only. It is not live incident status, fire danger ratings, evacuation information, safe routes or confirmed assembly points.

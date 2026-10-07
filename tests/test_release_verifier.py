@@ -5,7 +5,11 @@ import pytest
 
 from scripts import verify_release as release_verifier
 from scripts.evaluation_artifacts import sha256_file
-from src.report_generation_quality import quality_policy_metadata
+from src.report_generation_quality import (
+    KNOWN_QUALITY_POLICY_MANIFESTS,
+    READABLE_QUALITY_POLICY_BINDINGS,
+    quality_policy_metadata,
+)
 
 
 def _write_json(path, payload):
@@ -206,13 +210,53 @@ def test_verify_release_accepts_current_offline_evidence(release_fixture):
     assert calls == {"rag": 1, "report": 1, "sample": 1, "sample_current_policy": [True]}
 
 
-def test_explicit_current_version_keeps_strict_current_policy_mode(release_fixture):
+def test_explicit_same_project_version_selects_immutable_release_mode(release_fixture):
     root, paths, _rag, _report, calls = release_fixture
 
     result = release_verifier.verify_release(root, paths=paths, release_version="0.5.0")
 
-    assert result["verification_mode"] == "project_current"
-    assert calls["sample_current_policy"] == [True]
+    assert result["verification_mode"] == "immutable_release"
+    assert calls["sample_current_policy"] == [False]
+
+
+def test_default_rejects_historical_policy_but_explicit_release_preserves_its_binding(release_fixture, monkeypatch):
+    root, paths, _rag, report, calls = release_fixture
+    historical = {
+        "version": "governed-report-v6",
+        "fingerprint": next(iter(READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"])),
+        "manifest": copy.deepcopy(KNOWN_QUALITY_POLICY_MANIFESTS["governed-report-v6"]),
+    }
+    report = copy.deepcopy(report)
+    report["run"]["quality_policy"] = historical
+    _write_json(paths.report_artifact, report)
+    with pytest.raises(release_verifier.ReleaseVerificationError, match="current quality policy"):
+        release_verifier.verify_release(root, paths=paths)
+    original_verifier = release_verifier.verify_sample_package
+
+    def historical_sample(*args, **kwargs):
+        result = original_verifier(*args, **kwargs)
+        return {
+            **result,
+            "current_policy": False,
+            "quality_policy_version": historical["version"],
+            "quality_policy_fingerprint": historical["fingerprint"],
+        }
+
+    monkeypatch.setattr(release_verifier, "verify_sample_package", historical_sample)
+    result = release_verifier.verify_release(root, paths=paths, release_version="0.5.0")
+    assert result["verification_mode"] == "immutable_release"
+    assert result["quality_policy_fingerprint"] == historical["fingerprint"]
+    assert calls["sample_current_policy"] == [False]
+
+
+@pytest.mark.parametrize("field,value", [("fingerprint", "f" * 64), ("version", "unknown-policy")])
+def test_explicit_release_still_rejects_corrupt_or_unknown_policy_binding(release_fixture, field, value):
+    root, paths, _rag, report, _calls = release_fixture
+    report = copy.deepcopy(report)
+    report["run"]["quality_policy"][field] = value
+    _write_json(paths.report_artifact, report)
+    with pytest.raises(release_verifier.ReleaseVerificationError, match="Showcase policy .* is stale"):
+        release_verifier.verify_release(root, paths=paths, release_version="0.5.0")
 
 
 def test_explicit_v050_remains_verifiable_after_project_advances(release_fixture):
@@ -404,7 +448,8 @@ def test_verify_release_rejects_wrong_project_version(release_fixture):
 
 
 @pytest.mark.parametrize("artifact", ["rag", "report"])
-def test_verify_release_requires_active_passing_release_gates(release_fixture, artifact):
+@pytest.mark.parametrize("release_version", [None, "0.5.0"])
+def test_verify_release_requires_active_passing_release_gates(release_fixture, artifact, release_version):
     root, paths, rag_payload, report_payload, _calls = release_fixture
     payload = copy.deepcopy(rag_payload if artifact == "rag" else report_payload)
     payload["release_gate"]["active"] = False
@@ -412,7 +457,7 @@ def test_verify_release_requires_active_passing_release_gates(release_fixture, a
     _write_json(target, payload)
 
     with pytest.raises(release_verifier.ReleaseVerificationError, match="release gate is inactive"):
-        release_verifier.verify_release(root, paths=paths)
+        release_verifier.verify_release(root, paths=paths, release_version=release_version)
 
 
 def test_verify_release_rejects_stale_source_hash(release_fixture):

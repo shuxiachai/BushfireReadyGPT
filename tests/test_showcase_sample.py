@@ -104,7 +104,12 @@ def _mock_sample_generation(monkeypatch, *, sensitive=False, before_export=None)
         "run_scenario_with_artifacts",
         lambda _: {"row": row, "analysis": analysis, "report": "Synthetic draft", "model_evidence": snapshot},
     )
-    monkeypatch.setattr(build_showcase_sample, "evaluate_governed_report", lambda *args: quality)
+
+    def final_quality(_report, _analysis, *, model_evidence=None):
+        assert model_evidence == snapshot
+        return quality
+
+    monkeypatch.setattr(build_showcase_sample, "evaluate_governed_report", final_quality)
     monkeypatch.setattr(build_showcase_sample, "evaluate_report_grounding", lambda *args: {})
     monkeypatch.setattr(build_showcase_sample, "build_export_register_snapshot", lambda: {})
     monkeypatch.setattr(build_showcase_sample, "save_report_audit", lambda _: "unused-test-audit.json")

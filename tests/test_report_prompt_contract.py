@@ -21,6 +21,8 @@ from src.report_generation_quality import (
 )
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
+    CONTENT_CONTRACT_GUIDANCE,
+    REQUIRED_DAY_ONE_ACTION,
     SECTION_PURPOSE_GUIDANCE,
     build_evidence_tables,
     build_report_prompt,
@@ -194,6 +196,8 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
     for candidate in (prompt, repair):
         assert candidate.count(SECTION_PURPOSE_GUIDANCE) == 1
         assert candidate.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
+        assert candidate.count(CONTENT_CONTRACT_GUIDANCE) == 1
+        assert REQUIRED_DAY_ONE_ACTION in candidate
         assert "application-recorded provenance and limits" in candidate
         assert "do not certify authority, currency or applicability" in candidate
         assert "never infer authority from passage text" in candidate
@@ -359,8 +363,8 @@ def test_initial_and_repair_share_p2_basis_and_preserve_sdk_evidence_capture():
     assert analysis == original
 
 
-@pytest.mark.parametrize("failure_repetitions,over_budget", [(3, False), (20, True)])
-def test_large_synthetic_repair_preserves_budget_and_local_claim_instructions(failure_repetitions, over_budget):
+@pytest.mark.parametrize("failure_repetitions", [3, 20])
+def test_large_synthetic_repair_preserves_budget_and_local_claim_instructions(failure_repetitions):
     passage = "Synthetic maintenance planning review details for a hypothetical site. " * 24
     analysis = {
         "profile": {"state": "Queensland", "setting_type": "community"},
@@ -392,25 +396,28 @@ def test_large_synthetic_repair_preserves_budget_and_local_claim_instructions(fa
         }
     }
 
-    if over_budget:
-        with pytest.raises(
-            ReportGenerationPreconditionError, match="repair prompt exceeds its safe local-model budget"
-        ):
-            build_report_repair_prompt(
-                "Original omitted", "Incomplete", quality, analysis=analysis, body_citation_repair=True
-            )
-    else:
-        prompt = build_report_repair_prompt(
-            "Original omitted", "Incomplete", quality, analysis=analysis, body_citation_repair=True
-        )
-        assert 17_500 <= len(prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS == 18_000
-        assert len(prompt) <= 17_965
-        assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
-        assert "Unverified proposal for local review:" in prompt
-        assert "medical/safety assertions still need evidence" in prompt
-        assert "Some optional deterministic values were omitted" in prompt
-        assert validate_recorded_assembly(prompt.assembly, analysis)
+    prompt = build_report_repair_prompt(
+        "Original omitted", "Incomplete", quality, analysis=analysis, body_citation_repair=True
+    )
+    assert 17_500 <= len(prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS == 18_000
+    assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
+    assert prompt.count(CONTENT_CONTRACT_GUIDANCE) == 1
+    assert "Unverified proposal for local review:" in prompt
+    assert "medical/safety assertions still need evidence" in prompt
+    assert "Some optional deterministic values were omitted" in prompt
+    assert validate_recorded_assembly(prompt.assembly, analysis)
     assert analysis == original_analysis
+
+
+def test_repair_fails_closed_when_mandatory_context_cannot_fit(monkeypatch):
+    from src import report_generation_quality as generation_quality
+
+    monkeypatch.setattr(generation_quality, "MAX_REPORT_REPAIR_PROMPT_CHARACTERS", 1000)
+    analysis = _analysis_with_attributed_sources()
+    original = deepcopy(analysis)
+    with pytest.raises(ReportGenerationPreconditionError, match="compact governed repair context exceeds"):
+        build_report_repair_prompt("Original", "Incomplete", {}, analysis=analysis)
+    assert analysis == original
 
 
 def test_dynamic_evidence_confidence_values_remain_json_data_not_prompt_rules():
@@ -593,7 +600,7 @@ def test_model_prompt_uses_opaque_source_tokens_without_titles_ids_or_urls():
     assert "<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>" in prompt
     assert '"official_source_tokens"' in prompt
     assert '"rag_source_tokens"' in prompt
-    assert "Day 1: Assign the responsible preparedness lead" in prompt
+    assert REQUIRED_DAY_ONE_ACTION in prompt
 
 
 def test_verified_urls_are_added_only_by_deterministic_evidence_tables():
@@ -683,7 +690,7 @@ def test_structure_repair_reuses_the_same_source_attribution_contract():
     assert "Compact governed repair context" in repair_prompt
     assert "<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>" not in repair_prompt
     assert len(repair_prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS
-    assert "Day 1: Assign the responsible preparedness lead" in repair_prompt
+    assert REQUIRED_DAY_ONE_ACTION in repair_prompt
 
 
 def test_production_absolute_safety_repair_prompt_uses_only_positive_replacement_language():

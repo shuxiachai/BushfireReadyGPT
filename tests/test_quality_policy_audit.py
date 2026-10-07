@@ -95,6 +95,9 @@ def test_policy_identity_is_stable_and_exposed_as_detached_metadata():
     assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v5"] == frozenset(
         {"0221e3725e10e6aa861f3ab4ac1387a5bf8a04722c2abb11a8600d3c0d651e06"}
     )
+    assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"] == frozenset(
+        {"b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"}
+    )
     assert QUALITY_POLICY_FINGERPRINT in READABLE_QUALITY_POLICY_BINDINGS[CURRENT_POLICY]
     metadata["manifest"]["policy_version"] = "tampered"
     assert QUALITY_POLICY_MANIFEST["policy_version"] == CURRENT_POLICY
@@ -276,7 +279,7 @@ def test_v5_reassessment_cannot_skip_v6_legacy_scenario_and_focus_gates(tmp_path
     reassessed = audit.load_and_verify_audit(reassessed_path)
     failures = {item["name"] for item in reassessed["quality"]["approval_gate"]["blocking_failures"]}
 
-    assert reassessed["quality_policy_version"] == "governed-report-v6"
+    assert reassessed["quality_policy_version"] == "governed-report-v7"
     assert reassessed["generation_gate_blocked"] is True
     assert {"Selected scenario coverage", "Selected focus-area coverage"} <= failures
 
@@ -318,14 +321,14 @@ def test_historical_reassessment_remains_readable_after_runtime_policy_advances(
         )
     )
 
-    monkeypatch.setattr(audit, "CURRENT_POLICY", "governed-report-v7")
-    monkeypatch.setattr(audit, "QUALITY_POLICY_FINGERPRINT", "7" * 64)
-    monkeypatch.setattr(quality_policy_module, "CURRENT_POLICY", "governed-report-v7")
-    monkeypatch.setattr(quality_policy_module, "QUALITY_POLICY_FINGERPRINT", "7" * 64)
+    monkeypatch.setattr(audit, "CURRENT_POLICY", "governed-report-v8")
+    monkeypatch.setattr(audit, "QUALITY_POLICY_FINGERPRINT", "8" * 64)
+    monkeypatch.setattr(quality_policy_module, "CURRENT_POLICY", "governed-report-v8")
+    monkeypatch.setattr(quality_policy_module, "QUALITY_POLICY_FINGERPRINT", "8" * 64)
 
     record = audit.load_and_verify_audit(reassessed_path)
-    assert record["quality_policy_version"] == "governed-report-v6"
-    assert record["quality_policy_fingerprint"] in READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"]
+    assert record["quality_policy_version"] == "governed-report-v7"
+    assert record["quality_policy_fingerprint"] in READABLE_QUALITY_POLICY_BINDINGS["governed-report-v7"]
 
 
 def test_fingerprinted_v3_chain_remains_readable_and_reassesses_to_current_policy(tmp_path, monkeypatch):
@@ -362,7 +365,7 @@ def test_fingerprinted_v3_chain_remains_readable_and_reassesses_to_current_polic
         },
     )
     reassessed = audit.load_and_verify_audit(reassessed_path)
-    assert reassessed["quality_policy_version"] == CURRENT_POLICY == "governed-report-v6"
+    assert reassessed["quality_policy_version"] == CURRENT_POLICY == "governed-report-v7"
     assert reassessed["quality_policy_fingerprint"] == QUALITY_POLICY_FINGERPRINT
     assert reassessed["previous_record_hash"] == historical["record_hash"]
 

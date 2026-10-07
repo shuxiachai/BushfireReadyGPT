@@ -109,7 +109,7 @@ def _frozen_register_snapshot(label="ORIGINAL"):
 
 
 def _allow_governed_package_export(monkeypatch):
-    def passing_quality(_report, _analysis):
+    def passing_quality(_report, _analysis, **_kwargs):
         return {
             "checks": [],
             "summary": {"passed": 1, "warnings": 0, "failed": 0, "total": 1},
@@ -508,7 +508,7 @@ def test_review_cannot_substitute_analysis_to_bypass_the_governed_gate(tmp_path,
         },
     }
 
-    def omission_sensitive_quality(_report, analysis):
+    def omission_sensitive_quality(_report, analysis, **_kwargs):
         has_bound_sources = bool((analysis.get("knowledge") or {}).get("retrieved_chunks"))
         passed = not has_bound_sources
         return {
@@ -600,7 +600,7 @@ def test_audit_approval_rejects_unverified_selected_map_bundle(tmp_path, monkeyp
     monkeypatch.setattr(
         audit,
         "evaluate_governed_report",
-        lambda _text, _analysis: passing_quality,
+        lambda _text, _analysis, **_kwargs: passing_quality,
     )
     selection = {
         "state": "Queensland",
@@ -852,7 +852,7 @@ def test_export_rejects_an_analysis_substituted_after_audit(tmp_path, monkeypatc
 
 
 def test_pilot_zip_rejects_a_quality_blocked_draft(tmp_path, monkeypatch):
-    def blocked_quality(_report, _analysis):
+    def blocked_quality(_report, _analysis, **_kwargs):
         return {
             "checks": [],
             "summary": {"passed": 0, "warnings": 0, "failed": 1, "total": 1},

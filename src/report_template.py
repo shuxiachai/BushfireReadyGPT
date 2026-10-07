@@ -25,6 +25,31 @@ Safety disclaimer: live warnings, fire bans, evacuation orders and life-safety d
 """
 
 REPORT_NARRATIVE_WORD_BUDGET = "650 to 800 words"
+REQUIRED_DAY_ONE_ACTION = (
+    "Unverified proposal for local review: Day 1: the responsible organisation must confirm the "
+    "preparedness lead, official contacts, action owners and review checkpoints."
+)
+
+CONTENT_CONTRACT_GUIDANCE = """Bounded content contract (application-owned):
+- Keep 650–800 authored words including headings, tables and lists; the application notice, source-register
+  lines, evidence tables and sign-off are excluded. Use compact role/action tables and short prose.
+- Retain available P2 population and older-people figures and other meaningful supplied indicators. Each
+  occurrence needs adjacent [P2], the supplied source years and geographic aggregation/approximation;
+  community figures are not site occupancy or a premises boundary. Missing transport/language data remain unknown.
+- Put `Unverified proposal for local review:` and an explicit confirmer plus confirmation need in EACH
+  local task sentence, action cell and checklist item. Another cell, heading or closing disclaimer cannot qualify it.
+- Label rule-derived causal planning statements [R3] planning inference and name who must confirm them.
+  Do not attach O1 citations to R3. Proposal labels do not justify causal, medical or effectiveness assertions.
+- Local physical assembly criteria are not verified for the selected premises by this application. State that gap
+  and a task for responsible-authority verification; do not propose shade, water, smoke or traffic criteria.
+- Describe household guidance explicitly as household guidance; put institutional applications in separate unverified
+  proposals. Preserve source audience, conditions and action object even when the topic seems transferable.
+- If a source's maintenance/preparedness wording reverses impacts or survival effects, name an unresolved source
+  conflict with its complete citation and require responsible-source review. Do not repair its meaning or give
+  advice from the conflicting wording. An unused source need not be forced into the body.
+- Only passages supplied in this request can support citations. A registry entry or retrieved-but-omitted passage
+  is not support. These checks are bounded syntax/provenance checks; factual meaning still requires human review.
+"""
 
 SECTION_PURPOSE_GUIDANCE = """Section-purpose instructions (application-owned):
 - Keep all 15 fixed sections substantive and relevant; never copy instructions or fill gaps with unrelated evidence.
@@ -539,7 +564,7 @@ Source titles are intentionally absent and recognised tokens are expanded by the
 also installs the canonical source-register lines in the real Data Sources and Limitations section; keep that
 section as ordinary visible Markdown and concentrate on its human-readable limitations and review requirements.
 Required exact Action Plan line (copy character-for-character into section 13):
-`Day 1: Assign the responsible preparedness lead to verify official contacts, action owners and review checkpoints.`
+`{REQUIRED_DAY_ONE_ACTION}`
 
 Required coverage declaration lines (application-owned; copy every supplied line as ordinary prose into section 3,
 without negating, paraphrasing, quoting or placing it in a code block):
@@ -553,8 +578,10 @@ Follow this fixed report structure. Do not omit sections and do not change the s
 
 {SECTION_PURPOSE_GUIDANCE}
 
+{CONTENT_CONTRACT_GUIDANCE}
+
 Formatting and safety requirements:
-- Keep the model-authored narrative between {REPORT_NARRATIVE_WORD_BUDGET}, excluding the deterministic Evidence Tables and Human Review Sign-off appended by the application. Prefer one concise paragraph per narrative section and compact tables with only decision-useful rows.
+- Keep the model-authored narrative between {REPORT_NARRATIVE_WORD_BUDGET}, excluding the deterministic notice, source-register lines, Evidence Tables and Human Review Sign-off appended by the application. Prefer concise prose and compact tables with only decision-useful rows.
 - Use `#` or `##` only for the 15 fixed section headings above. Never turn a field label, bullet, table cell or prose sentence into another Markdown heading. Include at least 300 prose words outside headings, tables and checklist bullets.
 - Start the report with this exact notice block:
 {GOVERNANCE_NOTICE_MARKDOWN}

@@ -15,10 +15,19 @@ from pathlib import Path
 from types import MappingProxyType
 
 from scripts import scoped_basis_comparison as comparison
+from tests.citation_criteria_fixtures import _shared_dependency_paths
 
 REAL_PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _NAMESPACE_BUILDERS = {"src/agents/report_agent.py", "src/report_basis.py"}
-_UNUSED_INITIAL_PATHS = {"src/report_generation_quality.py", "src/report_workflow.py"}
+_SHARED_DEPENDENCY_ROOTS = {
+    "src/agents/report_agent.py",
+    "src/report_template.py",
+    "src/report_basis.py",
+    "src/model_evidence.py",
+    "src/model_response.py",
+    "src/rag/context.py",
+    "src/agents/planner_agent.py",
+}
 _STABLE_TEMPLATE_DEFS = {"extract_narrative_body", "_remove_governance_notice", "_remove_section"}
 _STABLE_TEMPLATE_VALUES = {"GOVERNANCE_NOTICE_MARKDOWN", "REPORT_NARRATIVE_WORD_BUDGET"}
 
@@ -53,25 +62,19 @@ def _normalise_source(text):
 
 
 def verify_real_shared_helpers(candidate):
-    # Load the safe initial-builder/extraction chain, never the credential-bearing
-    # runtime. Runtime modules already imported by a test are checked below too.
+    # This is an initial-builder source-guard fixture, not a historical runtime.
+    # Load the safe extraction chain, never credential-bearing configuration.
+    # Only the pinned import closure executes in this fixture; unrelated modules
+    # imported by other pytest files are not historical builder dependencies.
     for name in ("src.report_template", "src.model_evidence", "src.model_response", "src.rag.context"):
         importlib.import_module(name)
-    for name, module in list(sys.modules.items()):
-        if not name.startswith("src."):
-            continue
-        if getattr(module, "__file__", None) is None:
-            namespace = name.replace(".", "/")
-            assert any(path.startswith(namespace + "/") for path in candidate)
-            assert {Path(path).resolve() for path in module.__path__} == {(REAL_PROJECT_ROOT / namespace).resolve()}
-            continue
-        relative = name.replace(".", "/") + ".py"
-        if relative not in candidate:
-            relative = name.replace(".", "/") + "/__init__.py"
-        assert relative in candidate, f"Unbound shared module: {name}"
+    for relative in _shared_dependency_paths(candidate, roots=_SHARED_DEPENDENCY_ROOTS):
+        name = relative.removesuffix(".py").removesuffix("/__init__").replace("/", ".")
+        module = sys.modules.get(name)
         actual = REAL_PROJECT_ROOT / relative
         assert actual.resolve().is_relative_to(REAL_PROJECT_ROOT.resolve()), f"Shared module outside checkout: {name}"
-        assert Path(module.__file__).resolve() == actual.resolve(), f"Shared module origin changed: {name}"
+        if module is not None:
+            assert Path(module.__file__).resolve() == actual.resolve(), f"Shared module origin changed: {name}"
         if relative == "src/report_template.py":
             # These exact definitions and values are the current-template
             # dependency of model_response/model_evidence narrative extraction.
@@ -80,7 +83,7 @@ def verify_real_shared_helpers(candidate):
             ), "Stable template dependency changed"
             for function in _STABLE_TEMPLATE_DEFS:
                 assert Path(getattr(module, function).__code__.co_filename).resolve() == actual.resolve()
-        elif relative not in _NAMESPACE_BUILDERS | _UNUSED_INITIAL_PATHS:
+        elif relative not in _NAMESPACE_BUILDERS:
             assert _normalise_source(actual.read_text(encoding="utf-8")) == _normalise_source(
                 candidate[relative].decode("utf-8")
             ), f"Shared helper changed: {relative}"

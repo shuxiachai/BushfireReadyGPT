@@ -243,7 +243,8 @@ def run_scenario_with_artifacts(scenario):
     report = apply_governance_notice(narrative)
     report = append_evidence_tables(report, analysis)
     report = append_human_signoff(report, {"report_status": "Draft - human review required"})
-    quality = evaluate_governed_report(report, analysis)
+    model_evidence = getattr(narrative, "model_evidence", None) or unavailable_model_evidence()
+    quality = evaluate_governed_report(report, analysis, model_evidence=model_evidence)
     knowledge = analysis.get("knowledge", {})
     chunks = knowledge.get("retrieved_chunks", [])
     knowledge_status = str(knowledge.get("status") or "unknown")
@@ -269,7 +270,6 @@ def run_scenario_with_artifacts(scenario):
         unsafe_live_claims=unsafe_live_claims,
     )
     grounding = evaluate_report_grounding(narrative, analysis)
-    model_evidence = getattr(narrative, "model_evidence", None) or unavailable_model_evidence()
     grounding["model_visible_rag"] = evaluate_model_visible_rag_grounding(report, analysis, model_evidence)
     grounding["body_claim_evidence"] = evaluate_body_claim_evidence(report, analysis, model_evidence)
     body_delivery_required = (

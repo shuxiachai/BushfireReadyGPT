@@ -10,6 +10,7 @@ from scripts import run_citation_criteria_comparison as runner
 from tests import test_citation_criteria_comparison as preparation_tests
 
 fixed_sources = preparation_tests.fixed_sources
+source_guard_checkout = preparation_tests.source_guard_checkout
 frozen_bundle = pytest.fixture(name="frozen_bundle")(preparation_tests.bundle.__wrapped__)
 
 

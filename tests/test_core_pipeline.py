@@ -2,7 +2,6 @@ import json
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from textwrap import dedent
 from types import SimpleNamespace
 from zipfile import ZipFile
 
@@ -81,7 +80,7 @@ Preparedness planning draft.
 
 
 def _allow_governed_package_export(monkeypatch):
-    def passing_quality(_report, _analysis):
+    def passing_quality(_report, _analysis, *, model_evidence=None):
         return {
             "checks": [],
             "summary": {"passed": 1, "warnings": 0, "failed": 0, "total": 1},
@@ -1310,6 +1309,8 @@ def test_repeated_filler_under_every_required_heading_is_blocked():
 
 
 def test_approval_gate_accepts_a_completed_review_when_exact_report_passes():
+    from tests.test_report_content_contract import _valid_report
+
     review_record = {
         "approval_status": "Approved by organisation",
         "reviewer_name": "Test Reviewer",
@@ -1319,64 +1320,13 @@ def test_approval_gate_accepts_a_completed_review_when_exact_report_passes():
         "review_checklist": build_review_checklist_snapshot(lambda _item_id: True),
         "review_checklist_complete": True,
     }
-    narrative = dedent("""
-    # Cairns Preparedness Report
-
-    ## Executive Summary
-    This draft supports local preparedness planning and requires responsible human review.
-    It helps the organisation prepare people, information and facilities before a bushfire or
-    smoke event. It does not predict fire behaviour. Local leaders should verify every proposed
-    action against current conditions, official advice and the needs of the people who may rely
-    on the plan. Findings should be discussed with staff, community representatives and relevant
-    emergency-management partners before they are adopted.
-    ## Purpose and Scope
-    It covers planning before an incident and is not live emergency advice.
-    ## Selected Geography and Key Assumptions
-    Cairns, Queensland is the selected planning area; local conditions must be verified.
-    ## Data Sources and Limitations
-    Official sources, processed community data, and user context have different confidence levels.
-    [O1][source_id=qfd_qfes] Queensland Fire Department / QFES
-    [O1][source_id=bom_qld_warnings] Bureau of Meteorology Queensland Warnings
-    The Bureau of Meteorology, the state fire service, local council and other emergency services
-    remain authoritative for current warnings. Processed indicators are planning context rather
-    than facts about an individual person. User-provided details are unverified until a responsible
-    reviewer checks organisational records. Call 000 when life or property is in immediate danger.
-    ## Local Risk Context
-    Seasonal bushfire exposure and smoke impacts require local validation.
-    ## Preparedness Priorities
-    Verify contacts, routes, accessibility needs, and current official warnings.
-    Maintain alternatives for power, telecommunications and transport disruption. Record who owns
-    each action, when it is due, and what evidence will demonstrate completion. Recheck the plan
-    after exercises, staffing changes and material changes to local risk.
-    ## Evacuation Planning
-    Follow emergency-service directions; do not infer that any route is safe.
-    Identify more than one candidate route and document the authority responsible for deciding
-    whether movement is appropriate. Plans must account for mobility, language, supervision,
-    transport and reunification needs without promising that a route will remain available.
-    ## Candidate Assembly Point Criteria
-    Responsible authorities must assess hazards, access, capacity, and alternatives.
-    A gymnasium, library, sports field or carpark may only be recorded as a candidate pending a
-    site-specific inspection and official advice. Document shade, smoke exposure, accessibility,
-    communications, first aid access, capacity and a backup location.
-    ## Roles and Responsibilities
-    Coordinators, communications leads, first aid staff, and wardens require named backups.
-    ## Communication and Inclusion Needs
-    Use accessible, redundant channels and support people with additional needs.
-    ## First Aid, Training and Exercises
-    Check supplies and run a documented exercise with corrective actions.
-    ## Action Plan
-    Day 1: verify official contacts. Day 2: inspect routes. Day 3: exercise the plan.
-    ## Human Review and Approval Checklist
-    - [ ] Confirm official sources and current local arrangements.
-    ## Safety Disclaimer
-    This report is not live emergency advice or an evacuation order. Follow current official
-    emergency-service instructions and call 000 if life or property is in immediate danger.
-    """)
+    narrative, analysis = _valid_report()
+    analysis["data_integrity"] = {"core_ready": True, "custom_data": False}
     report = append_human_signoff(
-        append_evidence_tables(apply_governance_notice(narrative), {}),
+        append_evidence_tables(apply_governance_notice(narrative), analysis),
         review_record,
     )
-    quality = ReportQualityAgent().run(report)
+    quality = evaluate_governed_report(report, analysis)
 
     assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]
     assert (
@@ -1385,18 +1335,7 @@ def test_approval_gate_accepts_a_completed_review_when_exact_report_passes():
             quality,
             {
                 "text": report,
-                "analysis": {
-                    "data": {
-                        "sources": [
-                            {"id": "qfd_qfes", "name": "Queensland Fire Department / QFES"},
-                            {
-                                "id": "bom_qld_warnings",
-                                "name": "Bureau of Meteorology Queensland Warnings",
-                            },
-                        ]
-                    },
-                    "data_integrity": {"core_ready": True, "custom_data": False},
-                },
+                "analysis": analysis,
             },
         )
         is None

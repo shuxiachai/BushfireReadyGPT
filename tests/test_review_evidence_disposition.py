@@ -9,8 +9,16 @@ from streamlit.testing.v1 import AppTest
 from scripts.verify_sample_exports import verify_sample_package
 from src import report_workflow
 from src.governance import build_review_checklist_snapshot
-from src.report_generation_quality import QUALITY_POLICY_FINGERPRINT, QUALITY_POLICY_VERSION, evaluate_governed_report
+from src.report_generation_quality import (
+    QUALITY_POLICY_FINGERPRINT,
+    QUALITY_POLICY_VERSION,
+    READABLE_QUALITY_POLICY_BINDINGS,
+    evaluate_governed_report,
+    is_readable_quality_policy_binding,
+)
 from src.report_grounding import claim_review_reasons, evaluate_report_grounding
+from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
+from tests.test_report_content_contract import _valid_report
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -54,6 +62,39 @@ def _record(claim, analysis=None):
     return {"text": text, "analysis": _analysis() if analysis is None else analysis}
 
 
+def _current_record(claim=""):
+    """A complete current approval fixture, separate from historical UI inputs."""
+    narrative, analysis = _valid_report()
+    analysis["profile"] = {"state": "Queensland"}
+    analysis["data_integrity"] = {"custom_data": False, "core_ready": True}
+    analysis["community"] = {
+        "indicators": {
+            "population": 172888,
+            "older_people_pct": 16.5,
+            "no_car_households_pct": None,
+            "language_other_than_english_pct": None,
+            "geography_type": "lga_approximation",
+            "matched_sa2_count": 22,
+        },
+        "data_quality": {"source_period": "2021 Census and 2022 ERP"},
+    }
+    heading = "## 4. Selected Geography and Key Assumptions"
+    before, remainder = narrative.split(heading, 1)
+    _old, after = remainder.split("## 5. Data Sources and Limitations", 1)
+    basis = (
+        "Community population is 172,888 and older people represent 16.5% in the approximate 22-SA2 "
+        "aggregation (2021 Census and 2022 ERP) [P2]. Transport and language measurements remain unknown. "
+        "These community figures describe a historical regional baseline rather than premises occupancy. "
+        "No site address, participant list or exact premises boundary is supplied. Local applicability "
+        "remains an organisational review matter before formal use."
+    )
+    narrative = before + heading + "\n" + basis + "\n\n## 5. Data Sources and Limitations" + after
+    if claim:
+        narrative = narrative.replace("## 2. Executive Summary", "## 2. Executive Summary\n" + claim, 1)
+    text = append_human_signoff(append_evidence_tables(apply_governance_notice(narrative), analysis))
+    return {"text": text, "analysis": analysis}
+
+
 @pytest.mark.parametrize(
     "claim",
     [
@@ -73,14 +114,28 @@ def _record(claim, analysis=None):
     ],
 )
 def test_explicit_snapshot_conflicts_block_new_approval_even_with_stale_pass_cache(claim):
-    record = _record(claim)
-    assert evaluate_governed_report(record["text"], record["analysis"])["approval_gate"]["passed"] is True
+    record = _current_record(claim)
+    actual_quality = evaluate_governed_report(record["text"], record["analysis"])
+    numeric = "population" in claim or "older people" in claim
+    if numeric:
+        p2 = next(check for check in actual_quality["checks"] if check["name"] == "Processed community provenance")
+        assert "p2_value_mismatch" in {item["code"] for item in p2["findings"]}
+        assert actual_quality["approval_gate"]["passed"] is False
+    else:
+        assert actual_quality["approval_gate"]["passed"] is True
+    assert any(
+        item.get("snapshot_conflicts")
+        for item in evaluate_report_grounding(record["text"], record["analysis"])["claims"]
+    )
     record["grounding_evaluation"] = {"status": "pass", "claims": []}
 
     error = report_workflow.validate_review_record(_review(), {"approval_gate": {"passed": True}}, record)
 
-    assert "explicit frozen-evidence conflict" in error
-    assert "Correct the report or regenerate" in error
+    if numeric:
+        assert "Resolve all failed Governed Report Check items" in error
+    else:
+        assert "explicit frozen-evidence conflict" in error
+        assert "Correct the report or regenerate" in error
 
 
 @pytest.mark.parametrize("status", ["Draft - human review required", "Needs revision", "Reviewed draft"])
@@ -90,7 +145,7 @@ def test_conflicts_do_not_prevent_recording_non_approved_review_statuses(status)
 
 
 def test_new_approval_blocks_escape_paraphrases_without_reinterpreting_v6():
-    record = _record("Drive along Smith Road now to escape the flames.")
+    record = _current_record("Drive along Smith Road now to escape the flames.")
     assert evaluate_governed_report(record["text"], record["analysis"])["approval_gate"]["passed"] is True
     assert "operational escape directions" in report_workflow.validate_review_record(_review(), report_record=record)
     assert report_workflow.validate_review_record(_review("Reviewed draft"), report_record=record) is None
@@ -121,21 +176,39 @@ def test_new_approval_blocks_escape_paraphrases_without_reinterpreting_v6():
         "The community population is not **999999** residents.",
     ],
 )
-def test_unknown_numbers_comparisons_u0_quotes_and_matching_values_are_not_hard_blocked(claim):
-    record = _record(claim)
-    assert report_workflow.validate_review_record(_review(), report_record=record) is None
+def test_legacy_grounding_does_not_invent_conflicts_for_unknown_comparisons_or_matching_values(claim):
+    # No claim of complete current approval: this is the legacy conflict
+    # classifier's boundary, independent of v7 provenance and task requirements.
+    result = evaluate_report_grounding(claim, _analysis())
+    assert not any(item.get("snapshot_conflicts") for item in result["claims"])
 
 
 @pytest.mark.parametrize("value", [None, "", "unknown", "nan", "inf", -1, True])
 def test_missing_or_invalid_reference_value_cannot_establish_numeric_contradiction(value):
     analysis = _analysis()
     analysis["community"]["indicators"]["population"] = value
-    record = _record("The community data shows a population of 999999 residents.", analysis)
+    result = evaluate_report_grounding("The community data shows a population of 999999 residents.", analysis)
+    assert not any(item.get("snapshot_conflicts") for item in result["claims"])
+
+
+@pytest.mark.parametrize(
+    "claim",
+    [
+        "",
+        "The report jurisdiction is Queensland.",
+        "Community population is 172888.0 and older people represent 16.5% in the approximate 22-SA2 "
+        "aggregation (2021 Census and 2022 ERP) [P2].",
+    ],
+)
+def test_complete_current_report_with_matching_facts_can_be_approved(claim):
+    record = _current_record(claim)
+    quality = evaluate_governed_report(record["text"], record["analysis"])
+    assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]["blocking_failures"]
     assert report_workflow.validate_review_record(_review(), report_record=record) is None
 
 
 def test_review_transaction_rechecks_before_appending_any_audit_event(monkeypatch):
-    record = _record("The community data shows a population of 999999 residents.")
+    record = _current_record("The community data shows a population of 999999 residents.")
     record["audit_path"] = "test-bound-audit.json"
     monkeypatch.setattr(report_workflow, "st", SimpleNamespace(session_state={"latest_report": record}))
     monkeypatch.setattr(report_workflow, "load_and_verify_audit", lambda _: {"verified_test_snapshot": True})
@@ -245,13 +318,21 @@ def test_current_review_cache_binds_report_text_analysis_and_method(monkeypatch)
 
 
 def test_v6_policy_and_committed_release_read_validation_remain_unchanged(monkeypatch):
-    assert QUALITY_POLICY_VERSION == "governed-report-v6"
-    assert QUALITY_POLICY_FINGERPRINT == "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
+    legacy_fingerprint = "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
+    assert QUALITY_POLICY_VERSION == "governed-report-v7"
+    assert QUALITY_POLICY_FINGERPRINT != legacy_fingerprint
+    assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"] == frozenset({legacy_fingerprint})
+    assert is_readable_quality_policy_binding("governed-report-v6", legacy_fingerprint)
 
     def new_approval_must_not_run(*_args, **_kwargs):
         pytest.fail("Historical release read validation must not call the new approval workflow.")
 
     monkeypatch.setattr(report_workflow, "validate_review_record", new_approval_must_not_run)
-    result = verify_sample_package(ROOT / "examples/v0.6.0/cairns-council-pilot-package.zip")
+    result = verify_sample_package(
+        ROOT / "examples/v0.6.0/cairns-council-pilot-package.zip", require_current_policy=False
+    )
+    assert result["quality_policy_version"] == "governed-report-v6"
+    assert result["quality_policy_fingerprint"] == legacy_fingerprint
+    assert result["current_policy"] is False
     assert result["governed_gate_passed"] is True
     assert result["verified_hashes"] == 10

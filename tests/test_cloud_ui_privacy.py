@@ -161,9 +161,11 @@ def test_export_and_save_errors_do_not_disclose_host_details(mode, view, monkeyp
         raise OSError("Could not access /data/private-account/internal-secret-artifact")
 
     for module in (report_views, sidebar):
-        monkeypatch.setattr(module, "get_report_artifact", unavailable)
+        monkeypatch.setattr(module, "get_governed_report_artifacts", unavailable)
         monkeypatch.setattr(module, "download_button", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(sidebar, "evaluate_governed_report", lambda *_args: {"approval_gate": {"passed": True}})
+    monkeypatch.setattr(
+        sidebar, "evaluate_governed_report", lambda *_args, **_kwargs: {"approval_gate": {"passed": True}}
+    )
     monkeypatch.setattr(review_views, "create_pilot_export_package", unavailable)
     app = AppTest.from_string(
         """
@@ -186,6 +188,11 @@ def save():
     assert not app.exception
     warnings = "\n".join(item.value for item in app.warning)
     assert "failed" in warnings
+    if view == "package":
+        assert "Pilot package generation failed:" in warnings
+    else:
+        assert "PDF generation failed:" in warnings
+        assert "DOCX generation failed:" in warnings
     if mode == "cloud":
         assert "private-account" not in warnings
         assert "internal-secret-artifact" not in warnings
@@ -200,9 +207,15 @@ def test_server_save_explains_markdown_retention_without_promising_workspace_res
     monkeypatch.delenv("RAILWAY_PROJECT_ID", raising=False)
     monkeypatch.delenv("RAILWAY_ENVIRONMENT_ID", raising=False)
     for module in (report_views, sidebar):
-        monkeypatch.setattr(module, "get_report_artifact", lambda *_args: b"synthetic")
+        monkeypatch.setattr(
+            module,
+            "get_governed_report_artifacts",
+            lambda *_args, **_kwargs: {"pdf": b"synthetic PDF", "docx": b"synthetic DOCX"},
+        )
         monkeypatch.setattr(module, "download_button", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(sidebar, "evaluate_governed_report", lambda *_args: {"approval_gate": {"passed": True}})
+    monkeypatch.setattr(
+        sidebar, "evaluate_governed_report", lambda *_args, **_kwargs: {"approval_gate": {"passed": True}}
+    )
     app = AppTest.from_string(
         """
 import streamlit as st

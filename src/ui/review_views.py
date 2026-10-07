@@ -18,6 +18,7 @@ from src.report_grounding import (
     evaluate_model_visible_rag_grounding,
     evaluate_report_grounding,
 )
+from src.ui.artifact_cache import get_governed_artifact_cache
 from src.ui.components import render_path_line, safe_diagnostic_detail, safe_display_text
 from src.ui.downloads import download_button
 
@@ -950,6 +951,7 @@ def render_pilot_export_package(get_latest_assistant_text, collect_review_record
             register_snapshot=report_record.get("export_register_snapshot"),
             analysis=report_record.get("analysis"),
             grounding_evaluation=report_record.get("grounding_evaluation"),
+            artifact_cache=get_governed_artifact_cache(),
         )
         download_button(
             "Download pilot export package",

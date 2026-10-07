@@ -157,7 +157,8 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
     rag_index_manifest_sha256 = _validate_showcase_retrieval(row, analysis)
     review_record = _review_record()
     report = append_human_signoff(artifacts["report"], review_record)
-    quality = evaluate_governed_report(report, analysis)
+    snapshot = artifacts.get("model_evidence")
+    quality = evaluate_governed_report(report, analysis, model_evidence=snapshot)
     if quality.get("approval_gate", {}).get("passed") is not True:
         raise RuntimeError("The canonical showcase report failed after its deterministic sign-off was applied.")
 
@@ -195,7 +196,6 @@ def build_showcase_sample(output_dir=None, *, example_name=DEFAULT_EXAMPLE):
     }
     register_snapshot = build_export_register_snapshot()
     grounding = evaluate_report_grounding(report, analysis)
-    snapshot = artifacts.get("model_evidence")
     if not isinstance(snapshot, dict) or snapshot.get("status") != "captured":
         raise RuntimeError("A formal showcase requires the final successful SDK request's recorded evidence snapshot.")
     try:

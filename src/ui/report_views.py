@@ -11,10 +11,8 @@ from src.config import (
     MODEL_ENDPOINT_IS_LOCAL,
 )
 from src.deployment_access import is_cloud_deployment
-from src.docx_export import create_report_docx
 from src.input_validation import REPORT_FIELD_LIMITS
-from src.pdf_export import create_report_pdf
-from src.ui.artifact_cache import get_report_artifact
+from src.ui.artifact_cache import get_governed_report_artifacts
 from src.ui.components import safe_diagnostic_detail
 from src.ui.downloads import download_button
 from src.ui.workflow_progress import workflow_progress
@@ -189,7 +187,7 @@ def render_latest_report_preview(
         )
     with action_cols[1]:
         try:
-            pdf_bytes = get_report_artifact(latest_report, "pdf", create_report_pdf)
+            pdf_bytes = get_governed_report_artifacts(latest_report, audit_path=latest_record.get("audit_path"))["pdf"]
             download_button(
                 "Download PDF",
                 data=pdf_bytes,
@@ -202,7 +200,9 @@ def render_latest_report_preview(
             st.warning(f"PDF generation failed: {safe_diagnostic_detail(exc)}")
     with action_cols[2]:
         try:
-            docx_bytes = get_report_artifact(latest_report, "docx", create_report_docx)
+            docx_bytes = get_governed_report_artifacts(latest_report, audit_path=latest_record.get("audit_path"))[
+                "docx"
+            ]
             download_button(
                 "Download DOCX",
                 data=docx_bytes,

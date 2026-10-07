@@ -6,13 +6,23 @@ from unittest.mock import patch
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from src.agents.pipeline import run_analysis_pipeline
 from src.audit import get_audit_chain_paths, load_and_verify_audit
-from src.source_attribution import format_official_citation_token
+from src.focus_coverage import canonical_coverage_declarations
+from src.report_basis import build_community_p2_basis
+from src.report_generation_quality import assess_generated_narrative
+from src.source_attribution import (
+    canonicalise_model_source_section,
+    expand_known_attribution_tokens,
+    strip_application_source_bindings,
+)
+from tests.test_report_content_contract import _valid_report
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
-TASMANIA_FIRE_SOURCE = {"id": "tasmania_fire_service", "name": "Tasmania Fire Service"}
-BOM_WARNINGS_SOURCE = {"id": "bom_warnings_alerts", "name": "Bureau of Meteorology - Warnings and Alerts"}
+POSITIVE_SCENARIO = "School bushfire preparedness"
+POSITIVE_TIMEFRAME = "7-day action plan"
+POSITIVE_CONCERNS = ["Evacuation", "Candidate assembly points", "Official information sources"]
 
 MOCK_REPORT = """# Hobart School Bushfire Preparedness Draft
 
@@ -34,63 +44,36 @@ Assign evacuation wardens, maintain contact lists and schedule first aid trainin
 This is not live emergency advice. Follow official emergency services and call 000 if life is at risk.
 """
 
-QUALITY_PASSING_REPORT = (
-    "# Governed Bushfire Preparedness Draft\n\n"
-    + "\n\n".join(
-        f"## {heading}\n"
-        f"The School bushfire preparedness plan's {heading} section requires the responsible organisation to "
-        "review local arrangements, evidence, "
-        "accessibility, communications, "
-        "training, accountability and documented preparedness actions with authorised partners before formal use. "
-        "This planning content records assumptions and requires verification against current official sources."
-        + (
-            f"\n{format_official_citation_token(TASMANIA_FIRE_SOURCE)}"
-            f"\n{format_official_citation_token(BOM_WARNINGS_SOURCE)}"
-            if heading == "Data Sources and Limitations"
-            else ""
-        )
-        + (
-            " Day 1 assigns the preparedness coordinator to verify contacts and action owners."
-            if heading == "Action Plan"
-            else ""
-        )
-        for heading in [
-            "Executive Summary",
-            "Purpose and Scope",
-            "Selected Geography and Key Assumptions",
-            "Data Sources and Limitations",
-            "Local Risk Context",
-            "Preparedness Priorities",
-            "Evacuation Planning",
-            "Candidate Assembly Point Criteria",
-            "Roles and Responsibilities",
-            "Communication and Inclusion Needs",
-            "First Aid, Training and Exercises",
-            "Action Plan",
-            "Human Review and Approval Checklist",
-            "Safety Disclaimer",
-        ]
+
+def _quality_passing_report(audience):
+    """Use real offline form analysis; never stub the gate or erase P2 facts."""
+    analysis = run_analysis_pipeline(
+        "Hobart, Tasmania", audience, POSITIVE_SCENARIO, POSITIVE_CONCERNS, POSITIVE_TIMEFRAME, ""
     )
-    + """
-
-## Operational Planning Detail
-
-Day 1 assigns the preparedness coordinator to confirm contacts with Tasmania Fire Service, the local council,
-the Bureau of Meteorology and emergency services. Call 000 for life-threatening emergencies. Wardens document
-accessible routes, mobility assistance, transport contingencies, family reunification, interpreter support,
-backup communications, first-aid supplies, training attendance, exercise observations and corrective actions.
-Leaders compare seasonal hazards, building exposure, vegetation, smoke impacts, road constraints, power loss,
-water availability and community capacity. Owners record deadlines, dependencies, evidence, escalation triggers,
-alternate arrangements and consultation outcomes. Current live warnings and any evacuation order must be checked
-with official authorities; this draft never replaces operational direction or professional site assessment.
-
-## Readiness Checklist
-
-- [ ] Validate contact directories and notification channels.
-- [ ] Inspect evacuation routes and accessible alternatives.
-- [ ] Schedule a documented exercise with authorised partners.
-"""
-)
+    assert analysis["knowledge"]["status"] == "disabled"
+    basis = build_community_p2_basis(analysis)
+    # This exact location currently has no matched community profile. If that
+    # changes, the fixture must narrate those real facts instead of hiding them.
+    assert basis["matched_location"] is None
+    assert all(value is None for value in basis["indicators"].values())
+    narrative, synthetic_analysis = _valid_report()
+    narrative = strip_application_source_bindings(
+        narrative, official_sources=synthetic_analysis["data"]["sources"], rag_sources=[]
+    )
+    narrative = narrative.replace(
+        "## 3. Purpose and Scope", "## 3. Purpose and Scope\n" + "\n".join(canonical_coverage_declarations(analysis))
+    )
+    narrative = narrative.replace(
+        "## 4. Selected Geography and Key Assumptions",
+        "## 4. Selected Geography and Key Assumptions\n"
+        "Population and older-people measurements are unknown; transport and language measurements remain unknown.",
+    )
+    sources = analysis["data"]["sources"]
+    narrative = canonicalise_model_source_section(narrative, official_sources=sources, rag_sources=[])
+    narrative = expand_known_attribution_tokens(narrative, official_sources=sources, rag_sources=[])
+    quality = assess_generated_narrative(narrative, analysis)
+    assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]["blocking_failures"]
+    return narrative
 
 
 def _write_verified_map_fixture(directory):
@@ -299,7 +282,22 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert not app.exception
     assert model_call.call_count == 3
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
-    assert app.session_state["latest_quality"]["summary"]["total"] == 18
+    quality = app.session_state["latest_quality"]
+    assert quality["summary"]["total"] == 23
+    checks = {item["name"]: item for item in quality["checks"]}
+    assert {
+        "Narrative word budget",
+        "Processed community provenance",
+        "Local proposal attribution",
+        "Rule-derived causal qualification",
+        "Submitted passage scope and conflicts",
+    } <= checks.keys()
+    assert checks["Narrative word budget"]["status"] == "fail"
+    assert quality["approval_gate"]["passed"] is False
+    assert app.session_state["latest_report"]["generation_gate_blocked"] is True
+    assert app.session_state["report_status"] == "Draft - human review required"
+    assert load_and_verify_audit(app.session_state["latest_audit_path"])["generation_gate_blocked"] is True
+    assert not any(item.proto.label == "Download pilot export package" for item in app.get("download_button"))
     assert app.session_state["latest_audit_path"].startswith(str(isolated_app_storage["audit_dir"]))
     assert app.session_state["latest_report"]["version"] == 1
     assert app.session_state["latest_report"]["audit_path"] == app.session_state["latest_audit_path"]
@@ -308,19 +306,22 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
 
 
 def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
-    revised_report = QUALITY_PASSING_REPORT.replace(
-        "accessible routes, mobility assistance",
-        "accessible routes and two candidate assembly point options, mobility assistance",
+    passing_report = _quality_passing_report("Students and teachers")
+    revised_report = passing_report.replace(
+        "assisted transport and participant accountability",
+        "accessible transport requests and participant accountability",
     )
-    assert revised_report != QUALITY_PASSING_REPORT
+    assert revised_report != passing_report
     with patch(
         "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
-        side_effect=[QUALITY_PASSING_REPORT, revised_report],
+        side_effect=[passing_report, revised_report],
     ) as model_call:
         app = _run_app()
         app.text_input(key="form_location").set_value("Hobart, Tasmania")
         app.text_input(key="form_audience").set_value("Students and teachers")
+        app.selectbox(key="form_scenario").set_value(POSITIVE_SCENARIO)
+        app.selectbox(key="form_timeframe").set_value(POSITIVE_TIMEFRAME)
         app.multiselect(key="form_concerns").set_value(
             ["Evacuation", "Candidate assembly points", "Official information sources"]
         )
@@ -342,7 +343,8 @@ def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
     assert second_report["parent_report_id"] == first_report["id"]
     assert second_report["id"] != first_report["id"]
     assert second_report["audit_path"] != first_report["audit_path"]
-    assert "accessible routes and two candidate assembly point options" in second_report["text"]
+    assert "accessible transport requests and participant accountability" in second_report["text"]
+    assert second_report["quality"]["approval_gate"]["passed"] is True
     assert "## Evidence Tables" in second_report["text"]
     assert "## Human Review Sign-off" in second_report["text"]
     assert second_report["quality"] == app.session_state["latest_quality"]
@@ -356,14 +358,17 @@ def test_revision_creates_a_new_governed_report_version(isolated_app_storage):
 
 
 def test_failed_revision_retains_report_and_shows_actionable_error(isolated_app_storage):
+    passing_report = _quality_passing_report("Students and teachers")
     with patch(
         "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
-        side_effect=[QUALITY_PASSING_REPORT, MOCK_REPORT],
+        side_effect=[passing_report, MOCK_REPORT],
     ) as model_call:
         app = _run_app()
         app.text_input(key="form_location").set_value("Hobart, Tasmania")
         app.text_input(key="form_audience").set_value("Students and teachers")
+        app.selectbox(key="form_scenario").set_value(POSITIVE_SCENARIO)
+        app.selectbox(key="form_timeframe").set_value(POSITIVE_TIMEFRAME)
         app.multiselect(key="form_concerns").set_value(
             ["Evacuation", "Candidate assembly points", "Official information sources"]
         )
@@ -380,14 +385,17 @@ def test_failed_revision_retains_report_and_shows_actionable_error(isolated_app_
 
 
 def test_approval_creates_append_only_audit_event_and_updates_signoff(isolated_app_storage):
+    passing_report = _quality_passing_report("Council preparedness reviewers")
     with patch(
         "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
-        return_value=QUALITY_PASSING_REPORT,
+        return_value=passing_report,
     ):
         app = _run_app()
         app.text_input(key="form_location").set_value("Hobart, Tasmania")
         app.text_input(key="form_audience").set_value("Council preparedness reviewers")
+        app.selectbox(key="form_scenario").set_value(POSITIVE_SCENARIO)
+        app.selectbox(key="form_timeframe").set_value(POSITIVE_TIMEFRAME)
         app.multiselect(key="form_concerns").set_value(
             ["Evacuation", "Candidate assembly points", "Official information sources"]
         )

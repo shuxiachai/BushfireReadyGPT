@@ -1,84 +1,112 @@
 import hashlib
 import json
 import os
-import shutil
 import socket
+import stat
 import subprocess
 import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.parse import urlsplit
+from urllib.request import ProxyHandler, build_opener
+from uuid import uuid4
 from zipfile import ZipFile
 
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
-ARTIFACT_DIR = PROJECT_ROOT / "output" / "playwright"
-RUNTIME_DIR = PROJECT_ROOT / "chat_history" / "e2e_runtime"
+ARTIFACT_PARENT = PROJECT_ROOT / "output" / "playwright"
 
-MOCK_REPORT = (
-    "# Cairns Council Bushfire Preparedness Draft\n\n"
-    + "\n\n".join(
-        f"## {heading}\n"
-        f"The {heading} section requires the responsible organisation to review local arrangements, evidence, "
-        "accessibility, communications, training, accountability and documented preparedness actions with "
-        "authorised partners before formal use. This planning content records assumptions and requires "
-        "verification against current official sources."
-        + (
-            "\n[O1][source_id=mock_qld_source] Mock Queensland Official Source"
-            "\n[O1][source_id=mock_bom_source] Mock Bureau of Meteorology Source"
-            if heading == "Data Sources and Limitations"
-            else ""
-        )
-        + (
-            " Day 1 assigns the preparedness coordinator to verify contacts and action owners."
-            if heading == "Action Plan"
-            else ""
-        )
-        for heading in [
-            "Executive Summary",
-            "Purpose and Scope",
-            "Selected Geography and Key Assumptions",
-            "Data Sources and Limitations",
-            "Local Risk Context",
-            "Preparedness Priorities",
-            "Evacuation Planning",
-            "Candidate Assembly Point Criteria",
-            "Roles and Responsibilities",
-            "Communication and Inclusion Needs",
-            "First Aid, Training and Exercises",
-            "Action Plan",
-            "Human Review and Approval Checklist",
-            "Safety Disclaimer",
-        ]
-    )
-    + """
+# Synthetic response for the exact Cairns Council pilot and map fixture below.
+# No quality result is mocked: the offline preflight and UI use the real v7 gate.
+MOCK_REPORT = """# Cairns Council Bushfire Preparedness Draft
 
-## Operational Planning Detail
+## 2. Executive Summary
+This synthetic planning draft presents a Council community preparedness review agenda for Cairns, Queensland.
+The audience includes community resilience officers, school safety leads and local service partners. It contains
+no verified local operating arrangements, current incident information or nominated destinations. Evidence gaps,
+proposed responsibilities and review dates remain subject to responsible organisational confirmation before
+formal use. Review findings and supporting records are incomplete in this controlled browser example.
 
-The Council community preparedness plan assigns accountable owners across the controlled pilot. Day 1 assigns
-the preparedness coordinator to confirm contacts with Queensland emergency services, the local
-council and the Bureau of Meteorology. Call 000 for life-threatening emergencies. Wardens document accessible
-routes, mobility assistance, transport contingencies, family reunification, interpreter support, backup
-communications, first-aid supplies, training attendance, exercise observations and corrective actions. Leaders
-compare seasonal hazards, building exposure, vegetation, smoke impacts, road constraints, power loss, water
-availability and community capacity. Owners record deadlines, dependencies, evidence, escalation triggers,
-alternate arrangements and consultation outcomes. Current live warnings and any evacuation order must be checked
-with official authorities; this draft never replaces operational direction or professional site assessment.
-Smoke exposure and health support are assigned to documented roles and responsibilities. Human review and
-organisational approval remain mandatory before formal use.
+## 3. Purpose and Scope
+This draft covers the application-recognised council community preparedness scenario. This draft includes
+evacuation, communication, smoke exposure, roles and responsibilities, official source verification and human
+review in its preparedness planning. The scope is this month's preparedness discussions, not live emergency
+advice or an instruction to move people. The administrative timetable is a proposal with no established claim
+about any measure's effects. Operational decisions remain outside the supplied evidence.
 
-## Readiness Checklist
+## 4. Selected Geography and Key Assumptions
+The synthetic selected Cairns SA4 fixture contains a community population of 171,000 and older people represent
+15% in its 1-SA2 aggregation (2021 Census and 2022 ERP fields) [P2]. These controlled geographic figures are not
+school or campus occupancy measurements. Transport and language percentages are unknown. No site address,
+premises boundary or participant register is verified for this example. The responsible organisation has not
+approved the assumptions, proposed appointments or timetable.
 
-- [ ] Validate contact directories and notification channels.
-- [ ] Inspect evacuation routes and accessible alternatives.
-- [ ] Schedule a documented exercise with authorised partners.
+## 5. Data Sources and Limitations
+The source register contains controlled verification entry points only, with no submitted passage supporting
+a local operating arrangement. No live warning feed or current road information is available. Source currency,
+geographic applicability and organisational relevance remain unresolved review matters. The prose is draft
+synthesis, not a substitute for evidence or responsible-authority advice.
+[O1][source_id=mock_qld_source] Mock Queensland Official Source
+[O1][source_id=mock_bom_source] Mock Bureau of Meteorology Source
+
+## 6. Local Risk Context
+Bushfire, smoke, heat, road access, power and communication are topics for the review agenda. Their local
+occurrence, severity and effects are unknown in this example. No causal assessment of the community is
+established by the supplied information. Evidence gaps remain for qualified reviewers using relevant records
+and current official information; household guidance is not an established organisational procedure.
+
+## 7. Preparedness Priorities
+Unverified proposal for local review: the responsible organisation must confirm the evacuation, communication
+and smoke health support priorities, including the evidence needed for each topic and the accountable reviewer
+for outstanding questions. Existing local policies, appointment records and consultation outcomes remain unknown.
+
+## 8. Evacuation Planning
+Warning procedures, candidate routes, assisted transport and participant accountability arrangements are not
+supplied. No route or destination is verified. Unverified proposal for local review: the responsible organisation
+must confirm a process for obtaining authorised advice on notification, movement and accountability before any
+operational use. This draft contains no direction about when or where people should move.
+
+## 9. Candidate Assembly Point Criteria
+Physical assembly criteria are unknown and no candidate venue has been verified. Unverified proposal for local
+review: the responsible organisation must confirm which authority will provide applicable criteria and which
+records are needed for a later venue assessment. Venue selection remains unresolved, with no facility designated.
+
+## 10. Roles and Responsibilities
+The following role label describes a review responsibility, not a confirmed appointment or existing procedure.
+
+| Role | Responsibility |
+| --- | --- |
+| Planning lead | Unverified proposal for local review: the responsible organisation must confirm the review owner and backup. |
+
+## 11. Communication and Inclusion Needs
+Internal notification, accessible public information and backup communication arrangements are unknown.
+Unverified proposal for local review: the communications officer must confirm channel ownership, participant
+needs and the process for checking current official warning information. Contact records are absent from this
+example and no named service is represented as available.
+
+## 12. First Aid, Training and Exercises
+First aid readiness, smoke and heat health support, AED and burn preparedness, qualifications and exercise
+frequency are unknown. Unverified proposal for local review: the first aid coordinator must confirm qualified
+reviewers, evidence requirements and exercise records. This draft provides no clinical treatment instructions.
+
+## 13. Action Plan
+Unverified proposal for local review: Day 1: the responsible organisation must confirm the preparedness lead,
+official contacts, action owners and review checkpoints.
+
+## 14. Human Review and Approval Checklist
+- [ ] Unverified proposal for local review: the responsible organisation must confirm the evidence gaps and record the approval decision.
+
+## 15. Safety Disclaimer
+This draft does not establish operational safety. Live warnings, fire bans, evacuation orders and life-safety
+decisions must come from official emergency services. Call 000 in a life-threatening emergency.
 """
-)
 
 
 class MockModelHandler(BaseHTTPRequestHandler):
@@ -173,13 +201,17 @@ def _fill_review_field(page, label, value, *, textarea=False):
 
 
 def _wait_for_health(process, health_url, timeout_seconds=45):
+    target = urlsplit(health_url)
+    if target.scheme != "http" or target.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        raise ValueError("E2E health checks must use a local HTTP endpoint.")
+    opener = build_opener(ProxyHandler({}))
     deadline = time.monotonic() + timeout_seconds
     last_error = None
     while time.monotonic() < deadline:
         if process.poll() is not None:
             raise AssertionError("Streamlit exited before the browser test could start.")
         try:
-            with urlopen(health_url, timeout=1) as response:
+            with opener.open(health_url, timeout=1) as response:
                 if response.status == 200 and response.read().decode("utf-8").strip().lower() == "ok":
                     return
         except (URLError, TimeoutError, OSError) as error:
@@ -199,8 +231,8 @@ def _stop_process(process):
         process.wait(timeout=10)
 
 
-def _write_map_fixture():
-    profile_path = RUNTIME_DIR / "sa2_profiles_all.csv"
+def _write_map_fixture(runtime_dir):
+    profile_path = runtime_dir / "sa2_profiles_all.csv"
     profile_path.write_text(
         "sa2_code,state_name,sa4_name,sa3_name,sa2_name,population,older_people_count,"
         "language_other_than_english_count,language_support_needed\n"
@@ -208,7 +240,7 @@ def _write_map_fixture():
         "305031136,Queensland,Brisbane - East,Brisbane East,Bayside,205000,28700,41000,high\n",
         encoding="utf-8",
     )
-    boundary_path = RUNTIME_DIR / "sa2_boundaries_all.geojson"
+    boundary_path = runtime_dir / "sa2_boundaries_all.geojson"
     features = [
         {
             "type": "Feature",
@@ -267,7 +299,7 @@ def _write_map_fixture():
         json.dumps({"type": "FeatureCollection", "features": features}),
         encoding="utf-8",
     )
-    (RUNTIME_DIR / "sa2_map_bundle.json").write_text(
+    (runtime_dir / "sa2_map_bundle.json").write_text(
         json.dumps(
             {
                 "schema_version": 1,
@@ -291,8 +323,8 @@ def _write_map_fixture():
     return profile_path, boundary_path
 
 
-def _write_official_sources_fixture(server_port):
-    path = RUNTIME_DIR / "official_sources.yml"
+def _write_official_sources_fixture(runtime_dir, server_port):
+    path = runtime_dir / "official_sources.yml"
     path.write_text(
         "sources:\n"
         "  - id: mock_qld_source\n"
@@ -320,53 +352,196 @@ def _report_download_button(page, label, protected_downloads):
     return frame.get_by_role("button", name=label, exact=True)
 
 
-@pytest.mark.e2e
-@pytest.mark.parametrize("protected_downloads", [False, True], ids=["native-local", "authenticated-blob"])
-def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads):
-    from playwright.sync_api import expect, sync_playwright
+def _route_loopback_only(route, blocked_requests):
+    target = urlsplit(route.request.url)
+    if target.scheme in {"http", "https"} and target.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        # Keep only non-secret resource origin/path; never record URL query values.
+        blocked_requests.append({"origin": f"{target.scheme}://{target.hostname}", "path": target.path})
+        route.abort()
+    else:
+        route.continue_()
 
-    shutil.rmtree(ARTIFACT_DIR, ignore_errors=True)
-    shutil.rmtree(RUNTIME_DIR, ignore_errors=True)
-    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
-    RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
-    MockModelHandler.request_count = 0
-    MockModelHandler.official_request_count = 0
-    model_server = ThreadingHTTPServer(("127.0.0.1", 0), MockModelHandler)
-    model_thread = threading.Thread(target=model_server.serve_forever, daemon=True)
-    model_thread.start()
-    map_profile_path, map_boundary_path = _write_map_fixture()
-    official_sources_path = _write_official_sources_fixture(model_server.server_port)
+def _validate_workspace_path(path):
+    root = PROJECT_ROOT.resolve()
+    if path == root or not path.is_relative_to(root):
+        raise ValueError("E2E paths must be strict children of the workspace.")
+    for candidate in (path, *path.parents):
+        if candidate.exists() or candidate.is_symlink():
+            attributes = getattr(candidate.lstat(), "st_file_attributes", 0)
+            if candidate.is_symlink() or attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+                raise ValueError("E2E paths must not traverse a symlink or reparse point.")
+        if candidate == root:
+            break
+    if not path.resolve().is_relative_to(root):
+        raise ValueError("Resolved E2E path escaped the workspace.")
 
-    app_port = _available_port()
-    app_url = f"http://127.0.0.1:{app_port}"
-    env = {
+
+def _create_run_paths():
+    """Never delete or reuse another run's outputs, including on successful runs."""
+    _validate_workspace_path(ARTIFACT_PARENT)
+    ARTIFACT_PARENT.mkdir(parents=True, exist_ok=True)
+    artifact_dir = ARTIFACT_PARENT / f"e2e-v7-{uuid4().hex}"
+    _validate_workspace_path(artifact_dir)
+    artifact_dir.mkdir(exist_ok=False)
+    runtime_dir = artifact_dir / "runtime"
+    runtime_dir.mkdir(exist_ok=False)
+    _validate_workspace_path(runtime_dir)
+    return artifact_dir, runtime_dir
+
+
+def _browser_environment(runtime_dir, server_port, protected_downloads):
+    profile_path, boundary_path = _write_map_fixture(runtime_dir)
+    sources_path = _write_official_sources_fixture(runtime_dir, server_port)
+    environment = {
         key: value
         for key, value in os.environ.items()
-        if not key.startswith(("RAILWAY_", "BUSHFIRE_ACCESS_", "BUSHFIRE_ADMIN_"))
+        if not key.startswith(("BUSHFIRE_", "RAILWAY_", "OLLAMA_", "LLM_", "OPENAI_", "OPENROUTER_", "DEEPSEEK_"))
+        and key.upper() not in {"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"}
     }
-    env.update(
+    environment.update(
         {
+            "PYTHON_DOTENV_DISABLED": "1",
+            "PYTHONIOENCODING": "utf-8",
+            "NO_PROXY": "127.0.0.1,localhost,::1",
+            "no_proxy": "127.0.0.1,localhost,::1",
             "BUSHFIRE_DEPLOYMENT_MODE": "local",
+            "BUSHFIRE_ALLOW_EXTERNAL_MODEL": "false",
             "BUSHFIRE_ACCESS_PASSWORD": "Synthetic-workflow-password-2026" if protected_downloads else "",
             "BUSHFIRE_ACCESS_PASSWORD_HASH": "",
             "BUSHFIRE_ADMIN_PASSWORD": "",
             "BUSHFIRE_ADMIN_PASSWORD_HASH": "",
             "LLM_PROVIDER": "ollama",
-            "OLLAMA_BASE_URL": f"http://127.0.0.1:{model_server.server_port}/v1",
+            "OLLAMA_BASE_URL": f"http://127.0.0.1:{server_port}/v1",
+            "OLLAMA_API_KEY": "synthetic-loopback-only",
             "OLLAMA_MODEL": "e2e-model",
-            "BUSHFIRE_SESSION_STATE_PATH": str(RUNTIME_DIR / "session_state.json"),
-            "BUSHFIRE_INTERACTION_LOG_PATH": str(RUNTIME_DIR / "interaction.jsonl"),
-            "BUSHFIRE_AUDIT_DIR": str(RUNTIME_DIR / "audit"),
-            "BUSHFIRE_ALL_SA2_PROFILE_PATH": str(map_profile_path),
-            "BUSHFIRE_ALL_SA2_BOUNDARY_PATH": str(map_boundary_path),
-            "BUSHFIRE_ALL_SA2_BOUNDARY_BY_STATE_DIR": str(RUNTIME_DIR / "boundaries_by_state"),
-            "BUSHFIRE_OFFICIAL_SOURCES_PATH": str(official_sources_path),
+            "BUSHFIRE_RUNTIME_DIR": str(runtime_dir),
+            "BUSHFIRE_SESSION_STATE_PATH": str(runtime_dir / "session_state.json"),
+            "BUSHFIRE_INTERACTION_LOG_PATH": str(runtime_dir / "interaction.jsonl"),
+            "BUSHFIRE_AUDIT_DIR": str(runtime_dir / "audit"),
+            "BUSHFIRE_TRACE_DIR": str(runtime_dir / "traces"),
+            "BUSHFIRE_TRACE_ENABLED": "true",
+            "BUSHFIRE_RAG_ENABLED": "false",
+            "BUSHFIRE_ALL_SA2_PROFILE_PATH": str(profile_path),
+            "BUSHFIRE_ALL_SA2_BOUNDARY_PATH": str(boundary_path),
+            "BUSHFIRE_ALL_SA2_BOUNDARY_BY_STATE_DIR": str(runtime_dir / "boundaries_by_state"),
+            "BUSHFIRE_OFFICIAL_SOURCES_PATH": str(sources_path),
             "STREAMLIT_BROWSER_GATHER_USAGE_STATS": "false",
         }
     )
+    return environment
 
-    log_path = ARTIFACT_DIR / "streamlit.log"
+
+def _assert_fixture_governed_gate(environment):
+    """Exercise the app's exact form/map analysis and actual gate, with no SDK call."""
+    with patch.dict(os.environ, environment, clear=True):
+        from src.agents import run_analysis_pipeline
+        from src.app_catalog import EXAMPLE_CASES
+        from src.coverage_map import is_area_selection_available
+        from src.report_generation_quality import generate_narrative_with_repairs
+
+        example = EXAMPLE_CASES["Cairns Council pilot"]
+        assert is_area_selection_available(example["map_selection"])
+        analysis = run_analysis_pipeline(
+            **{
+                key: example[key]
+                for key in ("location", "audience", "scenario", "concerns", "timeframe", "extra_context")
+            },
+            area_selection=dict(example["map_selection"]),
+        )
+        assert analysis["community"]["indicators"]["population"] == "171000"
+        assert analysis["community"]["indicators"]["older_people_pct"] == "15.0"
+        assert analysis["community"]["indicators"]["matched_sa2_count"] == "1"
+        assert not analysis["knowledge"].get("retrieved_chunks")
+        narrative, quality, attempts = generate_narrative_with_repairs(
+            "Synthetic offline preflight; no SDK transport.",
+            analysis,
+            lambda _prompt, _attempt, _repair: MOCK_REPORT,
+            max_repair_attempts=0,
+        )
+        assert attempts == 1
+        assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]["blocking_failures"]
+        assert quality["quality_policy_version"] == "governed-report-v7"
+        return analysis, narrative, quality
+
+
+def test_browser_mock_report_passes_real_current_gate_offline():
+    artifact_dir, runtime_dir = _create_run_paths()
+    environment = _browser_environment(runtime_dir, 49151, False)
+    _analysis, _narrative, quality = _assert_fixture_governed_gate(environment)
+    # Retain only this synthetic preflight result, not user records or SDK metadata.
+    (artifact_dir / "offline-gate.json").write_text(json.dumps(quality, indent=2), encoding="utf-8")
+
+
+def test_browser_run_paths_are_fresh_and_preserve_existing_artifacts(monkeypatch):
+    artifact_dir, runtime_dir = _create_run_paths()
+    assert artifact_dir.parent == ARTIFACT_PARENT
+    assert runtime_dir.parent == artifact_dir
+    marker = runtime_dir / "synthetic-preservation-marker.txt"
+    marker.write_text("keep", encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "uuid4", lambda: type("FixedID", (), {"hex": artifact_dir.name[7:]})())
+    with pytest.raises(FileExistsError):
+        _create_run_paths()
+    assert marker.read_text(encoding="utf-8") == "keep"
+
+
+def test_browser_path_guard_rejects_outside_and_reparse(monkeypatch):
+    with pytest.raises(ValueError, match="strict children"):
+        _validate_workspace_path(PROJECT_ROOT.parent / "not-the-project")
+    original = Path.lstat
+    blocked = ARTIFACT_PARENT / "synthetic-reparse"
+    monkeypatch.setattr(Path, "is_symlink", lambda path: path == blocked)
+    monkeypatch.setattr(Path, "lstat", lambda path: original(ARTIFACT_PARENT) if path == blocked else original(path))
+    with pytest.raises(ValueError, match="symlink or reparse"):
+        _validate_workspace_path(blocked)
+
+
+def test_browser_network_guards_are_loopback_only_without_url_query_logging():
+    with pytest.raises(ValueError, match="local HTTP"):
+        _wait_for_health(None, "https://external.invalid/health")
+    blocked = []
+    for url, expected in (
+        ("http://127.0.0.1:8501/static/app.js", "continue"),
+        ("http://localhost:8501/", "continue"),
+        ("http://[::1]:8501/", "continue"),
+        ("data:text/plain,synthetic", "continue"),
+        ("blob:http://127.0.0.1:8501/synthetic", "continue"),
+        ("https://external.invalid/tiles?token=synthetic-private", "abort"),
+        ("http://localhost.external.invalid/script.js", "abort"),
+    ):
+        actions = []
+        route = SimpleNamespace(
+            request=SimpleNamespace(url=url),
+            abort=lambda: actions.append("abort"),
+            continue_=lambda: actions.append("continue"),
+        )
+        _route_loopback_only(route, blocked)
+        assert actions == [expected]
+    assert blocked == [
+        {"origin": "https://external.invalid", "path": "/tiles"},
+        {"origin": "http://localhost.external.invalid", "path": "/script.js"},
+    ]
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("protected_downloads", [False, True], ids=["native-local", "authenticated-blob"])
+def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads):
+    from playwright.sync_api import expect, sync_playwright
+
+    artifact_dir, runtime_dir = _create_run_paths()
+
+    MockModelHandler.request_count = 0
+    MockModelHandler.official_request_count = 0
+    model_port = _available_port()
+    env = _browser_environment(runtime_dir, model_port, protected_downloads)
+    _assert_fixture_governed_gate(env)
+    model_server = ThreadingHTTPServer(("127.0.0.1", model_port), MockModelHandler)
+    model_thread = threading.Thread(target=model_server.serve_forever, daemon=True)
+    model_thread.start()
+
+    app_port = _available_port()
+    app_url = f"http://127.0.0.1:{app_port}"
+    log_path = artifact_dir / "streamlit.log"
     log_file = open(log_path, "w", encoding="utf-8")
     app_process = subprocess.Popen(
         [
@@ -392,8 +567,10 @@ def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads)
     try:
         _wait_for_health(app_process, f"{app_url}/_stcore/health")
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
+            browser = playwright.chromium.launch(headless=True, env=env, args=["--no-proxy-server"])
             context = browser.new_context(accept_downloads=True)
+            blocked_requests = []
+            context.route("**/*", lambda route: _route_loopback_only(route, blocked_requests))
             context.tracing.start(screenshots=True, snapshots=True, sources=False)
             browser_errors = []
             try:
@@ -480,6 +657,7 @@ def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads)
                 with page.expect_download(timeout=30_000) as package_download_info:
                     _report_download_button(page, "Download pilot export package", protected_downloads).click()
                 package_download = package_download_info.value
+                package_download.save_as(artifact_dir / "signed-pilot-package.zip")
                 with ZipFile(package_download.path()) as package:
                     names = set(package.namelist())
                     audit_payload = json.loads(package.read("governance/audit_record.json"))
@@ -487,12 +665,26 @@ def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads)
                     packaged_report = package.read(
                         next(name for name in names if name.startswith("reports/") and name.endswith(".md"))
                     ).decode("utf-8")
+                    packaged_documents = {
+                        suffix: package.read(
+                            next(name for name in names if name.startswith("reports/") and name.endswith("." + suffix))
+                        )
+                        for suffix in ("pdf", "docx")
+                    }
                 assert packaged_report == signed_sidebar
 
                 page.get_by_role("tab", name="Create Report", exact=True).click()
                 with page.expect_download(timeout=30_000) as signed_preview_info:
                     _report_download_button(page, "Download Markdown", protected_downloads).click()
                 assert Path(signed_preview_info.value.path()).read_text(encoding="utf-8") == signed_sidebar
+                for suffix, label in (("pdf", "Download PDF"), ("docx", "Download DOCX")):
+                    with page.expect_download(timeout=30_000) as standalone_info:
+                        _report_download_button(page, label, protected_downloads).click()
+                    standalone = standalone_info.value
+                    standalone.save_as(artifact_dir / f"signed-report.{suffix}")
+                    assert Path(standalone.path()).read_bytes() == packaged_documents[suffix]
+                    if protected_downloads:
+                        assert standalone.url.startswith("blob:")
                 assert "governance/package_manifest.json" in names
                 assert "governance/audit_record.json" in names
                 assert len([name for name in names if name.startswith("governance/audit_chain/")]) == 2
@@ -541,13 +733,16 @@ def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads)
                 workflow_completed = True
             except Exception:
                 if page is not None:
-                    page.screenshot(path=str(ARTIFACT_DIR / "failure.png"), full_page=True)
-                (ARTIFACT_DIR / "browser-errors.json").write_text(
+                    page.screenshot(path=str(artifact_dir / "failure.png"), full_page=True)
+                (artifact_dir / "browser-errors.json").write_text(
                     json.dumps(browser_errors, indent=2), encoding="utf-8"
                 )
-                context.tracing.stop(path=str(ARTIFACT_DIR / "failure-trace.zip"))
+                context.tracing.stop(path=str(artifact_dir / "failure-trace.zip"))
                 raise
             finally:
+                (artifact_dir / "blocked-external-resources.json").write_text(
+                    json.dumps(blocked_requests, indent=2), encoding="utf-8"
+                )
                 context.close()
                 browser.close()
     finally:
@@ -556,9 +751,7 @@ def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads)
         model_server.shutdown()
         model_server.server_close()
         model_thread.join(timeout=5)
-        shutil.rmtree(RUNTIME_DIR, ignore_errors=True)
         if workflow_completed:
             log_text = log_path.read_text(encoding="utf-8", errors="replace")
             assert "StreamlitAPIException" not in log_text
             assert "was created with a default value but also had its value set" not in log_text
-            shutil.rmtree(ARTIFACT_DIR, ignore_errors=True)

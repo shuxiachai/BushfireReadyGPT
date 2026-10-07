@@ -262,10 +262,10 @@ def export_case(monkeypatch, tmp_path):
         "quality_policy_version": quality.QUALITY_POLICY_VERSION,
         "quality_policy_fingerprint": quality.QUALITY_POLICY_FINGERPRINT,
     }
-    monkeypatch.setattr(audit, "evaluate_governed_report", lambda *_: copy.deepcopy(fixed_quality))
-    monkeypatch.setattr(export_package, "evaluate_governed_report", lambda *_: copy.deepcopy(fixed_quality))
-    monkeypatch.setattr(export_package, "create_report_pdf", lambda _: b"synthetic pdf")
-    monkeypatch.setattr(export_package, "create_report_docx", lambda _: b"synthetic docx")
+    monkeypatch.setattr(audit, "evaluate_governed_report", lambda *_, **_kwargs: copy.deepcopy(fixed_quality))
+    monkeypatch.setattr(export_package, "evaluate_governed_report", lambda *_, **_kwargs: copy.deepcopy(fixed_quality))
+    monkeypatch.setattr(export_package, "create_report_pdf", lambda _, **_kwargs: b"synthetic pdf")
+    monkeypatch.setattr(export_package, "create_report_docx", lambda _, **_kwargs: b"synthetic docx")
     analysis = _analysis(_chunk("Families prepare household emergency supplies."))
     response, snapshot, *_ = _capture(analysis)
     review = audit.canonical_review_record(
@@ -326,8 +326,10 @@ def test_export_rejects_diagnostic_tampering_but_legacy_optional_call_is_unchang
 
 
 def test_legacy_v6_fingerprint_is_unchanged():
-    assert quality.QUALITY_POLICY_VERSION == "governed-report-v6"
-    assert quality.QUALITY_POLICY_FINGERPRINT == "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
+    assert quality.QUALITY_POLICY_VERSION == "governed-report-v7"
+    assert quality._KNOWN_POLICY_FINGERPRINTS["governed-report-v6"] == (
+        "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
+    )
 
 
 @pytest.mark.parametrize("field", ["manifest", "entry", "fragment", "context_tail", "context_header"])

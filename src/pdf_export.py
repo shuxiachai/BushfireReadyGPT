@@ -1,3 +1,5 @@
+import hashlib
+import json
 import logging
 import os
 import re
@@ -11,6 +13,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     KeepTogether,
     PageBreak,
@@ -21,6 +24,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from src.export_artifacts import normalize_export_timestamp
 from src.export_content import extract_report_metadata, plain_markdown_text
 from src.markdown_tables import (
     is_markdown_table_row,
@@ -37,6 +41,7 @@ DRAFT_NOTICE_DETAIL = (
     "review and approve it before formal use. Call 000 in a life-threatening emergency."
 )
 COMPACT_TABLE_CELL_CHARACTER_LIMIT = 600
+PDF_RENDER_POLICY = "audited-pdf-metadata-v1"
 
 
 def _register_pdf_font():
@@ -237,9 +242,13 @@ def _plain_markdown_text(text):
     return plain_markdown_text(text)
 
 
-def _extract_meta_from_report(markdown_text):
+def _extract_meta_from_report(markdown_text, *, generated_at=None):
     meta = extract_report_metadata(markdown_text)
-    meta["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    meta["generated_at"] = (
+        normalize_export_timestamp(generated_at).strftime("%Y-%m-%d %H:%M UTC")
+        if generated_at is not None
+        else datetime.now().strftime("%Y-%m-%d %H:%M")
+    )
     return meta
 
 
@@ -431,8 +440,8 @@ def _group_review_signoff(story):
     return grouped
 
 
-def _markdown_to_story(markdown_text, styles):
-    meta = _extract_meta_from_report(markdown_text)
+def _markdown_to_story(markdown_text, styles, *, generated_at=None):
+    meta = _extract_meta_from_report(markdown_text, generated_at=generated_at)
     story = _build_cover_story(meta, styles)
     bullet_items = []
 
@@ -509,7 +518,29 @@ def _draw_header_footer(canvas, document):
     canvas.restoreState()
 
 
-def create_report_pdf(markdown_text):
+def _bind_audited_pdf_metadata(canvas, markdown_text, source_time):
+    """Pin metadata without changing ReportLab's process-wide clock or environment."""
+    document = getattr(canvas, "_doc", None)
+    if document is None or not hasattr(document, "_ID") or not callable(getattr(document, "ID", None)):
+        raise RuntimeError("This ReportLab version does not support the audited PDF identifier hook.")
+    identity = json.dumps(
+        [PDF_RENDER_POLICY, source_time.isoformat(), markdown_text],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    identifier = hashlib.sha256(b"BushfireReadyGPT audited PDF\0" + identity).hexdigest()[:32].encode("ascii")
+    # ReportLab's invariant mode still seeds its ID from SOURCE_DATE_EPOCH.
+    # _doc._ID is a deliberately isolated private compatibility dependency;
+    # the ID() guard and byte-identity regression must remain on library upgrades.
+    expected_id = b"[<" + identifier + b"><" + identifier + b">]"
+    document._ID = expected_id
+    if document.ID() != expected_id:
+        raise RuntimeError("ReportLab did not retain the audited PDF identifier.")
+    canvas.setDateFormatter(lambda *_parts: source_time.strftime("D:%Y%m%d%H%M%S+00'00'"))
+
+
+def create_report_pdf(markdown_text, *, generated_at=None):
+    source_time = normalize_export_timestamp(generated_at) if generated_at is not None else None
     font_name = _register_pdf_font()
     styles = _build_styles(font_name)
     buffer = BytesIO()
@@ -524,11 +555,20 @@ def create_report_pdf(markdown_text):
         bottomMargin=1.6 * cm,
         title="BushfireReadyGPT Report",
         author="BushfireReadyGPT",
+        invariant=1 if source_time is not None else None,
     )
+
+    def make_canvas(*args, **kwargs):
+        canvas = Canvas(*args, **kwargs)
+        if source_time is not None:
+            _bind_audited_pdf_metadata(canvas, markdown_text, source_time)
+        return canvas
+
     document.build(
-        _markdown_to_story(markdown_text, styles),
+        _markdown_to_story(markdown_text, styles, generated_at=source_time),
         onFirstPage=_draw_header_footer,
         onLaterPages=_draw_header_footer,
+        canvasmaker=make_canvas,
     )
     buffer.seek(0)
     return buffer.getvalue()

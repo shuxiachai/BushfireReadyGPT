@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from io import BytesIO
+from zipfile import ZipFile, ZipInfo
 
 from docx import Document
 from docx.enum.section import WD_SECTION_START
@@ -10,6 +11,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
+from src.export_artifacts import normalize_export_timestamp
 from src.export_content import extract_report_metadata, plain_markdown_text
 from src.markdown_tables import (
     is_markdown_table_row,
@@ -30,9 +32,13 @@ def _plain_markdown_text(text):
     return plain_markdown_text(text)
 
 
-def _extract_meta_from_report(markdown_text):
+def _extract_meta_from_report(markdown_text, *, generated_at=None):
     meta = extract_report_metadata(markdown_text)
-    meta["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    meta["generated_at"] = (
+        normalize_export_timestamp(generated_at).strftime("%Y-%m-%d %H:%M UTC")
+        if generated_at is not None
+        else datetime.now().strftime("%Y-%m-%d %H:%M")
+    )
     return meta
 
 
@@ -273,9 +279,31 @@ def _add_markdown_body(document, markdown_text):
         index += 1
 
 
-def create_report_docx(markdown_text):
-    meta = _extract_meta_from_report(markdown_text)
+def _freeze_archive_timestamps(payload, source_time):
+    if not 1980 <= source_time.year <= 2107:
+        raise ValueError("DOCX source timestamp is outside the ZIP date range.")
+    timestamp = source_time.timetuple()[:6]
+    output = BytesIO()
+    with ZipFile(BytesIO(payload)) as original, ZipFile(output, "w") as frozen:
+        for entry in original.infolist():
+            item = ZipInfo(entry.filename, date_time=timestamp)
+            item.compress_type = entry.compress_type
+            item.create_system = entry.create_system
+            item.external_attr = entry.external_attr
+            item.internal_attr = entry.internal_attr
+            item.extra = entry.extra
+            item.comment = entry.comment
+            frozen.writestr(item, original.read(entry.filename))
+    return output.getvalue()
+
+
+def create_report_docx(markdown_text, *, generated_at=None):
+    source_time = normalize_export_timestamp(generated_at) if generated_at is not None else None
+    meta = _extract_meta_from_report(markdown_text, generated_at=source_time)
     document = Document()
+    if source_time is not None:
+        document.core_properties.created = source_time.replace(tzinfo=None)
+        document.core_properties.modified = source_time.replace(tzinfo=None)
     _configure_document(document)
     _add_cover(document, meta)
 
@@ -288,4 +316,5 @@ def create_report_docx(markdown_text):
     buffer = BytesIO()
     document.save(buffer)
     buffer.seek(0)
-    return buffer.getvalue()
+    content = buffer.getvalue()
+    return _freeze_archive_timestamps(content, source_time) if source_time is not None else content

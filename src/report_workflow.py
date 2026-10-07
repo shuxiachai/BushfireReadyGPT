@@ -297,7 +297,15 @@ def validate_review_record(review_record, quality=None, report_record=None):
             )
         report_text = str((report_record or {}).get("text") or "")
         exact_quality = (
-            evaluate_governed_report(report_text, (report_record or {}).get("analysis") or {}) if report_text else {}
+            evaluate_governed_report(
+                report_text,
+                (report_record or {}).get("analysis") or {},
+                model_evidence=((report_record.get("grounding_evaluation") or {}).get("model_visible_rag") or {}).get(
+                    "snapshot"
+                ),
+            )
+            if report_text
+            else {}
         )
         gate = exact_quality.get("approval_gate", {})
         if gate.get("passed") is not True:
@@ -345,7 +353,13 @@ def update_latest_audit_review(review_record):
     if not _report_matches_audit_snapshot(latest_report, previous_audit):
         return False
     updated_text = append_human_signoff(latest_report["text"], review_record)
-    updated_quality = evaluate_governed_report(updated_text, latest_report.get("analysis") or {})
+    updated_quality = evaluate_governed_report(
+        updated_text,
+        latest_report.get("analysis") or {},
+        model_evidence=((latest_report.get("grounding_evaluation") or {}).get("model_visible_rag") or {}).get(
+            "snapshot"
+        ),
+    )
     if validate_review_record(
         review_record,
         updated_quality,
@@ -362,6 +376,7 @@ def update_latest_audit_review(review_record):
                 "report_text": updated_text,
                 "quality": updated_quality,
                 "analysis": latest_report.get("analysis") or {},
+                "grounding_evaluation": latest_report.get("grounding_evaluation"),
                 "report_status": review_record.get("approval_status"),
                 "human_review": review_record,
                 "package_context": _package_context_for_record(
@@ -944,7 +959,7 @@ def _finalize_report_version(
         full_response = apply_governance_notice(raw_response)
         full_response = append_evidence_tables(full_response, analysis)
         full_response = append_human_signoff(full_response, review_record)
-        quality = evaluate_governed_report(full_response, analysis)
+        quality = evaluate_governed_report(full_response, analysis, model_evidence=model_evidence)
         span.add_metrics(
             report_characters=len(full_response),
             structural_gate_passed=structural_gate_passed(quality),

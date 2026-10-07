@@ -3,10 +3,8 @@ from pathlib import Path
 import streamlit as st
 
 from src.deployment_access import is_cloud_deployment
-from src.docx_export import create_report_docx
-from src.pdf_export import create_report_pdf
 from src.report_generation_quality import evaluate_governed_report
-from src.ui.artifact_cache import get_report_artifact
+from src.ui.artifact_cache import get_governed_report_artifacts
 from src.ui.components import safe_diagnostic_detail
 from src.ui.downloads import download_button
 
@@ -43,7 +41,12 @@ def render_sidebar(
                 "In a real emergency, follow official emergency services and call 000 if life is at risk."
             )
             return
-        exact_quality = evaluate_governed_report(latest_report, report_record.get("analysis") or {})
+        grounding = report_record.get("grounding_evaluation") or {}
+        visible_grounding = grounding.get("model_visible_rag") if isinstance(grounding, dict) else None
+        model_evidence = visible_grounding.get("snapshot") if isinstance(visible_grounding, dict) else None
+        exact_quality = evaluate_governed_report(
+            latest_report, report_record.get("analysis") or {}, model_evidence=model_evidence
+        )
         if (
             exact_quality != report_record.get("quality")
             or exact_quality.get("approval_gate", {}).get("passed") is not True
@@ -62,7 +65,7 @@ def render_sidebar(
             target=st.sidebar,
         )
         try:
-            pdf_bytes = get_report_artifact(latest_report, "pdf", create_report_pdf)
+            pdf_bytes = get_governed_report_artifacts(latest_report, audit_path=report_record.get("audit_path"))["pdf"]
             download_button(
                 "Download PDF report",
                 data=pdf_bytes,
@@ -75,7 +78,9 @@ def render_sidebar(
         except Exception as exc:
             st.sidebar.warning(f"PDF generation failed: {safe_diagnostic_detail(exc)}")
         try:
-            docx_bytes = get_report_artifact(latest_report, "docx", create_report_docx)
+            docx_bytes = get_governed_report_artifacts(latest_report, audit_path=report_record.get("audit_path"))[
+                "docx"
+            ]
             download_button(
                 "Download DOCX report",
                 data=docx_bytes,

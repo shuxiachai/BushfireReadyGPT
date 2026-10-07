@@ -97,7 +97,7 @@ def _setup(monkeypatch, *, attempts=1, protocol_failure=False, fake=False):
     monkeypatch.setattr(
         evaluation,
         "evaluate_governed_report",
-        lambda *_: {
+        lambda *_, **_kwargs: {
             "approval_gate": {"passed": True, "blocking_failures": []},
             "checks": [],
             "quality_policy_version": generation.QUALITY_POLICY_VERSION,
@@ -127,6 +127,22 @@ def test_cli_returns_final_successful_sdk_capture_and_only_hashed_public_metadat
     assert "Families prepare household emergency supplies." not in public
     assert "visible_passages" not in public and "assembly_manifest" not in public
     assert "PRIVATE CLI FORM VALUE" not in json.dumps(snapshot)
+
+
+def test_cli_final_quality_receives_the_exact_successful_sdk_snapshot(monkeypatch):
+    analysis, _prompts = _setup(monkeypatch, attempts=2)
+    original = evaluation.evaluate_governed_report
+    received = []
+
+    def final_quality(report, frozen_analysis, *, model_evidence=None):
+        received.append((report, frozen_analysis, model_evidence))
+        return original(report, frozen_analysis, model_evidence=model_evidence)
+
+    monkeypatch.setattr(evaluation, "evaluate_governed_report", final_quality)
+    result = evaluation.run_scenario_with_artifacts(_scenario())
+    assert received == [(result["report"], analysis, result["model_evidence"])]
+    assert result["model_evidence"]["attempt_number"] == 2
+    validate_model_evidence(result["model_evidence"], analysis, report_text=result["report"])
 
 
 def test_cli_protocol_retry_captures_retry_prompt_not_failed_first_attempt(monkeypatch):
@@ -206,14 +222,14 @@ def _showcase_with_actual_audit_and_package(monkeypatch, *, attempts=2):
     )
     monkeypatch.setattr(showcase, "run_scenario_with_artifacts", lambda _: artifacts)
     for module in (showcase, audit, export_package):
-        monkeypatch.setattr(module, "evaluate_governed_report", lambda *_: copy.deepcopy(fixed_quality))
+        monkeypatch.setattr(module, "evaluate_governed_report", lambda *_, **_kwargs: copy.deepcopy(fixed_quality))
     monkeypatch.setattr(
         showcase,
         "build_export_register_snapshot",
         lambda: {name: "Synthetic register\n" for name in REGISTER_SNAPSHOT_FILES},
     )
-    monkeypatch.setattr(export_package, "create_report_pdf", lambda _: b"synthetic PDF bytes")
-    monkeypatch.setattr(export_package, "create_report_docx", lambda _: b"synthetic DOCX bytes")
+    monkeypatch.setattr(export_package, "create_report_pdf", lambda _, **_kwargs: b"synthetic PDF bytes")
+    monkeypatch.setattr(export_package, "create_report_docx", lambda _, **_kwargs: b"synthetic DOCX bytes")
     return artifacts
 
 

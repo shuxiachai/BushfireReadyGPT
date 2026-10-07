@@ -17,6 +17,7 @@ from src.audit import (
     sha256_json,
 )
 from src.docx_export import create_report_docx
+from src.export_artifacts import _artifacts_for_captured_chain
 from src.export_register import (
     REGISTER_SNAPSHOT_FILES,
     ExportRegisterSnapshotError,
@@ -53,6 +54,8 @@ def create_pilot_export_package(
     register_snapshot=None,
     analysis=None,
     grounding_evaluation=None,
+    *,
+    artifact_cache=None,
 ):
     """Create a zip package for pilot review and stakeholder handover."""
 
@@ -109,7 +112,11 @@ def create_pilot_export_package(
     if latest_audit.get("analysis", {}).get("analysis_hash") != sha256_json(analysis):
         raise AuditIntegrityError("The export analysis does not match the verified report snapshot.")
     grounding_bytes = _verified_grounding_bytes(grounding_evaluation, latest_audit, analysis, report_markdown)
-    exact_quality = evaluate_governed_report(report_markdown, analysis)
+    visible_grounding = (
+        grounding_evaluation.get("model_visible_rag") if isinstance(grounding_evaluation, dict) else None
+    )
+    model_evidence = visible_grounding.get("snapshot") if isinstance(visible_grounding, dict) else None
+    exact_quality = evaluate_governed_report(report_markdown, analysis, model_evidence=model_evidence)
     if latest_audit.get("quality") != exact_quality:
         raise AuditIntegrityError(
             "The audit quality result does not match a fresh check of the report; export was blocked."
@@ -127,8 +134,15 @@ def create_pilot_export_package(
     pdf_path = f"reports/{file_prefix}.pdf"
     docx_path = f"reports/{file_prefix}.docx"
     markdown_bytes = report_markdown.encode("utf-8")
-    pdf_bytes = create_report_pdf(report_markdown)
-    docx_bytes = create_report_docx(report_markdown)
+    artifacts = _artifacts_for_captured_chain(
+        report_markdown,
+        audit_chain,
+        cache=artifact_cache,
+        pdf_builder=create_report_pdf,
+        docx_builder=create_report_docx,
+    )
+    pdf_bytes = artifacts["pdf"]
+    docx_bytes = artifacts["docx"]
     reviewer_bytes = json.dumps(review_record, ensure_ascii=False, indent=2).encode("utf-8")
 
     artifact_bytes = {

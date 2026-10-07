@@ -1042,7 +1042,11 @@ def _validated_report_quality(report_text, payload):
     analysis = payload.get("analysis")
     if not isinstance(analysis, dict):
         raise AuditIntegrityError("Governed report quality requires a complete analysis dictionary.")
-    quality = evaluate_governed_report(report_text, analysis)
+    quality = evaluate_governed_report(
+        report_text,
+        analysis,
+        model_evidence=((payload.get("grounding_evaluation") or {}).get("model_visible_rag") or {}).get("snapshot"),
+    )
     if not is_current_quality_policy_binding(
         quality.get("quality_policy_version"),
         quality.get("quality_policy_fingerprint"),

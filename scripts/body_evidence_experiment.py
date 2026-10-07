@@ -223,7 +223,7 @@ def _report_result(narrative, analysis, snapshot):
         "report": report,
         "report_sha256": text_sha256(report),
         "model_evidence": snapshot,
-        "governed_quality": evaluate_governed_report(report, analysis),
+        "governed_quality": evaluate_governed_report(report, analysis, model_evidence=snapshot),
         "body_claim_evidence": evaluate_body_claim_evidence(report, analysis, snapshot),
         "claim_pairs": parse_claim_pairs(report, analysis, snapshot),
     }

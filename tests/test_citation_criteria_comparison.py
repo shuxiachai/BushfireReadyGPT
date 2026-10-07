@@ -1,10 +1,16 @@
 import builtins
 import copy
 import json
+from pathlib import Path
 
 import pytest
 
 from scripts import citation_criteria_comparison as comparison
+from tests.citation_criteria_fixtures import (
+    REAL_PROJECT_ROOT,
+    historical_source_guard_checkout,
+    verify_actual_shared_dependencies,
+)
 
 
 @pytest.fixture(scope="module")
@@ -14,7 +20,13 @@ def fixed_sources():
 
 
 @pytest.fixture
-def bundle(monkeypatch, fixed_sources):
+def source_guard_checkout(monkeypatch, tmp_path, fixed_sources):
+    with historical_source_guard_checkout(monkeypatch, tmp_path, fixed_sources) as checkout:
+        yield checkout
+
+
+@pytest.fixture
+def bundle(monkeypatch, fixed_sources, source_guard_checkout):
     monkeypatch.setattr(comparison, "_git_sources", lambda commit: copy.deepcopy(fixed_sources[commit]))
     return comparison.prepare_bundle()
 
@@ -86,7 +98,9 @@ def test_exact_cases_and_nineteen_unfilled_review_dimensions(bundle):
             assert all(value is None for judgment in item["by_arm"].values() for value in judgment.values())
 
 
-def test_prepare_is_pure_no_dotenv_sdk_config_retrieval_or_old_campaign(monkeypatch, fixed_sources):
+def test_prepare_is_pure_no_dotenv_sdk_config_retrieval_or_old_campaign(
+    monkeypatch, fixed_sources, source_guard_checkout
+):
     import dotenv
     import openai
 
@@ -120,7 +134,7 @@ def test_prepare_is_pure_no_dotenv_sdk_config_retrieval_or_old_campaign(monkeypa
     "target",
     ["src/report_template.py", "src/report_basis.py", "src/rag/context.py", "scripts/run_scoped_basis_comparison.py"],
 )
-def test_actual_source_and_helper_drift_rejected(monkeypatch, fixed_sources, target):
+def test_actual_source_and_helper_drift_rejected(monkeypatch, fixed_sources, source_guard_checkout, target):
     original = comparison._working_bytes
     monkeypatch.setattr(comparison, "_git_sources", lambda commit: copy.deepcopy(fixed_sources[commit]))
     monkeypatch.setattr(
@@ -136,6 +150,36 @@ def test_cross_git_helper_change_rejected(monkeypatch, fixed_sources):
     monkeypatch.setattr(comparison, "_git_sources", lambda commit: altered[commit])
     with pytest.raises(comparison.ComparisonBlocked, match="unexpected_git_source_change"):
         comparison.prepare_bundle()
+
+
+def test_new_source_in_reference_checkout_is_rejected(source_guard_checkout):
+    (source_guard_checkout.root / "src" / "unexpected_source.py").write_text("# synthetic drift\n", encoding="utf-8")
+    with pytest.raises(comparison.ComparisonBlocked, match="current_source_inventory_drift"):
+        comparison.prepare_bundle()
+
+
+def test_actual_current_checkout_still_rejects_historical_source_inventory(
+    monkeypatch, source_guard_checkout, fixed_sources
+):
+    actual_root = source_guard_checkout.real_project_root
+    inventory = {path.relative_to(actual_root).as_posix() for path in (actual_root / "src").rglob("*.py")}
+    assert "src/report_content_contract.py" in inventory - fixed_sources[comparison.CANDIDATE].keys()
+    monkeypatch.setattr(comparison, "PROJECT_ROOT", actual_root)
+    with pytest.raises(comparison.ComparisonBlocked, match="current_source_inventory_drift"):
+        comparison.prepare_bundle()
+
+
+def test_changed_executed_shared_dependency_is_rejected_even_with_unchanged_reference_files(monkeypatch, fixed_sources):
+    original_read = Path.read_bytes
+    target = (REAL_PROJECT_ROOT / "src/report_basis.py").resolve()
+
+    def changed_dependency(path):
+        content = original_read(path)
+        return content + b"\n# synthetic changed shared implementation\n" if path.resolve() == target else content
+
+    monkeypatch.setattr(Path, "read_bytes", changed_dependency)
+    with pytest.raises(AssertionError, match="src/report_basis.py"):
+        verify_actual_shared_dependencies(fixed_sources[comparison.CANDIDATE])
 
 
 @pytest.mark.parametrize(

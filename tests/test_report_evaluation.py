@@ -217,8 +217,8 @@ def test_single_scenario_uses_canonical_gate_and_returns_private_artifacts_separ
     )
     canonical_calls = []
 
-    def canonical_gate(report, received_analysis):
-        canonical_calls.append((report, received_analysis))
+    def canonical_gate(report, received_analysis, *, model_evidence=None):
+        canonical_calls.append((report, received_analysis, model_evidence))
         return {
             "approval_gate": {"passed": False, "blocking_failures": [{"name": "Safety", "detail": "blocked"}]},
             "quality_policy_version": "governed-report-v2",
@@ -247,7 +247,7 @@ def test_single_scenario_uses_canonical_gate_and_returns_private_artifacts_separ
 
     result = run_scenario_with_artifacts(scenario)
 
-    assert canonical_calls == [(result["report"], analysis)]
+    assert canonical_calls == [(result["report"], analysis, result["model_evidence"])]
     assert result["analysis"] is analysis
     assert result["row"]["governed_gate_passed"] is False
     assert result["row"]["quality_policy_fingerprint"] == "f" * 64

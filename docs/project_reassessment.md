@@ -1,7 +1,7 @@
 # Current project status
 
-Updated 2026-10-06 to define the next bounded school-sample acceptance; no new
-model run, accepted sample or formal release is claimed by that preparation. This page
+Updated 2026-10-07 after the bounded school check failed content acceptance and
+offline corrective work passed local validation; no accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -98,7 +98,7 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Main Gaps
 
-1. **Report content.** The latest school cloud check had 6/64 cited/citation-requiring
+1. **Report content.** The September 29 school cloud check had 6/64 cited/citation-requiring
    claims before revision and 5/64 after it, under the heuristic diagnostic. A
    targeted revision removed household destination advice but still expanded
    `household` to `household or campus group` with the same source citation.
@@ -158,7 +158,10 @@ fixtures, and retain unknowns and human review. Real stakeholder feedback is a
 separate activity, not something synthetic testing can supply. Adding live
 emergency decisions is not a required next feature.
 
-### Next bounded deliverable: one current-version school draft
+### Bounded school draft: closed without acceptance
+
+The following predeclared contract was exercised on October 7; its failed result
+is recorded below, not replaced by the later offline corrections.
 
 Use the [recorded school form](history/LAUNCH_READINESS_2026-09-15.md#record-021):
 Cairns, Queensland; school administration and staff; School bushfire preparedness;
@@ -205,7 +208,7 @@ seen-case follow-up, not an independent generalisation benchmark.
   Retain review requirements and the safety boundary. Property maintenance
   cannot substitute for communications or first-aid/training; do not invent
   clinical procedures, fixed drill schedules or verified venues.
-- **Acceptance is report-specific and remains pending.** Review the complete
+- **Acceptance is report-specific.** Review the complete
   narrative, tables and checklists against these requirements using the new
   report's version, frozen inputs and final submitted-evidence capture. Existing
   diagnostics and the detached literal-target helper locate issues; they do not
@@ -221,6 +224,76 @@ The existing showcase builder requires local Ollama and defaults to
 `examples/v<project version>`, which may already contain frozen artifacts.
 Use a fresh explicit output path for a new sample; do not bypass cloud consent
 or replace old artifacts.
+
+#### October 7 result and offline corrective work
+
+The synthetic school form ran on deployed source `1bf3286` after a same-source
+Railway recovery. The former deployment was confirmed stopped, the replacement
+was uniquely running, and its persisted daily count was read as zero before
+submission. The observed final SDK capture is the initial attempt; this is
+application-side evidence, not an independent provider receipt. No unused call
+allowance was repurposed for additional samples or a revision.
+
+**The case did not pass acceptance.** The report exceeded the predeclared
+narrative budget, left repeated local tasks unqualified, supplied unsupported
+physical assembly criteria and presented some planning/household material as
+causal or campus advice. The processed community facts were present but their
+adjacent provenance and limits were inconsistent. Valid source IDs and the old
+v6 gate did not establish supported use. The contradictory maintenance wording
+was retained as an unresolved source issue, not silently rewritten.
+
+The actual ZIP's CRC, artifact hashes and original v6 report/audit bindings
+verified. Standalone Markdown and DOCX matched their package entries. PDF
+content and all 13 page layouts were checked, but exact standalone-versus-package
+PDF binding failed because creation/modification dates and file ID differed.
+That byte mismatch remains a failure even though the rendered content matched.
+The original case's Word page layout was not verified. These findings are
+separate from the older September Word inspection.
+
+Offline follow-up introduces a versioned v7 content contract and a shared,
+audit-clock-bound export builder. It preserves the v6 manifest/fingerprint,
+historical samples, raw official source wording and closed campaign artifacts.
+Current-policy organisational approval/pilot-package export requires reassessment;
+historical verification or a standalone draft download is not current approval.
+The new checks are limited provenance, format and selected
+risk-pattern guards, not a semantic-support oracle or an accuracy benchmark.
+Only the original frozen school text is used for negative replay; its minimised
+audit analysis cannot be reconstructed into a fresh full lifecycle acceptance.
+No new model request or cloud business-flow rerun is part of this offline work.
+
+Final frozen-source validation passed **3,184 non-E2E tests**, with 7 skipped,
+6 browser cases deselected and **89.93% src coverage** (273.98 seconds). A
+separate local browser run passed all **6 E2E cases** (52.54 seconds). Both
+native and authenticated-blob delivery modes downloaded actual PDF/DOCX files
+whose complete bytes matched the ZIP entries after recorded review sign-off
+(not a digital signature). These use local
+mock model/source services, not DeepSeek, Railway or a new School acceptance.
+The original frozen School Markdown SHA remained
+`cb75de7fdb0966ad2ad9c39674a6abe8aa0b575fca0ad41a3cc397436188fed3`.
+External Carto style requests were blocked; map/data selection assertions passed,
+but public basemap rendering and native Word page layout were not validated.
+
+Nine earlier full-validation attempts failed or were interrupted; they are not
+relabelled as passes by the final run. Diagnosed stale test assumptions included
+historical source guards tied to the live working tree/all imported modules,
+removed UI cache seams, obsolete policy/check counts and the former acceptance
+of false P2 facts before approval. Tests now isolate pinned source-guard fixtures
+without weakening the actual historical guards, and preserve real current-gate
+positive/negative approval cases. The interrupted coverage run was discarded
+because a browser fixture was still changing. Browser tests no longer clear the
+shared output directory: fresh validated per-run directories retain old evidence.
+
+The browser preflight also exposed two genuine local-task false positives.
+Whitespace is now folded only inside each extracted claim's check shadow;
+original text, spans and SDK/hash bindings are untouched. One exact complete
+non-directive disclaimer is excluded from local-task classification only;
+appended/separate directives and all other safety/evidence checks remain active.
+The restored wrapped fixture and disclaimer passed the real v7 gate. Independent
+read-only review and repository lint, format, security and dependency checks
+passed. Focused batches overlap and are not added to the full-suite denominator.
+
+A fresh, separately authorised current-source content and download/layout
+acceptance remains necessary before publishing a replacement sample or release.
 
 ### Existing development evidence and boundaries
 

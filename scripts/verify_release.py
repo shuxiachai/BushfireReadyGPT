@@ -449,7 +449,10 @@ def verify_release(
         selected_version = release_paths.release_version
 
     current_project_version = _project_version(release_paths.pyproject)
-    current_project_mode = release_version is None or selected_version == current_project_version
+    # An explicit selector verifies the immutable recorded release even when its
+    # version still equals pyproject.toml. Only the default mode claims current
+    # project-policy acceptance; advancing policy must not rewrite old evidence.
+    current_project_mode = release_version is None
     if current_project_mode:
         _require(
             current_project_version == selected_version,
