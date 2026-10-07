@@ -48,7 +48,7 @@ See [architecture](architecture.md), [RAG](rag.md) and
 
 ## Recorded validation
 
-Latest engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
+Latest complete local engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
 non-E2E tests passed with 89.99% src coverage, plus 6 separate mock-model browser
 cases. [All four Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37599159279)
 and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37599159388)
@@ -60,7 +60,7 @@ The earlier validation records below retain their own dates, sources and scopes.
 
 README now separates the deployed v8 engineering baseline from the frozen
 v0.6.0 release and earlier v7 report evidence. The local interview handbook was
-condensed to 14,011 characters, preserving failure records and metric denominators;
+condensed to 14,256 characters, preserving failure records and metric denominators;
 it remains Git-ignored rather than a new public release artifact.
 
 The read-only [runtime maintenance check](../scripts/check_runtime_maintenance.py)
@@ -71,6 +71,13 @@ metadata, traces and all quota rows; corrupted or rolled-back candidates fail.
 The parent-run maintenance/quota/audit regression passed **162 tests** in 18.37
 seconds; Ruff, format and independent static review passed. This is local
 recovery-contract evidence, not a cloud disaster-recovery acceptance.
+
+Maintenance code was pushed as `39d42c5`.
+[Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37610161411)
+and all four [cross-platform Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37610161448)
+passed. Railway deployment
+`be99692c-e736-4bcd-8df6-a7296bdd2284` succeeded on that source and public health
+returned HTTP 200 / `ok`; no logged-in report-generation flow was run.
 
 Read-only Railway metadata confirms one replica and the existing 1,024-MB volume
 mounted at `/data`; observed current disk usage was 0.03208 GB. DeepSeek's official
