@@ -16,7 +16,7 @@ from src.source_attribution import (
     expand_known_attribution_tokens,
     strip_application_source_bindings,
 )
-from tests.test_report_content_contract import _valid_report
+from tests.support.report_fixtures import _valid_report
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"

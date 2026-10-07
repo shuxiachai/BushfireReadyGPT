@@ -25,6 +25,7 @@ from src.rag.context import assemble_planning_context
 from src.rag.service import assemble_retrieved_context
 from src.report_grounding import evaluate_model_visible_rag_grounding, evaluate_report_grounding
 from src.report_template import append_human_signoff
+from tests.support.model_evidence_fixtures import _analysis as _analysis
 
 
 def _chunk(text, identity="guide"):
@@ -36,14 +37,6 @@ def _chunk(text, identity="guide"):
         "text": text,
         "chunk_sha256": text_sha256(text),
         "jurisdictions": ["Queensland"],
-    }
-
-
-def _analysis(*chunks):
-    return {
-        "profile": {"state": "Queensland"},
-        "knowledge": {"status": "ready", "retrieved_chunks": list(chunks)},
-        "data": {"sources": [{"id": "one", "name": "Official One"}, {"id": "two", "name": "Official Two"}]},
     }
 
 

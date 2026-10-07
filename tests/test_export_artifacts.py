@@ -17,7 +17,7 @@ from src.export_register import REGISTER_SNAPSHOT_FILES
 from src.governance import DRAFT_STATUS, build_review_checklist_snapshot
 from src.report_generation_quality import evaluate_governed_report
 from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
-from tests.test_report_content_contract import _valid_report
+from tests.support.report_fixtures import _valid_report
 
 SOURCE_TIME = "2026-10-07T04:46:06+00:00"
 REPORT = "# Synthetic export identity\n\nLocation: Test district\n\nPreparedness review marker."

@@ -8,7 +8,7 @@ from src.focus_coverage import (
     evaluate_focus_area_coverage,
     evaluate_scenario_coverage,
 )
-from tests.test_report_content_contract import _valid_report
+from tests.support.report_fixtures import _valid_report
 
 
 def _analysis(*concepts, ignored=0):

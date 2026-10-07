@@ -1309,7 +1309,7 @@ def test_repeated_filler_under_every_required_heading_is_blocked():
 
 
 def test_approval_gate_accepts_a_completed_review_when_exact_report_passes():
-    from tests.test_report_content_contract import _valid_report
+    from tests.support.report_fixtures import _valid_report
 
     review_record = {
         "approval_status": "Approved by organisation",

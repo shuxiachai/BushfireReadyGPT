@@ -18,7 +18,7 @@ from src.report_generation_quality import (
 )
 from src.report_grounding import claim_review_reasons, evaluate_report_grounding
 from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
-from tests.test_report_content_contract import _valid_report
+from tests.support.report_fixtures import _valid_report
 
 ROOT = Path(__file__).resolve().parents[1]
 
