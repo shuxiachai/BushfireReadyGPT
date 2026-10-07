@@ -21,6 +21,7 @@ not the research tools below.
 | [prepare_railway_context.py](prepare_railway_context.py) | Builds a deployment context from declared inputs; writes its target context. |
 | [prepare_private_corpus.py](prepare_private_corpus.py) | Creates a private-corpus bundle at its selected output path. |
 | [smoke_container.py](smoke_container.py) | Container-only disposable smoke fixture; writes persistence evidence/SQLite state and uses its fixture-call allowance. |
+| [check_runtime_maintenance.py](check_runtime_maintenance.py) | Read-only environment/selected-day quota checks; reports containment booleans and can reject a restored count below an independently retained floor. Does not read credentials, create backups or prove volume durability. |
 | [run_quality_checks.ps1](run_quality_checks.ps1) | Lint, format, dependency, security, and lock checks; creates `tmp/pip-audit-cache`, invokes Poetry tools, and uses network vulnerability lookups through `pip-audit`. |
 
 ## Data, index, and routine evaluation entry points

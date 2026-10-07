@@ -293,6 +293,63 @@ remain on the mounted volume and need an operator retention policy. Back up the
 volume before upgrades or cleanup, including the usage database so a restore
 does not accidentally reset request accounting.
 
+## Maintenance checks and backup recovery
+
+Read deployment metadata first: one replica/process, the intended volume mounted
+at `/data`, the source commit and normal `python scripts/start_container.py`
+start command. Variable names or a template do not establish effective values.
+Inside the existing service, this command reads the environment and one UTC
+day's quota without loading `.env`, starting a model, changing files or reserving
+a call:
+
+```console
+python -B scripts/check_runtime_maintenance.py --day 2026-10-07 --persistent-root /data
+```
+
+It reports concurrency, the daily call ceiling, output-token cap, effective SDK
+retries, day/count/status and audit/trace/quota containment booleans. Exit `0`
+means those checks pass; `1` means unavailable usage, a containment failure or
+an unmet count floor; `2` means invalid input/configuration. A missing database
+is unknown, not zero. Directory containment does not prove an actual mount,
+disk capacity, backup availability or retention.
+
+Before recovery, retain the selected UTC day and its latest confirmed count
+outside the backup. Pass that same-day integer with `--minimum-calls` when
+checking a restored candidate. This detects a lower count; it does not reconcile
+the database. Check other retained days too. A rollback or missing independently
+retained count requires keeping model traffic stopped while the operator
+reconciles usage. Do not silently restore an earlier quota as new allowance.
+
+Use the volume's native backup list/schedule to record backup IDs, timestamps,
+expiry and state. Railway's documented UI restore flow stages a new volume;
+applying it redeploys the service. The old volume is retained but unmounted;
+verify the proposed destination and keep it for rollback. The restored volume
+copies backups only up to the selected point; newer backups stay on the old
+volume. Native restores are limited to the same project and environment. The recovery
+candidate needs all audit ancestors, hidden `.head_*.json` and
+`.revision_*.json` metadata, traces, saved reports and the usage database.
+Restore over a live `/data` mount is not a routine check. Inspect the staged
+changes, expected downtime and additional storage cost before any cutover.
+[Railway volume backup and restore reference](https://docs.railway.com/volumes/backups#how-to-restore-a-backup)
+
+`tests/test_runtime_backup_restore.py` exercises a stopped synthetic writer,
+SQLite's backup API and a fresh local restore directory. It checks original
+file/lineage bindings, hidden metadata, traces and every quota row, and rejects
+damaged candidates. It does not establish that a Railway backup exists or that
+a production restoration succeeded.
+
+The application's daily call limit includes failures and repairs; it is not a
+currency cap. Check Railway's **Compute** spending alert/hard limit separately
+from **Railway Agent** usage and DeepSeek account funding. Railway's hard limit
+applies to the workspace's workloads, so its amount must reflect all affected
+projects. Configure a monetary threshold only after the operator chooses its
+scope and amount. [Railway cost controls](https://docs.railway.com/pricing/cost-control)
+
+DeepSeek's official `GET /user/balance` returns account availability and balance
+information. A balance read does not generate a report or establish a spending
+cap. Keep credentials and account amounts out of repository records.
+[DeepSeek balance API](https://api-docs.deepseek.com/api/get-user-balance/)
+
 ## Privacy and startup readiness
 
 The local CPU embedding model receives the query inside the container. Report

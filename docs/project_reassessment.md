@@ -48,6 +48,38 @@ See [architecture](architecture.md), [RAG](rag.md) and
 
 ## Recorded validation
 
+Latest engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
+non-E2E tests passed with 89.99% src coverage, plus 6 separate mock-model browser
+cases. [All four Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37599159279)
+and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37599159388)
+passed. Railway deployment `09ac8330-b078-4ec5-a6f5-6b16a36b09f4` succeeded
+on that source and the public health endpoint returned HTTP 200 / `ok`.
+The earlier validation records below retain their own dates, sources and scopes.
+
+### Documentation and maintenance follow-up (2026-10-07)
+
+README now separates the deployed v8 engineering baseline from the frozen
+v0.6.0 release and earlier v7 report evidence. The local interview handbook was
+condensed to 14,011 characters, preserving failure records and metric denominators;
+it remains Git-ignored rather than a new public release artifact.
+
+The read-only [runtime maintenance check](../scripts/check_runtime_maintenance.py)
+reports effective limits and selected-day SQLite usage without model calls,
+dotenv loading, quota reservation or file repair. A stopped synthetic backup /
+fresh-directory restoration test checks audit ancestry, hidden head/revision
+metadata, traces and all quota rows; corrupted or rolled-back candidates fail.
+The parent-run maintenance/quota/audit regression passed **162 tests** in 18.37
+seconds; Ruff, format and independent static review passed. This is local
+recovery-contract evidence, not a cloud disaster-recovery acceptance.
+
+Read-only Railway metadata confirms one replica and the existing 1,024-MB volume
+mounted at `/data`; observed current disk usage was 0.03208 GB. DeepSeek's official
+balance endpoint returned account availability without a generation request;
+no credentials or account amounts are recorded. Native backup IDs/schedules,
+effective live quota values and workspace monetary controls remain unverified
+pending Railway web login. No settings, cloud data, backups or budget amounts
+were changed. See [maintenance boundaries](DEPLOYMENT.md#maintenance-checks-and-backup-recovery).
+
 The resumed follow-up is complete as a bounded engineering change: 87 dedicated /
 450 related checks, final local 3,085-test non-E2E regression (src 89.76%),
 independent static review and the full quality wrapper passed. The package-only
@@ -153,11 +185,13 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Suggested Next Build Order
 
-Resolve content gaps before publishing replacement samples or a new release.
-Evaluate new content cases separately from seen development
-fixtures, and retain unknowns and human review. Real stakeholder feedback is a
-separate activity, not something synthetic testing can supply. Adding live
-emergency decisions is not a required next feature.
+The current maintenance priorities are documentation consistency, a shorter
+project-experience reference, and cloud backup/recovery plus quota/cost checks.
+Additional demonstrations, native Word layout checks and replacement report
+samples are deferred. Their incomplete acceptance remains recorded below.
+Publishing a replacement sample as accepted would still require report-specific
+content and delivery validation. External stakeholder and domain review remain
+separate from automated engineering tests.
 
 ### Bounded school draft: closed without acceptance
 
