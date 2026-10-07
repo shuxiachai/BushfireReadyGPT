@@ -1,7 +1,8 @@
 # Current project status
 
-Updated 2026-10-07 after the bounded school check failed content acceptance and
-offline corrective work passed local validation; no accepted replacement sample or new formal release is claimed. This page
+Updated 2026-10-07 after offline corrective work passed local validation and a
+separately authorised v7 school check still failed content acceptance; no
+accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -292,8 +293,73 @@ The restored wrapped fixture and disclaimer passed the real v7 gate. Independent
 read-only review and repository lint, format, security and dependency checks
 passed. Focused batches overlap and are not added to the full-suite denominator.
 
-A fresh, separately authorised current-source content and download/layout
-acceptance remains necessary before publishing a replacement sample or release.
+#### Separately authorised v7 school check: still not accepted
+
+Source `290143a` passed [all four Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37585467972)
+and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37585468020).
+Railway deployment `25a3d5a3-b9d3-425a-9996-89ca3c0698b0` was confirmed successful
+on that source before one new synthetic school submission. This is a separate
+seen-case acceptance, not a reopening of the earlier failed campaign or an
+independent benchmark. The predeclared three-call allowance was exhausted:
+initial generation plus two automatic repairs, with no revision or resampling.
+Filtered deployment usage logs moved from daily count 1 to 4, consistent with
+the final UI's attempt 3 (`structural_repair`); these are application observations,
+not independently obtained provider receipts.
+
+Report `d3859970f1b9442ca013c6a0d611319e`, version 1, recorded at
+`2026-10-07T08:06:02Z`, remains **Draft / NO-GO**. The recorded v7 gate has
+19 passes and 5 failures out of 24 checks. Approval and Pilot ZIP generation
+remain blocked. No replacement public sample, sign-off or new release was made.
+
+Content review separates actual defects from checker defects:
+
+- The narrative has **1,124 words**, above the predeclared 800-word maximum.
+  Eight action sentences in sections 7, 11 and 12 lack their own proposal and
+  confirmation wording. Four role-function cells rely on confirmation in a
+  different cell; the checker misses the `Proposed function` header/third-person
+  verb pattern. Their row-level meaning does not satisfy the declared same-cell
+  contract.
+- Both P2 values (172,888 and 15.6%) are present. The omission codes are lexical
+  false positives for `population basis is` and `older-people`; however, the
+  measurement sentence still lacks its own geographic aggregation/approximation
+  basis. Recognising the wording must not borrow provenance from another sentence.
+- The road-status finding selects an explicit denial of verified safety or
+  operational status. Three of eleven local-task findings, both missing-confirmer
+  findings and the physical-criteria finding are false positives on explicit
+  non-proposal wording or `responsible authority must confirm`. This does not
+  remove the genuine content failures or justify loosening the safety boundary.
+- The cited household summary keeps campus application separate, but broadens
+  council/library enquiry scope and omits the source's flood/storm-surge/tsunami
+  framing. R3-only effects remain for evidence review. Valid citation IDs and
+  proposal labels are not proof of factual support.
+
+The authenticated UI reports 2 of 3 passages submitted in the final attempt,
+using 3,357 of 3,500 context characters. Its legacy visible-prose check finds
+1 lexical match out of 1 RAG-cited claim, while the separate current body
+diagnostic extracts 69 claims, labels 45 missing citations and requests review
+of 46. The displayed cited excerpt supports the core household-enquiry paraphrase;
+its negation flag is not proof of a reversed meaning. These different heuristic
+denominators are not accuracy scores. The raw final SDK messages and full frozen
+analysis were not independently exported/replayed; the minimised audit does not
+contain them. UI capture and one displayed excerpt are narrower evidence.
+
+Actual Markdown, PDF, DOCX and the creation audit were downloaded. The audit
+record validates and its report SHA256 matches the downloaded Markdown
+`0fba1c8e1dd70f75413341df757561f0d7ce0747a3efb44f1e5bdc259c519a60`.
+All 12 PDF pages were rendered and inspected; no confirmed clipping, overlap
+or pagination defect remained after single-page/raw-content checks corrected an
+initial batched-image display finding. DOCX ZIP integrity and expected case text
+also check out, but native Word layout remains unverified:
+the UI helper encountered element-cache/focus failures, without modifying the
+downloaded DOCX. No current cloud-head or ZIP-byte verification is claimed for
+this blocked case. Original downloads, hashes, UI snapshots and the frozen
+contract/result remain in ignored `output/playwright/cloud-school-v7-20261007-a/`.
+
+Next work is offline: repair the bounded recognition errors with paired negative
+tests, improve proposal/length guidance and repair feedback, and complete Word
+layout inspection. Preserve this failure, prior artifacts and same-unit safeguards;
+any future external generation needs a separately bounded authorisation. Content
+and report-specific package acceptance are still required before a new release.
 
 ### Existing development evidence and boundaries
 
