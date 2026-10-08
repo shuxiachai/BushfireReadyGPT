@@ -111,10 +111,17 @@ process exited with code 1 before any health or tokenizer HTTP request; the
 observed failure was `process_identity_mismatch`. No new token count was obtained.
 The owned process/listener and temporary key were removed, and all 77 protected
 snapshots remained unchanged. The original native startup error was not retained,
-so its cause remains unconfirmed. A Unicode-path parser comparison was prepared
-but has not been executed or approved in its partially revised state. This is a
-failed diagnostic attempt, not a report-generation run; new token fit remains
-unknown. The earlier report and its five current-policy blockers remain unchanged.
+so its cause remains unconfirmed. A separately reviewed, help-only comparison on
+source `5a55a4b` then used the same temporary key file: the installed native
+program failed to open its full path containing Chinese characters (exit 1),
+while the ASCII relative filename displayed help successfully (exit 0). These
+two parser calls used no model/service arguments; the diagnostic harness issued
+zero HTTP requests. The temporary key was removed, the owned processes exited
+and the protected snapshots remained unchanged. This supports a path-opening
+compatibility issue in that comparison, not the unique cause of the original
+failure or successful model startup. The closed count attempt was not retried:
+new token fit remains unknown. The earlier report and its five current-policy
+blockers remain unchanged.
 
 Previously recorded complete engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
 non-E2E tests passed with 89.99% src coverage, plus 6 separate mock-model browser
