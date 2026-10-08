@@ -1,18 +1,22 @@
 import json
 
 from src.abs_indicators import LANGUAGE_BASIS_WARNING
+from src.agents.report_agent import ReportAgent
 from src.evidence_confidence import (
     EVIDENCE_LEVELS,
     build_evidence_confidence_rows,
     format_evidence_confidence_rules_for_prompt,
 )
+from src.evidence_formatting import format_evidence_value
 from src.focus_coverage import canonical_coverage_declarations
 from src.governance import HUMAN_REVIEW_CHECKLIST
-from src.report_basis import format_community_p2_basis
+from src.model_evidence import validate_recorded_assembly
+from src.report_basis import build_community_p2_basis, format_community_p2_basis
 from src.source_attribution import (
     MODEL_SOURCE_ATTRIBUTION_RULES,
     canonical_source_token_data,
     format_official_attribution,
+    format_official_citation_token,
     format_rag_attribution,
     neutralise_prompt_control_markers,
 )
@@ -464,6 +468,102 @@ REPORT_TEMPLATE_SECTIONS = [
 ]
 
 
+class _ModelContextReportAgent(ReportAgent):
+    """Current-only projection; keep the historical shared ReportAgent immutable."""
+
+    def _format_community_result(self, community_result):
+        matched_location = community_result.get("matched_location")
+        lines = [
+            f"- Matched community profile: {matched_location}"
+            if matched_location
+            else "- No matching community profile row found."
+        ]
+        indicators = community_result.get("indicators", {})
+        lines.append("R3 threshold interpretation and planning notes (not P2 measurements or O1 evidence):")
+        lines.append(f"- Language support need: {format_evidence_value(indicators.get('language_support_needed'))}")
+        lines.extend(f"- {note}" for note in community_result.get("vulnerability_notes", []))
+        return lines
+
+    def _format_data_quality(self, data_quality):
+        if not data_quality:
+            return []
+        return [f"- Review warning: {warning}" for warning in data_quality.get("warnings", [])]
+
+
+def _lossless_repeated_p2_basis(analysis):
+    """Only omit raw fields whose canonical JSON preserves the complete value."""
+    community = analysis["community"]
+    indicators = community.get("indicators", {})
+    quality = community.get("data_quality", {})
+    if not isinstance(indicators, dict) or not isinstance(quality, dict):
+        return False
+    basis = build_community_p2_basis(analysis)
+    pairs = []
+    for key, value in basis["indicators"].items():
+        raw = indicators.get(key)
+        # The full measurement formatter renders a blank indicator as unknown,
+        # exactly the meaning of canonical null. Never discard nonblank qualifiers.
+        if isinstance(raw, str) and not raw.strip() and value is None:
+            continue
+        suffix = "" if key == "population" else "%"
+        if raw is not None and format_evidence_value(raw, suffix) == "To be confirmed":
+            return False
+        pairs.append((raw, value))
+    pairs.extend((indicators.get(key), basis[key]) for key in ("geography_type", "matched_sa2_count"))
+    for key in ("source_period", "freshness", "source_age_years", "match_quality", "match_basis"):
+        raw, canonical = quality.get(key), basis["data_quality"][key]
+        # These four text rows use an explicit unknown label for falsey data.
+        # Age zero is different: the shared renderer correctly displays 0 years.
+        if key != "source_age_years" and canonical is not None and not raw:
+            return False
+        pairs.append((raw, canonical))
+    return all(type(raw) is type(canonical) and raw == canonical for raw, canonical in pairs)
+
+
+def _repeated_official_tokens_are_covered(analysis):
+    sources = analysis["data"].get("sources", [])
+    if not isinstance(sources, list) or not all(isinstance(source, dict) for source in sources):
+        return False
+    canonical = set(canonical_source_token_data(official_sources=sources)["official_source_tokens"])
+    return all(format_official_citation_token(source) in canonical for source in sources)
+
+
+def _model_analysis_context(analysis):
+    """Project only a verified current serializer result; preserve custom/old text."""
+    original = analysis["prompt_context"]
+    required = ("profile", "data", "risk_context", "plan", "community", "knowledge", "rag_context_assembly")
+    if not all(isinstance(analysis.get(key), dict) for key in required):
+        return original
+    if (
+        "area_selection" not in analysis
+        or not _lossless_repeated_p2_basis(analysis)
+        or not _repeated_official_tokens_are_covered(analysis)
+    ):
+        return original
+    kwargs = {
+        "profile": analysis["profile"],
+        "data_result": analysis["data"],
+        "risk_context": analysis["risk_context"],
+        "plan_result": analysis["plan"],
+        "community_result": analysis["community"],
+        "knowledge_result": analysis["knowledge"],
+        "area_selection": analysis["area_selection"],
+        "rag_assembly": analysis["rag_context_assembly"],
+    }
+    try:
+        # Never retrieve or reassemble: this validates the supplied frozen bytes.
+        validate_recorded_assembly(kwargs["rag_assembly"], analysis)
+        agent = ReportAgent()
+        if agent.run(**kwargs) != original:
+            return original
+        # A detached source list suppresses only token rows already supplied by
+        # the canonical source-token block; all other data/segments are inherited.
+        projected_kwargs = {**kwargs, "data_result": {**analysis["data"], "sources": []}}
+        return _ModelContextReportAgent().run(**projected_kwargs)
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return original
+
+
 def build_report_prompt(
     location,
     audience,
@@ -527,7 +627,7 @@ def build_report_prompt(
         for index, (title, instruction) in enumerate(REPORT_TEMPLATE_SECTIONS)
     )
     model_safe_prompt_context = neutralise_prompt_control_markers(
-        analysis["prompt_context"],
+        _model_analysis_context(analysis),
         preserve_retrieved_evidence=True,
     )
     coverage_declarations = canonical_coverage_declarations(analysis)

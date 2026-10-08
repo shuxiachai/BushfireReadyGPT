@@ -11,6 +11,7 @@ import re
 from collections import Counter
 from decimal import Decimal, InvalidOperation
 
+from src.current_report_structure import current_report_heading
 from src.markdown_tables import is_markdown_table_separator, parse_markdown_table_row
 from src.model_evidence import unavailable_model_evidence, validate_model_evidence
 from src.report_basis import build_community_p2_basis
@@ -275,7 +276,7 @@ def evaluate_report_content_contract(report_text, analysis, *, model_evidence=No
         )
     ]
     units = [
-        (unit, _claim_shadow(unit["claim"], analysis), normalise_markdown_heading(unit["section"]))
+        (unit, _claim_shadow(unit["claim"], analysis), current_report_heading(unit["section"]))
         for unit in extract_body_claims(narrative, analysis)
     ]
     action_columns = _action_columns(narrative)

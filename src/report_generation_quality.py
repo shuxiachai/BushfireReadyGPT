@@ -48,7 +48,7 @@ MAX_REPORT_REPAIR_PROMPT_CHARACTERS = 18_000
 _MAX_COMPACT_REPAIR_CONTEXT_CHARACTERS = 7_000
 _MAX_COMPACT_REPAIR_RAG_CHARACTERS = 3_500
 _MAX_COMPACT_REPAIR_ITEM_CHARACTERS = 360
-CURRENT_POLICY = "governed-report-v8"
+CURRENT_POLICY = "governed-report-v9"
 QUALITY_POLICY_VERSION = CURRENT_POLICY  # Backwards-compatible public alias.
 
 
@@ -176,6 +176,14 @@ KNOWN_QUALITY_POLICY_MANIFESTS = {
         "assembly_criteria_ruleset": "local-physical-criteria-deferred-to-authority-v2",
         "repair_feedback_ruleset": "allowlisted-content-codes-and-word-count-v1",
     },
+}
+# Preserve the complete v8 manifest and fingerprint for historical audit reads.
+# Current heading identity is shared by structural and local-task checks.
+KNOWN_QUALITY_POLICY_MANIFESTS["governed-report-v9"] = {
+    **KNOWN_QUALITY_POLICY_MANIFESTS["governed-report-v8"],
+    "policy_version": "governed-report-v9",
+    "structural_ruleset": "report-quality-agent-v6",
+    "heading_identity_ruleset": "current-exact-first-aid-oxford-comma-v1",
 }
 _KNOWN_POLICY_FINGERPRINTS = {
     version: _policy_fingerprint(manifest) for version, manifest in KNOWN_QUALITY_POLICY_MANIFESTS.items()

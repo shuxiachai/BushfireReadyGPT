@@ -461,7 +461,7 @@ def _assert_fixture_governed_gate(environment):
         )
         assert attempts == 1
         assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]["blocking_failures"]
-        assert quality["quality_policy_version"] == "governed-report-v8"
+        assert quality["quality_policy_version"] == "governed-report-v9"
         return analysis, narrative, quality
 
 

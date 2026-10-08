@@ -2,6 +2,7 @@ import hashlib
 import re
 from collections import defaultdict
 
+from src.current_report_structure import current_report_heading
 from src.current_safety_boundary import evaluate_current_safety_boundaries
 from src.report_template import REPORT_TEMPLATE_SECTIONS, extract_narrative_body
 from src.source_attribution import (
@@ -11,7 +12,6 @@ from src.source_attribution import (
     has_model_authored_raw_html,
     has_model_authored_url,
     has_unbound_attribution_marker,
-    normalise_markdown_heading,
     plain_markdown_claim_text,
     strip_application_source_bindings,
     strip_known_attribution_labels,
@@ -467,12 +467,12 @@ class ReportQualityAgent:
         sections = {}
         current = None
         current_level = None
-        known_sections = {normalise_markdown_heading(heading) for heading in self.REQUIRED_SECTION_HEADINGS}
+        known_sections = {current_report_heading(heading) for heading in self.REQUIRED_SECTION_HEADINGS}
         for line in self._non_fenced_markdown_lines(text):
             match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*$", line)
             if match:
                 level = len(match.group(1))
-                heading = normalise_markdown_heading(match.group(2))
+                heading = current_report_heading(match.group(2))
                 if heading in known_sections:
                     current = heading
                     current_level = level
@@ -487,13 +487,13 @@ class ReportQualityAgent:
         return {heading: "\n".join(lines) for heading, lines in sections.items()}
 
     def _required_heading_counts(self, text):
-        known_sections = {normalise_markdown_heading(heading) for heading in self.REQUIRED_SECTION_HEADINGS}
+        known_sections = {current_report_heading(heading) for heading in self.REQUIRED_SECTION_HEADINGS}
         counts = {heading: 0 for heading in known_sections}
         for line in self._non_fenced_markdown_lines(text):
             match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*$", line)
             if not match:
                 continue
-            heading = normalise_markdown_heading(match.group(2))
+            heading = current_report_heading(match.group(2))
             if heading in counts:
                 counts[heading] += 1
         return counts

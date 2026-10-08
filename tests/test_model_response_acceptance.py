@@ -315,7 +315,7 @@ def test_disabled_repair_has_no_hidden_protocol_retry(monkeypatch):
 
 
 def test_new_response_admission_does_not_relabel_historical_quality_policy():
-    assert quality.CURRENT_POLICY == "governed-report-v8"
+    assert quality.CURRENT_POLICY == "governed-report-v9"
     legacy_fingerprint = "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
     assert quality.READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"] == frozenset({legacy_fingerprint})
     assert quality.is_readable_quality_policy_binding("governed-report-v6", legacy_fingerprint)

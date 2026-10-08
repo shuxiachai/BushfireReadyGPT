@@ -1,7 +1,7 @@
 # Current project status
 
-Updated 2026-10-07 after the separately authorised v7 school check failed
-content acceptance and offline v8 corrections passed local validation; no
+Updated 2026-10-08 after a separately authorised local v8 report failed
+content acceptance and prompted offline context/heading corrections; no
 accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
@@ -48,7 +48,59 @@ See [architecture](architecture.md), [RAG](rag.md) and
 
 ## Recorded validation
 
-Latest complete local engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
+### Local context and heading follow-up (2026-10-08)
+
+On source `72cf4ae`, a single authorised local Ollama attempt completed its
+stream successfully but failed six quality checks; no accepted report, audit
+or export was created. Exact rendered input was 6,917 tokens. With the unchanged
+2,300-token requested output, the required 9,217 tokens exceeded the configured
+8,192-token window by 1,025 before any margin. This supports neither initial
+input cropping nor complete retention during generation: exact retained
+evidence intervals remain unknown. The raw result and original six findings
+remain unchanged; the failure is not attributed solely to context pressure.
+
+Offline maintenance introduces **governed-report-v9** for a narrow Oxford-comma
+alias in the First Aid / Training / Exercises heading. Missing, duplicate and
+empty sections still fail; other safety and content checks are not weakened.
+The v2–v8 manifests and fingerprints remain unchanged. Historical audits remain
+readable, but new review/export requires current-policy reassessment and the
+normal human-review transition, without automatically promoting an old approval.
+
+The initial prompt removes only provably duplicated P2/source-register summaries
+from a verified current analysis, with original-context fallback for incomplete
+source-token coverage or values whose unknown/qualified meaning would be lost.
+Canonical provenance, geography, aggregation,
+unknown values and R3 qualifications remain; the recorded RAG block is preserved
+byte-for-byte exactly once. Custom, sparse or unmatched legacy contexts retain
+their original formatting. The new offline
+[context-budget diagnostic](../scripts/assess_model_context_budget.py) binds an
+exact count to the supplied messages, model, template and context size. It does
+not tokenize, call a model, authenticate a caller's measurement or alter request
+admission. A compacted prompt has different bytes: the old 6,917-token measurement
+cannot certify its fit. Frozen-case offline compilation reduced the builder's
+prompt from 32,302 to 31,343 Unicode characters (959 fewer), with unchanged RAG
+bytes. The original report still fails the current content gate after the narrow
+heading correction; it is not a replacement model run or accepted sample. New
+token fit and real content acceptance remain untested;
+there were no new model requests in this maintenance step.
+
+The first full regression exposed a historical-builder dependency guard: even
+a byte-equivalent default output does not permit changing that shared component's
+source. The public ReportAgent source was restored, and compaction is isolated
+in a private prompt-builder subclass; the pinned dependency checks are unchanged.
+The earlier zero-reduction replay and unsuccessful regression attempts are
+retained separately, not replaced by the corrected offline comparison.
+
+The final local non-E2E regression passed **3,681 tests**, with 7 platform skips
+and 6 E2E cases deselected, **90.13% src coverage**, in 307.84 seconds. A separate
+Chromium run passed all 6 mock-model cases in 48.57 seconds. The complete quality
+wrapper passed lock/dependency validation, Ruff, format, Bandit and the
+known-vulnerability scan; independent targeted review found no remaining blocker.
+After the final tests, all 25 protected files and 9 directory metadata entries
+matched their pre-change snapshots. These are final maintained-source local
+results, not a new real-model, cloud, cross-platform CI or release acceptance.
+
+Previously recorded complete engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
 non-E2E tests passed with 89.99% src coverage, plus 6 separate mock-model browser
 cases. [All four Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37599159279)
 and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37599159388)

@@ -22,6 +22,7 @@ not the research tools below.
 | [prepare_private_corpus.py](prepare_private_corpus.py) | Creates a private-corpus bundle at its selected output path. |
 | [smoke_container.py](smoke_container.py) | Container-only disposable smoke fixture; writes persistence evidence/SQLite state and uses its fixture-call allowance. |
 | [check_runtime_maintenance.py](check_runtime_maintenance.py) | Read-only environment/selected-day quota checks; reports containment booleans and can reject a restored count below an independently retained floor. Does not read credentials, create backups or prove volume durability. |
+| [assess_model_context_budget.py](assess_model_context_budget.py) | Offline diagnostic for explicitly supplied local message/count JSON. Checks exact-count bindings and input + requested output + margin; missing or stale measurements remain unknown. Does not tokenize, load dotenv, contact a model, reserve quota or change request admission. |
 | [run_quality_checks.ps1](run_quality_checks.ps1) | Lint, format, dependency, security, and lock checks; creates `tmp/pip-audit-cache`, invokes Poetry tools, and uses network vulnerability lookups through `pip-audit`. |
 
 ## Data, index, and routine evaluation entry points

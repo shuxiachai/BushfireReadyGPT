@@ -319,7 +319,7 @@ def test_export_rejects_diagnostic_tampering_but_legacy_optional_call_is_unchang
 
 
 def test_legacy_v6_and_v7_fingerprints_are_unchanged():
-    assert quality.QUALITY_POLICY_VERSION == "governed-report-v8"
+    assert quality.QUALITY_POLICY_VERSION == "governed-report-v9"
     assert quality._KNOWN_POLICY_FINGERPRINTS["governed-report-v6"] == (
         "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
     )

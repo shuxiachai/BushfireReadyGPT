@@ -319,7 +319,7 @@ def test_current_review_cache_binds_report_text_analysis_and_method(monkeypatch)
 
 def test_v6_policy_and_committed_release_read_validation_remain_unchanged(monkeypatch):
     legacy_fingerprint = "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
-    assert QUALITY_POLICY_VERSION == "governed-report-v8"
+    assert QUALITY_POLICY_VERSION == "governed-report-v9"
     assert QUALITY_POLICY_FINGERPRINT != legacy_fingerprint
     assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"] == frozenset({legacy_fingerprint})
     assert is_readable_quality_policy_binding("governed-report-v6", legacy_fingerprint)
