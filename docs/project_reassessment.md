@@ -100,6 +100,22 @@ After the final tests, all 25 protected files and 9 directory metadata entries
 matched their pre-change snapshots. These are final maintained-source local
 results, not a new real-model, cloud, cross-platform CI or release acceptance.
 
+Subsequently, all four [Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37715562784)
+and [Docker smoke](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37715562779)
+passed on maintenance commit `b7ac416`. This closes its cross-platform engineering
+validation, not real-report or new-release acceptance.
+
+A separate count-only attempt verified the existing model file and used a
+temporary authenticated CPU process with startup warmup disabled. The native
+process exited with code 1 before any health or tokenizer HTTP request; the
+observed failure was `process_identity_mismatch`. No new token count was obtained.
+The owned process/listener and temporary key were removed, and all 77 protected
+snapshots remained unchanged. The original native startup error was not retained,
+so its cause remains unconfirmed. A Unicode-path parser comparison was prepared
+but has not been executed or approved in its partially revised state. This is a
+failed diagnostic attempt, not a report-generation run; new token fit remains
+unknown. The earlier report and its five current-policy blockers remain unchanged.
+
 Previously recorded complete engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
 non-E2E tests passed with 89.99% src coverage, plus 6 separate mock-model browser
 cases. [All four Tests jobs](https://github.com/shuxiachai/BushfireReadyGPT/actions/runs/37599159279)
