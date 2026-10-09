@@ -1,9 +1,9 @@
 # Current project status
 
-Updated 2026-10-09 after a local tokenizer comparison measured the compacted
-prompt and confirmed that its input-plus-output budget still exceeds the
-configured window. The previous local v8 report failed content acceptance; no
-accepted replacement sample or new formal release is claimed. This page
+Updated 2026-10-09 after initial-report instruction compaction brought the
+frozen local case within its configured input-plus-output budget. A subsequent
+single real report still failed four content checks; no accepted replacement
+sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -134,9 +134,8 @@ template and rendered-prompt hashes are bound to the recorded measurement.
 
 With the unchanged 2,300-token output reservation and a 1-token margin, the
 required total is **8,914**, exceeding the configured 8,192-token window by
-**722**. The diagnostic result is `exceeds`; a shorter prompt alone has not
-resolved this frozen case's context budget. The next content-preserving
-reduction must bring this input to at most 5,891 tokens under the same budget.
+**722**. That diagnostic result was `exceeds`, motivating a further
+content-preserving reduction to at most 5,891 input tokens under the same budget.
 
 The temporary CPU service completed 4 health requests and the fixed 4
 tokenize/detokenize requests, with zero generation requests, in 15.30 seconds.
@@ -146,6 +145,51 @@ There was no timeout or observed warmup. This measures standalone tokenization
 of the reconstructed prompt; it does not establish provider receipt, evidence
 retention during generation, semantic use, or report-content acceptance. The
 earlier failed attempt and report findings remain part of the record.
+
+### Initial instruction compaction and content check (2026-10-09)
+
+Current-only instruction rendering consolidates repeated section, provenance
+and formatting guidance. Shared repair/revision constants, all 15 section
+purposes, quality-policy fingerprints and the historical ReportAgent remain
+unchanged. The frozen analysis, P2 basis, canonical source identifiers and exact
+RAG text remain byte-identical; no retrieved evidence was trimmed for this change.
+The builder prompt shrank from 31,343 to **27,097 characters**.
+
+The first instruction candidate (`bef863a`) measured 5,912 input tokens and
+still exceeded the reserved budget by 21; its closed measurement is preserved.
+The final small follow-up (`858252a`) measured **5,857 tokens**, 756 fewer than
+the prior 6,613-token prompt. The original 6,917-token control and both exact
+detokenization round trips passed. With output 2,300 and margin 1, the reserved
+total is **8,158 / 8,192**, leaving **34 tokens**. This proves only the stated
+frozen case's measured budget; changed inputs require their own assessment.
+
+A single local Ollama initial report then completed with HTTP 200, `stop` and
+the terminal stream marker. SDK, HTTP and isolated quota counters each recorded
+one attempt, with zero retries or automatic repairs. Reported usage was **5,857
+input + 1,231 output = 7,088 tokens**, consistent with the preflight input count.
+It passed 20 of 24 bounded checks but failed four:
+
+- 828 authored words, above the 650–800 requirement.
+- Two available P2 facts and one unknown measurement were omitted.
+- 28 local task occurrences lacked their own proposal/confirmation requirements.
+- Two unsupported causal-effect assertions remained.
+
+No accepted report, audit finalization or export was created. The old and new
+failures remain separate; fewer blocking categories do not establish improved
+quality, especially when task-qualification findings increased from 9 to 28.
+Token counts and normal stream termination do not prove semantic evidence use
+or complete KV retention. The next content priority is reliable P2 inclusion
+and per-task confirmation fields, rather than further shrinking this fixed input.
+
+Full local non-E2E regression on `bef863a` passed **3,696 tests**, with 7 skips,
+6 E2E cases deselected and **90.13% coverage**, in 296.56 seconds. An earlier
+restricted-environment run failed two loopback-dependent startup checks; both
+passed with loopback access, without application-code changes. The final
+18-line instruction follow-up passed 204 focused tests and full Ruff checks.
+Independent review found no remaining implementation issue in that scope.
+Both historical release verifiers passed on the clean local source. Temporary
+count/report services were cleaned up; the original artifacts and model files
+were preserved. These results are not a new release or cloud report acceptance.
 
 Previously recorded complete engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
 non-E2E tests passed with 89.99% src coverage, plus 6 separate mock-model browser
