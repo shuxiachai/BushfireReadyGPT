@@ -1,3 +1,4 @@
+import hashlib
 import inspect
 import json
 import re
@@ -153,8 +154,11 @@ def test_initial_and_repair_recast_planner_cues_and_each_numeric_p2_occurrence()
     analysis = {"prompt_context": "Frozen analysis prompt context."}
     initial = _build_prompt(analysis)
     repair = build_report_repair_prompt(initial, "Incomplete draft", {}, analysis=analysis)
-    for prompt in (initial, repair):
-        assert prompt.count(CONTENT_CONTRACT_GUIDANCE) == 1
+    for prompt, contract in (
+        (initial, report_template._INITIAL_REPORT_REQUIREMENTS),
+        (repair, CONTENT_CONTRACT_GUIDANCE),
+    ):
+        assert prompt.count(contract) == 1
         normalized = " ".join(prompt.split())
         assert "Raw Planner tasks, focus priorities and R3 notes are topic cues" in normalized
         assert "not copyable task instructions or evidence" in normalized
@@ -284,10 +288,13 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
     )
 
     # This checks instruction delivery, not the quality of a generated report.
-    for candidate in (prompt, repair):
-        assert candidate.count(SECTION_PURPOSE_GUIDANCE) == 1
+    for candidate, section_guidance, content_guidance in (
+        (prompt, report_template._INITIAL_SECTION_PURPOSE_GUIDANCE, report_template._INITIAL_REPORT_REQUIREMENTS),
+        (repair, SECTION_PURPOSE_GUIDANCE, CONTENT_CONTRACT_GUIDANCE),
+    ):
+        assert candidate.count(section_guidance) == 1
         assert candidate.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
-        assert candidate.count(CONTENT_CONTRACT_GUIDANCE) == 1
+        assert candidate.count(content_guidance) == 1
         assert REQUIRED_DAY_ONE_ACTION in candidate
         assert "application-recorded provenance and limits" in candidate
         assert "do not certify authority, currency or applicability" in candidate
@@ -306,7 +313,9 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
         for chunk in analysis["knowledge"]["retrieved_chunks"]:
             assert chunk["text"] in candidate
             assert format_rag_citation_token(chunk) in candidate
-    assert prompt.index(SECTION_PURPOSE_GUIDANCE) > prompt.index("<END_DETERMINISTIC_ANALYSIS_DATA>")
+    assert prompt.index(report_template._INITIAL_SECTION_PURPOSE_GUIDANCE) > prompt.index(
+        "<END_DETERMINISTIC_ANALYSIS_DATA>"
+    )
     assert prompt.index(BODY_CLAIM_CITATION_GUIDANCE) > prompt.index("<END_DETERMINISTIC_ANALYSIS_DATA>")
     assert repair.index(SECTION_PURPOSE_GUIDANCE) > repair.index("REPAIR REQUIREMENTS")
     assert repair.index(BODY_CLAIM_CITATION_GUIDANCE) > repair.index("REPAIR REQUIREMENTS")
@@ -333,6 +342,100 @@ def test_source_application_rules_remain_shared_and_within_original_budget():
         "never give them or P2 an O1 citation",
     ):
         assert requirement in BODY_CLAIM_CITATION_GUIDANCE
+
+
+@pytest.mark.parametrize(
+    ("name", "expected_sha256"),
+    [
+        ("CONTENT_CONTRACT_GUIDANCE", "6664379c747c628703ce12f8a9fa4360b022368fd6fd9691e6a5bb56023c3b10"),
+        ("SECTION_PURPOSE_GUIDANCE", "b502f2acdf8dbaee8d2f93640fb077378f13c3734db579d07d5ac108cee22ad6"),
+        ("BODY_CLAIM_CITATION_GUIDANCE", "47dfe47be15908f43cd0c126ee3eed1ac1796c611f66ced9dc540dc7eb3285fa"),
+        ("REPORT_TEMPLATE_SECTIONS", "66c2490e406a97f8daefcc7496236872dfef4d81cdd2d9c53fd32c550b9683fd"),
+        ("GOVERNANCE_NOTICE_MARKDOWN", "00166828069ea2b78095721f8c13d802d2f6bbc3b4a182229114f074df803102"),
+        ("REQUIRED_DAY_ONE_ACTION", "6463bd9b827bbf2d64a6855ff8f6647e0cdbb2f73a09be9942e068b657af9452"),
+    ],
+)
+def test_initial_only_compaction_preserves_shared_contract_bytes(name, expected_sha256):
+    # These are the shared repair/revision/historical values at 4d9e321, not
+    # snapshots of the new wording. Initial-only edits must not rewrite them.
+    value = getattr(report_template, name)
+    if isinstance(value, list):
+        value = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    assert hashlib.sha256(value.encode("utf-8")).hexdigest() == expected_sha256
+
+
+@pytest.mark.parametrize(
+    "requirements",
+    [
+        (
+            "650 to 800 words including headings/tables/lists",
+            "excluding the application notice, source-register lines, Evidence Tables and Human Review Sign-off",
+            "at least 300 prose words outside headings/tables/checklist bullets",
+            "no raw HTML tags/comments",
+        ),
+        (
+            "Retain available population, older-people figures and other meaningful indicators",
+            "Each numeric occurrence needs adjacent [P2]",
+            "supplied years/geographic basis (SA2 count when supplied)",
+            "aggregation/approximation in the same sentence or cell",
+            "not site occupancy/premises boundaries",
+            "Missing transport/language data remain unknown",
+        ),
+        (
+            "EACH local task sentence/action cell/checklist item",
+            "explicit confirmer and confirmation need",
+            "headings, other cells and closing disclaimers cannot qualify it",
+            "Prefix each unsupported proposal/task/bullet/cell `Unverified proposal for local review:`",
+            "Label rule-derived causal planning statements [R3] planning inference and name who must confirm them",
+            "never give them or P2 an O1 citation",
+        ),
+        (
+            "Household guidance must be explicit; separate institutional applications as unverified proposals",
+            "original audience, conditions, action object and numeric context",
+            "`audiences` are retrieval tags",
+            "reverses impacts or survival effects",
+            "unresolved source conflict with its complete citation and require responsible-source review",
+            "never repair its meaning or give advice from it",
+        ),
+        (
+            "Only passages supplied in this request support citations",
+            "registry entries and retrieved-but-omitted passages do not",
+            "COMPLETE supplied `Citation token:` (both bracket groups) immediately after each claim/bullet/cell",
+            "bounded syntax/provenance checks; factual meaning still requires human review",
+            "Never invent source identifiers/titles/URLs",
+            "binds verified URLs in Evidence Tables 4 and 5",
+            "Never write, infer, copy or retype a URL in the model-authored narrative",
+        ),
+        (
+            "Local physical assembly criteria remain unverified for the premises",
+            "require responsible-authority verification",
+            "Do not propose shade, water, smoke or traffic criteria",
+            "Every proposed place or premises is an unverified candidate",
+            "Every road, route, corridor and exit is also an unverified candidate",
+            "current, open, closed, clear, passable, safe, approved, designated, primary or secondary",
+            "Call 000",
+        ),
+        (
+            "O1 Official-source reference: high source authority; currency, completeness and operational applicability unconfirmed",
+            "Open and verify current official information before use",
+            "P2 Processed official-origin data: moderate, context-dependent confidence",
+            "processing, aggregation and geographic matching",
+            "Check source year, transformation, coverage and selected geography",
+            "R3 Deterministic rule inference: indicative and reproducible",
+            "dependent on configured rules/input matching, not observed incident evidence",
+            "Validate with local officers, plans and current conditions",
+            "A4 AI-generated draft synthesis: not evidence; may omit, simplify or invent",
+            "verify every operational claim before approval",
+            "U0 User-provided/unverified context: unverified unless supported by organisational records or an official source",
+        ),
+    ],
+    ids=["format", "p2", "local-tasks-r3", "source-scope-conflict", "citations", "physical-safety", "confidence"],
+)
+def test_compact_initial_instructions_keep_distinct_controls_outside_data_blocks(requirements):
+    prompt = _build_prompt({"prompt_context": "Frozen analysis prompt context."})
+    instructions = " ".join(prompt.split("<END_CANONICAL_SOURCE_TOKEN_DATA>", 1)[1].split())
+    for requirement in requirements:
+        assert requirement.casefold() in instructions.casefold()
 
 
 @pytest.mark.parametrize(
@@ -375,8 +478,11 @@ def test_source_statements_local_tasks_and_established_criteria_have_separate_pr
     original = deepcopy(analysis)
     initial = EvidencePrompt(_build_prompt(analysis), assembly=assembly)
     repair = build_report_repair_prompt(initial, "Incomplete draft", {}, analysis=analysis)
-    for prompt in (initial, repair):
-        assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == prompt.count(SECTION_PURPOSE_GUIDANCE) == 1
+    for prompt, section_guidance in (
+        (initial, report_template._INITIAL_SECTION_PURPOSE_GUIDANCE),
+        (repair, SECTION_PURPOSE_GUIDANCE),
+    ):
+        assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == prompt.count(section_guidance) == 1
         assert "local tasks/cross-audience proposals separate from cited source sentences" in prompt
         assert "Shared topics do not justify task citations" in prompt
         assert "External facts/recommendations/established criteria" in prompt
@@ -1339,6 +1445,40 @@ def test_current_projection_deduplicates_only_lossless_typed_fields(monkeypatch)
         "Review local records.",
     ):
         assert retained in context
+    assert analysis == original
+
+
+@pytest.mark.parametrize("custom_context", [False, True], ids=["verified-projection", "lossless-fallback"])
+def test_compact_initial_instructions_preserve_complete_data_payloads(custom_context):
+    from src.report_basis import format_community_p2_basis
+    from src.source_attribution import canonical_source_token_data
+
+    analysis = _complete_compaction_analysis()
+    if custom_context:
+        analysis["prompt_context"] += "\nCustom qualifier requiring intact fallback: " + "preserve me " * 100
+    original = deepcopy(analysis)
+    prompt = _build_prompt(analysis)
+    expected_context = neutralise_prompt_control_markers(
+        report_template._model_analysis_context(analysis), preserve_retrieved_evidence=True
+    )
+    data = prompt.split("<BEGIN_DETERMINISTIC_ANALYSIS_DATA>\n", 1)[1].split(
+        "\n\nEvidence confidence current-use observations", 1
+    )[0]
+    assert data == expected_context
+    if custom_context:
+        assert data == neutralise_prompt_control_markers(original["prompt_context"], preserve_retrieved_evidence=True)
+    assert prompt.count(analysis["rag_context_assembly"]["context"]) == 1
+    assert prompt.count(format_community_p2_basis(analysis)) == 1
+    token_payload = prompt.split("<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>\n", 1)[1].split(
+        "\n<END_CANONICAL_SOURCE_TOKEN_DATA>", 1
+    )[0]
+    assert token_payload == json.dumps(
+        canonical_source_token_data(
+            official_sources=analysis["data"]["sources"], rag_sources=analysis["knowledge"]["retrieved_chunks"]
+        ),
+        ensure_ascii=False,
+        indent=2,
+    )
     assert analysis == original
 
 
