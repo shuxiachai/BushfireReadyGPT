@@ -14,8 +14,18 @@ from src.agents import report_agent
 from src.evidence_formatting import format_evidence_value
 from src.model_runtime import GovernedModelClient
 from src.rag.service import assemble_retrieved_context, format_retrieved_context, summarise_context_assembly
+from src.report_owned_fields import OwnedFieldError
 from src.report_template import build_report_prompt
 from src.ui import review_views
+
+
+@pytest.fixture
+def non_repl_app_test(monkeypatch):
+    # AppTest is not a REPL. Its first Streamlit element otherwise performs a
+    # workstation-dependent inspect.stack()/Windows realpath scan merely to
+    # choose a direct-execution warning, consuming the default render timeout.
+    monkeypatch.setattr("streamlit.env_util.is_repl", lambda: False)
+    return AppTest
 
 
 def _knowledge(texts):
@@ -57,6 +67,13 @@ def _prompt(knowledge, community=None):
         timeframe="7-day action plan",
         extra_context="",
         analysis={
+            "profile": {
+                "state": "Tasmania",
+                "setting_type": "campus",
+                "scenario_concept": {"id": "school_preparedness"},
+                "timeframe_concept": {"id": "seven_day"},
+            },
+            "plan": {"focus_area_concepts": [{"id": "evacuation"}]},
             "prompt_context": _context(knowledge, community),
             "knowledge": knowledge,
             "community": community or {},
@@ -117,7 +134,7 @@ def test_empty_or_complete_selection_does_not_claim_full_document_support(texts)
 
 
 @pytest.mark.parametrize("texts", [[], ["A short passage."], ["Long source prefix. " * 250] * 4])
-def test_ui_preview_shows_exact_counts_and_limits_without_historical_claim(texts):
+def test_ui_preview_shows_exact_counts_and_limits_without_historical_claim(texts, non_repl_app_test):
     knowledge = _knowledge(texts)
     summary = summarise_context_assembly(assemble_retrieved_context(knowledge))
     code = (
@@ -125,7 +142,7 @@ def test_ui_preview_shows_exact_counts_and_limits_without_historical_claim(texts
         + repr(knowledge)
         + ")"
     )
-    app = AppTest.from_string(code).run()
+    app = non_repl_app_test.from_string(code).run()
     assert not app.exception
     captions = "\n".join(item.value for item in app.caption)
     markdown = "\n".join(item.value for item in app.markdown)
@@ -143,7 +160,7 @@ def test_ui_preview_shows_exact_counts_and_limits_without_historical_claim(texts
         assert "No retrieved passage is available for this initial-context preview" in markdown
 
 
-def test_ui_uses_bound_v2_sentence_window_assembly_not_reconstructed_v1():
+def test_ui_uses_bound_v2_sentence_window_assembly_not_reconstructed_v1(non_repl_app_test):
     from src.rag.context import assemble_planning_context
 
     knowledge = _knowledge(["Administrative source sentence. " * 90 + "Family planning guidance concludes here."])
@@ -156,7 +173,7 @@ def test_ui_uses_bound_v2_sentence_window_assembly_not_reconstructed_v1():
         + repr(assembly)
         + ")"
     )
-    app = AppTest.from_string(code).run()
+    app = non_repl_app_test.from_string(code).run()
     assert not app.exception
     captions = "\n".join(item.value for item in app.caption)
     markdown = "\n".join(item.value for item in app.markdown)
@@ -168,7 +185,7 @@ def test_ui_uses_bound_v2_sentence_window_assembly_not_reconstructed_v1():
     assert "Legacy v1" not in captions
 
 
-def test_ui_rejects_source_mismatch_in_recorded_initial_assembly():
+def test_ui_rejects_source_mismatch_in_recorded_initial_assembly(non_repl_app_test):
     from src.rag.context import assemble_planning_context
 
     knowledge = _knowledge(["A short source sentence."])
@@ -181,7 +198,7 @@ def test_ui_rejects_source_mismatch_in_recorded_initial_assembly():
         + repr(assembly)
         + ")"
     )
-    app = AppTest.from_string(code).run()
+    app = non_repl_app_test.from_string(code).run()
     assert not app.exception
     assert any("preview counts are unavailable" in item.value for item in app.warning)
 
@@ -230,7 +247,9 @@ def test_report_percentages_share_nullable_formatter_without_fabricating_zero(va
         },
     }
     before = json.dumps(community)
-    context = _prompt(_knowledge([]), community)
+    # Historical/standalone display tolerates malformed indicators as unknown;
+    # current generation has its own stricter frozen-measurement precondition.
+    context = _context(_knowledge([]), community)
     for label in ("Older people percentage", "No-car households percentage", "Language other than English at home"):
         assert f"- {label}: To be confirmed" in context
     assert "None%" not in context and "nan%" not in context
@@ -243,14 +262,49 @@ def test_report_percentages_share_nullable_formatter_without_fabricating_zero(va
 def test_report_percentages_preserve_real_zero_and_optional_zero(value, expected):
     community = {
         "indicators": {
+            "geography_type": "SA2",
             "older_people_pct": value,
             "no_car_households_pct": value,
             "language_other_than_english_pct": value,
-        }
+        },
+        "data_quality": {"source_period": "2021 Census"},
     }
     context = _prompt(_knowledge([]), community)
     for label in ("Older people percentage", "No-car households percentage", "Language other than English at home"):
         assert f"- {label}: {expected}" in context
+
+
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_generation_prompt_accepts_unknown_percentages_with_typed_population_basis(value):
+    community = {
+        "matched_location": "Synthetic",
+        "indicators": {
+            "population": 0,
+            "geography_type": "SA2",
+            "older_people_pct": value,
+            "no_car_households_pct": value,
+            "language_other_than_english_pct": value,
+        },
+        "data_quality": {"source_period": "2021 Census"},
+    }
+    before = copy.deepcopy(community)
+    prompt = _prompt(_knowledge([]), community)
+    for label in ("Older people percentage", "No-car households percentage", "Language other than English at home"):
+        assert f"- {label}: To be confirmed" in prompt
+    assert "- Population: 0" in prompt
+    assert community == before
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf"), True, "unknown", "12x", -1, 101])
+def test_generation_prompt_rejects_malformed_frozen_percentages(value):
+    community = {
+        "indicators": {"older_people_pct": value, "geography_type": "SA2"},
+        "data_quality": {"source_period": "2021 Census"},
+    }
+    before = json.dumps(community)
+    with pytest.raises(OwnedFieldError, match="owned_fields_invalid_frozen_measurement"):
+        _prompt(_knowledge([]), community)
+    assert json.dumps(community) == before
 
 
 def test_committed_legacy_v1_diagnostic_and_original_fixture_remain_valid_and_unchanged(monkeypatch):

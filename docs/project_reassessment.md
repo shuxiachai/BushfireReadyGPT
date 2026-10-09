@@ -1,9 +1,9 @@
 # Current project status
 
-Updated 2026-10-09 after initial-report instruction compaction brought the
-frozen local case within its configured input-plus-output budget. A subsequent
-single real report still failed four content checks; no accepted replacement
-sample or new formal release is claimed. This page
+Updated 2026-10-10 for deterministic P2 and administrative report fields under
+governed-report-v10. The preceding v9 frozen-case budget passed, but its single
+real report still failed four content checks. Those results remain historical;
+no accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -48,6 +48,55 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Application-owned report fields (2026-10-10)
+
+Current generation expands four exact standalone slots in sections 4, 10, 13
+and 14 into frozen P2 values/basis, unconfirmed role appointments, proposed
+administrative review actions and an unchecked human-review item. Templates
+use validated canonical scenario/timeframe/focus IDs, never raw Planner tasks
+or user instructions. Missing numeric values remain unknown rather than zero;
+malformed supplied values/basis block before model access. Every proposed duty
+retains its own confirmer and confirmation need.
+
+The completed body still has a 650–800-word budget including these fields;
+they do not substitute for explanatory prose. Existing source, task, causal,
+word-budget and safety checks still apply. Raw SDK-response and assembled-body
+hashes remain distinct. Revision projects only verified exact blocks back to
+slots; review and export never insert fields into a saved report. Old records
+remain readable, but an old draft lacking required fields needs regeneration
+for the new contract. Historical v9 fingerprints and the shared ReportAgent
+source are unchanged.
+
+Independent review found and closed a failure-propagation gap: a model response
+that guessed the complete fixed blocks without emitting slots could lose its
+generation rejection at initial finalization or in evaluation scripts. The
+initial workflow now stops before finalization; evaluation preserves the
+specific rejection in both final and per-attempt results. New mock-response
+regressions cover this case; it is not a real-model success claim.
+
+Offline compilation of the unchanged Cairns synthetic input retained the exact
+RAG text, P2 basis, analysis and source-token blocks. The first v10 candidate
+had 27,063 user-prompt characters versus 27,095 previously, with 193 fixed body
+words. Character counts are not token measurements; the old 5,857-token result
+does not bind this changed prompt. No earlier failed report was rewritten into
+a passing sample.
+
+Final local non-E2E validation passed **3,792 tests**, with 7 platform skips,
+6 E2E cases deselected and **90.22% src coverage**, in 338.28 seconds. All 6
+separate mock-model Chromium cases passed in 44.11 seconds. The quality wrapper
+passed lock/dependency consistency, Ruff, formatting, Bandit and the installed
+dependency vulnerability scan. Independent review found no remaining executable
+issue in the changed production paths and test adaptations.
+
+The first broad run exposed 94 old-contract fixture failures; it is retained
+separately from the final result. Fixtures now distinguish raw slots from
+assembled reports rather than bypassing the new gate. A separate AppTest timing
+diagnostic traced a 3-second timeout to Streamlit's one-time REPL warning probe
+(`inspect.stack` / Windows path resolution). Only the affected test fixture
+declares its non-REPL environment; the timeout, rendering assertions and production
+code are unchanged. These engineering results do not certify new real-model
+content or a cloud deployment.
 
 ### Local context and heading follow-up (2026-10-08)
 

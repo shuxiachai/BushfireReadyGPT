@@ -18,13 +18,16 @@ from src.model_evidence import (
 )
 from src.model_runtime import GovernedModelClient
 from src.rag.service import assemble_retrieved_context
+from src.report_owned_fields import OWNED_SECTIONS
 from src.source_attribution import format_rag_citation_token
+from tests.support.model_evidence_fixtures import _analysis
+from tests.support.report_fixtures import _valid_report
 
 
 def analysis_fixture():
     text = "Families prepare household emergency supplies."
     analysis = {
-        "profile": {"state": "Queensland"},
+        "profile": _analysis()["profile"],
         "knowledge": {
             "status": "ready",
             "retrieved_chunks": [
@@ -62,11 +65,29 @@ def scenario_fixture(identity="mock"):
 def report_fixture(analysis, basis=None):
     token = format_rag_citation_token(analysis["knowledge"]["retrieved_chunks"][0])
     basis = basis or f"Families prepare household emergency supplies {token}."
-    return "\n\n".join(
+    body = "\n\n".join(
         f"## {number}. Synthetic section\nEvidence basis: {basis}\n\n"
         "Local application: Proposed for local review, record the responsible owner."
         for number in experiment.TARGET_SECTIONS
     )
+    return body + "\n\n" + "\n\n".join(f"## {title}\n{slot}" for title, slot in OWNED_SECTIONS.values())
+
+
+def test_canonical_no_slot_response_stays_failed_in_final_and_every_attempt():
+    from src.source_attribution import fold_known_attribution_labels
+
+    body, analysis = _valid_report()
+    analysis["rag_context_assembly"] = assemble_retrieved_context(analysis["knowledge"])
+    analysis["prompt_context"] = "Synthetic evidence.\n" + analysis["rag_context_assembly"]["context"]
+    raw = fold_known_attribution_labels(body, official_sources=analysis["data"]["sources"], rag_sources=[])
+    calls = []
+    result = experiment.run_arm(scenario_fixture(), analysis, "baseline", mock_client(raw, calls))
+    assert len(calls) == 3 and result["status"] == "completed"
+    assert result["governed_gate_passed"] is False
+    for assessed in [result["final"], *[item["normalized"] for item in result["attempts"]]]:
+        gate = assessed["governed_quality"]["approval_gate"]
+        assert gate["passed"] is False
+        assert any(item["detail"] == "owned_fields_generation_slots_required" for item in gate["blocking_failures"])
 
 
 def mock_client(response, calls):

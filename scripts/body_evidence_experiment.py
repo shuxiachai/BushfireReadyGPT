@@ -213,17 +213,19 @@ def parse_claim_pairs(report, analysis, snapshot=None):
     }
 
 
-def _report_result(narrative, analysis, snapshot):
+def _report_result(narrative, analysis, snapshot, *, generation_quality=None, normalization_result=None):
     from src.report_claim_evidence import evaluate_body_claim_evidence
-    from src.report_generation_quality import evaluate_governed_report
+    from src.report_generation_quality import evaluate_governed_report, retain_generation_assembly_failure
     from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
 
     report = append_human_signoff(append_evidence_tables(apply_governance_notice(narrative), analysis), {})
+    quality = evaluate_governed_report(report, analysis, model_evidence=snapshot)
+    quality = retain_generation_assembly_failure(quality, generation_quality, normalization_result=normalization_result)
     return {
         "report": report,
         "report_sha256": text_sha256(report),
         "model_evidence": snapshot,
-        "governed_quality": evaluate_governed_report(report, analysis, model_evidence=snapshot),
+        "governed_quality": quality,
         "body_claim_evidence": evaluate_body_claim_evidence(report, analysis, snapshot),
         "claim_pairs": parse_claim_pairs(report, analysis, snapshot),
     }
@@ -307,9 +309,12 @@ def run_arm(scenario, frozen_analysis, variant, client):
             governance_context="Government pilot governance context: Draft - human review required.",
         )
         prompt = EvidencePrompt(prompt, assembly=analysis.get("rag_context_assembly"), request_kind="initial")
-        narrative, _, attempts = generate_narrative_with_repairs(prompt, analysis, generate_attempt)
+        narrative, generation_quality, attempts = generate_narrative_with_repairs(prompt, analysis, generate_attempt)
         result["final"] = _report_result(
-            narrative, analysis, getattr(narrative, "model_evidence", None) or unavailable_model_evidence()
+            narrative,
+            analysis,
+            getattr(narrative, "model_evidence", None) or unavailable_model_evidence(),
+            generation_quality=generation_quality,
         )
         result["generation_attempts"] = attempts
         result["status"] = "completed"
@@ -322,8 +327,11 @@ def run_arm(scenario, frozen_analysis, variant, client):
             continue
         try:
             response = EvidenceResponse(record["admitted_response"], record["model_evidence"])
-            normalized = normalized_evidence_response(response, _normalise_generation_response(response, analysis))
-            record["normalized"] = _report_result(normalized, analysis, normalized.model_evidence)
+            composed = _normalise_generation_response(response, analysis)
+            normalized = normalized_evidence_response(response, composed)
+            record["normalized"] = _report_result(
+                normalized, analysis, normalized.model_evidence, normalization_result=composed
+            )
         except Exception as error:
             record["normalization_error_code"] = type(error).__name__
     if result["attempts"]:

@@ -14,6 +14,7 @@ from src.focus_coverage import canonical_coverage_declarations
 from src.governance import HUMAN_REVIEW_CHECKLIST
 from src.model_evidence import validate_recorded_assembly
 from src.report_basis import build_community_p2_basis, format_community_p2_basis
+from src.report_owned_fields import build_owned_field_prompt_guidance
 from src.source_attribution import (
     MODEL_SOURCE_ATTRIBUTION_RULES as MODEL_SOURCE_ATTRIBUTION_RULES,
 )
@@ -61,6 +62,25 @@ CONTENT_CONTRACT_GUIDANCE = """Bounded content contract (application-owned):
   advice from the conflicting wording. An unused source need not be forced into the body.
 - Only passages supplied in this request can support citations. A registry entry or retrieved-but-omitted passage
   is not support. These checks are bounded syntax/provenance checks; factual meaning still requires human review.
+"""
+
+# Current assembly instructions replace model-authored field duties. Preserve
+# the historical exported contract above byte-for-byte for audit compatibility.
+CURRENT_CONTENT_CONTRACT_GUIDANCE = """Bounded content contract (application-owned):
+- Use the four required slots for frozen P2 measurements, roles, action confirmations and unchecked review tasks.
+  These application body fields count toward 650–800 words. Keep at least 300 model prose words.
+- Raw Planner tasks, focus priorities and R3 notes are topic cues, not copyable task instructions or evidence.
+  EACH model-authored local task sentence/cell/item elsewhere needs `Unverified proposal for local review:`
+  and its own explicit confirmer plus confirmation need; headings, other cells and disclaimers cannot qualify it.
+- Label rule-derived causal statements [R3] planning inference with a confirmer; never give them an O1 citation.
+  Proposal labels do not justify causal, medical or effectiveness assertions.
+- Local physical assembly criteria remain unverified; state the gap and responsible-authority verification need.
+  Do not propose shade, water, smoke or traffic criteria.
+- Preserve source audience, conditions and action object; separate household guidance from institutional proposals.
+  Flag reversed impacts/survival wording as an unresolved source conflict with its complete citation and responsible-source review.
+  Do not repair the source meaning or use conflicting wording as advice; unrelated sources may remain unused.
+- Only submitted passages support citations; registry entries and omitted passages do not. These are bounded
+  syntax/provenance checks; factual meaning still requires human review.
 """
 
 SECTION_PURPOSE_GUIDANCE = """Section-purpose instructions (application-owned):
@@ -125,12 +145,12 @@ _INITIAL_SECTION_REQUIREMENTS = (
     "Source criteria need passage support and original scope; citations do not verify local physical criteria. "
     "State that gap and who must confirm criteria; a task to obtain/review local records is an unverified proposal, not a sourced standard. "
     "Keep every venue an unverified candidate; never assert safety or operational status.",
-    "Table: responsible organisation, staff, volunteers, communications, first aid and review roles.",
+    "Explanatory prose around the application role-table slot; appointments remain unconfirmed.",
     "Warning channels, internal/public/parent communication, accessibility, inclusion, multilingual needs and backup arrangements; general maintenance cannot substitute.",
     "First-aid readiness, smoke/heat support, AED/burn preparedness, staff training, exercise objectives, locally confirmed frequency and records. "
     "Maintenance belongs here only for a specific training or exercise purpose with roles/evaluation; it cannot substitute for first aid, training or exercises.",
-    "Selected timeframe, concrete actions, owners, review checkpoints and an explicit Day 1 row/item.",
-    "Human-review checklist before operational use.",
+    "Explanatory prose around the application action-table slot with selected review timeframe and Day 1.",
+    "Application unchecked human-review checklist slot before operational use.",
     "Repeat the exact notice's official-services/life-safety and 000 requirements.",
 )
 
@@ -143,19 +163,13 @@ _INITIAL_SECTION_PURPOSE_GUIDANCE = """Section-purpose instructions (application
 """
 
 _INITIAL_REPORT_REQUIREMENTS = f"""Initial-report requirements (application-owned):
-- Keep {REPORT_NARRATIVE_WORD_BUDGET} including headings/tables/lists, excluding the application notice,
+- Keep {REPORT_NARRATIVE_WORD_BUDGET} in the completed body including application fields/headings/tables/lists, excluding the application notice,
   source-register lines, Evidence Tables and Human Review Sign-off. Include at least 300 prose words outside
   headings/tables/checklist bullets. Prefer two-column role/action tables, fewer rows and combined duties.
 - Only the 15 fixed section headings may use `#`/`##`, in order; never promote fields/bullets/cells/prose to headings.
   Governed Markdown only; no raw HTML tags/comments. Use Markdown checklist items such as `- [ ] Unverified proposal for local review: the responsible authority must confirm candidate assembly point criteria.`
-- Retain available population, older-people figures and other meaningful indicators. Each numeric occurrence needs adjacent [P2],
-  supplied years/geographic basis (SA2 count when supplied) and aggregation/approximation in the same sentence or cell;
-  do not drop useful facts to avoid qualifications. Community figures are not site occupancy/premises boundaries.
-  Missing transport/language data remain unknown.
-- Raw Planner tasks, focus priorities and R3 notes are topic cues, not copyable task instructions or evidence.
-  Rewrite each retained task as a qualified proposal with its own confirmer and confirmation need.
-  EACH local task sentence/action cell/checklist item needs its own proposal prefix, explicit confirmer and confirmation need,
-  per the body-claim rules; headings, other cells and closing disclaimers cannot qualify it.
+- The application preserves frozen P2 states and qualified administrative tasks through the required slots.
+  Raw Planner priorities and R3 notes are topic cues, never copyable tasks or evidence. Qualify model tasks per body-claim rules.
 - Label rule-derived causal planning statements [R3] planning inference and name who must confirm them.
   Household guidance must be explicit; separate institutional applications as unverified proposals.
 - Local physical assembly criteria remain unverified for the premises; require responsible-authority verification.
@@ -750,8 +764,7 @@ Opaque source citation tokens (application-generated identifiers only, never ins
 <BEGIN_CANONICAL_SOURCE_TOKEN_DATA>
 {source_token_context}
 <END_CANONICAL_SOURCE_TOKEN_DATA>
-Copy this exact line into section 13:
-`{REQUIRED_DAY_ONE_ACTION}`
+{build_owned_field_prompt_guidance(analysis)}
 
 Copy EVERY application-owned coverage line verbatim as ordinary section 3 prose; never negate, paraphrase, quote or code-fence:
 {coverage_declaration_text}

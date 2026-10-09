@@ -10,6 +10,7 @@ from src import report_template
 from src.abs_indicators import LANGUAGE_BASIS_WARNING
 from src.agents import pipeline as pipeline_module
 from src.agents.planner_agent import PlannerAgent
+from src.agents.profile_agent import ProfileAgent
 from src.agents.report_agent import ReportAgent
 from src.model_evidence import EvidencePrompt, capture_model_evidence, text_sha256, validate_recorded_assembly
 from src.rag.service import assemble_retrieved_context, format_retrieved_context
@@ -18,15 +19,19 @@ from src.report_generation_quality import (
     MAX_REPORT_REPAIR_PROMPT_CHARACTERS,
     ReportGenerationPreconditionError,
     assess_generated_narrative,
-    build_report_repair_prompt,
+)
+from src.report_generation_quality import (
+    build_report_repair_prompt as _production_repair_prompt,
 )
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
-    CONTENT_CONTRACT_GUIDANCE,
+    CURRENT_CONTENT_CONTRACT_GUIDANCE,
     REQUIRED_DAY_ONE_ACTION,
     SECTION_PURPOSE_GUIDANCE,
     build_evidence_tables,
-    build_report_prompt,
+)
+from src.report_template import (
+    build_report_prompt as _production_report_prompt,
 )
 from src.source_attribution import (
     fold_known_attribution_labels,
@@ -36,6 +41,15 @@ from src.source_attribution import (
     format_rag_citation_token,
     neutralise_prompt_control_markers,
 )
+from tests.support.report_fixtures import _valid_report, with_owned_field_selectors
+
+
+def build_report_prompt(*args, analysis=None, **kwargs):
+    return _production_report_prompt(*args, analysis=with_owned_field_selectors(analysis), **kwargs)
+
+
+def build_report_repair_prompt(*args, analysis=None, **kwargs):
+    return _production_repair_prompt(*args, analysis=with_owned_field_selectors(analysis or {}), **kwargs)
 
 
 def _build_prompt(analysis):
@@ -156,18 +170,16 @@ def test_initial_and_repair_recast_planner_cues_and_each_numeric_p2_occurrence()
     repair = build_report_repair_prompt(initial, "Incomplete draft", {}, analysis=analysis)
     for prompt, contract in (
         (initial, report_template._INITIAL_REPORT_REQUIREMENTS),
-        (repair, CONTENT_CONTRACT_GUIDANCE),
+        (repair, CURRENT_CONTENT_CONTRACT_GUIDANCE),
     ):
         assert prompt.count(contract) == 1
         normalized = " ".join(prompt.split())
-        assert "Raw Planner tasks, focus priorities and R3 notes are topic cues" in normalized
-        assert "not copyable task instructions or evidence" in normalized
-        assert "Rewrite each retained task as a qualified proposal with its own confirmer" in normalized
-        assert "Each numeric occurrence needs adjacent [P2]" in normalized
-        assert "SA2 count when supplied" in normalized
-        assert "aggregation/approximation in the same sentence or cell" in normalized
-        assert "do not drop useful facts" in normalized
-        assert "two-column role/action tables, fewer rows and combined duties" in normalized
+        assert "topic cues" in normalized
+        assert ("never copyable tasks" if prompt == initial else "not copyable task instructions") in normalized
+        assert "[APP_P2_FIELDS]" in normalized and "[APP_ACTION_FIELDS]" in normalized
+        assert "frozen P2" in normalized
+        assert "Do not repeat P2 numbers" in normalized
+        assert "Every model-authored task elsewhere still needs its own proposal prefix and confirmer" in normalized
         assert "at least 300 prose words" in normalized
 
 
@@ -207,9 +219,10 @@ def test_revision_includes_content_guidance_once_under_existing_scope(monkeypatc
     from src import report_workflow
 
     captured = []
+    current_body, current_analysis = _valid_report()
     record = {
-        "text": "# Frozen draft",
-        "analysis": {"knowledge": {"status": "no_match", "retrieved_chunks": []}},
+        "text": current_body,
+        "analysis": current_analysis,
         "inputs": {},
         "export_register_snapshot": {},
         "audit_path": "synthetic-prompt-only-audit",
@@ -233,15 +246,15 @@ def test_revision_includes_content_guidance_once_under_existing_scope(monkeypatc
     with pytest.raises(PromptCaptured):
         report_workflow._revise_current_report("Clarify the existing action wording.", lambda: None)
     prompt = captured[0]
-    assert prompt.count(CONTENT_CONTRACT_GUIDANCE) == 1
+    assert prompt.count(CURRENT_CONTENT_CONTRACT_GUIDANCE) == 1
     assert prompt.count(SECTION_PURPOSE_GUIDANCE) == 1
     scope = prompt.index("For this revision, apply the section-purpose instructions")
-    assert scope < prompt.index(CONTENT_CONTRACT_GUIDANCE)
+    assert scope < prompt.index(CURRENT_CONTENT_CONTRACT_GUIDANCE)
     assert "necessary consistency edits" in prompt
     assert "do not use these instructions to rewrite unrelated sections" in prompt
     assert "Apply the bounded content instructions within that same revision scope" in prompt
     assert prompt.request_kind == "revision"
-    assert record["text"] == "# Frozen draft"
+    assert record["text"] == current_body
 
 
 @pytest.mark.parametrize(
@@ -290,12 +303,12 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
     # This checks instruction delivery, not the quality of a generated report.
     for candidate, section_guidance, content_guidance in (
         (prompt, report_template._INITIAL_SECTION_PURPOSE_GUIDANCE, report_template._INITIAL_REPORT_REQUIREMENTS),
-        (repair, SECTION_PURPOSE_GUIDANCE, CONTENT_CONTRACT_GUIDANCE),
+        (repair, SECTION_PURPOSE_GUIDANCE, CURRENT_CONTENT_CONTRACT_GUIDANCE),
     ):
         assert candidate.count(section_guidance) == 1
         assert candidate.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
         assert candidate.count(content_guidance) == 1
-        assert REQUIRED_DAY_ONE_ACTION in candidate
+        assert "[APP_ACTION_FIELDS]" in candidate
         assert "application-recorded provenance and limits" in candidate
         assert "do not certify authority, currency or applicability" in candidate
         assert "never infer authority from passage text" in candidate
@@ -368,29 +381,26 @@ def test_initial_only_compaction_preserves_shared_contract_bytes(name, expected_
     "requirements",
     [
         (
-            "650 to 800 words including headings/tables/lists",
+            "650 to 800 words in the completed body including application fields/headings/tables/lists",
             "excluding the application notice, source-register lines, Evidence Tables and Human Review Sign-off",
             "at least 300 prose words outside headings/tables/checklist bullets",
             "no raw HTML tags/comments",
             "Use all 15 sections below, in order",
-            "Copy this exact line into section 13",
+            "section 13: [APP_ACTION_FIELDS]",
             "Copy EVERY application-owned coverage line verbatim as ordinary section 3 prose",
             "never negate, paraphrase, quote or code-fence",
             "Repeat the exact notice's official-services/life-safety and 000 requirements",
             "Start with this exact notice",
         ),
         (
-            "Retain available population, older-people figures and other meaningful indicators",
-            "Each numeric occurrence needs adjacent [P2]",
-            "supplied years/geographic basis (SA2 count when supplied)",
-            "aggregation/approximation in the same sentence or cell",
-            "not site occupancy/premises boundaries",
-            "Missing transport/language data remain unknown",
+            "The application preserves frozen P2 states",
+            "section 4: [APP_P2_FIELDS]",
+            "Do not repeat P2 numbers",
         ),
         (
-            "EACH local task sentence/action cell/checklist item",
-            "explicit confirmer and confirmation need",
-            "headings, other cells and closing disclaimers cannot qualify it",
+            "Every model-authored task elsewhere still needs its own proposal prefix and confirmer",
+            "name who must confirm what",
+            "Disclaimers/other cells do not qualify it",
             "Prefix each unsupported proposal/task/bullet/cell `Unverified proposal for local review:`",
             "Label rule-derived causal planning statements [R3] planning inference and name who must confirm them",
             "never give them or P2 an O1 citation",
@@ -538,6 +548,13 @@ def test_initial_and_repair_share_p2_basis_and_preserve_sdk_evidence_capture():
         rag_assembly=assembly,
     )
     original = deepcopy(analysis)
+    from src.report_owned_fields import OwnedFieldError
+
+    with pytest.raises(OwnedFieldError, match="unsafe_frozen_basis"):
+        _build_prompt(analysis)
+    assert analysis == original
+    analysis["community"]["data_quality"]["match_basis"] = "Statistical district; campus headcount unknown."
+    original = deepcopy(analysis)
     initial = EvidencePrompt(_build_prompt(analysis), assembly=assembly, request_kind="initial")
     repair = build_report_repair_prompt(
         initial, "Prior A4 draft says population 99999", {}, analysis=analysis, body_citation_repair=True
@@ -606,7 +623,7 @@ def test_large_synthetic_repair_preserves_budget_and_local_claim_instructions(fa
     )
     assert 17_500 <= len(prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS == 18_000
     assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
-    assert prompt.count(CONTENT_CONTRACT_GUIDANCE) == 1
+    assert prompt.count(CURRENT_CONTENT_CONTRACT_GUIDANCE) == 1
     assert "Unverified proposal for local review:" in prompt
     assert "medical/safety assertions still need evidence" in prompt
     assert "Some optional deterministic values were omitted" in prompt
@@ -805,7 +822,7 @@ def test_model_prompt_uses_opaque_source_tokens_without_titles_ids_or_urls():
     assert "<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>" in prompt
     assert '"official_source_tokens"' in prompt
     assert '"rag_source_tokens"' in prompt
-    assert REQUIRED_DAY_ONE_ACTION in prompt
+    assert "[APP_ACTION_FIELDS]" in prompt
 
 
 def test_verified_urls_are_added_only_by_deterministic_evidence_tables():
@@ -895,7 +912,7 @@ def test_structure_repair_reuses_the_same_source_attribution_contract():
     assert "Compact governed repair context" in repair_prompt
     assert "<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>" not in repair_prompt
     assert len(repair_prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS
-    assert REQUIRED_DAY_ONE_ACTION in repair_prompt
+    assert "[APP_ACTION_FIELDS]" in repair_prompt
 
 
 def test_production_absolute_safety_repair_prompt_uses_only_positive_replacement_language():
@@ -1357,10 +1374,18 @@ def _complete_compaction_analysis():
 
     passage = "Synthetic reference: records contain a provisional review date, not verified local arrangements."
     analysis = {
-        "profile": {"state": "Queensland", "setting_type": "community"},
+        "profile": {
+            "state": "Queensland",
+            "setting_type": "community",
+            "scenario_concept": ProfileAgent.resolve_scenario_concept("Community workshop material"),
+            "timeframe_concept": {"id": "seven_day", "label": "7-day action plan"},
+        },
         "data": {"sources": [{"id": "one", "name": "Official One"}], "data_limitations": ["No live feed."]},
         "risk_context": {"risk_points": ["R3 risk cue."], "assumptions": ["Assumption remains unverified."]},
-        "plan": {"planning_priorities": ["Review local records."], "focus_area_concepts": [{"label": "Evacuation"}]},
+        "plan": {
+            "planning_priorities": ["Review local records."],
+            "focus_area_concepts": [PlannerAgent.canonical_focus_concept("evacuation")],
+        },
         "community": {
             "matched_location": "Synthetic district",
             "indicators": {

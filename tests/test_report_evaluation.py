@@ -12,6 +12,9 @@ from scripts.evaluate_report_generation import (
     _temporary_rag_mode,
     run_scenario_with_artifacts,
 )
+from src.rag.service import assemble_retrieved_context
+from src.source_attribution import fold_known_attribution_labels
+from tests.support.report_fixtures import _valid_report
 
 
 def _passing_row(scenario_id):
@@ -258,6 +261,38 @@ def test_single_scenario_uses_canonical_gate_and_returns_private_artifacts_separ
     assert result["row"]["grounding_review_claim_ids_truncated"] is False
     assert "report" not in result["row"]
     assert "analysis" not in result["row"]
+
+
+def test_scenario_evaluation_cannot_upgrade_canonical_no_slot_response(monkeypatch):
+    body, analysis = _valid_report()
+    analysis["rag_context_assembly"] = assemble_retrieved_context(analysis["knowledge"])
+    analysis["prompt_context"] = "Synthetic context.\n" + analysis["rag_context_assembly"]["context"]
+    raw = fold_known_attribution_labels(body, official_sources=analysis["data"]["sources"], rag_sources=[])
+    calls = []
+
+    class Model:
+        def generate(self, _prompt):
+            calls.append(True)
+            return raw
+
+    monkeypatch.setattr(evaluate_report_generation, "run_analysis_pipeline", lambda *_: analysis)
+    monkeypatch.setattr(evaluate_report_generation, "GovernedModelClient", Model)
+    result = run_scenario_with_artifacts(
+        {
+            "id": "synthetic-owned-slots",
+            "location": "Synthetic district",
+            "audience": "Reviewers",
+            "scenario": "Community workshop material",
+            "concerns": [],
+            "timeframe": "7-day action plan",
+            "expect_retrieved_chunks": False,
+        }
+    )
+    assert len(calls) == 3
+    assert not result["row"]["governed_gate_passed"]
+    assert any(
+        item["detail"] == "owned_fields_generation_slots_required" for item in result["row"]["blocking_failures"]
+    )
 
 
 def test_partial_cli_run_cannot_claim_the_release_gate(tmp_path, monkeypatch):

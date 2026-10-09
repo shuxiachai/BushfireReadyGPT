@@ -11,8 +11,11 @@ from src import report_workflow as workflow
 from src import revision_state as recovery
 from src import runtime_trace
 from src.model_runtime import ModelServiceError
+from src.report_owned_fields import project_owned_fields_for_prompt
+from src.report_template import extract_narrative_body
 from src.session_store import PERSISTED_STATE_KEYS
-from tests.test_model_evidence import _claim, _runtime
+from src.source_attribution import fold_known_attribution_labels
+from tests.test_model_evidence import _runtime
 from tests.test_model_evidence import export_case as export_case
 
 
@@ -196,13 +199,15 @@ def test_finalization_failure_is_not_automatically_resubmitted_to_model(revision
 
 
 def test_success_clears_pending_and_revision_emits_actual_progress_events(revision_workflow, monkeypatch):
-    from src import report_generation_quality
-
     calls, events = [], []
-    revision_workflow["model_client"] = _runtime(_claim(), calls)
-    monkeypatch.setattr(
-        report_generation_quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": True}}
+    report = revision_workflow["latest_report"]
+    analysis = report["analysis"]
+    raw_response = fold_known_attribution_labels(
+        project_owned_fields_for_prompt(extract_narrative_body(report["text"]), analysis),
+        official_sources=analysis["data"]["sources"],
+        rag_sources=analysis["knowledge"]["retrieved_chunks"],
     )
+    revision_workflow["model_client"] = _runtime(raw_response, calls)
     monkeypatch.setattr(workflow, "_finalize_report_version", lambda text, *_a, **_k: (text, None))
     response, error = workflow.revise_current_report("Clarify wording.", lambda: None, progress_callback=events.append)
     assert response and error is None and len(calls) == 1

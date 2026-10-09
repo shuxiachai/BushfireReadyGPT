@@ -7,8 +7,16 @@ import pytest
 from src.report_generation_quality import (
     MAX_REPORT_REPAIR_PROMPT_CHARACTERS,
     _content_repair_feedback,
-    build_report_repair_prompt,
 )
+from src.report_generation_quality import (
+    build_report_repair_prompt as _production_repair_prompt,
+)
+from tests.support.report_fixtures import with_owned_field_selectors
+
+
+def build_report_repair_prompt(*args, analysis=None, **kwargs):
+    return _production_repair_prompt(*args, analysis=with_owned_field_selectors(analysis or {}), **kwargs)
+
 
 _FINDINGS = [
     ("Processed community provenance", "p2_period_missing", "P2"),

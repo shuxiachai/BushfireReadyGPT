@@ -52,9 +52,11 @@ The current tagged release is **v0.6.0**. Its release-specific, historical valid
 
 Use [current project status](docs/project_reassessment.md) for maintained-source results, cloud acceptance and remaining gaps. Its dated evidence is separate from v0.6.0 and does **not** declare a newer release, complete production acceptance or replacement benchmark results.
 
-Current maintenance uses **governed-report-v9**. The 2026-10-09 full local regression on `bef863a` passed 3,696 tests (7 skipped, 6 deselected; 90.13% src coverage); the final instruction-only follow-up on `858252a` passed 204 focused tests and static checks. Historical policies and release evidence remain intact.
+Current maintenance uses **governed-report-v10**: the application fills four exact report slots with frozen P2 facts and unconfirmed role/action/review fields. These fields count toward the existing body budget; model-authored prose still faces the same evidence and safety checks. Historical policies and release evidence remain intact. See [architecture](docs/architecture.md) for ownership and compatibility boundaries.
 
-The frozen local case now uses **5,857 input tokens**: with 2,300 output tokens and a 1-token margin, it fits the 8,192-token window with 34 tokens left. Its single real report still failed four content checks, so no new report-content acceptance is claimed. This case-specific budget result is not a guarantee for other inputs. See [current project status](docs/project_reassessment.md) for the measured limits, remaining issues and separately dated CI/cloud evidence.
+The 2026-10-10 local regression passed **3,792 tests**, with **90.22% src coverage**, plus all 6 separate mock-model browser cases. Static, dependency and vulnerability checks passed. These are engineering checks, not real-report or cloud acceptance.
+
+The previous v9 frozen case used **5,857 input tokens** and fit its reserved window, but its single real report still failed four content checks. That measurement does not certify the changed v10 prompt or other inputs. See [current project status](docs/project_reassessment.md) for current verification, measured limits and separately dated CI/cloud evidence; no new report-content acceptance or formal release is claimed.
 
 This is a governed portfolio MVP / controlled-pilot prototype. It is not ready for operational emergency management, public life-safety decisions, government procurement or commercial deployment without independent legal, security, privacy, data/licence and domain review. There are no completed external pilot claims: [the pilot evidence register](docs/pilot_results.md) records the current status.
 

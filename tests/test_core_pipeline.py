@@ -52,6 +52,7 @@ from src.report_workflow import (
 )
 from src.safety_boundary import evaluate_safety_boundaries
 from src.source_attribution import format_official_attribution, format_rag_attribution
+from tests.support.model_evidence_fixtures import _analysis as _canonical_analysis
 
 SAMPLE_REPORT = """# Cairns Campus Preparedness Report
 
@@ -757,9 +758,11 @@ def test_repair_prompt_omits_full_previous_response_to_protect_local_context_win
         "Original governed request",
         previous,
         {"approval_gate": {"blocking_failures": [{"name": "Required sections", "detail": "missing"}]}},
+        analysis=_canonical_analysis(),
     )
 
-    assert "Original governed request" in prompt
+    assert "Original governed request" not in prompt
+    assert "Compact governed repair context" in prompt
     assert "PRIVATE-INCOMPLETE-DRAFT" not in prompt
     assert f"previous {len(previous)}-character response" in prompt
 
@@ -778,6 +781,7 @@ def test_repair_prompt_gives_exhaustive_premises_status_rewrite_guidance():
                 ]
             }
         },
+        analysis=_canonical_analysis(),
     )
 
     assert "PLACE/PREMISES REWRITE" in prompt
@@ -801,6 +805,7 @@ def test_repair_prompt_gives_an_absolute_safety_replacement_without_replaying_th
                 ]
             }
         },
+        analysis=_canonical_analysis(),
     )
 
     assert "ABSOLUTE-SAFETY REWRITE" in prompt
@@ -835,6 +840,7 @@ def test_repair_prompt_targets_duplicate_required_headings_and_finishes_with_sin
                 ]
             }
         },
+        analysis=_canonical_analysis(),
     )
 
     assert "DUPLICATED-STRUCTURE REWRITE" in prompt

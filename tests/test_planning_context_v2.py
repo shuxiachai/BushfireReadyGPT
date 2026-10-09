@@ -194,9 +194,15 @@ def test_v1_prefix_is_retained_as_an_independent_historical_contract():
 def test_report_agent_accepts_one_preassembled_v2_without_reassembly(monkeypatch):
     knowledge = _knowledge("A complete transport reference.")
     assembly = assemble_planning_context(knowledge, focus_concepts=FOCUS)
+    profile = {
+        "state": "Tasmania",
+        "setting_type": "campus",
+        "scenario_concept": {"id": "school_preparedness", "label": "School bushfire preparedness"},
+        "timeframe_concept": {"id": "seven_day", "label": "7-day action plan"},
+    }
     monkeypatch.setattr(report_agent, "assemble_retrieved_context", lambda *_: pytest.fail("Reassembled"))
     context = report_agent.ReportAgent().run(
-        {"state": "Tasmania", "setting_type": "campus"},
+        profile,
         {},
         {},
         {},
@@ -210,7 +216,7 @@ def test_report_agent_accepts_one_preassembled_v2_without_reassembly(monkeypatch
         concerns=["Evacuation"],
         timeframe="7-day action plan",
         extra_context="",
-        analysis={"prompt_context": context, "knowledge": knowledge},
+        analysis={"profile": profile, "prompt_context": context, "knowledge": knowledge},
     )
     assert context.count(assembly["context"]) == prompt.count(assembly["context"]) == 1
 

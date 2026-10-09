@@ -61,6 +61,7 @@ from src.report_generation_quality import (  # noqa: E402
     evaluate_governed_report,
     generate_narrative_with_repairs,
     quality_policy_metadata,
+    retain_generation_assembly_failure,
     structural_gate_passed,
 )
 from src.report_grounding import (  # noqa: E402
@@ -245,6 +246,7 @@ def run_scenario_with_artifacts(scenario):
     report = append_human_signoff(report, {"report_status": "Draft - human review required"})
     model_evidence = getattr(narrative, "model_evidence", None) or unavailable_model_evidence()
     quality = evaluate_governed_report(report, analysis, model_evidence=model_evidence)
+    quality = retain_generation_assembly_failure(quality, generation_quality)
     knowledge = analysis.get("knowledge", {})
     chunks = knowledge.get("retrieved_chunks", [])
     knowledge_status = str(knowledge.get("status") or "unknown")

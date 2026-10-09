@@ -241,7 +241,11 @@ def test_model_failure_does_not_replace_prior_analysis_or_report(monkeypatch):
         }
     )
     candidate_analysis = {
-        "profile": {"location": "Candidate location"},
+        "profile": {
+            "location": "Candidate location",
+            "scenario_concept": {"id": "community_workshop"},
+            "timeframe_concept": {"id": "seven_day"},
+        },
         "data": {
             "sources": [
                 {"id": "official-one", "name": "Official source one"},

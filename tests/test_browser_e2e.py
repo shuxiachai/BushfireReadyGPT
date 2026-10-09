@@ -32,7 +32,7 @@ This synthetic planning draft presents a Council community preparedness review a
 The audience includes community resilience officers, school safety leads and local service partners. It contains
 no verified local operating arrangements, current incident information or nominated destinations. Evidence gaps,
 proposed responsibilities and review dates remain subject to responsible organisational confirmation before
-formal use. Review findings and supporting records are incomplete in this controlled browser example.
+formal use.
 
 ## 3. Purpose and Scope
 This draft covers the application-recognised council community preparedness scenario. This draft includes
@@ -42,11 +42,10 @@ advice or an instruction to move people. The administrative timetable is a propo
 about any measure's effects. Operational decisions remain outside the supplied evidence.
 
 ## 4. Selected Geography and Key Assumptions
-The synthetic selected Cairns SA4 fixture contains a community population of 171,000 and older people represent
-15% in its 1-SA2 aggregation (2021 Census and 2022 ERP fields) [P2]. These controlled geographic figures are not
-school or campus occupancy measurements. Transport and language percentages are unknown. No site address,
-premises boundary or participant register is verified for this example. The responsible organisation has not
-approved the assumptions, proposed appointments or timetable.
+No site address, premises boundary or participant register is verified for this selected Cairns SA4 fixture.
+The responsible organisation has not approved the assumptions or timetable.
+
+[APP_P2_FIELDS]
 
 ## 5. Data Sources and Limitations
 The source register contains controlled verification entry points only, with no submitted passage supporting
@@ -81,15 +80,12 @@ records are needed for a later venue assessment. Venue selection remains unresol
 ## 10. Roles and Responsibilities
 The following role label describes a review responsibility, not a confirmed appointment or existing procedure.
 
-| Role | Responsibility |
-| --- | --- |
-| Planning lead | Unverified proposal for local review: the responsible organisation must confirm the review owner and backup. |
+[APP_ROLE_FIELDS]
 
 ## 11. Communication and Inclusion Needs
 Internal notification, accessible public information and backup communication arrangements are unknown.
 Unverified proposal for local review: the communications officer must confirm channel ownership, participant
-needs and the process for checking current official warning information. Contact records are absent from this
-example and no named service is represented as available.
+needs and the process for checking current official warning information.
 
 ## 12. First Aid, Training and Exercises
 First aid readiness, smoke and heat health support, AED and burn preparedness, qualifications and exercise
@@ -97,11 +93,10 @@ frequency are unknown. Unverified proposal for local review: the first aid coord
 reviewers, evidence requirements and exercise records. This draft provides no clinical treatment instructions.
 
 ## 13. Action Plan
-Unverified proposal for local review: Day 1: the responsible organisation must confirm the preparedness lead,
-official contacts, action owners and review checkpoints.
+[APP_ACTION_FIELDS]
 
 ## 14. Human Review and Approval Checklist
-- [ ] Unverified proposal for local review: the responsible organisation must confirm the evidence gaps and record the approval decision.
+[APP_REVIEW_FIELDS]
 
 ## 15. Safety Disclaimer
 This draft does not establish operational safety. Live warnings, fire bans, evacuation orders and life-safety
@@ -460,8 +455,12 @@ def _assert_fixture_governed_gate(environment):
             max_repair_attempts=0,
         )
         assert attempts == 1
-        assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]["blocking_failures"]
-        assert quality["quality_policy_version"] == "governed-report-v9"
+        assert quality["approval_gate"]["passed"] is True, [
+            (check["name"], check.get("word_count"), check["detail"])
+            for check in quality["checks"]
+            if check["status"] == "fail"
+        ]
+        assert quality["quality_policy_version"] == "governed-report-v10"
         return analysis, narrative, quality
 
 

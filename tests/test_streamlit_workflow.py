@@ -11,9 +11,11 @@ from src.audit import get_audit_chain_paths, load_and_verify_audit
 from src.focus_coverage import canonical_coverage_declarations
 from src.report_basis import build_community_p2_basis
 from src.report_generation_quality import assess_generated_narrative
+from src.report_owned_fields import assemble_owned_fields, project_owned_fields_for_prompt
 from src.source_attribution import (
     canonicalise_model_source_section,
     expand_known_attribution_tokens,
+    fold_known_attribution_labels,
     strip_application_source_bindings,
 )
 from tests.support.report_fixtures import _valid_report
@@ -29,16 +31,23 @@ MOCK_REPORT = """# Hobart School Bushfire Preparedness Draft
 ## Executive Summary
 This draft supports school preparedness planning and requires human review.
 
+## 4. Selected Geography and Key Assumptions
+[APP_P2_FIELDS]
+
 ## Evacuation and Candidate Assembly Points
 Confirm routes and candidate assembly points with the responsible organisation and emergency services.
 
-## Roles, Communication and Training
+## 10. Roles and Responsibilities
+[APP_ROLE_FIELDS]
+
+## Communication and Training
 Assign evacuation wardens, maintain contact lists and schedule first aid training.
 
-## Action Plan
-- [ ] Confirm official information sources.
-- [ ] Review evacuation arrangements.
-- [ ] Record the responsible reviewer.
+## 13. Action Plan
+[APP_ACTION_FIELDS]
+
+## 14. Human Review and Approval Checklist
+[APP_REVIEW_FIELDS]
 
 ## Safety Boundary
 This is not live emergency advice. Follow official emergency services and call 000 if life is at risk.
@@ -56,7 +65,8 @@ def _quality_passing_report(audience):
     # changes, the fixture must narrate those real facts instead of hiding them.
     assert basis["matched_location"] is None
     assert all(value is None for value in basis["indicators"].values())
-    narrative, synthetic_analysis = _valid_report()
+    assembled_fixture, synthetic_analysis = _valid_report()
+    narrative = assemble_owned_fields(project_owned_fields_for_prompt(assembled_fixture, synthetic_analysis), analysis)
     narrative = strip_application_source_bindings(
         narrative, official_sources=synthetic_analysis["data"]["sources"], rag_sources=[]
     )
@@ -71,9 +81,11 @@ def _quality_passing_report(audience):
     sources = analysis["data"]["sources"]
     narrative = canonicalise_model_source_section(narrative, official_sources=sources, rag_sources=[])
     narrative = expand_known_attribution_tokens(narrative, official_sources=sources, rag_sources=[])
+    raw_narrative = project_owned_fields_for_prompt(narrative, analysis)
+    raw_narrative = fold_known_attribution_labels(raw_narrative, official_sources=sources, rag_sources=[])
     quality = assess_generated_narrative(narrative, analysis)
     assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]["blocking_failures"]
-    return narrative
+    return raw_narrative
 
 
 def _write_verified_map_fixture(directory):
@@ -283,7 +295,7 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert model_call.call_count == 3
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
     quality = app.session_state["latest_quality"]
-    assert quality["summary"]["total"] == 23
+    assert quality["summary"]["total"] == 24
     checks = {item["name"]: item for item in quality["checks"]}
     assert {
         "Narrative word budget",
@@ -291,8 +303,10 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
         "Local proposal attribution",
         "Rule-derived causal qualification",
         "Submitted passage scope and conflicts",
+        "Application-owned report fields",
     } <= checks.keys()
     assert checks["Narrative word budget"]["status"] == "fail"
+    assert checks["Application-owned report fields"]["status"] == "pass"
     assert quality["approval_gate"]["passed"] is False
     assert app.session_state["latest_report"]["generation_gate_blocked"] is True
     assert app.session_state["report_status"] == "Draft - human review required"

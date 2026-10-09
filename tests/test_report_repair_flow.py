@@ -9,10 +9,12 @@ from src.source_attribution import (
     format_rag_attribution,
     format_rag_citation_token,
 )
+from tests.support.model_evidence_fixtures import _analysis
 
 
 def _analysis_with_source_contract(*, official_count=2, rag_sources=None):
     return {
+        "profile": _analysis()["profile"],
         "data": {
             "sources": [
                 {"id": f"official-{index}", "name": f"Official source {index}"} for index in range(official_count)
@@ -23,6 +25,7 @@ def _analysis_with_source_contract(*, official_count=2, rag_sources=None):
 
 
 def test_generation_and_repair_share_one_bounded_policy(monkeypatch):
+    monkeypatch.setattr(quality, "assemble_owned_fields", lambda text, _analysis: text)
     assessments = iter(
         [
             {"approval_gate": {"passed": False, "blocking_failures": [{"name": "Structure"}]}},
@@ -57,6 +60,7 @@ def test_generation_and_repair_share_one_bounded_policy(monkeypatch):
 
 
 def test_generation_repairs_stop_at_configured_limit(monkeypatch):
+    monkeypatch.setattr(quality, "assemble_owned_fields", lambda text, _analysis: text)
     failed = {"approval_gate": {"passed": False, "blocking_failures": []}}
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda _text, _analysis: failed)
     monkeypatch.setattr(quality, "build_report_repair_prompt", lambda *_args, **_kwargs: "repair")
@@ -122,6 +126,7 @@ def test_generation_rejects_canonical_identifier_collision_before_model_access()
 
 
 def test_generation_expands_recognised_opaque_tokens_after_model_response(monkeypatch):
+    monkeypatch.setattr(quality, "assemble_owned_fields", lambda text, _analysis: text)
     rag = {
         "source_id": "rag-guide",
         "title": "Official bushfire preparation guide",

@@ -11,6 +11,7 @@ from src import report_generation_quality as quality
 from src.model_response import ModelResponseError, ModelServiceError, validate_narrative_ending
 from src.model_runtime import GovernedModelClient
 from src.runtime_trace import RuntimeTrace
+from tests.support.model_evidence_fixtures import _analysis as _current_analysis
 
 
 def _chunk(content=None, reason=None, **payload):
@@ -202,7 +203,10 @@ def test_normal_markdown_sentence_ending_is_accepted(ending):
 
 
 def _analysis():
-    return {"data": {"sources": [{"id": "first", "name": "First source"}, {"id": "second", "name": "Second source"}]}}
+    return {
+        **_current_analysis(),
+        "data": {"sources": [{"id": "first", "name": "First source"}, {"id": "second", "name": "Second source"}]},
+    }
 
 
 def _stub_quality(monkeypatch):
@@ -315,7 +319,7 @@ def test_disabled_repair_has_no_hidden_protocol_retry(monkeypatch):
 
 
 def test_new_response_admission_does_not_relabel_historical_quality_policy():
-    assert quality.CURRENT_POLICY == "governed-report-v9"
+    assert quality.CURRENT_POLICY == "governed-report-v10"
     legacy_fingerprint = "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
     assert quality.READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"] == frozenset({legacy_fingerprint})
     assert quality.is_readable_quality_policy_binding("governed-report-v6", legacy_fingerprint)

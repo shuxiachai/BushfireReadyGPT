@@ -17,6 +17,7 @@ from src.report_generation_quality import (
     is_readable_quality_policy_binding,
 )
 from src.report_grounding import claim_review_reasons, evaluate_report_grounding
+from src.report_owned_fields import assemble_owned_fields, project_owned_fields_for_prompt
 from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
 from tests.support.report_fixtures import _valid_report
 
@@ -65,7 +66,7 @@ def _record(claim, analysis=None):
 def _current_record(claim=""):
     """A complete current approval fixture, separate from historical UI inputs."""
     narrative, analysis = _valid_report()
-    analysis["profile"] = {"state": "Queensland"}
+    narrative = project_owned_fields_for_prompt(narrative, analysis)
     analysis["data_integrity"] = {"custom_data": False, "core_ready": True}
     analysis["community"] = {
         "indicators": {
@@ -82,13 +83,11 @@ def _current_record(claim=""):
     before, remainder = narrative.split(heading, 1)
     _old, after = remainder.split("## 5. Data Sources and Limitations", 1)
     basis = (
-        "Community population is 172,888 and older people represent 16.5% in the approximate 22-SA2 "
-        "aggregation (2021 Census and 2022 ERP) [P2]. Transport and language measurements remain unknown. "
-        "These community figures describe a historical regional baseline rather than premises occupancy. "
         "No site address, participant list or exact premises boundary is supplied. Local applicability "
-        "remains an organisational review matter before formal use."
+        "remains an organisational review matter before formal use.\n\n[APP_P2_FIELDS]"
     )
     narrative = before + heading + "\n" + basis + "\n\n## 5. Data Sources and Limitations" + after
+    narrative = assemble_owned_fields(narrative, analysis)
     if claim:
         narrative = narrative.replace("## 2. Executive Summary", "## 2. Executive Summary\n" + claim, 1)
     text = append_human_signoff(append_evidence_tables(apply_governance_notice(narrative), analysis))
@@ -319,7 +318,7 @@ def test_current_review_cache_binds_report_text_analysis_and_method(monkeypatch)
 
 def test_v6_policy_and_committed_release_read_validation_remain_unchanged(monkeypatch):
     legacy_fingerprint = "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
-    assert QUALITY_POLICY_VERSION == "governed-report-v9"
+    assert QUALITY_POLICY_VERSION == "governed-report-v10"
     assert QUALITY_POLICY_FINGERPRINT != legacy_fingerprint
     assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"] == frozenset({legacy_fingerprint})
     assert is_readable_quality_policy_binding("governed-report-v6", legacy_fingerprint)

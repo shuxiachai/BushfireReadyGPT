@@ -16,6 +16,11 @@ from src.export_register import REGISTER_SNAPSHOT_FILES
 from src.model_evidence import text_sha256, validate_model_evidence
 from src.model_runtime import GovernedModelClient
 from src.rag.context import assemble_planning_context
+from src.report_owned_fields import project_owned_fields_for_prompt
+from src.report_template import extract_narrative_body
+from src.source_attribution import fold_known_attribution_labels
+from tests.support.model_evidence_fixtures import _analysis as _canonical_analysis
+from tests.support.report_fixtures import _valid_report
 
 
 def _analysis():
@@ -30,11 +35,8 @@ def _analysis():
         "jurisdictions": ["Queensland"],
         "url": "https://example.gov.au/synthetic",
     }
-    analysis = {
-        "profile": {"state": "Queensland"},
-        "knowledge": {"status": "ready", "retrieved_chunks": [chunk], "index_manifest_sha256": "a" * 64},
-        "data": {"sources": [{"id": "one", "name": "Official One"}, {"id": "two", "name": "Official Two"}]},
-    }
+    analysis = _canonical_analysis(chunk)
+    analysis["knowledge"]["index_manifest_sha256"] = "a" * 64
     analysis["rag_context_assembly"] = assemble_planning_context(analysis["knowledge"])
     return analysis
 
@@ -51,8 +53,19 @@ def _scenario():
     }
 
 
-def _narrative():
-    return "[O1-RAG][source_id=synthetic_guide] Synthetic guidance says families prepare household emergency supplies."
+def _narrative(analysis):
+    assembled, base_analysis = _valid_report()
+    raw = project_owned_fields_for_prompt(assembled, base_analysis)
+    raw = raw.replace(
+        "## 7. Preparedness Priorities",
+        "[O1-RAG][source_id=synthetic_guide] Synthetic guidance says families prepare household emergency supplies."
+        "\n\n## 7. Preparedness Priorities",
+    )
+    return fold_known_attribution_labels(
+        raw,
+        official_sources=analysis["data"]["sources"],
+        rag_sources=analysis["knowledge"]["retrieved_chunks"],
+    )
 
 
 def _setup(monkeypatch, *, attempts=1, protocol_failure=False, fake=False):
@@ -74,7 +87,7 @@ def _setup(monkeypatch, *, attempts=1, protocol_failure=False, fake=False):
         return SimpleNamespace(
             choices=[
                 SimpleNamespace(
-                    message=SimpleNamespace(content=_narrative()),
+                    message=SimpleNamespace(content=_narrative(analysis)),
                     finish_reason="length" if protocol_failure and len(prompts) == 1 else "stop",
                 )
             ]
@@ -83,7 +96,7 @@ def _setup(monkeypatch, *, attempts=1, protocol_failure=False, fake=False):
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
     runtime = GovernedModelClient(completion_client=sdk, provider="synthetic", is_local=False)
     if fake:
-        runtime = SimpleNamespace(generate=lambda _: _narrative())
+        runtime = SimpleNamespace(generate=lambda _: _narrative(analysis))
     monkeypatch.setattr(evaluation, "GovernedModelClient", lambda: runtime)
 
     def assess(*args):
@@ -116,6 +129,9 @@ def test_cli_returns_final_successful_sdk_capture_and_only_hashed_public_metadat
     assert snapshot["attempt_number"] == attempts
     assert snapshot["request_kind"] == ("initial" if attempts == 1 else "structural_repair")
     assert snapshot["request_binding"]["user_prompt_sha256"] == text_sha256(prompts[-1][1]["content"])
+    assert snapshot["request_binding"]["response_sha256"] == text_sha256(_narrative(analysis))
+    assert snapshot["normalized_narrative_sha256"] == text_sha256(extract_narrative_body(result["report"]))
+    assert snapshot["normalized_narrative_sha256"] != snapshot["request_binding"]["response_sha256"]
     assert snapshot["assembly_manifest"]["max_chunk_characters"] == (2200 if attempts == 1 else 900)
     validate_model_evidence(snapshot, analysis, report_text=result["report"])
     summary = result["row"]["model_visible_rag"]

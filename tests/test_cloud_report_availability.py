@@ -8,8 +8,12 @@ from src.agents.official_knowledge_agent import OfficialKnowledgeAgent
 from src.export_register import build_export_register_snapshot
 from src.model_response import ModelResponseError
 from src.rag.errors import RagError
+from src.report_owned_fields import project_owned_fields_for_prompt
 from src.report_template import append_evidence_tables, append_human_signoff
 from src.runtime_trace import load_trace_summary
+from src.source_attribution import fold_known_attribution_labels
+from tests.support.model_evidence_fixtures import _analysis as _canonical_analysis
+from tests.support.report_fixtures import _valid_report
 
 
 class _SessionState(dict):
@@ -21,12 +25,16 @@ class _SessionState(dict):
 
 
 def _analysis(knowledge):
-    return {
-        "knowledge": knowledge,
-        "prompt_context": "Verified planning context",
-        "evidence_confidence": [],
-        "data": {"sources": [{"id": "one", "name": "Official One"}, {"id": "two", "name": "Official Two"}]},
-    }
+    analysis = _canonical_analysis()
+    analysis.update(knowledge=knowledge, prompt_context="Verified planning context", evidence_confidence=[])
+    return analysis
+
+
+def _unsafe_draft():
+    assembled, analysis = _valid_report()
+    raw = project_owned_fields_for_prompt(assembled, analysis)
+    raw = raw.replace("## 2. Executive Summary", "## 2. Executive Summary\nThis plan guarantees safety.")
+    return fold_known_attribution_labels(raw, official_sources=analysis["data"]["sources"], rag_sources=[])
 
 
 @pytest.fixture
@@ -35,7 +43,7 @@ def workflow(monkeypatch):
 
     def generate(prompt):
         calls.append(prompt)
-        return "# Short unsafe draft\n\nThis plan guarantees safety."
+        return _unsafe_draft()
 
     state = _SessionState(model_client=SimpleNamespace(generate=generate))
     monkeypatch.setattr(report_workflow, "st", SimpleNamespace(session_state=state))
@@ -129,7 +137,7 @@ def _frozen_report(analysis, monkeypatch, tmp_path):
     record = {
         "id": "frozen-cloud-test",
         "version": 1,
-        "text": "# Frozen report\n\nPreparedness planning content.",
+        "text": _valid_report()[0],
         "inputs": {"report_status": "Draft - human review required"},
         "area_selection": None,
         "analysis": analysis,

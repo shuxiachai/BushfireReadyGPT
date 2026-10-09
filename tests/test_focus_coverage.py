@@ -8,6 +8,8 @@ from src.focus_coverage import (
     evaluate_focus_area_coverage,
     evaluate_scenario_coverage,
 )
+from src.report_owned_fields import assemble_owned_fields, project_owned_fields_for_prompt
+from src.source_attribution import fold_known_attribution_labels
 from tests.support.report_fixtures import _valid_report
 
 
@@ -430,11 +432,13 @@ def test_council_reference_does_not_satisfy_council_scenario_coverage():
 
 def test_scenario_coverage_is_a_blocking_governed_check():
     narrative, analysis = _valid_report()
-    analysis["profile"] = {"scenario_concept": ProfileAgent.resolve_scenario_concept("Community workshop material")}
+    raw = project_owned_fields_for_prompt(narrative, analysis)
+    analysis["profile"]["scenario_concept"] = ProfileAgent.resolve_scenario_concept("School bushfire preparedness")
+    narrative = assemble_owned_fields(raw, analysis)
 
     result = quality.assess_generated_narrative(narrative, analysis)
 
-    assert result["summary"] == {"passed": 21, "warnings": 0, "failed": 1, "total": 22}
+    assert result["summary"] == {"passed": 22, "warnings": 0, "failed": 1, "total": 23}
     failed = [check for check in result["checks"] if check["status"] == "fail"]
     assert [check["name"] for check in failed] == ["Selected scenario coverage"]
     assert all(check["status"] == "pass" for check in result["checks"] if check not in failed)
@@ -503,16 +507,22 @@ def test_focus_coverage_is_a_blocking_governed_check():
 
     result = quality.assess_generated_narrative(narrative, analysis)
 
-    assert result["summary"] == {"passed": 21, "warnings": 0, "failed": 1, "total": 22}
+    assert result["summary"] == {"passed": 22, "warnings": 0, "failed": 2, "total": 24}
     failed = [check for check in result["checks"] if check["status"] == "fail"]
-    assert [check["name"] for check in failed] == ["Selected focus-area coverage"]
+    assert [check["name"] for check in failed] == ["Selected focus-area coverage", "Application-owned report fields"]
     assert all(check["status"] == "pass" for check in result["checks"] if check not in failed)
-    assert result["approval_gate"]["blocking_failures"] == [{"name": failed[0]["name"], "detail": failed[0]["detail"]}]
+    assert result["approval_gate"]["blocking_failures"] == [
+        {"name": item["name"], "detail": item["detail"]} for item in failed
+    ]
     assert result["approval_gate"]["passed"] is False
 
 
 def test_generation_repair_loop_closes_a_missing_focus_area():
     complete_narrative, analysis = _valid_report()
+    complete_narrative = project_owned_fields_for_prompt(complete_narrative, analysis)
+    complete_narrative = fold_known_attribution_labels(
+        complete_narrative, official_sources=analysis["data"]["sources"], rag_sources=[]
+    )
     analysis.update(
         _analysis(
             _focus("property_preparation"),
@@ -525,13 +535,14 @@ def test_generation_repair_loop_closes_a_missing_focus_area():
         prompts.append((prompt, attempt, is_repair))
         declared = analysis if is_repair else _analysis(_focus("property_preparation"))
         declarations = "\n".join(canonical_coverage_declarations(declared))
-        return complete_narrative.replace("## 3. Purpose and Scope", "## 3. Purpose and Scope\n" + declarations)
+        response = complete_narrative.replace("## 3. Purpose and Scope", "## 3. Purpose and Scope\n" + declarations)
+        return response if is_repair else response.replace("[APP_ACTION_FIELDS]", "Review timing remains unknown.")
 
     narrative, result, attempts = quality.generate_narrative_with_repairs("governed prompt", analysis, generate)
 
     assert attempts == 2
     assert result["approval_gate"]["passed"] is True
-    assert result["summary"] == {"passed": 22, "warnings": 0, "failed": 0, "total": 22}
+    assert result["summary"] == {"passed": 24, "warnings": 0, "failed": 0, "total": 24}
     assert all(check["status"] == "pass" for check in result["checks"])
     assert "emergency kit" in narrative
     assert "Copy every supplied line below character-for-character" in prompts[1][0]

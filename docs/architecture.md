@@ -16,6 +16,7 @@ exhaustive list of every module.
 | [pipeline.py](../src/agents/pipeline.py), [report_agent.py](../src/agents/report_agent.py) | Run deterministic profile/data/community/knowledge/risk/planner stages; assemble planning context for the prompt. The Report Agent does not call a model. | [Core pipeline](../tests/test_core_pipeline.py), [Planning context](../tests/test_planning_context_v2.py) |
 | [data_paths.py](../src/data_paths.py), [data_artifacts.py](../src/data_artifacts.py), [RAG service](../src/rag/service.py), [RAG context](../src/rag/context.py) | Resolve/verify data, retrieve verified passages and assemble bounded context for the pipeline. RAG is optional locally; cloud generation requires available verified infrastructure. | [Data integrity](../tests/test_data_artifacts.py), [Retrieval](../tests/test_rag_pipeline.py), [Cloud availability](../tests/test_cloud_report_availability.py) |
 | [report_template.py](../src/report_template.py), [source_attribution.py](../src/source_attribution.py) | Build prompts from supplied analysis; provide opaque citation tokens, deterministic attribution expansion, notices, evidence tables and sign-off. Prompt construction does not rerun analysis. | [Prompt contract](../tests/test_report_prompt_contract.py), [Repair flow](../tests/test_report_repair_flow.py) |
+| [report_owned_fields.py](../src/report_owned_fields.py) | Expand four exact generation slots into frozen P2 facts and explicitly unconfirmed administrative role/action/review fields; check saved blocks without repairing them. | [Owned fields](../tests/test_report_owned_fields.py), [Bundled pipeline](../tests/test_owned_fields_pipeline.py) |
 | [model_runtime.py](../src/model_runtime.py), [model_evidence.py](../src/model_evidence.py) | Execute bounded stateless requests and bind submitted evidence context to responses, through the workflow's model callback. | [Model runtime](../tests/test_model_runtime.py), [Evidence capture](../tests/test_model_evidence.py) |
 | [report_generation_quality.py](../src/report_generation_quality.py), [report_quality_agent.py](../src/agents/report_quality_agent.py), [safety_boundary.py](../src/safety_boundary.py) | Share the deterministic governed gate and bounded replacement-repair policy across lifecycle stages. | [Repair flow](../tests/test_report_repair_flow.py), [Safety](../tests/test_safety_boundary.py), [Policy binding](../tests/test_quality_policy_audit.py) |
 | [report_grounding.py](../src/report_grounding.py), [report_claim_evidence.py](../src/report_claim_evidence.py), [source_applicability.py](../src/source_applicability.py) | Provide evidence/body-claim diagnostics and a limited review-time source-applicability advisory; none establishes semantic truth or local applicability. | [Grounding](../tests/test_report_grounding.py), [Body claims](../tests/test_report_claim_evidence.py), [Review disposition](../tests/test_review_evidence_disposition.py) |
@@ -86,6 +87,8 @@ flowchart LR
     Revision --> Workflow[Report workflow<br/>version and policy controls]
     Workflow --> Privacy
     Model --> Workflow
+    Pipeline --> FrozenFields[Frozen P2 and canonical administrative fields]
+    FrozenFields --> Workflow
     Workflow --> Report[Versioned draft preparedness report]
 
     Report --> Deterministic[Canonical notice, evidence tables<br/>and human sign-off]
@@ -154,18 +157,38 @@ their original source bytes.
 The eight named agents are specialised, deterministic pipeline components; none
 is an independent language-model call or an autonomous multi-agent actor. One
 governed model call writes the report narrative; the canonical governed gate may
-request up to two stateless replacement attempts. The same `governed-report-v8`
+request up to two stateless replacement attempts. The same `governed-report-v10`
 gate is recomputed for generation, revision, organisational approval and
 governed pilot-package export. It combines fixed structure, source, markup and
 safety checks with allowlisted scenario/focus-area coverage and conditional RAG
 attribution. V7 introduced bounded narrative-budget, processed-data-scope and
 per-occurrence local-task checks. V8 corrects bounded numeric/denial/confirmation
 recognition and action-column coverage without borrowing qualifiers between
-sentences or cells. Exact v6/v7 fingerprints remain readable, not eligible for
+sentences or cells. V9 adds a narrow Oxford-comma heading alias. V10 requires
+four exact application-owned blocks described below. Historical fingerprints
+through v9 remain readable, not eligible for
 new approval or export. Only the hash-bound final SDK evidence snapshot
 can satisfy passage-dependent provenance and audience checks; a fresh lookup or
 retrieved-but-omitted passage cannot supply support. Contradictory wording in
 retrieved passages may additionally trigger a conflict-review requirement.
+
+In new reports, the model emits four exact standalone slots in sections 4, 10,
+13 and 14. The application replaces them atomically with frozen community
+measurements/basis, unconfirmed roles, proposed administrative review actions
+and an unchecked human-review item. Zero and unavailable measurements remain
+distinct; every available P2 value retains its period and geographic basis.
+Only canonical scenario, timeframe and focus identifiers select these templates:
+raw Planner priorities and user prose are never relabelled as verified tasks.
+Each proposed duty has its own confirmer and confirmation need. Missing or
+invalid selectors/basis block before model access, and malformed or missing
+slots cannot become an accepted generated report.
+
+These blocks count toward the unchanged 650–800-word body limit and do not
+replace the required explanatory prose. Raw SDK-response and assembled-body
+hashes remain distinct. Revision prompts project only verified exact blocks back
+to slots; review, audit reassessment and export are pure checks, never insertion
+or silent repair of saved reports. An older draft lacking these fields may be
+read but needs regeneration for the current contract, not automatic approval.
 Concrete local school assembly criteria
 remain blocked pending an applicable authority-verification mechanism; an
 explicit evidence gap and verification task can continue. These are narrow
@@ -238,7 +261,7 @@ is never the link authority.
 
 `DataPaths` is the single source of active data locations for the map, status views and every pipeline agent. Explicit map selection is resolved into one effective geography before downstream analysis; an unknown form-level state inherits the selected state, while a known cross-state conflict fails closed. The bundled core is checked against `data_australia/manifest.json` before use, nested YAML artifacts are schema-validated with field-level errors, and provenance digests are compared again after analysis so a concurrent refresh cannot silently relabel an analysis. Validated downloader outputs are staged and published as recoverable multi-file transactions; writers of the shared core manifest use one publication lock and recovery journal. The optional nationwide map additionally requires matching profile/boundary structure and a hash-valid bundle sidecar before selection, report generation or organisational approval.
 
-Browser sessions are isolated in memory by default. Optional JSON persistence is intended only for an explicitly single-user local installation and can contain full report/sign-off data. Persisted state has a versioned, size-bounded and recursively validated schema; malformed or oversized state does not hydrate, and a failed clear cannot silently restore stale state in the running process. Report/revision fields also have backend character and byte budgets, and reviewed/approved records require a valid non-future review date. Governed model completions are stateless and tool-free, enforce one total streaming deadline and reject empty usable output; generation, revision and release evaluation share the same bounded replacement-repair implementation. External endpoints require an explicit privacy acknowledgement. Audit records are privacy-minimised, append-only and hash-linked at the application layer; new v4 events bind the current `governed-report-v8` quality policy and fingerprint, exact report, deterministic sign-off, quality, inputs, provider boundary, frozen register snapshot and recursive revision ancestry, while historical policy bindings remain readable. Ancestry verification is iterative so valid long histories do not depend on Python recursion depth. `pilot-export-v4` requires the current policy, a passing fresh gate and the complete analysis whose hash matches the audit. Legacy events remain readable. A `quality.reassessed` transition may update only the policy result while preserving the exact report, sign-off, status and package context; it explicitly records that no human review occurred and cannot be used as the export head until a later `review.recorded` event is appended. Clearing a session does not delete retained audit or saved-report files. The prototype has no authenticated multi-user database, digital signature, trusted timestamp or WORM store, so this local chain is tamper-evident rather than formally immutable.
+Browser sessions are isolated in memory by default. Optional JSON persistence is intended only for an explicitly single-user local installation and can contain full report/sign-off data. Persisted state has a versioned, size-bounded and recursively validated schema; malformed or oversized state does not hydrate, and a failed clear cannot silently restore stale state in the running process. Report/revision fields also have backend character and byte budgets, and reviewed/approved records require a valid non-future review date. Governed model completions are stateless and tool-free, enforce one total streaming deadline and reject empty usable output; generation, revision and release evaluation share the same bounded replacement-repair implementation. External endpoints require an explicit privacy acknowledgement. Audit records are privacy-minimised, append-only and hash-linked at the application layer; new v4 events bind the current `governed-report-v10` quality policy and fingerprint, exact report, deterministic sign-off, quality, inputs, provider boundary, frozen register snapshot and recursive revision ancestry, while historical policy bindings remain readable. Ancestry verification is iterative so valid long histories do not depend on Python recursion depth. `pilot-export-v4` requires the current policy, a passing fresh gate and the complete analysis whose hash matches the audit. Legacy events remain readable. A `quality.reassessed` transition may update only the policy result while preserving the exact report, sign-off, status and package context; it explicitly records that no human review occurred and cannot be used as the export head until a later `review.recorded` event is appended. Clearing a session does not delete retained audit or saved-report files. The prototype has no authenticated multi-user database, digital signature, trusted timestamp or WORM store, so this local chain is tamper-evident rather than formally immutable.
 
 Historical policy manifests and fingerprints remain readable and unchanged. Earlier drafts
 must satisfy a fresh current-policy assessment before current-policy
