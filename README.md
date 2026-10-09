@@ -56,7 +56,7 @@ Current maintenance uses **governed-report-v10**: the application fills four exa
 
 The 2026-10-10 local regression passed **3,792 tests**, with **90.22% src coverage**, plus all 6 separate mock-model browser cases. Static, dependency and vulnerability checks passed. These are engineering checks, not real-report or cloud acceptance.
 
-The previous v9 frozen case used **5,857 input tokens** and fit its reserved window, but its single real report still failed four content checks. That measurement does not certify the changed v10 prompt or other inputs. See [current project status](docs/project_reassessment.md) for current verification, measured limits and separately dated CI/cloud evidence; no new report-content acceptance or formal release is claimed.
+The v10 frozen case measured **5,874 input tokens**, leaving only 17 tokens after its output reservation and margin. Its single real local response omitted all four required field markers and failed the content gate; it was not accepted or exported. This case-specific budget result is not a guarantee for other inputs. See [current project status](docs/project_reassessment.md) for the remaining output-protocol work and separately dated CI/cloud evidence; no new report-content acceptance or formal release is claimed.
 
 This is a governed portfolio MVP / controlled-pilot prototype. It is not ready for operational emergency management, public life-safety decisions, government procurement or commercial deployment without independent legal, security, privacy, data/licence and domain review. There are no completed external pilot claims: [the pilot evidence register](docs/pilot_results.md) records the current status.
 

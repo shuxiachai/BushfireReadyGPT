@@ -1,9 +1,10 @@
 # Current project status
 
 Updated 2026-10-10 for deterministic P2 and administrative report fields under
-governed-report-v10. The preceding v9 frozen-case budget passed, but its single
-real report still failed four content checks. Those results remain historical;
-no accepted replacement sample or new formal release is claimed. This page
+governed-report-v10. Engineering regression and its frozen-case budget passed,
+but the single real response omitted all four required field markers and was
+rejected. Earlier results remain unchanged; no accepted replacement sample or
+new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -97,6 +98,41 @@ diagnostic traced a 3-second timeout to Streamlit's one-time REPL warning probe
 declares its non-REPL environment; the timeout, rendering assertions and production
 code are unchanged. These engineering results do not certify new real-model
 content or a cloud deployment.
+
+On clean source `2c58d0c`, an independent native count measured **5,874 input
+tokens**. The original 6,917-token control and both detokenization round trips
+matched exactly. Input plus 2,300 output and a 1-token margin totals **8,175 /
+8,192**, leaving **17 tokens**. Four tokenizer requests and four health checks
+completed in 12.86 seconds with zero generation; the temporary service/key were
+removed and protected inputs remained unchanged. A preceding restricted prepare
+failed its read-only CIM memory check; the identical guard passed under formal
+permissions, without weakening it or consuming a generation attempt.
+
+The subsequent single local report completed HTTP 200, `stop` and the terminal
+stream marker, with **5,874 input + 1,146 output = 7,020 tokens**. SDK, generation
+HTTP and isolated quota counters each recorded one attempt, with no repair or
+retry. All four required slots were absent, and sections 10 and 13 repeated
+writing instructions instead of following the output protocol. No fixed-field
+assembly was applied. The final diagnostic recorded **20 passed / 6 failed
+checks**: missing checklist, missing owned blocks, an 810-word body, two omitted
+available P2 facts and two omitted unknown measurements, four unqualified local
+tasks, and the separate generation-slot admission failure. The two owned-field
+entries are distinct checks, not two independent root causes.
+
+The report was rejected without audit finalization or export. Raw-response and
+normalized-body hashes were independently verified; all 82 protected items,
+332 historical snapshot rows and both older report trees were unchanged. Old
+and new quota records each remain at one. The owned service/runner were stopped
+by identity, their console exited naturally, and a fresh read-only check found
+no remaining owned process or port listener. Historical v0.5.0 and v0.6.0 release
+verification also passed on this clean source, without a dirty override.
+
+This establishes bounded execution and correct rejection, **not report-content
+success**. Token-budget fit and usage agreement do not prove provider context
+retention or semantic evidence use. The next priority is an application-owned
+report skeleton with model-supplied section prose, reducing reliance on the
+model copying special markers. Any such change needs its own design, regression
+and newly bounded model check; do not patch this failed response into a sample.
 
 ### Local context and heading follow-up (2026-10-08)
 
