@@ -372,6 +372,12 @@ def test_initial_only_compaction_preserves_shared_contract_bytes(name, expected_
             "excluding the application notice, source-register lines, Evidence Tables and Human Review Sign-off",
             "at least 300 prose words outside headings/tables/checklist bullets",
             "no raw HTML tags/comments",
+            "Use all 15 sections below, in order",
+            "Copy this exact line into section 13",
+            "Copy EVERY application-owned coverage line verbatim as ordinary section 3 prose",
+            "never negate, paraphrase, quote or code-fence",
+            "Repeat the exact notice's official-services/life-safety and 000 requirements",
+            "Start with this exact notice",
         ),
         (
             "Retain available population, older-people figures and other meaningful indicators",
