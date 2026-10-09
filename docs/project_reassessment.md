@@ -1,7 +1,8 @@
 # Current project status
 
-Updated 2026-10-08 after a separately authorised local v8 report failed
-content acceptance and prompted offline context/heading corrections; no
+Updated 2026-10-09 after a local tokenizer comparison measured the compacted
+prompt and confirmed that its input-plus-output budget still exceeds the
+configured window. The previous local v8 report failed content acceptance; no
 accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
@@ -80,9 +81,9 @@ admission. A compacted prompt has different bytes: the old 6,917-token measureme
 cannot certify its fit. Frozen-case offline compilation reduced the builder's
 prompt from 32,302 to 31,343 Unicode characters (959 fewer), with unchanged RAG
 bytes. The original report still fails the current content gate after the narrow
-heading correction; it is not a replacement model run or accepted sample. New
-token fit and real content acceptance remain untested;
-there were no new model requests in this maintenance step.
+heading correction; it is not a replacement model run or accepted sample.
+This offline maintenance step made no new model requests. The subsequent
+tokenizer measurement is recorded below; report-content acceptance remains open.
 
 The first full regression exposed a historical-builder dependency guard: even
 a byte-equivalent default output does not permit changing that shared component's
@@ -119,9 +120,32 @@ two parser calls used no model/service arguments; the diagnostic harness issued
 zero HTTP requests. The temporary key was removed, the owned processes exited
 and the protected snapshots remained unchanged. This supports a path-opening
 compatibility issue in that comparison, not the unique cause of the original
-failure or successful model startup. The closed count attempt was not retried:
-new token fit remains unknown. The earlier report and its five current-policy
-blockers remain unchanged.
+failure or successful model startup. That failed attempt remains frozen. The
+earlier report and its five current-policy blockers remain unchanged.
+
+### Measured compacted-prompt budget (2026-10-09)
+
+A separately authorised single count-only retry on source `8e7ce92` used the
+relative key filename and completed successfully. The old control reproduced
+all **6,917 token IDs** exactly; both old and new token sequences detokenized
+back to their complete rendered prompts. The compacted prompt measured
+**6,613 input tokens**, a reduction of **304 tokens**. Its message, model,
+template and rendered-prompt hashes are bound to the recorded measurement.
+
+With the unchanged 2,300-token output reservation and a 1-token margin, the
+required total is **8,914**, exceeding the configured 8,192-token window by
+**722**. The diagnostic result is `exceeds`; a shorter prompt alone has not
+resolved this frozen case's context budget. The next content-preserving
+reduction must bring this input to at most 5,891 tokens under the same budget.
+
+The temporary CPU service completed 4 health requests and the fixed 4
+tokenize/detokenize requests, with zero generation requests, in 15.30 seconds.
+The owned process and listener exited, the temporary key was removed, and all
+77 protected snapshots plus both prior diagnostic artifact trees were unchanged.
+There was no timeout or observed warmup. This measures standalone tokenization
+of the reconstructed prompt; it does not establish provider receipt, evidence
+retention during generation, semantic use, or report-content acceptance. The
+earlier failed attempt and report findings remain part of the record.
 
 Previously recorded complete engineering baseline: `8340cb2`, governed-report-v8; 3,304 local
 non-E2E tests passed with 89.99% src coverage, plus 6 separate mock-model browser
