@@ -384,15 +384,31 @@ def test_assessment_never_assembles_and_every_stage_reads_same_body(monkeypatch)
     ]
 
 
-def test_historical_v9_and_shared_report_agent_bytes_are_unchanged():
+def _canonical_source_sha256(source):
+    # Git may check Python sources out with CRLF; source content remains fixed.
+    return sha256(source.replace(b"\r\n", b"\n")).hexdigest()
+
+
+def test_historical_v9_and_shared_report_agent_source_are_unchanged():
     assert (
         _policy_fingerprint(KNOWN_QUALITY_POLICY_MANIFESTS["governed-report-v9"])
         == "33e45867eb9349131d59c6dfe070a513390b56542b39701d7ac4ee27f20c2485"
     )
     assert (
-        sha256(Path("src/agents/report_agent.py").read_bytes()).hexdigest()
+        _canonical_source_sha256(Path("src/agents/report_agent.py").read_bytes())
         == "aa99f53644fcbb696f9780d828543374b92eaa10c7abfc1f25e7748be8591024"
     )
+
+
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n"], ids=["LF", "CRLF"])
+def test_report_agent_source_hash_accepts_checkout_newlines_but_rejects_code_changes(newline):
+    source_lf = Path("src/agents/report_agent.py").read_bytes().replace(b"\r\n", b"\n")
+    source = source_lf.replace(b"\n", newline)
+    expected = "aa99f53644fcbb696f9780d828543374b92eaa10c7abfc1f25e7748be8591024"
+    assert _canonical_source_sha256(source) == expected
+    changed = source.replace(b"class ReportAgent:", b"class ChangedReportAgent:", 1)
+    assert changed != source
+    assert _canonical_source_sha256(changed) != expected
 
 
 def test_prompt_and_repair_supply_slots_and_count_every_owned_body_word():
