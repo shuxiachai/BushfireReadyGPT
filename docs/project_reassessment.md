@@ -96,6 +96,24 @@ historical byte pins and safety/privacy assertions preserved. The long selector
 enumeration emitted a 60-second diagnostic stack during the successful full run;
 it continued and passed, not a terminated test or hidden failure.
 
+The subsequent remote run on `efb0334` passed both Linux versions, Chromium
+and Docker, but Windows recorded **1 failed, 3,966 passed, 1 skipped and
+6 deselected** in 403.36 seconds. The six-request mocked campaign returned
+`timeout` rather than completing its order/capture/quota assertions. This
+failure is retained separately from the successful local run; the available
+log alone does not establish why the test exceeded its deadline.
+
+A mock-only diagnostic showed that delaying request-record persistence by
+1.1 seconds is sufficient to hit the fixture's unchanged 1-second deadline
+before SDK dispatch. It does not identify the original CI bottleneck. The
+six-request content test now reuses the scoped logical-time/inline-completion
+fixture used by drift tests, with an additional simulated slow-recording case.
+All original order, capture, quota and unchanged-input assertions remain;
+real threaded success, concurrency, timeout and late-worker tests remain
+separate. No production code or timeout was changed. The three related test
+modules passed **118 tests in 132.15 seconds**; Ruff and independent read-only
+review passed. The original remote failure remains part of this record.
+
 On clean source `0f6d27f`, exact native measurement recorded **5,812 input
 tokens**, 192 more than v11. With the unchanged 2,300 output reservation and
 1-token margin, the total is **8,113 / 8,192**, leaving only **79**. The original

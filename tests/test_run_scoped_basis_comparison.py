@@ -204,14 +204,42 @@ def test_changed_frozen_plan_is_rejected(monkeypatch, frozen_bundle, field, valu
         runner._load_bundle(runner.PREPARED_SHA256)
 
 
-def test_six_real_governed_mock_requests_match_order_normalisation_capture_and_quota(campaign):
+@pytest.mark.parametrize("recording_delay_seconds", [0.0, 2.0], ids=["ordinary-recording", "slow-recording"])
+def test_six_real_governed_mock_requests_match_order_normalisation_capture_and_quota(
+    campaign, monkeypatch, inline_recorded_completion, recording_delay_seconds
+):
     from src.model_evidence import json_sha256, text_sha256, validate_recorded_assembly
     from src.model_runtime import GOVERNED_MODEL_SYSTEM_PROMPT
+
+    delayed_requests = []
+    if recording_delay_seconds:
+        from src import model_runtime
+
+        wall_clock = SimpleNamespace(now=0.0)
+        original_write = runner._write_once
+
+        def delayed_write(path, value):
+            if path.name.startswith("request-"):
+                wall_clock.now += recording_delay_seconds
+                delayed_requests.append(path.name)
+            return original_write(path, value)
+
+        # Model slow recording without sleeping or bypassing durable writes.
+        # Content assertions do not impose a host storage/scheduling deadline;
+        # the separate threaded deadline tests still enforce the real limit.
+        assert recording_delay_seconds > campaign.settings["timeout_seconds"]
+        monkeypatch.setattr(model_runtime, "time", SimpleNamespace(monotonic=lambda: wall_clock.now))
+        monkeypatch.setattr(runner, "_write_once", delayed_write)
 
     before = (campaign.base / "prepared.json").read_bytes()
     result = campaign.run()
     assert result["stop_reason"] is None and not result["recording_incomplete"]
     assert len(campaign.requests) == campaign.guard.calls == result["sdk_dispatches_committed"] == 6
+    assert inline_recorded_completion == ["governed-model-completion"] * 6
+    assert all(observer.done.is_set() for observer in campaign.observers) and campaign.guard.released.is_set()
+    assert all(row["worker_pending"] is False for row in result["rows"])
+    if recording_delay_seconds:
+        assert delayed_requests == [f"request-{sequence:02}.json" for sequence in range(1, 7)]
     assert campaign.close_calls == [1, 2, 3, 4, 5, 6]
     assert [row["arm"] for row in result["rows"]] == [
         "baseline",
@@ -357,8 +385,8 @@ def test_unexpected_actual_sdk_parameters_are_blocked(campaign, field, value):
 
 
 @pytest.fixture
-def inline_drift_completion(campaign, monkeypatch):
-    """Only drift assertions use logical time; deadline/concurrency tests stay real."""
+def inline_recorded_completion(campaign, monkeypatch):
+    """Content/drift assertions use logical time; deadline/concurrency tests stay real."""
     from src import model_runtime
 
     completed = []
@@ -393,7 +421,7 @@ def inline_drift_completion(campaign, monkeypatch):
         "quota_unavailable",
     ],
 )
-def test_drift_after_return_stops_before_next_cell(campaign, drift, inline_drift_completion):
+def test_drift_after_return_stops_before_next_cell(campaign, drift, inline_recorded_completion):
     def behavior(*_):
         campaign.guard.failure = drift
         return response()
@@ -406,7 +434,7 @@ def test_drift_after_return_stops_before_next_cell(campaign, drift, inline_drift
     assert len(result["rows"]) == 6 and campaign.guard.calls == 1
     assert result["rows"][0]["worker_pending"] is False
     assert campaign.observers[0].done.is_set() and campaign.guard.released.is_set()
-    assert inline_drift_completion == ["governed-model-completion"]
+    assert inline_recorded_completion == ["governed-model-completion"]
     assert _saved(campaign, "response-01.json")["raw_response"]["choices"][0]["finish_reason"] == "stop"
     assert _saved(campaign, "response-details-01.json")["model_evidence"]["status"] == "captured"
 
