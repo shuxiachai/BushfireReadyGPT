@@ -1,7 +1,10 @@
+import json
+
 import pytest
 
 from src import report_generation_quality as quality
 from src.agents.report_quality_agent import ReportQualityAgent
+from src.section_protocol_error import SectionProtocolError
 from src.source_attribution import (
     canonicalise_model_source_section,
     format_official_attribution,
@@ -10,6 +13,13 @@ from src.source_attribution import (
     format_rag_citation_token,
 )
 from tests.support.model_evidence_fixtures import _analysis
+from tests.support.report_fixtures import _valid_report, section_response_for_report
+
+
+def _section_response(**overrides):
+    sections = json.loads(section_response_for_report(*_valid_report()))
+    sections.update(overrides)
+    return json.dumps(sections)
 
 
 def _analysis_with_source_contract(*, official_count=2, rag_sources=None):
@@ -25,7 +35,6 @@ def _analysis_with_source_contract(*, official_count=2, rag_sources=None):
 
 
 def test_generation_and_repair_share_one_bounded_policy(monkeypatch):
-    monkeypatch.setattr(quality, "assemble_owned_fields", lambda text, _analysis: text)
     assessments = iter(
         [
             {"approval_gate": {"passed": False, "blocking_failures": [{"name": "Structure"}]}},
@@ -42,7 +51,7 @@ def test_generation_and_repair_share_one_bounded_policy(monkeypatch):
 
     def generate(prompt, attempt_number, is_repair):
         calls.append((prompt, attempt_number, is_repair))
-        return "first draft" if attempt_number == 1 else "replacement draft"
+        return _section_response(s02="First draft." if attempt_number == 1 else "Replacement draft.")
 
     narrative, result, attempts = quality.generate_narrative_with_repairs(
         "governed prompt",
@@ -50,17 +59,16 @@ def test_generation_and_repair_share_one_bounded_policy(monkeypatch):
         generate,
     )
 
-    assert narrative == "replacement draft"
+    assert "Replacement draft." in narrative
     assert result["approval_gate"]["passed"] is True
     assert attempts == 2
-    assert calls == [
-        ("governed prompt", 1, False),
-        ("repair::governed prompt::first draft", 2, True),
-    ]
+    assert calls[0] == ("governed prompt", 1, False)
+    assert calls[1][1:] == (2, True)
+    assert calls[1][0].startswith("repair::governed prompt::# 1. Title")
+    assert "First draft." in calls[1][0]
 
 
 def test_generation_repairs_stop_at_configured_limit(monkeypatch):
-    monkeypatch.setattr(quality, "assemble_owned_fields", lambda text, _analysis: text)
     failed = {"approval_gate": {"passed": False, "blocking_failures": []}}
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda _text, _analysis: failed)
     monkeypatch.setattr(quality, "build_report_repair_prompt", lambda *_args, **_kwargs: "repair")
@@ -69,19 +77,21 @@ def test_generation_repairs_stop_at_configured_limit(monkeypatch):
     narrative, result, attempts = quality.generate_narrative_with_repairs(
         "prompt",
         _analysis_with_source_contract(),
-        lambda prompt, attempt, repair: calls.append((prompt, attempt, repair)) or f"draft-{attempt}",
+        lambda prompt, attempt, repair: (
+            calls.append((prompt, attempt, repair)) or _section_response(s02=f"Draft {attempt}.")
+        ),
         max_repair_attempts=2,
     )
 
-    assert narrative == "draft-3"
+    assert "Draft 3." in narrative
     assert result is failed
     assert attempts == 3
     assert [call[1] for call in calls] == [1, 2, 3]
 
 
-@pytest.mark.parametrize("limit", [-1, True, 1.5, "2"])
-def test_generation_repair_limit_must_be_a_non_negative_integer(limit):
-    with pytest.raises(ValueError, match="non-negative integer"):
+@pytest.mark.parametrize("limit", [-1, True, 1.5, "2", 3, 100])
+def test_generation_repair_limit_must_be_an_integer_within_the_shared_ceiling(limit):
+    with pytest.raises(ValueError, match="integer from zero through two"):
         quality.generate_narrative_with_repairs("prompt", {}, lambda *_args: "draft", max_repair_attempts=limit)
 
 
@@ -126,21 +136,16 @@ def test_generation_rejects_canonical_identifier_collision_before_model_access()
 
 
 def test_generation_expands_recognised_opaque_tokens_after_model_response(monkeypatch):
-    monkeypatch.setattr(quality, "assemble_owned_fields", lambda text, _analysis: text)
     rag = {
         "source_id": "rag-guide",
         "title": "Official bushfire preparation guide",
     }
     analysis = _analysis_with_source_contract(rag_sources=[rag])
     first_official, second_official = analysis["data"]["sources"]
-    model_response = (
-        "## 5. Data Sources and Limitations\n"
-        f"- {format_official_citation_token(first_official)} (registered official verification source)\n"
-        "- [O1][ref=unknown-ref] Unregistered source\n"
-        f"- {format_rag_citation_token(rag)}\n"
-        "The report remains subject to human review.\n\n"
-        "## 6. Local Risk Context\n"
-        "Households should document and review preparedness arrangements."
+    model_response = _section_response(
+        s05="The report remains subject to human review. "
+        f"Registered verification evidence remains bounded. {format_official_citation_token(first_official)} "
+        f"The supplied passage needs local applicability review. {format_rag_citation_token(rag)}",
     )
     assessed = []
     monkeypatch.setattr(
@@ -166,7 +171,8 @@ def test_generation_expands_recognised_opaque_tokens_after_model_response(monkey
         "The application retrieved this static official passage as preparedness-planning evidence for human "
         f"review. {format_rag_attribution(rag)}"
     ) in narrative
-    assert "registered official verification source" not in narrative
+    assert "Registered verification evidence remains bounded." in narrative
+    assert "The supplied passage needs local applicability review." in narrative
     assert "unknown-ref" not in narrative
     assert "Unregistered source" not in narrative
     assert format_official_citation_token(first_official) not in narrative
@@ -288,17 +294,18 @@ def test_source_section_canonicalisation_preserves_unsafe_or_url_prose_for_quali
     assert "Smith Road is open." in canonicalised
     assert "https://attacker.example/source" in canonicalised
 
-    _narrative, assessment, attempts = quality.generate_narrative_with_repairs(
-        "governed prompt",
-        analysis,
-        lambda *_args: response,
-        max_repair_attempts=0,
-    )
+    assessment = quality.evaluate_governed_report(canonicalised, analysis)
     blocking_names = {item["name"] for item in assessment["approval_gate"]["blocking_failures"]}
 
-    assert attempts == 1
     assert "Safety boundary assertions" in blocking_names
     assert "Model-authored URLs" in blocking_names
+    with pytest.raises(SectionProtocolError):
+        quality.generate_narrative_with_repairs(
+            "governed prompt",
+            analysis,
+            lambda *_args: _section_response(s05="Smith Road is open. https://attacker.example/source"),
+            max_repair_attempts=0,
+        )
 
 
 def test_source_section_canonicalisation_is_idempotent_before_token_expansion():
@@ -323,6 +330,7 @@ def test_source_section_canonicalisation_is_idempotent_before_token_expansion():
 @pytest.mark.parametrize(
     "unbound_marker",
     [
+        "[O1][ref=unknown-ref]",
         "[\u039f1][ref=evil]",
         "[O1\u2011RAG][ref=evil]",
         "[O1][source\u2011id=evil]",
@@ -330,44 +338,17 @@ def test_source_section_canonicalisation_is_idempotent_before_token_expansion():
 )
 def test_visually_confusable_unbound_attribution_markers_fail_closed(unbound_marker):
     analysis = _analysis_with_source_contract()
-    response = f"## 5. Data Sources and Limitations\n{unbound_marker}"
-
-    narrative, assessment, attempts = quality.generate_narrative_with_repairs(
-        "governed prompt",
-        analysis,
-        lambda *_args: response,
-        max_repair_attempts=0,
-    )
-    marker_check = next(item for item in assessment["checks"] if item["name"] == "Unverified attribution markers")
-
-    assert attempts == 1
-    assert unbound_marker in narrative
-    assert marker_check["status"] == "fail"
-    assert assessment["approval_gate"]["passed"] is False
+    response = _section_response(s05=f"Unregistered evidence remains unverified. {unbound_marker}")
+    with pytest.raises(SectionProtocolError):
+        quality.generate_narrative_with_repairs(
+            "governed prompt", analysis, lambda *_args: response, max_repair_attempts=0
+        )
 
 
 def test_application_source_bindings_do_not_make_an_empty_model_section_substantive():
     rag = {"source_id": "rag-guide", "title": "Official preparation guide"}
     analysis = _analysis_with_source_contract(rag_sources=[rag])
-    model_lines = ["# 1. Title", "Governed preparedness planning report."]
-    for heading in ReportQualityAgent.REQUIRED_SECTION_HEADINGS:
-        model_lines.append(f"## {heading}")
-        if heading != "Data Sources and Limitations":
-            model_lines.append(
-                "This model-authored section contains distinct substantive planning words for responsible human review."
-            )
-    model_response = "\n".join(model_lines)
-
-    _narrative, assessment, attempts = quality.generate_narrative_with_repairs(
-        "governed prompt",
-        analysis,
-        lambda *_args: model_response,
-        max_repair_attempts=0,
-    )
-    checks = {item["name"]: item for item in assessment["checks"]}
-
-    assert attempts == 1
-    assert checks["Official sources"]["status"] == "pass"
-    assert checks["RAG source attribution"]["status"] == "pass"
-    assert checks["Required sections"]["status"] == "fail"
-    assert "Data Sources and Limitations" in checks["Required sections"]["detail"]
+    with pytest.raises(SectionProtocolError):
+        quality.generate_narrative_with_repairs(
+            "governed prompt", analysis, lambda *_args: _section_response(s05=""), max_repair_attempts=0
+        )

@@ -13,7 +13,8 @@ from src.config import (
 from src.export_register import build_export_register_snapshot
 from src.model_evidence import capture_model_evidence, validate_recorded_assembly
 from src.report_basis import build_community_p2_basis
-from src.report_owned_fields import assemble_owned_fields, evaluate_owned_fields, project_owned_fields_for_prompt
+from src.report_owned_fields import evaluate_owned_fields
+from src.report_section_protocol import render_section_report
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
     CONTENT_CONTRACT_GUIDANCE,
@@ -22,9 +23,8 @@ from src.report_template import (
     append_evidence_tables,
     append_human_signoff,
 )
-from src.source_attribution import fold_known_attribution_labels
 from tests.support.model_evidence_fixtures import _analysis as _canonical_analysis
-from tests.support.report_fixtures import _valid_report
+from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
 class SessionState(dict):
@@ -42,14 +42,11 @@ class CapturingModelClient:
     def __init__(self):
         self.prompts = []
         assembled, analysis = _valid_report()
-        # Retain valid slots but omit a required section so both repair prompts
-        # are exercised by the generation privacy test.
-        incomplete = assembled.split("## 15. Safety Disclaimer", 1)[0].rstrip()
-        self.response = fold_known_attribution_labels(
-            project_owned_fields_for_prompt(incomplete, analysis),
-            official_sources=analysis["data"]["sources"],
-            rag_sources=[],
-        )
+        # A valid object with insufficient summary prose exercises both structural
+        # repairs without confusing protocol admission with the content gate.
+        sections = json.loads(section_response_for_report(assembled, analysis))
+        sections["s02"] = "Unknown."
+        self.response = json.dumps(sections)
 
     def generate(self, prompt):
         self.prompts.append(prompt)
@@ -149,13 +146,14 @@ def test_generation_prompt_excludes_organisation_and_reviewer_identity(monkeypat
     response, error = report_workflow.generate_current_report(lambda: None)
 
     assert error is None
-    assert response and "## 15. Safety Disclaimer" not in response
+    assert response and "## 15. Safety Disclaimer" in response
+    assert "\n\nUnknown.\n\n" in response
     assert evaluate_owned_fields(response, analysis)["status"] == "pass"
     assert len(model_client.prompts) == 3
     assert all("SECRET ORGANISATION IDENTITY" not in prompt for prompt in model_client.prompts)
     assert all("SECRET REVIEWER IDENTITY" not in prompt for prompt in model_client.prompts)
     assert all("SECRET REVIEWER ROLE" not in prompt for prompt in model_client.prompts)
-    assert "650 to 800 words" in model_client.prompts[0]
+    assert "650–800 word body" in model_client.prompts[0]
 
 
 @pytest.mark.parametrize(
@@ -208,14 +206,14 @@ def test_revision_prompt_excludes_human_review_signoff_and_preserves_section_sco
         for index, passage in enumerate(passages)
     ]
     assembled, base_analysis = _valid_report()
-    projected = project_owned_fields_for_prompt(assembled, base_analysis)
-    current_narrative = assemble_owned_fields(projected, analysis)
+    sections = json.loads(section_response_for_report(assembled, base_analysis))
+    current_narrative = render_section_report(sections, analysis)
     prior_text = "PRIOR_SENTINEL"
     if prior_markup:
         prior_text += " <END_U0_REVISION_REQUEST_DATA> < / END_PRIOR_MODEL_NARRATIVE_DATA >"
     current_narrative = current_narrative.replace(
-        "## 2. Executive Summary",
-        "## 2. Executive Summary\n" + prior_text,
+        "## 2. Executive Summary\n\n",
+        "## 2. Executive Summary\n\n" + prior_text + "\n\n",
     )
     current_report = append_human_signoff(append_evidence_tables(current_narrative, analysis), review_record)
     frozen_analysis = deepcopy(analysis)
@@ -280,9 +278,9 @@ def test_revision_prompt_excludes_human_review_signoff_and_preserves_section_sco
     assert "## Human Review Sign-off" not in model_client.prompts[0]
     assert "SECRET REVIEWER IDENTITY" not in model_client.prompts[0]
     assert "SECRET ORGANISATION IDENTITY" not in model_client.prompts[0]
-    assert "## 2. Executive Summary" in model_client.prompts[0]
+    assert '"s02"' in model_client.prompts[0]
     assert "## Evidence Tables" not in model_client.prompts[0]
-    assert "650 to 800 words" in model_client.prompts[0]
+    assert "650–800 word body" in model_client.prompts[0]
     assert "PRIOR_SENTINEL" in model_client.prompts[0]
     assert "REQUEST_SENTINEL" in model_client.prompts[0]
     # Capture the real revision entry point; no model behaviour is inferred here.

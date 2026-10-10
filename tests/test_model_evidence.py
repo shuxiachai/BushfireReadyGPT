@@ -10,13 +10,12 @@ import pytest
 
 from src import audit, export_package
 from src import report_generation_quality as quality
+from src.current_model_evidence import SECTION_PROSE_OUTPUT_CONTRACT, EvidencePrompt, protocol_retry_prompt
 from src.model_evidence import (
-    EvidencePrompt,
     EvidenceResponse,
     bind_normalized_narrative,
     capture_model_evidence,
     normalized_evidence_response,
-    protocol_retry_prompt,
     text_sha256,
     validate_model_evidence,
 )
@@ -24,15 +23,13 @@ from src.model_runtime import GovernedModelClient, ModelServiceError
 from src.rag.context import assemble_planning_context
 from src.rag.service import assemble_retrieved_context
 from src.report_grounding import evaluate_model_visible_rag_grounding, evaluate_report_grounding
-from src.report_owned_fields import project_owned_fields_for_prompt
+from src.report_section_protocol import render_section_report
 from src.report_template import append_human_signoff, extract_narrative_body
 from src.source_attribution import (
-    canonicalise_model_source_section,
-    expand_known_attribution_tokens,
     fold_known_attribution_labels,
 )
 from tests.support.model_evidence_fixtures import _analysis as _analysis
-from tests.support.report_fixtures import _valid_report
+from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
 def _chunk(text, identity="guide"):
@@ -53,14 +50,13 @@ def _claim(identity="guide"):
 
 def _owned_report_with_evidence():
     assembled, analysis = _valid_report()
+    sections = json.loads(section_response_for_report(assembled, analysis))
     chunks = [_chunk("Families prepare household emergency supplies.")]
     analysis["knowledge"]["retrieved_chunks"] = chunks
-    assembled = assembled.replace("## 7. Preparedness Priorities", _claim() + "\n\n## 7. Preparedness Priorities")
     sources = analysis["data"]["sources"]
-    assembled = canonicalise_model_source_section(assembled, official_sources=sources, rag_sources=chunks)
-    assembled = expand_known_attribution_tokens(assembled, official_sources=sources, rag_sources=chunks)
-    raw = project_owned_fields_for_prompt(assembled, analysis)
-    raw = fold_known_attribution_labels(raw, official_sources=sources, rag_sources=chunks)
+    sections["s06"] += "\n\n" + fold_known_attribution_labels(_claim(), official_sources=sources, rag_sources=chunks)
+    assembled = render_section_report(sections, analysis)
+    raw = json.dumps(sections, ensure_ascii=False)
     return assembled, analysis, raw
 
 
@@ -89,9 +85,12 @@ def _capture(
     kind="initial",
     attempt=1,
     prefix="PRIVATE U0 VALUE\n",
+    output_contract=None,
 ):
     assembly = assembly or assemble_retrieved_context(analysis["knowledge"])
-    prompt = EvidencePrompt(prefix + assembly["context"], assembly=assembly, request_kind=kind)
+    prompt = EvidencePrompt(
+        prefix + assembly["context"], assembly=assembly, request_kind=kind, output_contract=output_contract
+    )
     runtime = _runtime(response or _claim())
     text = runtime.generate(prompt)
     snapshot = capture_model_evidence(prompt, runtime, text, attempt_number=attempt)
@@ -234,8 +233,10 @@ def test_repair_is_recorded_with_its_smaller_budget_not_initial_evidence():
 def test_normalized_response_retains_exact_source_capture_without_old_attempt_union():
     assembled_narrative, analysis, raw_narrative = _owned_report_with_evidence()
     assembly = assemble_retrieved_context(analysis["knowledge"])
-    prompt = EvidencePrompt(assembly["context"], assembly=assembly)
-    responses = iter([raw_narrative.replace("## 2. Executive Summary", "## Context Summary"), raw_narrative])
+    prompt = EvidencePrompt(assembly["context"], assembly=assembly, output_contract=SECTION_PROSE_OUTPUT_CONTRACT)
+    incomplete = json.loads(raw_narrative)
+    incomplete["s02"] = "Unknown."
+    responses = iter([json.dumps(incomplete), raw_narrative])
     runtime = _runtime(lambda: next(responses))
     seen = []
 
@@ -267,11 +268,10 @@ def test_normalized_response_retains_exact_source_capture_without_old_attempt_un
 
 def test_response_hash_mismatch_cannot_be_bound_to_a_normalized_narrative():
     assembled_narrative, analysis = _valid_report()
-    raw_narrative = project_owned_fields_for_prompt(assembled_narrative, analysis)
-    raw_narrative = fold_known_attribution_labels(
-        raw_narrative, official_sources=analysis["data"]["sources"], rag_sources=[]
+    raw_narrative = section_response_for_report(assembled_narrative, analysis)
+    response, snapshot, *_ = _capture(
+        analysis, response=raw_narrative, normalized=assembled_narrative, output_contract=SECTION_PROSE_OUTPUT_CONTRACT
     )
-    response, snapshot, *_ = _capture(analysis, response=raw_narrative, normalized=assembled_narrative)
     altered = EvidenceResponse(response + " Altered private narrative.", snapshot)
     normalized = normalized_evidence_response(altered, "Different normalized narrative.")
     assert normalized.model_evidence["status"] == "unavailable"
@@ -304,7 +304,9 @@ def export_case(monkeypatch, tmp_path):
     monkeypatch.setattr(export_package, "create_report_pdf", lambda _, **_kwargs: b"synthetic pdf")
     monkeypatch.setattr(export_package, "create_report_docx", lambda _, **_kwargs: b"synthetic docx")
     assembled_narrative, analysis, raw_narrative = _owned_report_with_evidence()
-    response, snapshot, *_ = _capture(analysis, response=raw_narrative, normalized=assembled_narrative)
+    response, snapshot, *_ = _capture(
+        analysis, response=raw_narrative, normalized=assembled_narrative, output_contract=SECTION_PROSE_OUTPUT_CONTRACT
+    )
     assert snapshot["status"] == "captured" and snapshot["visible_passages"]
     assert snapshot["request_binding"]["response_sha256"] == text_sha256(response)
     assert snapshot["normalized_narrative_sha256"] == text_sha256(extract_narrative_body(assembled_narrative))
@@ -367,7 +369,7 @@ def test_export_rejects_diagnostic_tampering_but_legacy_optional_call_is_unchang
 
 
 def test_legacy_v6_and_v7_fingerprints_are_unchanged():
-    assert quality.QUALITY_POLICY_VERSION == "governed-report-v10"
+    assert quality.QUALITY_POLICY_VERSION == "governed-report-v11"
     assert quality._KNOWN_POLICY_FINGERPRINTS["governed-report-v6"] == (
         "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
     )
@@ -460,12 +462,7 @@ def test_revision_workflow_attaches_new_frozen_evidence_without_retrieval(export
         "audit_path": export_case["audit_path"],
     }
     calls, finalized = [], []
-    revised_raw = project_owned_fields_for_prompt(extract_narrative_body(export_case["report_text"]), original_analysis)
-    revised_raw = fold_known_attribution_labels(
-        revised_raw,
-        official_sources=original_analysis["data"]["sources"],
-        rag_sources=original_analysis["knowledge"]["retrieved_chunks"],
-    )
+    revised_raw = section_response_for_report(extract_narrative_body(export_case["report_text"]), original_analysis)
     state = State(latest_report=parent, model_client=_runtime(revised_raw, calls))
     monkeypatch.setattr(workflow, "st", SimpleNamespace(session_state=state))
     monkeypatch.setattr(workflow, "validate_model_privacy_boundary", lambda: None)

@@ -21,16 +21,44 @@ from src.config import (
     client,
     model,
 )
+from src.current_model_evidence import OUTPUT_CONTRACTS, SECTION_PROSE_OUTPUT_CONTRACT
 from src.deployment_access import DeploymentConfigurationError
-from src.model_evidence import CapturedMessages, bind_submitted_messages, text_sha256
+from src.model_evidence import (
+    CapturedMessages,
+    bind_submitted_messages,
+    text_sha256,
+)
 from src.model_limits import ModelAllowanceError, acquire_model_slot
 from src.model_response import ModelResponseError, ModelServiceError, record_response_admission
+from src.section_protocol_error import SectionProtocolError
 
 GOVERNED_MODEL_SYSTEM_PROMPT = """You are the governed report-generation engine for BushfireReadyGPT.
 Process only the current request. Do not retain conversational history, call tools, emit tool-call syntax, or
 claim that you accessed live emergency information. Return only the requested English Markdown report. Follow
 the safety, evidence, structure and human-review requirements in the current request exactly."""
 LOGGER = logging.getLogger(__name__)
+SECTION_PROSE_SYSTEM_PROMPT = """You are the governed report-generation engine for BushfireReadyGPT.
+Process only the current request. Do not retain history, call tools or claim live emergency access.
+Return only one strict JSON object containing exactly s01 through s15, each a nonempty English prose string.
+The application supplies headings, frozen fields, source register and appendices. Follow the request's safety,
+evidence and human-review requirements. No Markdown headings, fences, preface or extra JSON fields."""
+
+
+def build_governed_messages(prompt):
+    """Construct the same mode-specific messages for transport and diagnostics."""
+    prompt_text = str(prompt or "").strip()
+    if not prompt_text:
+        raise ValueError("A governed model prompt is required.")
+    contract = getattr(prompt, "output_contract", "markdown")
+    if not isinstance(contract, str) or contract not in OUTPUT_CONTRACTS:
+        raise ValueError("Unsupported model output contract.")
+    system = SECTION_PROSE_SYSTEM_PROMPT if contract == SECTION_PROSE_OUTPUT_CONTRACT else GOVERNED_MODEL_SYSTEM_PROMPT
+    return CapturedMessages(
+        [
+            {"role": "system", "content": system},
+            {"role": "user", "content": prompt_text},
+        ]
+    )
 
 
 def _single_choice(response):
@@ -339,15 +367,7 @@ class GovernedModelClient:
 
     def generate(self, prompt):
         self.last_request_capture = None
-        prompt_text = str(prompt or "").strip()
-        if not prompt_text:
-            raise ValueError("A governed model prompt is required.")
-        messages = CapturedMessages(
-            [
-                {"role": "system", "content": GOVERNED_MODEL_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt_text},
-            ]
-        )
+        messages = build_governed_messages(prompt)
         try:
             request_slot = acquire_model_slot()
         except (ModelAllowanceError, DeploymentConfigurationError) as error:
@@ -361,7 +381,16 @@ class GovernedModelClient:
         except ModelResponseError as error:
             record_response_admission(error.reason)
         record_response_admission("stop")
-        cleaned = clean_model_output(response_text)
+        cleaned = (
+            response_text
+            if getattr(prompt, "output_contract", None) == SECTION_PROSE_OUTPUT_CONTRACT
+            else clean_model_output(response_text)
+        )
+        if getattr(prompt, "output_contract", None) == SECTION_PROSE_OUTPUT_CONTRACT:
+            try:
+                cleaned.encode("utf-8")
+            except UnicodeError:
+                raise SectionProtocolError() from None
         if not cleaned:
             raise ModelServiceError("The model returned no usable report text. Retry the request.")
         if messages.submitted_binding is not None:

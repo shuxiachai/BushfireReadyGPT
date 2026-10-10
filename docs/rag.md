@@ -249,9 +249,12 @@ Revisions apply them within the requested edit scope; they do not authorise
 silently rewriting unrelated parts of an existing report. Retrieved evidence,
 its recorded assembly and historical reports are not reassigned or rewritten.
 
-This is a prompt-contract correction, not a new semantic validator or automatic
-paragraph mover. The existing v6 quality policy, audit-quality dictionaries,
-repair/call limits and token budget remain unchanged. Synthetic tests can
+This was introduced as a prompt-contract correction, not a new semantic
+validator or automatic paragraph mover; that change did not alter the then-v6
+quality policy, audit-quality dictionaries, repair/call limits or token budget.
+The current v11 section-prose protocol retains these purpose rules but has its
+own quality-policy identity and application-owned rendering contract; see
+[architecture](architecture.md). Synthetic tests can
 verify that the rules reach each prompt path without changing evidence; they
 cannot establish that a real model now follows the rules or that citation
 coverage/semantic accuracy has improved. See [current status](project_reassessment.md)

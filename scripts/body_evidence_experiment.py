@@ -6,8 +6,9 @@ import copy
 import re
 import time
 
+from src.current_model_evidence import EvidencePrompt
+from src.model_evidence import EvidencePrompt as HistoricalEvidencePrompt
 from src.model_evidence import (
-    EvidencePrompt,
     EvidenceResponse,
     capture_model_evidence,
     json_sha256,
@@ -44,12 +45,13 @@ def build_variant_prompt(base: EvidencePrompt, variant: str) -> EvidencePrompt:
     """Copy request metadata; baseline's characters remain exactly unchanged."""
     if variant not in VARIANTS:
         raise ValueError("Unknown experimental variant.")
-    if not isinstance(base, EvidencePrompt):
+    if not isinstance(base, HistoricalEvidencePrompt):
         raise TypeError("An EvidencePrompt is required.")
     return EvidencePrompt(
         str(base) + (LAYOUT_GUIDANCE if variant == "claim_pair_v1" else ""),
         assembly=base.assembly,
         request_kind=base.request_kind,
+        output_contract=getattr(base, "output_contract", "markdown"),
     )
 
 

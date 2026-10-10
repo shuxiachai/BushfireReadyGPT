@@ -42,8 +42,8 @@ from src.config import (  # noqa: E402
     MODEL_TIMEOUT_SECONDS,
     model,
 )
+from src.current_model_evidence import EvidencePrompt  # noqa: E402
 from src.model_evidence import (  # noqa: E402
-    EvidencePrompt,
     EvidenceResponse,
     capture_model_evidence,
     json_sha256,

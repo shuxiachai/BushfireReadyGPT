@@ -11,7 +11,12 @@ from scripts import evaluate_body_evidence_deepseek as remote
 from src import report_generation_quality as quality
 from src.model_evidence import json_sha256
 from src.model_response import ModelResponseError, ModelServiceError
-from tests.test_body_evidence_experiment import analysis_fixture, mock_client, report_fixture, scenario_fixture
+from tests.test_body_evidence_experiment import (
+    analysis_fixture,
+    mock_client,
+    scenario_fixture,
+    section_response_fixture,
+)
 
 
 @pytest.fixture
@@ -232,7 +237,7 @@ def test_complete_mock_run_preserves_origin_and_all_denominators(prepared, setti
         journal,
         provenance=lambda: {"stable": True},
         client_factory=lambda: (
-            mock_client(report_fixture(analysis_fixture()), calls),
+            mock_client(section_response_fixture(analysis_fixture()), calls),
             SimpleNamespace(close=lambda: None),
         ),
     )
@@ -308,7 +313,7 @@ def test_budget_is_shared_and_remaining_arms_are_not_run(prepared, settings, jou
         journal,
         max_calls=1,
         provenance=lambda: {},
-        client_factory=lambda: (mock_client(report_fixture(analysis_fixture()), calls), None),
+        client_factory=lambda: (mock_client(section_response_fixture(analysis_fixture()), calls), None),
     )
     assert len(calls) == result["attempted_calls"] == 1 and result["not_run_arms"] == 3
     assert result["fatal_stop_reason"] == "call_budget_exhausted"
@@ -392,7 +397,7 @@ def test_retryable_protocol_uses_shared_budget_and_preserves_capture(prepared, s
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": True}})
 
     def factory():
-        client = mock_client(report_fixture(analysis_fixture()), calls)
+        client = mock_client(section_response_fixture(analysis_fixture()), calls)
         original = client.generate
 
         def generate(prompt):

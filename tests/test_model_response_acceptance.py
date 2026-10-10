@@ -10,8 +10,10 @@ from openai import OpenAI
 from src import report_generation_quality as quality
 from src.model_response import ModelResponseError, ModelServiceError, validate_narrative_ending
 from src.model_runtime import GovernedModelClient
+from src.report_section_protocol import assemble_section_response
 from src.runtime_trace import RuntimeTrace
 from tests.support.model_evidence_fixtures import _analysis as _current_analysis
+from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
 def _chunk(content=None, reason=None, **payload):
@@ -210,8 +212,13 @@ def _analysis():
 
 
 def _stub_quality(monkeypatch):
-    monkeypatch.setattr(quality, "_normalise_generation_response", lambda text, _analysis: text)
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": True}})
+
+
+def _section_response(**overrides):
+    sections = json.loads(section_response_for_report(*_valid_report()))
+    sections.update(overrides)
+    return json.dumps(sections)
 
 
 @pytest.mark.parametrize("reason", ["content_filter", "tool_calls", "function_call", "missing", "invalid"])
@@ -235,7 +242,7 @@ def test_recoverable_responses_use_shared_three_call_ceiling_and_no_partial_text
 ):
     _stub_quality(monkeypatch)
     reason = "length" if failure == "length" else "stop"
-    partial = "## 15. Safety Disclaimer\nPRIVATE partial ending"
+    partial = _section_response(s15="PRIVATE partial ending")
     provider = _Client(lambda: iter([_chunk(partial, reason)]) if stream else _completion(partial, reason))
     runtime = GovernedModelClient(completion_client=provider, is_local=stream)
     with pytest.raises(ModelResponseError):
@@ -243,7 +250,7 @@ def test_recoverable_responses_use_shared_three_call_ceiling_and_no_partial_text
     assert provider.calls == 3
     assert all(options == {"max_retries": 0} for options in provider.options)
     assert len({request["max_tokens"] for request in provider.requests}) == 1
-    assert "Rewrite the entire report" in provider.requests[1]["messages"][-1]["content"]
+    assert "Return all s01–s15 prose strings" in provider.requests[1]["messages"][-1]["content"]
     assert all("PRIVATE" not in request["messages"][-1]["content"] for request in provider.requests)
     with closing(sqlite3.connect(tmp_path / "model-usage.sqlite3")) as connection:
         assert connection.execute("SELECT SUM(calls) FROM daily_calls").fetchone()[0] == 3
@@ -281,7 +288,7 @@ def test_length_then_structural_failure_share_one_budget_and_can_recover(monkeyp
         calls.append((prompt, attempt, repair))
         if attempt == 1:
             raise ModelResponseError("length")
-        return "## 15. Safety Disclaimer\nA completed safety sentence."
+        return _section_response(s15="A completed safety sentence.")
 
     _, result, attempts = quality.generate_narrative_with_repairs("prompt", _analysis(), generate)
     assert attempts == 3
@@ -293,8 +300,8 @@ def test_length_then_structural_failure_share_one_budget_and_can_recover(monkeyp
 def test_obvious_incomplete_sentence_is_rewritten_not_silently_patched(monkeypatch):
     _stub_quality(monkeypatch)
     calls = []
-    partial = "## 15. Safety Disclaimer\nEvery candidate remains pending current"
-    complete = "## 15. Safety Disclaimer\nAll proposed places need current verification and human approval."
+    partial = _section_response(s15="Every candidate remains pending current")
+    complete = _section_response(s15="All proposed places need current verification and human approval.")
 
     def generate(prompt, attempt, repair):
         calls.append((prompt, attempt, repair))
@@ -302,9 +309,9 @@ def test_obvious_incomplete_sentence_is_rewritten_not_silently_patched(monkeypat
 
     result, _, attempts = quality.generate_narrative_with_repairs("prompt", _analysis(), generate)
     assert attempts == 2
-    assert result == complete
+    assert result == assemble_section_response(complete, _analysis())
     assert "pending current" not in calls[1][0]
-    assert "Rewrite the entire report" in calls[1][0]
+    assert "Return all s01–s15 prose strings" in calls[1][0]
 
 
 def test_disabled_repair_has_no_hidden_protocol_retry(monkeypatch):
@@ -319,7 +326,7 @@ def test_disabled_repair_has_no_hidden_protocol_retry(monkeypatch):
 
 
 def test_new_response_admission_does_not_relabel_historical_quality_policy():
-    assert quality.CURRENT_POLICY == "governed-report-v10"
+    assert quality.CURRENT_POLICY == "governed-report-v11"
     legacy_fingerprint = "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
     assert quality.READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"] == frozenset({legacy_fingerprint})
     assert quality.is_readable_quality_policy_binding("governed-report-v6", legacy_fingerprint)
@@ -327,6 +334,9 @@ def test_new_response_admission_does_not_relabel_historical_quality_policy():
     v7_fingerprint = "ef6c5efd26891c6bb7eab3fbd556e46dc296b4d283c4dec50d8f6140d92ab1bd"
     assert quality.is_readable_quality_policy_binding("governed-report-v7", v7_fingerprint)
     assert not quality.is_current_quality_policy_binding("governed-report-v7", v7_fingerprint)
+    v10_fingerprint = "e12a385cbd02186eed0dce6860f3bb70983b3d4e28d66780cfd2e7c08ec3bf87"
+    assert quality.is_readable_quality_policy_binding("governed-report-v10", v10_fingerprint)
+    assert not quality.is_current_quality_policy_binding("governed-report-v10", v10_fingerprint)
 
 
 def test_successful_finish_reason_is_recorded_without_content(monkeypatch, tmp_path):

@@ -7,12 +7,14 @@ import pytest
 
 from scripts import evaluate_report_generation
 from scripts.evaluate_report_generation import (
+    ScenarioGenerationError,
     _assess_scenario_alignment,
     _rag_behavior_passed,
     _temporary_rag_mode,
     run_scenario_with_artifacts,
 )
 from src.rag.service import assemble_retrieved_context
+from src.section_protocol_error import SectionProtocolError
 from src.source_attribution import fold_known_attribution_labels
 from tests.support.report_fixtures import _valid_report
 
@@ -277,22 +279,26 @@ def test_scenario_evaluation_cannot_upgrade_canonical_no_slot_response(monkeypat
 
     monkeypatch.setattr(evaluate_report_generation, "run_analysis_pipeline", lambda *_: analysis)
     monkeypatch.setattr(evaluate_report_generation, "GovernedModelClient", Model)
-    result = run_scenario_with_artifacts(
-        {
-            "id": "synthetic-owned-slots",
-            "location": "Synthetic district",
-            "audience": "Reviewers",
-            "scenario": "Community workshop material",
-            "concerns": [],
-            "timeframe": "7-day action plan",
-            "expect_retrieved_chunks": False,
-        }
+    monkeypatch.setattr(
+        evaluate_report_generation,
+        "evaluate_governed_report",
+        lambda *_args, **_kwargs: pytest.fail("A rejected Markdown response must not reach final assessment"),
     )
-    assert len(calls) == 3
-    assert not result["row"]["governed_gate_passed"]
-    assert any(
-        item["detail"] == "owned_fields_generation_slots_required" for item in result["row"]["blocking_failures"]
-    )
+    with pytest.raises(ScenarioGenerationError, match="section-prose object") as rejected:
+        run_scenario_with_artifacts(
+            {
+                "id": "synthetic-owned-slots",
+                "location": "Synthetic district",
+                "audience": "Reviewers",
+                "scenario": "Community workshop material",
+                "concerns": [],
+                "timeframe": "7-day action plan",
+                "expect_retrieved_chunks": False,
+            }
+        )
+    assert len(calls) == rejected.value.generation_attempts == 3
+    assert isinstance(rejected.value.__cause__, SectionProtocolError)
+    assert rejected.value.__cause__.code == "model_response_section_protocol"
 
 
 def test_partial_cli_run_cannot_claim_the_release_gate(tmp_path, monkeypatch):

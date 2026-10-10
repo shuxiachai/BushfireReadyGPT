@@ -19,13 +19,17 @@ from zipfile import ZipFile
 
 import pytest
 
+from tests.support.report_fixtures import _valid_report, section_response_from_markdown
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
 ARTIFACT_PARENT = PROJECT_ROOT / "output" / "playwright"
 
 # Synthetic response for the exact Cairns Council pilot and map fixture below.
 # No quality result is mocked: the offline preflight and UI use the current gate.
-MOCK_REPORT = """# Cairns Council Bushfire Preparedness Draft
+MOCK_REPORT_MARKDOWN = """# 1. Title
+
+Cairns Council Bushfire Preparedness Draft
 
 ## 2. Executive Summary
 This synthetic planning draft presents a Council community preparedness review agenda for Cairns, Queensland.
@@ -52,8 +56,6 @@ The source register contains controlled verification entry points only, with no 
 a local operating arrangement. No live warning feed or current road information is available. Source currency,
 geographic applicability and organisational relevance remain unresolved review matters. The prose is draft
 synthesis, not a substitute for evidence or responsible-authority advice.
-[O1][source_id=mock_qld_source] Mock Queensland Official Source
-[O1][source_id=mock_bom_source] Mock Bureau of Meteorology Source
 
 ## 6. Local Risk Context
 Bushfire, smoke, heat, road access, power and communication are topics for the review agenda. Their local
@@ -102,6 +104,10 @@ reviewers, evidence requirements and exercise records. This draft provides no cl
 This draft does not establish operational safety. Live warnings, fire bans, evacuation orders and life-safety
 decisions must come from official emergency services. Call 000 in a life-threatening emergency.
 """
+
+# The loopback mock returns the same strict protocol payload expected from a
+# governed model. Rendering, frozen fields and gate assessment remain real.
+MOCK_REPORT = section_response_from_markdown(MOCK_REPORT_MARKDOWN, _valid_report()[1])
 
 
 class MockModelHandler(BaseHTTPRequestHandler):
@@ -460,7 +466,7 @@ def _assert_fixture_governed_gate(environment):
             for check in quality["checks"]
             if check["status"] == "fail"
         ]
-        assert quality["quality_policy_version"] == "governed-report-v10"
+        assert quality["quality_policy_version"] == "governed-report-v11"
         return analysis, narrative, quality
 
 
@@ -602,9 +608,7 @@ def test_browser_report_data_map_and_human_signoff_workflow(protected_downloads)
                 expect(page.get_by_role("heading", name="Latest Report Preview", exact=True)).to_be_visible(
                     timeout=60_000
                 )
-                expect(
-                    page.get_by_role("heading", name="Cairns Council Bushfire Preparedness Draft", exact=True).first
-                ).to_be_visible()
+                expect(page.get_by_text("Cairns Council Bushfire Preparedness Draft", exact=True).first).to_be_visible()
 
                 with page.expect_download(timeout=30_000) as markdown_download_info:
                     _report_download_button(page, "Download Markdown", protected_downloads).click()

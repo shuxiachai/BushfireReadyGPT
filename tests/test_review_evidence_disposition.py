@@ -17,7 +17,7 @@ from src.report_generation_quality import (
     is_readable_quality_policy_binding,
 )
 from src.report_grounding import claim_review_reasons, evaluate_report_grounding
-from src.report_owned_fields import assemble_owned_fields, project_owned_fields_for_prompt
+from src.report_section_protocol import project_section_report, render_section_report
 from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
 from tests.support.report_fixtures import _valid_report
 
@@ -66,7 +66,7 @@ def _record(claim, analysis=None):
 def _current_record(claim=""):
     """A complete current approval fixture, separate from historical UI inputs."""
     narrative, analysis = _valid_report()
-    narrative = project_owned_fields_for_prompt(narrative, analysis)
+    sections = project_section_report(narrative, analysis)
     analysis["data_integrity"] = {"custom_data": False, "core_ready": True}
     analysis["community"] = {
         "indicators": {
@@ -79,17 +79,13 @@ def _current_record(claim=""):
         },
         "data_quality": {"source_period": "2021 Census and 2022 ERP"},
     }
-    heading = "## 4. Selected Geography and Key Assumptions"
-    before, remainder = narrative.split(heading, 1)
-    _old, after = remainder.split("## 5. Data Sources and Limitations", 1)
-    basis = (
+    sections["s04"] = (
         "No site address, participant list or exact premises boundary is supplied. Local applicability "
-        "remains an organisational review matter before formal use.\n\n[APP_P2_FIELDS]"
+        "remains an organisational review matter before formal use."
     )
-    narrative = before + heading + "\n" + basis + "\n\n## 5. Data Sources and Limitations" + after
-    narrative = assemble_owned_fields(narrative, analysis)
     if claim:
-        narrative = narrative.replace("## 2. Executive Summary", "## 2. Executive Summary\n" + claim, 1)
+        sections["s02"] = claim + "\n\n" + sections["s02"]
+    narrative = render_section_report(sections, analysis)
     text = append_human_signoff(append_evidence_tables(apply_governance_notice(narrative), analysis))
     return {"text": text, "analysis": analysis}
 
@@ -318,7 +314,7 @@ def test_current_review_cache_binds_report_text_analysis_and_method(monkeypatch)
 
 def test_v6_policy_and_committed_release_read_validation_remain_unchanged(monkeypatch):
     legacy_fingerprint = "b3d65d227d308192329af0e11624e15db0061ec26c62e116723b5e7a4e364745"
-    assert QUALITY_POLICY_VERSION == "governed-report-v10"
+    assert QUALITY_POLICY_VERSION == "governed-report-v11"
     assert QUALITY_POLICY_FINGERPRINT != legacy_fingerprint
     assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v6"] == frozenset({legacy_fingerprint})
     assert is_readable_quality_policy_binding("governed-report-v6", legacy_fingerprint)

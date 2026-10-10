@@ -1,10 +1,10 @@
 # Current project status
 
-Updated 2026-10-10 for deterministic P2 and administrative report fields under
-governed-report-v10. Engineering regression and its frozen-case budget passed,
-but the single real response omitted all four required field markers and was
-rejected. Earlier results remain unchanged; no accepted replacement sample or
-new formal release is claimed. This page
+Updated 2026-10-10 for application-owned report structure under
+governed-report-v11. The preceding v10 single real response omitted all four
+required field markers and was rejected; v11 instead requests section prose
+and lets the application supply the structure. Earlier results remain unchanged;
+no accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -50,9 +50,45 @@ See [architecture](architecture.md), [RAG](rag.md) and
 
 ## Recorded validation
 
-### Application-owned report fields (2026-10-10)
+### Application-owned section protocol (2026-10-10)
 
-Current generation expands four exact standalone slots in sections 4, 10, 13
+V11 requests exactly 15 nonempty JSON prose fields, rather than asking the model
+to copy headings or special field markers. The application renders the canonical
+headings, source register and the same four fixed P2/administrative blocks.
+Malformed objects, duplicate keys, unknown citations and hidden/structural
+markup fail closed; admitted prose is preserved, not filtered or repaired into
+acceptance. Initial generation, revision and bounded repair share this contract.
+The untyped generic runtime remains compatible with legacy Markdown requests.
+
+The unchanged 650–800-word body budget includes application fields. A separate
+300-word minimum and scenario/focus coverage use projected model prose, not
+application labels or tables. Saved-body projection is an exact inverse, so
+review/export cannot add missing fields or silently upgrade historical drafts.
+Raw response and assembled-body hashes remain distinct. V2–v10 policy identities
+and byte-pinned historical evidence/response helpers are preserved through
+current-only adapters; no historical comparison fixture or failed report is
+rewritten. Engineering and real-model results for this changed protocol must be
+recorded separately from the following v10 evidence.
+
+The final local non-E2E run passed **3,881 tests**, with 7 platform skips,
+6 E2E cases deselected and **90.27% src coverage**, in 432.87 seconds. The two
+report-workflow Chromium cases passed separately in 37.70 seconds; the remaining
+four download-protection browser cases passed in 4.45 seconds. Lock and
+installed dependency consistency, Ruff, formatting, Bandit and the installed
+dependency vulnerability scan passed. Independent review covered production
+boundaries and fixture migrations without relaxing historical assertions.
+
+The earlier broad run had 3,452 passes, 46 failures and 146 setup errors, mainly
+from old response fixtures and byte-pinned historical dependencies. The pinned
+modules were restored, current-only adapters added and synthetic fixtures
+migrated; old real responses stayed rejected. A separate test invocation stalled
+because it did not set workspace TEMP/TMP; only its verified test processes were
+stopped, and the correctly isolated rerun passed. These failures remain recorded;
+none is a real-model attempt or a reason to lower acceptance criteria.
+
+### Historical v10 application-owned fields (2026-10-10)
+
+V10 generation expanded four exact standalone slots in sections 4, 10, 13
 and 14 into frozen P2 values/basis, unconfirmed role appointments, proposed
 administrative review actions and an unchecked human-review item. Templates
 use validated canonical scenario/timeframe/focus IDs, never raw Planner tasks
@@ -434,8 +470,11 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Suggested Next Build Order
 
-The current maintenance priorities are documentation consistency, a shorter
-project-experience reference, and cloud backup/recovery plus quota/cost checks.
+The immediate priority is to validate the v11 section-prose protocol against
+the unchanged local synthetic input: exact input-token measurement first, then
+a separately bounded real response if its budget fits. Engineering success
+must not substitute for model-output or content acceptance. Cloud backup/recovery,
+quota/cost gaps and documentation consistency remain tracked separately.
 Additional demonstrations, native Word layout checks and replacement report
 samples are deferred. Their incomplete acceptance remains recorded below.
 Publishing a replacement sample as accepted would still require report-specific

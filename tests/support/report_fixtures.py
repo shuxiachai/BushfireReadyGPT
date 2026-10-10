@@ -3,6 +3,47 @@
 from tests.support.model_evidence_fixtures import _analysis
 
 
+def section_response_for_report(body, analysis):
+    """Serialize a verified current synthetic body as a raw model response."""
+    import json
+
+    from src.report_section_protocol import project_section_report
+
+    return json.dumps(project_section_report(body, analysis), ensure_ascii=False)
+
+
+def section_response_from_markdown(body, analysis):
+    """Test-only migration of legacy synthetic prose/slot fixtures, never production."""
+    import json
+    import re
+
+    from src.report_owned_fields import OWNED_SECTIONS, build_owned_field_spec, render_owned_blocks
+    from src.report_section_protocol import SECTION_KEYS
+    from src.report_template import extract_narrative_body
+    from src.source_attribution import fold_known_attribution_labels, strip_application_source_bindings
+
+    sources = {
+        "official_sources": (analysis.get("data") or {}).get("sources") or [],
+        "rag_sources": (analysis.get("knowledge") or {}).get("retrieved_chunks") or [],
+    }
+    text = extract_narrative_body(body)
+    text = strip_application_source_bindings(text, **sources)
+    for block in render_owned_blocks(build_owned_field_spec(analysis)).values():
+        text = text.replace(block, "")
+    for _title, slot in OWNED_SECTIONS.values():
+        text = text.replace(slot, "")
+    parts = re.split(r"(?m)^#{1,2} \d+\. [^\n]+\n", text)
+    if len(parts) != 16 or parts[0].strip():
+        raise ValueError("Expected a synthetic 15-section fixture.")
+    sections = {
+        key: fold_known_attribution_labels(value.strip(), **sources)
+        for key, value in zip(SECTION_KEYS, parts[1:], strict=True)
+    }
+    sections["s13"] = sections["s13"] or "The review timetable remains subject to confirmation."
+    sections["s14"] = sections["s14"] or "Human review remains incomplete and approval has not been granted."
+    return json.dumps(sections, ensure_ascii=False)
+
+
 def with_owned_field_selectors(analysis):
     """Add explicit synthetic selector inputs to older non-selector unit fixtures."""
     from copy import deepcopy
@@ -20,8 +61,7 @@ def with_owned_field_selectors(analysis):
 
 def _valid_report():
     """Current synthetic organisational draft; no fabricated external facts."""
-    from src.report_owned_fields import assemble_owned_fields
-    from src.source_attribution import canonicalise_model_source_section, expand_known_attribution_tokens
+    from src.report_section_protocol import assemble_section_response
 
     analysis = _analysis()
     narrative = """# 1. Title
@@ -73,9 +113,5 @@ First aid readiness, smoke and heat support, AED and burn preparedness, training
 ## 15. Safety Disclaimer
 This draft does not establish operational safety. Live warnings, fire bans, evacuation orders and life-safety decisions must come from official emergency services. Call 000 in a life-threatening emergency.
 """
-    narrative = assemble_owned_fields(narrative, analysis)
-    narrative = canonicalise_model_source_section(
-        narrative, official_sources=analysis["data"]["sources"], rag_sources=[]
-    )
-    narrative = expand_known_attribution_tokens(narrative, official_sources=analysis["data"]["sources"], rag_sources=[])
+    narrative = assemble_section_response(section_response_from_markdown(narrative, analysis), analysis)
     return narrative, analysis

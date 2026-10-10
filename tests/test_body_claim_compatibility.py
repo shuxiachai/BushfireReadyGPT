@@ -8,7 +8,6 @@ from src import report_claim_evidence as body
 from src import report_generation_quality as quality
 from src.focus_coverage import canonical_coverage_declarations
 from src.model_evidence import EvidenceResponse, validate_model_evidence
-from src.report_template import REPORT_NARRATIVE_WORD_BUDGET
 from src.source_attribution import format_rag_attribution
 from tests.test_model_evidence import _analysis, _capture, _chunk
 
@@ -121,7 +120,8 @@ def test_user_context_citation_does_not_suppress_feedback_during_mandatory_repai
     assert "BODY CITATION REPAIR" in prompts[1] and "NONE" in prompts[1]
     assert "separate from the governed approval checks" in prompts[1]
     assert "Private initial request" not in prompts[1] and report not in prompts[1]
-    assert REPORT_NARRATIVE_WORD_BUDGET in prompts[1] and "at least 300 prose words" in prompts[1]
+    assert "650–800 word body" in prompts[1]
+    assert "model prose words, at least 300" in prompts[1]
     assert len(prompts[1]) <= quality.MAX_REPORT_REPAIR_PROMPT_CHARACTERS
 
 

@@ -16,11 +16,10 @@ from src.export_register import REGISTER_SNAPSHOT_FILES
 from src.model_evidence import text_sha256, validate_model_evidence
 from src.model_runtime import GovernedModelClient
 from src.rag.context import assemble_planning_context
-from src.report_owned_fields import project_owned_fields_for_prompt
 from src.report_template import extract_narrative_body
 from src.source_attribution import fold_known_attribution_labels
 from tests.support.model_evidence_fixtures import _analysis as _canonical_analysis
-from tests.support.report_fixtures import _valid_report
+from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
 def _analysis():
@@ -55,17 +54,13 @@ def _scenario():
 
 def _narrative(analysis):
     assembled, base_analysis = _valid_report()
-    raw = project_owned_fields_for_prompt(assembled, base_analysis)
-    raw = raw.replace(
-        "## 7. Preparedness Priorities",
-        "[O1-RAG][source_id=synthetic_guide] Synthetic guidance says families prepare household emergency supplies."
-        "\n\n## 7. Preparedness Priorities",
-    )
-    return fold_known_attribution_labels(
-        raw,
+    sections = json.loads(section_response_for_report(assembled, base_analysis))
+    sections["s06"] += "\n\n" + fold_known_attribution_labels(
+        "[O1-RAG][source_id=synthetic_guide] Synthetic guidance says families prepare household emergency supplies.",
         official_sources=analysis["data"]["sources"],
         rag_sources=analysis["knowledge"]["retrieved_chunks"],
     )
+    return json.dumps(sections, ensure_ascii=False)
 
 
 def _setup(monkeypatch, *, attempts=1, protocol_failure=False, fake=False):

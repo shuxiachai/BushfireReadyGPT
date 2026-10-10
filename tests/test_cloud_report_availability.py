@@ -8,12 +8,10 @@ from src.agents.official_knowledge_agent import OfficialKnowledgeAgent
 from src.export_register import build_export_register_snapshot
 from src.model_response import ModelResponseError
 from src.rag.errors import RagError
-from src.report_owned_fields import project_owned_fields_for_prompt
 from src.report_template import append_evidence_tables, append_human_signoff
 from src.runtime_trace import load_trace_summary
-from src.source_attribution import fold_known_attribution_labels
 from tests.support.model_evidence_fixtures import _analysis as _canonical_analysis
-from tests.support.report_fixtures import _valid_report
+from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
 class _SessionState(dict):
@@ -32,9 +30,9 @@ def _analysis(knowledge):
 
 def _unsafe_draft():
     assembled, analysis = _valid_report()
-    raw = project_owned_fields_for_prompt(assembled, analysis)
-    raw = raw.replace("## 2. Executive Summary", "## 2. Executive Summary\nThis plan guarantees safety.")
-    return fold_known_attribution_labels(raw, official_sources=analysis["data"]["sources"], rag_sources=[])
+    sections = json.loads(section_response_for_report(assembled, analysis))
+    sections["s02"] += " This plan guarantees safety."
+    return json.dumps(sections)
 
 
 @pytest.fixture
@@ -223,7 +221,9 @@ def test_escape_paraphrase_is_rejected_before_finalization(operation, workflow, 
 
     def unsafe_response(prompt):
         workflow.calls.append(prompt)
-        return "# Preparedness draft\n\nDrive along Smith Road now to escape the flames."
+        sections = json.loads(section_response_for_report(*_valid_report()))
+        sections["s02"] += " Drive along Smith Road now to escape the flames."
+        return json.dumps(sections)
 
     workflow.state.model_client = SimpleNamespace(generate=unsafe_response)
     if operation == "generate":

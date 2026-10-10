@@ -11,10 +11,9 @@ from src import report_workflow as workflow
 from src import revision_state as recovery
 from src import runtime_trace
 from src.model_runtime import ModelServiceError
-from src.report_owned_fields import project_owned_fields_for_prompt
 from src.report_template import extract_narrative_body
 from src.session_store import PERSISTED_STATE_KEYS
-from src.source_attribution import fold_known_attribution_labels
+from tests.support.report_fixtures import section_response_for_report
 from tests.test_model_evidence import _runtime
 from tests.test_model_evidence import export_case as export_case
 
@@ -202,11 +201,7 @@ def test_success_clears_pending_and_revision_emits_actual_progress_events(revisi
     calls, events = [], []
     report = revision_workflow["latest_report"]
     analysis = report["analysis"]
-    raw_response = fold_known_attribution_labels(
-        project_owned_fields_for_prompt(extract_narrative_body(report["text"]), analysis),
-        official_sources=analysis["data"]["sources"],
-        rag_sources=analysis["knowledge"]["retrieved_chunks"],
-    )
+    raw_response = section_response_for_report(extract_narrative_body(report["text"]), analysis)
     revision_workflow["model_client"] = _runtime(raw_response, calls)
     monkeypatch.setattr(workflow, "_finalize_report_version", lambda text, *_a, **_k: (text, None))
     response, error = workflow.revise_current_report("Clarify wording.", lambda: None, progress_callback=events.append)

@@ -844,9 +844,12 @@ def test_repair_prompt_targets_duplicate_required_headings_and_finishes_with_sin
     )
 
     assert "DUPLICATED-STRUCTURE REWRITE" in prompt
-    assert "each of the 15 fixed headings exactly once and in order" in prompt
+    assert "exactly s01–s15 nonempty prose strings" in prompt
+    assert "Never emit headings, slots or restart the object" in prompt
     assert prompt.rfind("FINAL OUTPUT RULE") > prompt.find("Original governed report request")
-    assert prompt.rstrip().endswith("stop immediately after section 15, Safety Disclaimer.")
+    assert prompt.rstrip().endswith(
+        "Return exactly one complete JSON object containing only s01 through s15 prose strings."
+    )
 
 
 def test_generated_checklist_bullets_are_normalized_without_changing_other_sections():

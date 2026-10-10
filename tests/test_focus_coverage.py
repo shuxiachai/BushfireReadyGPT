@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from src import report_generation_quality as quality
@@ -8,8 +10,7 @@ from src.focus_coverage import (
     evaluate_focus_area_coverage,
     evaluate_scenario_coverage,
 )
-from src.report_owned_fields import assemble_owned_fields, project_owned_fields_for_prompt
-from src.source_attribution import fold_known_attribution_labels
+from src.report_section_protocol import project_section_report, render_section_report
 from tests.support.report_fixtures import _valid_report
 
 
@@ -432,13 +433,13 @@ def test_council_reference_does_not_satisfy_council_scenario_coverage():
 
 def test_scenario_coverage_is_a_blocking_governed_check():
     narrative, analysis = _valid_report()
-    raw = project_owned_fields_for_prompt(narrative, analysis)
+    sections = project_section_report(narrative, analysis)
     analysis["profile"]["scenario_concept"] = ProfileAgent.resolve_scenario_concept("School bushfire preparedness")
-    narrative = assemble_owned_fields(raw, analysis)
+    narrative = render_section_report(sections, analysis)
 
     result = quality.assess_generated_narrative(narrative, analysis)
 
-    assert result["summary"] == {"passed": 22, "warnings": 0, "failed": 1, "total": 23}
+    assert result["summary"] == {"passed": 24, "warnings": 0, "failed": 1, "total": 25}
     failed = [check for check in result["checks"] if check["status"] == "fail"]
     assert [check["name"] for check in failed] == ["Selected scenario coverage"]
     assert all(check["status"] == "pass" for check in result["checks"] if check not in failed)
@@ -503,13 +504,15 @@ def test_broad_scenario_exclusion_cues_require_a_separate_positive_reference(nar
 
 def test_focus_coverage_is_a_blocking_governed_check():
     narrative, analysis = _valid_report()
+    sections = project_section_report(narrative, analysis)
     analysis.update(_analysis(_focus("emergency_kits")))
+    narrative = render_section_report(sections, analysis)
 
     result = quality.assess_generated_narrative(narrative, analysis)
 
-    assert result["summary"] == {"passed": 22, "warnings": 0, "failed": 2, "total": 24}
+    assert result["summary"] == {"passed": 25, "warnings": 0, "failed": 1, "total": 26}
     failed = [check for check in result["checks"] if check["status"] == "fail"]
-    assert [check["name"] for check in failed] == ["Selected focus-area coverage", "Application-owned report fields"]
+    assert [check["name"] for check in failed] == ["Selected focus-area coverage"]
     assert all(check["status"] == "pass" for check in result["checks"] if check not in failed)
     assert result["approval_gate"]["blocking_failures"] == [
         {"name": item["name"], "detail": item["detail"]} for item in failed
@@ -519,10 +522,7 @@ def test_focus_coverage_is_a_blocking_governed_check():
 
 def test_generation_repair_loop_closes_a_missing_focus_area():
     complete_narrative, analysis = _valid_report()
-    complete_narrative = project_owned_fields_for_prompt(complete_narrative, analysis)
-    complete_narrative = fold_known_attribution_labels(
-        complete_narrative, official_sources=analysis["data"]["sources"], rag_sources=[]
-    )
+    sections = project_section_report(complete_narrative, analysis)
     analysis.update(
         _analysis(
             _focus("property_preparation"),
@@ -533,17 +533,18 @@ def test_generation_repair_loop_closes_a_missing_focus_area():
 
     def generate(prompt, attempt, is_repair):
         prompts.append((prompt, attempt, is_repair))
-        declared = analysis if is_repair else _analysis(_focus("property_preparation"))
-        declarations = "\n".join(canonical_coverage_declarations(declared))
-        response = complete_narrative.replace("## 3. Purpose and Scope", "## 3. Purpose and Scope\n" + declarations)
-        return response if is_repair else response.replace("[APP_ACTION_FIELDS]", "Review timing remains unknown.")
+        focus_scope = "property preparation and emergency kits" if is_repair else "property preparation"
+        response = dict(sections)
+        response["s03"] = sections["s03"] + f" The review agenda includes {focus_scope}."
+        return json.dumps(response)
 
     narrative, result, attempts = quality.generate_narrative_with_repairs("governed prompt", analysis, generate)
 
     assert attempts == 2
     assert result["approval_gate"]["passed"] is True
-    assert result["summary"] == {"passed": 24, "warnings": 0, "failed": 0, "total": 24}
+    assert result["summary"] == {"passed": 26, "warnings": 0, "failed": 0, "total": 26}
     assert all(check["status"] == "pass" for check in result["checks"])
     assert "emergency kit" in narrative
-    assert "Copy every supplied line below character-for-character" in prompts[1][0]
-    assert "This draft includes emergency kit in its preparedness planning." in prompts[1][0]
+    assert "Selected focus-area coverage" in prompts[1][0]
+    assert "Describe the recognised scenario and selected focus naturally in s03" in prompts[1][0]
+    assert "emergency_kits" in prompts[1][0]

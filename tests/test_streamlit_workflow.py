@@ -8,17 +8,10 @@ from streamlit.testing.v1 import AppTest
 
 from src.agents.pipeline import run_analysis_pipeline
 from src.audit import get_audit_chain_paths, load_and_verify_audit
-from src.focus_coverage import canonical_coverage_declarations
 from src.report_basis import build_community_p2_basis
 from src.report_generation_quality import assess_generated_narrative
-from src.report_owned_fields import assemble_owned_fields, project_owned_fields_for_prompt
-from src.source_attribution import (
-    canonicalise_model_source_section,
-    expand_known_attribution_tokens,
-    fold_known_attribution_labels,
-    strip_application_source_bindings,
-)
-from tests.support.report_fixtures import _valid_report
+from src.report_section_protocol import render_section_report
+from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "src" / "wildfireChat.py"
@@ -26,32 +19,25 @@ POSITIVE_SCENARIO = "School bushfire preparedness"
 POSITIVE_TIMEFRAME = "7-day action plan"
 POSITIVE_CONCERNS = ["Evacuation", "Candidate assembly points", "Official information sources"]
 
-MOCK_REPORT = """# Hobart School Bushfire Preparedness Draft
-
-## Executive Summary
-This draft supports school preparedness planning and requires human review.
-
-## 4. Selected Geography and Key Assumptions
-[APP_P2_FIELDS]
-
-## Evacuation and Candidate Assembly Points
-Confirm routes and candidate assembly points with the responsible organisation and emergency services.
-
-## 10. Roles and Responsibilities
-[APP_ROLE_FIELDS]
-
-## Communication and Training
-Assign evacuation wardens, maintain contact lists and schedule first aid training.
-
-## 13. Action Plan
-[APP_ACTION_FIELDS]
-
-## 14. Human Review and Approval Checklist
-[APP_REVIEW_FIELDS]
-
-## Safety Boundary
-This is not live emergency advice. Follow official emergency services and call 000 if life is at risk.
-"""
+MOCK_REPORT = json.dumps(
+    {
+        "s01": "Hobart School Bushfire Preparedness Draft",
+        "s02": "This draft supports school preparedness planning and requires human review.",
+        "s03": "The scope is a proposed school preparedness discussion, not live emergency advice.",
+        "s04": "Local assumptions and geographic applicability require responsible organisational confirmation.",
+        "s05": "Source currency and local relevance remain unresolved review matters.",
+        "s06": "Bushfire and smoke are review topics; local severity is unknown.",
+        "s07": "The responsible organisation must confirm preparedness priorities.",
+        "s08": "Unverified proposal for local review: confirm routes and candidate assembly points with responsible authorities.",
+        "s09": "Candidate venue criteria and suitability remain unverified.",
+        "s10": "Role labels describe review responsibilities rather than confirmed appointments.",
+        "s11": "Communication channels and inclusion needs require local confirmation.",
+        "s12": "Training and first aid arrangements require qualified review.",
+        "s13": "The action timetable remains subject to confirmation.",
+        "s14": "Human review remains incomplete and approval has not been granted.",
+        "s15": "This is not live emergency advice; follow official emergency services and call 000 if life is at risk.",
+    }
+)
 
 
 def _quality_passing_report(audience):
@@ -66,26 +52,21 @@ def _quality_passing_report(audience):
     assert basis["matched_location"] is None
     assert all(value is None for value in basis["indicators"].values())
     assembled_fixture, synthetic_analysis = _valid_report()
-    narrative = assemble_owned_fields(project_owned_fields_for_prompt(assembled_fixture, synthetic_analysis), analysis)
-    narrative = strip_application_source_bindings(
-        narrative, official_sources=synthetic_analysis["data"]["sources"], rag_sources=[]
+    sections = json.loads(section_response_for_report(assembled_fixture, synthetic_analysis))
+    sections["s03"] = (
+        sections["s03"]
+        .replace("a community workshop and preparedness discussion", "school bushfire preparedness planning")
+        .replace(
+            "with evacuation planning, communication and first aid as review topics",
+            "with evacuation, candidate assembly point criteria and official source verification as review topics",
+        )
+        .replace("This draft covers the application-recognised community workshop scenario.", "")
+        .rstrip()
     )
-    narrative = narrative.replace(
-        "## 3. Purpose and Scope", "## 3. Purpose and Scope\n" + "\n".join(canonical_coverage_declarations(analysis))
-    )
-    narrative = narrative.replace(
-        "## 4. Selected Geography and Key Assumptions",
-        "## 4. Selected Geography and Key Assumptions\n"
-        "Population and older-people measurements are unknown; transport and language measurements remain unknown.",
-    )
-    sources = analysis["data"]["sources"]
-    narrative = canonicalise_model_source_section(narrative, official_sources=sources, rag_sources=[])
-    narrative = expand_known_attribution_tokens(narrative, official_sources=sources, rag_sources=[])
-    raw_narrative = project_owned_fields_for_prompt(narrative, analysis)
-    raw_narrative = fold_known_attribution_labels(raw_narrative, official_sources=sources, rag_sources=[])
+    narrative = render_section_report(sections, analysis)
     quality = assess_generated_narrative(narrative, analysis)
     assert quality["approval_gate"]["passed"] is True, quality["approval_gate"]["blocking_failures"]
-    return raw_narrative
+    return section_response_for_report(narrative, analysis)
 
 
 def _write_verified_map_fixture(directory):
@@ -181,10 +162,11 @@ def _write_verified_map_fixture(directory):
 
 
 @pytest.fixture
-def isolated_app_storage(tmp_path):
+def isolated_app_storage(tmp_path, monkeypatch):
     session_path = tmp_path / "session_state.json"
     interaction_path = tmp_path / "interaction.jsonl"
     audit_dir = tmp_path / "audit"
+    monkeypatch.setenv("BUSHFIRE_AUDIT_DIR", str(audit_dir))
     with (
         patch("src.session_store.SESSION_STATE_PATH", str(session_path)),
         patch("src.session_store.INTERACTION_LOG_PATH", str(interaction_path)),
@@ -295,7 +277,7 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     assert model_call.call_count == 3
     assert app.session_state["latest_analysis"]["profile"]["location"] == "Hobart, Tasmania"
     quality = app.session_state["latest_quality"]
-    assert quality["summary"]["total"] == 24
+    assert quality["summary"]["total"] == 26
     checks = {item["name"]: item for item in quality["checks"]}
     assert {
         "Narrative word budget",
@@ -304,9 +286,13 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
         "Rule-derived causal qualification",
         "Submitted passage scope and conflicts",
         "Application-owned report fields",
+        "Application-owned section protocol",
+        "Model prose word budget",
     } <= checks.keys()
     assert checks["Narrative word budget"]["status"] == "fail"
     assert checks["Application-owned report fields"]["status"] == "pass"
+    assert checks["Application-owned section protocol"]["status"] == "pass"
+    assert checks["Model prose word budget"]["status"] == "fail"
     assert quality["approval_gate"]["passed"] is False
     assert app.session_state["latest_report"]["generation_gate_blocked"] is True
     assert app.session_state["report_status"] == "Draft - human review required"

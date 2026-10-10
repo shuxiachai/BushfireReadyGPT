@@ -1,5 +1,6 @@
 """Offline regression coverage for deterministic current report body fields."""
 
+import json
 from copy import deepcopy
 from dataclasses import FrozenInstanceError
 from hashlib import sha256
@@ -12,6 +13,7 @@ import pytest
 from src.agents.planner_agent import PlannerAgent
 from src.agents.profile_agent import ProfileAgent
 from src.app_catalog import CONCERN_OPTIONS, SCENARIO_OPTIONS, TIMEFRAME_OPTIONS
+from src.current_model_evidence import SECTION_PROSE_OUTPUT_CONTRACT
 from src.model_evidence import EvidenceResponse, text_sha256, validate_model_evidence
 from src.model_response import ModelResponseError
 from src.report_content_contract import evaluate_report_content_contract
@@ -35,10 +37,12 @@ from src.report_owned_fields import (
     project_owned_fields_for_prompt,
     render_owned_blocks,
 )
+from src.report_section_protocol import section_protocol_guidance
 from src.report_template import append_evidence_tables, append_human_signoff, apply_governance_notice
+from src.section_protocol_error import SectionProtocolError
 from src.source_attribution import fold_known_attribution_labels
 from tests.support.model_evidence_fixtures import _analysis
-from tests.support.report_fixtures import _valid_report
+from tests.support.report_fixtures import _valid_report, section_response_for_report
 from tests.test_model_evidence import _capture
 
 
@@ -306,21 +310,22 @@ def test_altered_blocks_and_measurements_fail_without_repairing_saved_text():
 
 
 def test_raw_operational_prose_is_rejected_before_field_expansion(monkeypatch):
-    import src.report_generation_quality as generation
+    import src.report_section_protocol as protocol
 
     calls = []
-    monkeypatch.setattr(generation, "assemble_owned_fields", lambda *_: calls.append(True))
+    sections = json.loads(section_response_for_report(*_valid_report()))
+    sections["s02"] += " Use Smith Road now."
+    monkeypatch.setattr(protocol, "render_section_report", lambda *_: calls.append(True))
     with pytest.raises(ModelResponseError, match="operational safety"):
-        generate_narrative_with_repairs("prompt", _analysis(), lambda *_: _slots() + "\nUse Smith Road now.")
+        generate_narrative_with_repairs("prompt", _analysis(), lambda *_: json.dumps(sections))
     assert calls == []
 
 
 @pytest.mark.parametrize("kind", ["initial", "structural_repair", "revision"])
 def test_raw_and_assembled_evidence_bindings_are_distinct_and_verified(kind):
     body, analysis = _valid_report()
-    raw = project_owned_fields_for_prompt(body, analysis)
-    raw = fold_known_attribution_labels(raw, official_sources=analysis["data"]["sources"], rag_sources=[])
-    _, snapshot, prompt, _ = _capture(analysis, response=raw, kind=kind)
+    raw = section_response_for_report(body, analysis)
+    _, snapshot, prompt, _ = _capture(analysis, response=raw, kind=kind, output_contract=SECTION_PROSE_OUTPUT_CONTRACT)
     narrative, quality, attempts = generate_narrative_with_repairs(
         prompt,
         analysis,
@@ -338,35 +343,38 @@ def test_raw_and_assembled_evidence_bindings_are_distinct_and_verified(kind):
         validate_model_evidence(narrative.model_evidence, analysis, report_text=narrative.replace("Day 1", "Day 2"))
 
 
-def test_model_written_canonical_blocks_without_slots_do_not_satisfy_generation_contract():
+def test_model_written_canonical_markdown_blocks_do_not_satisfy_generation_contract():
     body, analysis = _valid_report()
     raw = fold_known_attribution_labels(body, official_sources=analysis["data"]["sources"], rag_sources=[])
-    narrative, quality, _ = generate_narrative_with_repairs("prompt", analysis, lambda *_: raw, max_repair_attempts=0)
-    assert narrative == body
-    assert not quality["approval_gate"]["passed"]
-    assert "owned_fields_generation_slots_required" in str(quality)
+    with pytest.raises(SectionProtocolError):
+        generate_narrative_with_repairs("prompt", analysis, lambda *_: raw, max_repair_attempts=0)
 
 
-def test_initial_workflow_cannot_drop_slot_failure_during_pure_finalization(monkeypatch):
+def test_initial_workflow_cannot_drop_protocol_failure_during_pure_finalization(monkeypatch):
     from src import report_workflow as workflow
 
     body, analysis = _valid_report()
     analysis["prompt_context"] = "Frozen synthetic context."
     original = {"text": "Previously accepted report"}
-    state = {"latest_report": original}
+
+    class State(dict):
+        __getattr__ = dict.__getitem__
+
+    state = State(latest_report=original, model_client=SimpleNamespace())
     monkeypatch.setattr(workflow, "st", SimpleNamespace(session_state=state))
     monkeypatch.setattr(workflow, "run_analysis_pipeline", lambda *_args, **_kwargs: analysis)
     monkeypatch.setattr(workflow, "_cloud_rag_availability_error", lambda _analysis: None)
     monkeypatch.setattr(workflow, "build_governance_context", lambda: "")
     raw = fold_known_attribution_labels(body, official_sources=analysis["data"]["sources"], rag_sources=[])
-    rejected = generate_narrative_with_repairs("prompt", analysis, lambda *_: raw, max_repair_attempts=0)
-    monkeypatch.setattr(workflow, "generate_narrative_with_repairs", lambda *_args, **_kwargs: rejected)
+    calls = []
+    monkeypatch.setattr(workflow, "_call_governed_model", lambda *_: calls.append(True) or raw)
     monkeypatch.setattr(
-        workflow, "_finalize_report_version", lambda *_args, **_kwargs: pytest.fail("rejected slots finalized")
+        workflow, "_finalize_report_version", lambda *_args, **_kwargs: pytest.fail("rejected protocol finalized")
     )
     trace = SimpleNamespace(add_metrics=lambda **_kwargs: None)
     result, error, code = workflow._generate_current_report_traced({}, None, lambda: None, trace)
-    assert result is None and error and code == "owned_fields_unready"
+    assert result is None and "section-prose object" in error and code == "model_service_error"
+    assert len(calls) == 3
     assert state["latest_report"] is original
 
 
@@ -374,7 +382,11 @@ def test_assessment_never_assembles_and_every_stage_reads_same_body(monkeypatch)
     import src.report_generation_quality as generation
 
     body, analysis = _valid_report()
-    monkeypatch.setattr(generation, "assemble_owned_fields", lambda *_: pytest.fail("validation must never assemble"))
+    monkeypatch.setattr(
+        generation,
+        "assemble_section_response",
+        lambda *_: pytest.fail("validation must never assemble generation output"),
+    )
     first = assess_generated_narrative(body, analysis)
     full = append_human_signoff(append_evidence_tables(apply_governance_notice(body), analysis), {})
     assert first == evaluate_governed_report(full, analysis)
@@ -395,6 +407,10 @@ def test_historical_v9_and_shared_report_agent_source_are_unchanged():
         == "33e45867eb9349131d59c6dfe070a513390b56542b39701d7ac4ee27f20c2485"
     )
     assert (
+        _policy_fingerprint(KNOWN_QUALITY_POLICY_MANIFESTS["governed-report-v10"])
+        == "e12a385cbd02186eed0dce6860f3bb70983b3d4e28d66780cfd2e7c08ec3bf87"
+    )
+    assert (
         _canonical_source_sha256(Path("src/agents/report_agent.py").read_bytes())
         == "aa99f53644fcbb696f9780d828543374b92eaa10c7abfc1f25e7748be8591024"
     )
@@ -411,7 +427,7 @@ def test_report_agent_source_hash_accepts_checkout_newlines_but_rejects_code_cha
     assert _canonical_source_sha256(changed) != expected
 
 
-def test_prompt_and_repair_supply_slots_and_count_every_owned_body_word():
+def test_legacy_slot_guidance_and_current_repair_keep_separate_contracts_and_count_owned_words():
     analysis = _community()
     guidance = build_owned_field_prompt_guidance(analysis)
     repair = build_report_repair_prompt("original", "rejected", {}, analysis=analysis)
@@ -421,5 +437,7 @@ def test_prompt_and_repair_supply_slots_and_count_every_owned_body_word():
         == _check(blocks, analysis, "Narrative word budget")["word_count"]
     )
     for _title, slot in OWNED_SECTIONS.values():
-        assert slot in guidance and slot in repair
+        assert slot in guidance and slot not in repair
     assert "at least 300 prose words" in guidance
+    assert section_protocol_guidance(analysis) in repair
+    assert "one strict JSON object" in repair

@@ -9,8 +9,8 @@ import pytest
 from scripts import body_evidence_experiment as experiment
 from scripts import evaluate_body_evidence_ab as cli
 from src import report_generation_quality as quality
+from src.current_model_evidence import EvidencePrompt
 from src.model_evidence import (
-    EvidencePrompt,
     bind_normalized_narrative,
     capture_model_evidence,
     json_sha256,
@@ -21,7 +21,7 @@ from src.rag.service import assemble_retrieved_context
 from src.report_owned_fields import OWNED_SECTIONS
 from src.source_attribution import format_rag_citation_token
 from tests.support.model_evidence_fixtures import _analysis
-from tests.support.report_fixtures import _valid_report
+from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
 def analysis_fixture():
@@ -73,6 +73,18 @@ def report_fixture(analysis, basis=None):
     return body + "\n\n" + "\n\n".join(f"## {title}\n{slot}" for title, slot in OWNED_SECTIONS.values())
 
 
+def section_response_fixture(analysis):
+    """Current generation payload; pure Markdown pair-parser fixtures stay separate."""
+    sections = json.loads(section_response_for_report(*_valid_report()))
+    token = format_rag_citation_token(analysis["knowledge"]["retrieved_chunks"][0])
+    for number in experiment.TARGET_SECTIONS:
+        sections[f"s{number:02d}"] = (
+            f"Evidence basis: Families prepare household emergency supplies {token}.\n\n"
+            "Local application: Proposed for local review, record the responsible owner."
+        )
+    return json.dumps(sections)
+
+
 def test_canonical_no_slot_response_stays_failed_in_final_and_every_attempt():
     from src.source_attribution import fold_known_attribution_labels
 
@@ -82,12 +94,14 @@ def test_canonical_no_slot_response_stays_failed_in_final_and_every_attempt():
     raw = fold_known_attribution_labels(body, official_sources=analysis["data"]["sources"], rag_sources=[])
     calls = []
     result = experiment.run_arm(scenario_fixture(), analysis, "baseline", mock_client(raw, calls))
-    assert len(calls) == 3 and result["status"] == "completed"
+    assert len(calls) == 3 and result["status"] == "failed"
     assert result["governed_gate_passed"] is False
-    for assessed in [result["final"], *[item["normalized"] for item in result["attempts"]]]:
-        gate = assessed["governed_quality"]["approval_gate"]
-        assert gate["passed"] is False
-        assert any(item["detail"] == "owned_fields_generation_slots_required" for item in gate["blocking_failures"])
+    assert result["initial"] is result["final"] is None
+    assert result["error_code"] == "SectionProtocolError"
+    for attempt in result["attempts"]:
+        assert "normalized" not in attempt
+        assert attempt["normalization_error_code"] == "SectionProtocolError"
+        assert attempt["admitted_response"] == raw
 
 
 def mock_client(response, calls):
@@ -176,7 +190,7 @@ def test_run_arm_captures_actual_variant_then_keeps_full_failed_gate(monkeypatch
     analysis, calls = analysis_fixture(), []
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": True}})
     result = experiment.run_arm(
-        scenario_fixture(), analysis, "claim_pair_v1", mock_client(report_fixture(analysis), calls)
+        scenario_fixture(), analysis, "claim_pair_v1", mock_client(section_response_fixture(analysis), calls)
     )
     assert len(calls) == result["model_calls"] == 1
     assert result["status"] == "completed" and result["governed_gate_passed"] is False
@@ -203,7 +217,7 @@ def test_real_repair_loop_is_shared_and_bounded(monkeypatch):
         ),
     )
     result = experiment.run_arm(
-        scenario_fixture(), analysis, "claim_pair_v1", mock_client(report_fixture(analysis), calls)
+        scenario_fixture(), analysis, "claim_pair_v1", mock_client(section_response_fixture(analysis), calls)
     )
     assert len(calls) == result["generation_attempts"] == 3
     assert all(c[1]["content"].count(experiment.LAYOUT_GUIDANCE.strip()) == 1 for c in calls)
@@ -223,7 +237,7 @@ def test_suffix_cannot_expand_repair_budget(monkeypatch):
         ),
     )
     result = experiment.run_arm(
-        scenario_fixture(), analysis, "claim_pair_v1", mock_client(report_fixture(analysis), calls)
+        scenario_fixture(), analysis, "claim_pair_v1", mock_client(section_response_fixture(analysis), calls)
     )
     assert result["status"] == "failed" and len(calls) == 1
     assert result["attempts"][1]["error_code"] == "repair_prompt_limit_exceeded"
@@ -235,7 +249,7 @@ def test_suffix_cannot_expand_repair_budget(monkeypatch):
 def test_long_original_protocol_retries_keep_capture_and_shared_sdk_budget(monkeypatch, variant, length_rejections):
     analysis, calls = analysis_fixture(), []
     analysis["prompt_context"] = "Synthetic planning context. " * 800 + analysis["rag_context_assembly"]["context"]
-    response = report_fixture(analysis)
+    response = section_response_fixture(analysis)
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": True}})
 
     def create(**kwargs):
@@ -315,7 +329,7 @@ def test_alternating_order_and_failures_stay_in_denominator(monkeypatch, tmp_pat
         bundle,
         max_calls=1,
         provenance=synthetic_provenance,
-        client_factory=lambda: mock_client(report_fixture(analysis_fixture()), calls),
+        client_factory=lambda: mock_client(section_response_fixture(analysis_fixture()), calls),
     )
     assert [(row["case_id"], row["variant"]) for row in result["rows"]] == [
         ("one", "baseline"),
@@ -403,7 +417,7 @@ def test_protocol_then_structural_repair_use_one_three_call_budget(monkeypatch):
     from src.model_response import ModelResponseError
 
     analysis, calls = analysis_fixture(), []
-    client = mock_client(report_fixture(analysis), calls)
+    client = mock_client(section_response_fixture(analysis), calls)
     original = client.generate
     invocations = []
 
