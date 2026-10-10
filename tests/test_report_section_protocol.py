@@ -23,6 +23,7 @@ from src.report_section_protocol import (
     model_prose_word_count,
     project_section_report,
     render_section_report,
+    section_prose_word_targets,
     section_protocol_budget,
 )
 from src.section_protocol_error import SectionProtocolError
@@ -368,3 +369,41 @@ def test_all_ui_scenario_timeframe_and_focus_subsets_fit_or_fail_before_generati
         else:
             assert 300 <= budget["model_prose_min_words"] <= budget["model_prose_max_words"]
             assert budget["fixed_word_count"] + budget["model_prose_max_words"] == 800
+            targets = section_prose_word_targets(analysis)
+            assert budget["model_prose_min_words"] <= targets["model_prose_target_min_words"]
+            assert targets["model_prose_target_min_words"] <= targets["model_prose_target_max_words"]
+            assert targets["model_prose_target_max_words"] <= budget["model_prose_max_words"]
+            assert targets["model_prose_target_max_words"] - targets["model_prose_target_min_words"] <= 40
+            assert sum(targets["section_target_words"].values()) == targets["model_prose_target_midpoint_words"]
+            assert all(15 <= targets["section_target_words"][key] <= 20 for key in ("s10", "s13", "s14"))
+
+
+@pytest.mark.parametrize("fixed", [0, 200, 255, 400, 425, 450, 499, 500])
+def test_soft_word_targets_clip_to_feasible_hard_budget_without_lowering_prose_floor(monkeypatch, fixed):
+    from src import report_section_protocol as protocol
+
+    minimum, maximum = max(300, 650 - fixed), 800 - fixed
+    monkeypatch.setattr(
+        protocol,
+        "section_protocol_budget",
+        lambda _: {
+            "fixed_word_count": fixed,
+            "model_prose_min_words": minimum,
+            "model_prose_max_words": maximum,
+        },
+    )
+    targets = protocol.section_prose_word_targets({})
+    lower, upper = targets["model_prose_target_min_words"], targets["model_prose_target_max_words"]
+    assert minimum <= lower <= upper <= maximum
+    assert lower >= 300 and upper - lower <= 40
+    assert sum(targets["section_target_words"].values()) == targets["model_prose_target_midpoint_words"]
+    if fixed == 255:
+        assert (lower, upper, targets["model_prose_target_midpoint_words"]) == (430, 470, 450)
+
+
+@pytest.mark.parametrize("request_kind", [None, "other", False, 0, [], {}])
+def test_section_guidance_rejects_unknown_request_modes(current, request_kind):
+    from src.report_section_protocol import section_protocol_guidance
+
+    with pytest.raises(ValueError, match="unsupported section protocol request kind"):
+        section_protocol_guidance(current[1], request_kind=request_kind)

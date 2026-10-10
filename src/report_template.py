@@ -144,12 +144,13 @@ _INITIAL_SECTION_REQUIREMENTS = (
     "Source criteria need passage support and original scope; citations do not verify local physical criteria. "
     "State that gap and who must confirm criteria; a task to obtain/review local records is an unverified proposal, not a sourced standard. "
     "Keep every venue an unverified candidate; never assert safety or operational status.",
-    "Explain that role appointments remain unconfirmed; the application adds the role table.",
+    "Explain that role appointments remain unconfirmed and what the responsible organisation must confirm.",
     "Warning channels, internal/public/parent communication, accessibility, inclusion, multilingual needs and backup arrangements; general maintenance cannot substitute.",
-    "First-aid readiness, smoke/heat support, AED/burn preparedness, staff training, exercise objectives, locally confirmed frequency and records. "
+    "First-aid readiness, smoke/heat support, AED/burn preparedness, staff training and exercise objectives. "
+    "Treat frequency, qualifications and records as unknown unless supplied, and state what the responsible organisation must confirm. "
     "Maintenance belongs here only for a specific training or exercise purpose with roles/evaluation; it cannot substitute for first aid, training or exercises.",
-    "Short explanatory prose about the selected review timeframe; the application adds actions and Day 1.",
-    "Short prose about incomplete human review; the application adds the unchecked checklist.",
+    "Short reader-facing prose about the selected review timeframe and outstanding confirmation needs.",
+    "Short reader-facing prose about incomplete human review and the remaining review needs.",
     "Live warnings, fire bans, evacuation orders and life-safety decisions come from official emergency services; call 000 in life-threatening emergencies.",
 )
 
@@ -157,8 +158,37 @@ _INITIAL_SECTION_PURPOSE_GUIDANCE = """Section-purpose instructions (application
 - All 15 sections must be substantive and relevant; never copy instructions or fill gaps with unrelated evidence.
 - For missing evidence/arrangements, state the specific gap and what the responsible organisation or qualified
   reviewer must confirm. Proposals remain unverified for local review; invent no clinical procedures, credentials or drill schedule.
+- Do not describe the writing process, model, system or application-provided fields.
+  Avoid unsupported claims about measure effects or participant outcomes.
 - There is no per-section citation quota or need to use every passage. Keep the existing claim-level citation requirements.
   Cite only support relevant to this section's actual claim; source authority alone is not topical relevance.
+"""
+
+# Current section guidance is deliberately separate from the byte-pinned
+# historical export above. It is shared by repair and revision prompts.
+CURRENT_SECTION_PURPOSE_GUIDANCE = """Current section-purpose instructions (application-owned):
+- Keep all 15 fixed sections reader-facing, substantive and relevant. Describe the recognised scenario, supported
+  preparedness content and known limits; never copy instructions or fill gaps with unrelated evidence.
+- Where evidence, local arrangements, frequency, qualifications or records are absent, state the specific gap
+  and what the responsible organisation or qualified reviewer must confirm. Do not state that frequency, training
+  or records are locally confirmed unless supplied. Proposals remain unverified for local review; invent no clinical
+  procedures, credentials or drill schedule.
+- Sections 7–9 and 11–12 need the most explanatory detail. Sections 10, 13 and 14 are brief context for their
+  separately governed material. Section 15 still states the complete emergency-disclaimer boundary.
+- Section 7 prioritises supported scenario-relevant preparedness actions; property or vegetation maintenance
+  belongs here or in the action plan.
+- Section 9: source criteria need passage support and original scope; citations do not verify local physical criteria.
+  State that gap and who must confirm criteria; a task to obtain/review local records is an unverified proposal, not a sourced standard.
+  Keep every venue an unverified candidate; never assert safety or operational status.
+- Section 11 covers warning channels, internal/public communication, accessibility, inclusion and backup arrangements.
+  General maintenance cannot substitute for these needs.
+- Section 12 covers first-aid readiness, smoke/heat support, AED/burn preparedness, staff training and exercise objectives.
+  Maintenance belongs here only for a specific training or exercise purpose with roles/evaluation;
+  it cannot substitute for first aid, training or exercises. Frequency, qualifications and records remain unknown unless supplied.
+- Do not describe the writing process, model, system or application-provided fields.
+  Avoid unsupported claims about measure effects or participant outcomes.
+- There is no per-section citation quota or need to use every passage. Keep the existing claim-level citation requirements.
+  Cite only support for the actual claim serving that section and leave unrelated evidence unused.
 """
 
 _INITIAL_REPORT_REQUIREMENTS = """Initial-report requirements (application-owned):

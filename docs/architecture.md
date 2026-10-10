@@ -159,7 +159,7 @@ their original source bytes.
 The eight named agents are specialised, deterministic pipeline components; none
 is an independent language-model call or an autonomous multi-agent actor. One
 governed model call writes the report narrative; the canonical governed gate may
-request up to two stateless replacement attempts. The same `governed-report-v11`
+request up to two stateless replacement attempts. The same `governed-report-v12`
 gate is recomputed for generation, revision, organisational approval and
 governed pilot-package export. It combines fixed structure, source, markup and
 safety checks with allowlisted scenario/focus-area coverage and conditional RAG
@@ -168,8 +168,9 @@ per-occurrence local-task checks. V8 corrects bounded numeric/denial/confirmatio
 recognition and action-column coverage without borrowing qualifiers between
 sentences or cells. V9 adds a narrow Oxford-comma heading alias. V10 requires
 four exact application-owned blocks described below. V11 owns the complete
-report skeleton and admits model-supplied section prose. Historical fingerprints
-through v10 remain readable, not eligible for
+report skeleton and admits model-supplied section prose. V12 distinguishes
+bounded, complete proposal-status prose from actual local tasks. Historical fingerprints
+through v11 remain readable, not eligible for
 new approval or export. Only the hash-bound final SDK evidence snapshot
 can satisfy passage-dependent provenance and audience checks; a fresh lookup or
 retrieved-but-omitted passage cannot supply support. Contradictory wording in
@@ -195,7 +196,11 @@ its failed real response remain historical evidence, not a fallback decoder.
 These blocks count toward the unchanged 650–800-word body limit and do not
 replace the required explanatory prose: at least 300 model-prose words are
 required independently of headings, register and fixed fields. The prompt
-calculates a model-prose allowance from the available body budget. Raw JSON SDK
+calculates a model-prose allowance from the available body budget. Its soft
+section targets prefer a 685–725-word final body within that allowance; they
+are not additional hard gates and cannot expand a revision's requested scope.
+Missing appointments, training frequency and records remain unknown, rather
+than promises about content the application will supply. Raw JSON SDK
 response and assembled-body hashes remain distinct. Revision prompts project
 only exact current bodies back into section prose; review, audit reassessment
 and export are pure checks, never insertion
@@ -207,6 +212,14 @@ explicit evidence gap and verification task can continue. These are narrow
 syntactic/provenance guards, not semantic entailment or domain approval.
 This keeps orchestration reproducible, reduces latency and makes
 the evidence trail inspectable while still demonstrating clear agent boundaries.
+
+The v12 proposal-status rule is an explicit option on the content evaluator;
+its default retains the previous behavior. Only whole, section-appropriate
+abstract status sentences in ordinary prose are eligible. Quoted or hypothetical
+contexts, lists, table cells, checklists and added instructions do not gain that
+exception. It changes only the local-task predicate, never deletes a sentence
+or bypasses subsequent causal, physical-criteria or evidence checks. Thus a
+reduced diagnostic count does not automatically approve the report.
 
 Scenario and focus requirements are derived from trusted application IDs.
 V11 checks projected model prose, excluding headings, fixed fields and the
@@ -292,7 +305,7 @@ streaming deadline and reject empty usable output; generation, revision and
 release evaluation share the same bounded replacement-repair implementation.
 External endpoints require an explicit privacy acknowledgement. Audit records
 are privacy-minimised, append-only and hash-linked at the application layer;
-new v4 events bind the current `governed-report-v11` quality policy and
+new v4 events bind the current `governed-report-v12` quality policy and
 fingerprint, exact report, deterministic sign-off, quality, inputs, provider
 boundary, frozen register snapshot and recursive revision ancestry, while
 historical policy bindings remain readable. Ancestry verification is iterative

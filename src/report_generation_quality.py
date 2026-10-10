@@ -24,7 +24,7 @@ from src.model_response import (
 )
 from src.report_basis import build_community_p2_basis
 from src.report_claim_evidence import evaluate_body_claim_evidence
-from src.report_content_contract import evaluate_report_content_contract
+from src.report_content_contract import PROPOSAL_STATUS_RULESET, evaluate_report_content_contract
 from src.report_owned_fields import (
     OWNED_FIELDS_CHECK,
     OWNED_FIELDS_RULESET,
@@ -46,8 +46,8 @@ from src.report_section_protocol import (
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
     CURRENT_CONTENT_CONTRACT_GUIDANCE,
+    CURRENT_SECTION_PURPOSE_GUIDANCE,
     REPORT_TEMPLATE_SECTIONS,
-    SECTION_PURPOSE_GUIDANCE,
     append_evidence_tables,
     append_human_signoff,
     apply_governance_notice,
@@ -70,7 +70,7 @@ MAX_REPORT_REPAIR_PROMPT_CHARACTERS = 18_000
 _MAX_COMPACT_REPAIR_CONTEXT_CHARACTERS = 7_000
 _MAX_COMPACT_REPAIR_RAG_CHARACTERS = 3_500
 _MAX_COMPACT_REPAIR_ITEM_CHARACTERS = 360
-CURRENT_POLICY = "governed-report-v11"
+CURRENT_POLICY = "governed-report-v12"
 QUALITY_POLICY_VERSION = CURRENT_POLICY  # Backwards-compatible public alias.
 
 
@@ -226,6 +226,12 @@ KNOWN_QUALITY_POLICY_MANIFESTS["governed-report-v11"] = {
     "coverage_declaration_ruleset": "natural-model-prose-only-no-owned-content-v1",
     "model_prose_budget_ruleset": "projected-prose-minimum-300-v1",
     "revision_projection_ruleset": "exact-current-section-inverse-v1",
+}
+KNOWN_QUALITY_POLICY_MANIFESTS["governed-report-v12"] = {
+    **KNOWN_QUALITY_POLICY_MANIFESTS["governed-report-v11"],
+    "policy_version": "governed-report-v12",
+    "local_proposal_ruleset": PROPOSAL_STATUS_RULESET,
+    "section_prose_guidance_ruleset": "reader-facing-status-dynamic-targets-v1",
 }
 _KNOWN_POLICY_FINGERPRINTS = {
     version: _policy_fingerprint(manifest) for version, manifest in KNOWN_QUALITY_POLICY_MANIFESTS.items()
@@ -538,7 +544,9 @@ def evaluate_governed_report(report_text, analysis, *, model_evidence=None):
     quality = _append_focus_area_coverage_check(quality, coverage, analysis or {})
     quality = _append_rag_attribution_check(quality, narrative, analysis or {})
     quality = _append_governed_check(quality, evaluate_owned_fields(narrative, analysis or {}))
-    for check in evaluate_report_content_contract(report, analysis, model_evidence=model_evidence):
+    for check in evaluate_report_content_contract(
+        report, analysis, model_evidence=model_evidence, proposal_status_ruleset=PROPOSAL_STATUS_RULESET
+    ):
         quality = _append_governed_check(quality, check)
     quality["assessment_scope"] = (
         "Deterministic structure, English safety-boundary lint and bounded content/provenance checks. "
@@ -819,9 +827,9 @@ _CONTENT_REPAIR_CORRECTIONS = {
         "state the gap and authority-verification task."
     ),
     "Narrative word budget": (
-        "- LENGTH: Keep 650–800 authored words and all 15 sections with at least 300 prose words. Use two-column "
-        "role tables, fewer rows and combined duties; retain useful facts and their qualifications. "
-        "Count headings, tables and lists; exclude application appendices and source-register lines."
+        "- LENGTH: Keep 650–800 authored words and all 15 sections with at least 300 prose words. Shorten JSON "
+        "section prose while retaining useful facts and their qualifications; emit no tables or lists. "
+        "Count the application headings and frozen fields; exclude appendices and source-register lines."
     ),
 }
 _MAX_CONTENT_REPAIR_FEEDBACK_CHARACTERS = 1400
@@ -951,7 +959,7 @@ def build_report_repair_prompt(
     targeted_safety_text = "\n".join(targeted_safety_rules) or (
         "- Preserve the original safety boundary and do not introduce live operational assertions."
     )
-    protocol_guidance = section_protocol_guidance(analysis)
+    protocol_guidance = section_protocol_guidance(analysis, request_kind="structural_repair")
     heading_sequence = "\n".join(
         f"s{index + 1:02d}: {title}" for index, (title, _) in enumerate(REPORT_TEMPLATE_SECTIONS)
     )
@@ -969,7 +977,7 @@ Body citation feedback:
 JSON section key meanings (the application supplies headings):
 {heading_sequence}
 
-{SECTION_PURPOSE_GUIDANCE}
+{CURRENT_SECTION_PURPOSE_GUIDANCE}
 
 {CURRENT_CONTENT_CONTRACT_GUIDANCE}
 

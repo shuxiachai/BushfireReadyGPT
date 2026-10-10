@@ -59,6 +59,52 @@ _TASK_FRAME = re.compile(
     r"select|choose|use|keep)\b|\b(?:must|should|will|needs? to|propos\w*)\b",
     re.I,
 )
+PROPOSAL_STATUS_RULESET = "occurrence-proposal-confirmer-bounded-status-v3"
+# These are abstract report topics, not an open subject grammar. Concrete tasks,
+# clinical actions, frequencies, numbers and physical criteria are never added
+# by matching a broad noun phrase. The mapping also binds each topic to its
+# section so a status statement cannot waive another section's criterion check.
+_STATUS_SUBJECTS = {
+    "candidate assembly point criteria": ("candidate assembly point criteria",),
+    "roles and responsibilities": (
+        "roles and responsibilities for the workshop",
+        "roles and responsibilities",
+        "role appointments",
+        "review responsibilities",
+    ),
+    "first aid, training and exercises": (
+        "first aid",
+        "smoke/heat support",
+        "AED/burn preparedness",
+        "staff training",
+        "exercise objectives",
+    ),
+}
+_STATUS_PATTERNS = {
+    section: re.compile(
+        r"(?:the )?(?:"
+        + "|".join(re.escape(subject) for subject in subjects)
+        + r")"
+        + (
+            r"(?:, (?:" + "|".join(re.escape(subject) for subject in subjects) + r")){0,3}"
+            r"(?:,? and (?:" + "|".join(re.escape(subject) for subject in subjects) + r"))?"
+            if section == "first aid, training and exercises"
+            else ""
+        )
+        + r" (?:are|remain) (?:unverified|unconfirmed) proposals(?: for local review)?\.",
+        re.I,
+    )
+    for section, subjects in _STATUS_SUBJECTS.items()
+}
+_STATUS_PARAGRAPH_BOUNDARY = re.compile(r"\n[ \t]*\n|(?m:^ {0,3}#{1,6}[^\n]*(?:\n|$))")
+_STATUS_SECTION_BOUNDARY = re.compile(r"(?m)^ {0,3}#{1,6}[^\n]*(?:\n|$)")
+_STATUS_CONTAINER = re.compile(r"(?m)^\s*(?:>|[-+*]\s|\d+[.)]\s|\||`{3,}|~{3,})")
+_STATUS_CONTEXT_CUE = re.compile(
+    r"\b(?:if|unless|whether|suppose|supposing|hypothetical(?:ly)?|example|quoted?|quotation|"
+    r"says?|said|reads?|assume|assuming|imagine|consider|illustration|illustrative|provided\s+that)\b",
+    re.I,
+)
+_STATUS_QUOTE = re.compile(r'["“”‘’]|(?<!\w)\x27|\x27(?!\w)')
 _CAUSAL = re.compile(
     r"\b(?:affects?|increases?|reduces?|prevents?|protects?|improves?|causes?|supports? readiness|"
     r"leads? to|results? in|can affect|can disrupt)\b",
@@ -148,6 +194,61 @@ def _has_confirmer(text):
             continue
         return True
     return False
+
+
+def _is_complete_proposal_status(unit, text, narrative):
+    """Recognise one unquoted abstract-status sentence, never a task exemption.
+
+    Only the local-task finding uses this predicate. The claim, its offsets,
+    citations and every other content check remain unchanged. Context checks
+    prevent a later sentence inside a quote or hypothetical paragraph from
+    gaining an exemption after sentence splitting removed its introduction.
+    """
+    pattern = _STATUS_PATTERNS.get(current_report_heading(unit["section"]))
+    if unit["block_type"] != "prose" or pattern is None or pattern.fullmatch(text) is None:
+        return False
+    raw_claim = " ".join(unit["claim"].split())
+    if pattern.fullmatch(raw_claim) is None or unit["citations"]:
+        return False
+    start, end = unit["span"]["start"], unit["span"]["end"]
+    section_start, section_end = 0, len(narrative)
+    for heading in _STATUS_SECTION_BOUNDARY.finditer(narrative):
+        if heading.end() <= start:
+            section_start = heading.end()
+        elif heading.start() >= end:
+            section_end = heading.start()
+            break
+    # An introduction or retrospective example label can sit in another
+    # paragraph. Ambiguous conditional/example scope within this section keeps
+    # the legacy task finding rather than granting a status exemption.
+    if _STATUS_CONTEXT_CUE.search(plain_markdown_claim_text(narrative[section_start:section_end])):
+        return False
+    # A quoted example may span blank lines. Paragraph-local checks alone
+    # would lose the opening quotation marker before the extracted sentence.
+    quotation_stack = []
+    for quote in _STATUS_QUOTE.findall(plain_markdown_claim_text(narrative[section_start:start])):
+        if quote in {"“", "‘"}:
+            quotation_stack.append({"“": "”", "‘": "’"}[quote])
+        elif quotation_stack and quotation_stack[-1] == quote:
+            quotation_stack.pop()
+        elif quote in {"”", "’"}:
+            return False  # Ambiguous unmatched quote: no status exemption.
+        else:
+            quotation_stack.append(quote)
+    if quotation_stack:
+        return False
+    left, right = 0, len(narrative)
+    for boundary in _STATUS_PARAGRAPH_BOUNDARY.finditer(narrative):
+        if boundary.end() <= start:
+            left = boundary.end()
+        elif boundary.start() >= end:
+            right = boundary.start()
+            break
+    paragraph = narrative[left:right]
+    context = plain_markdown_claim_text(paragraph)
+    return not (
+        _STATUS_CONTAINER.search(paragraph) or _STATUS_QUOTE.search(context) or _STATUS_CONTEXT_CUE.search(context)
+    )
 
 
 def _measurements(text, field):
@@ -255,8 +356,12 @@ def _p2_checks(units, analysis):
     )
 
 
-def evaluate_report_content_contract(report_text, analysis, *, model_evidence=None):
+def evaluate_report_content_contract(report_text, analysis, *, model_evidence=None, proposal_status_ruleset=None):
     """Return conservative checks; a pass never certifies truth or applicability."""
+    if proposal_status_ruleset is not None and (
+        not isinstance(proposal_status_ruleset, str) or proposal_status_ruleset != PROPOSAL_STATUS_RULESET
+    ):
+        raise ValueError("Unsupported proposal-status ruleset.")
     analysis = analysis if isinstance(analysis, dict) else {}
     narrative = extract_narrative_body(str(report_text or ""))
     authored = strip_application_source_bindings(
@@ -349,7 +454,17 @@ def evaluate_report_content_contract(report_text, analysis, *, model_evidence=No
         # This exact complete sentence describes the absence of instructions.
         # It is not a general negation rule and exempts no other content check.
         non_directive = text.casefold() == _NON_DIRECTIVE_DISCLAIMER
-        if local_task and not non_directive and not sourced_description and not gap and not (proposal and confirmer):
+        proposal_status = proposal_status_ruleset == PROPOSAL_STATUS_RULESET and _is_complete_proposal_status(
+            unit, text, narrative
+        )
+        if (
+            local_task
+            and not non_directive
+            and not sourced_description
+            and not gap
+            and not (proposal and confirmer)
+            and not proposal_status
+        ):
             task_codes.append("local_task_requires_own_proposal_and_confirmer")
         if proposal and not confirmer:
             task_codes.append("proposal_confirmer_missing")

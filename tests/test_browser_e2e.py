@@ -466,7 +466,7 @@ def _assert_fixture_governed_gate(environment):
             for check in quality["checks"]
             if check["status"] == "fail"
         ]
-        assert quality["quality_policy_version"] == "governed-report-v11"
+        assert quality["quality_policy_version"] == "governed-report-v12"
         return analysis, narrative, quality
 
 

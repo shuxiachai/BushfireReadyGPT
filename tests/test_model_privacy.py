@@ -19,7 +19,7 @@ from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
     CONTENT_CONTRACT_GUIDANCE,
     CURRENT_CONTENT_CONTRACT_GUIDANCE,
-    SECTION_PURPOSE_GUIDANCE,
+    CURRENT_SECTION_PURPOSE_GUIDANCE,
     append_evidence_tables,
     append_human_signoff,
 )
@@ -284,7 +284,7 @@ def test_revision_prompt_excludes_human_review_signoff_and_preserves_section_sco
     assert "PRIOR_SENTINEL" in model_client.prompts[0]
     assert "REQUEST_SENTINEL" in model_client.prompts[0]
     # Capture the real revision entry point; no model behaviour is inferred here.
-    assert model_client.prompts[0].count(SECTION_PURPOSE_GUIDANCE) == 1
+    assert model_client.prompts[0].count(CURRENT_SECTION_PURPOSE_GUIDANCE) == 1
     assert model_client.prompts[0].count(BODY_CLAIM_CITATION_GUIDANCE) == 1
     assert model_client.prompts[0].count(CURRENT_CONTENT_CONTRACT_GUIDANCE) == 1
     assert CONTENT_CONTRACT_GUIDANCE not in model_client.prompts[0]
@@ -294,7 +294,7 @@ def test_revision_prompt_excludes_human_review_signoff_and_preserves_section_sco
     assert "Keep the existing claim-level citation requirements." in model_client.prompts[0]
     assert "apply the section-purpose instructions below to the requested changes" in model_client.prompts[0]
     assert "do not use these instructions to rewrite unrelated sections" in model_client.prompts[0]
-    assert model_client.prompts[0].index(SECTION_PURPOSE_GUIDANCE) > model_client.prompts[0].index(
+    assert model_client.prompts[0].index(CURRENT_SECTION_PURPOSE_GUIDANCE) > model_client.prompts[0].index(
         "<END_PRIOR_MODEL_NARRATIVE_DATA>"
     )
     assert model_client.prompts[0].index(BODY_CLAIM_CITATION_GUIDANCE) > model_client.prompts[0].index(

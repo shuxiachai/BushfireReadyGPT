@@ -1,11 +1,11 @@
 # Current project status
 
-Updated 2026-10-10 for application-owned report structure under
-governed-report-v11. The preceding v10 single real response omitted all four
-required field markers and was rejected; v11 instead requests section prose
-and lets the application supply the structure. Its one real local response met
-that protocol but still failed three content checks. Earlier results remain
-unchanged; no accepted replacement sample or new formal release is claimed. This page
+Updated 2026-10-10 for bounded proposal-status calibration and reader-facing
+section guidance under governed-report-v12. The preceding v11 real response
+met the application-owned structure contract but failed three content checks.
+The new guidance and current-only status rule do not rewrite that failure or
+establish a new model success. Earlier results remain unchanged; no accepted
+replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -50,6 +50,55 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Proposal-status calibration and section guidance (2026-10-10)
+
+V12 keeps the 15-string JSON interface, the 650–800-word body limit, the minimum
+300 model-prose words, frozen fields and shared three-call ceiling. Only complete
+abstract proposal-status sentences can avoid the local-task finding, using a
+bounded vocabulary in the applicable section. This is not a general exemption
+for wording such as "unverified": tables, checklists, lists, quoted/hypothetical
+contexts and appended instructions retain their checks. All causal, physical
+criteria, provenance and safety checks still inspect the unchanged sentence.
+The low-level evaluator defaults to its previous behavior; the current lifecycle
+explicitly selects the new ruleset. V2–v11 policy identities stay readable, while
+new review/export requires current reassessment and normal human review.
+
+The prompt now allocates soft section targets from the existing feasible word
+range. It aims for a 685–725-word final body when feasible; the frozen Cairns
+case gives a 430–470-word model-prose target. Section targets sum to the midpoint,
+are not new hard gates, and cannot justify rewriting unrelated text during a
+revision. Role, action and review prose describes known limits and missing
+records instead of announcing what the application will write. Missing training
+frequency, qualifications, appointments and records remain unknown. Repair
+feedback no longer suggests Markdown tables when the model must return JSON prose.
+Historical exported guidance strings and source-extraction helpers remain intact.
+
+An offline comparison of the unchanged v11 failed narrative reduced the local
+proposal count from **16 to 13**, removing only the three complete status
+descriptions. Every other content-check dictionary was identical, and the
+report still failed the same three checks, including its 886-word body. Original
+raw text, evidence, quality, outcome and quota files were not edited. This is a
+policy comparison on already-seen text, not a new model result or acceptance.
+The changed frozen-case user prompt has 26,179 characters, versus 25,581 before;
+its RAG, P2, analysis and source-token payloads remain exact. Character counts
+do not establish the changed request's token fit.
+
+Final local regression passed **3,961 tests**, with 7 platform skips,
+6 E2E cases deselected and **90.30% src coverage**, in 527.69 seconds. The six
+separate Chromium cases passed in 53.79 seconds. Dependency consistency, Ruff,
+formatting, Bandit and the installed-dependency vulnerability scan passed.
+Independent review closed cross-paragraph quote/hypothetical edge cases and
+confirmed that the other content and privacy checks were not weakened. Three
+earlier focused prompt-validation failures are retained: stale expectations and
+missing current section-purpose clauses were corrected, with the original
+historical byte pins and safety/privacy assertions preserved. The long selector
+enumeration emitted a 60-second diagnostic stack during the successful full run;
+it continued and passed, not a terminated test or hidden failure.
+
+These changes address specific observed failure modes. They do not establish
+general semantic accuracy or turn a diagnostic match into proof of a bad claim.
+The v11 observations below remain separately bound evidence.
 
 ### Application-owned section protocol (2026-10-10)
 

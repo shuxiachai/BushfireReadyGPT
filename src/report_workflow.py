@@ -72,7 +72,7 @@ from src.report_section_protocol import project_section_report, section_protocol
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
     CURRENT_CONTENT_CONTRACT_GUIDANCE,
-    SECTION_PURPOSE_GUIDANCE,
+    CURRENT_SECTION_PURPOSE_GUIDANCE,
     append_evidence_tables,
     append_human_signoff,
     apply_governance_notice,
@@ -809,7 +809,7 @@ def _revise_current_report(edit_request, persist_session_state, *, progress_call
 
     try:
         projected_current_text = project_section_report(extract_narrative_body(current_text), analysis)
-        protocol_guidance = section_protocol_guidance(analysis)
+        protocol_guidance = section_protocol_guidance(analysis, request_kind="revision")
     except (OwnedFieldError, ModelResponseError):
         return None, (
             "This report does not contain the exact current application-owned fields. "
@@ -878,7 +878,7 @@ For this revision, apply the section-purpose instructions below to the requested
 necessary consistency edits. Preserve other substantive content and its valid citation relationships;
 do not use these instructions to rewrite unrelated sections.
 Apply the bounded content instructions within that same revision scope.
-{SECTION_PURPOSE_GUIDANCE}
+{CURRENT_SECTION_PURPOSE_GUIDANCE}
 
 {CURRENT_CONTENT_CONTRACT_GUIDANCE}
 """

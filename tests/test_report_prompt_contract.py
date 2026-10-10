@@ -34,6 +34,7 @@ from src.report_generation_quality import (
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
     CURRENT_CONTENT_CONTRACT_GUIDANCE,
+    CURRENT_SECTION_PURPOSE_GUIDANCE,
     REQUIRED_DAY_ONE_ACTION,
     SECTION_PURPOSE_GUIDANCE,
     build_evidence_tables,
@@ -187,7 +188,7 @@ def test_initial_and_repair_recast_planner_cues_and_each_numeric_p2_occurrence()
         assert "one strict JSON object with exactly s01 through s15" in normalized
         assert (
             "The application adds all headings, the source register and frozen P2/role/action/review fields"
-            in normalized
+            not in normalized
         )
         assert "frozen P2" in normalized
         assert "Do not repeat P2 numbers" in normalized
@@ -265,12 +266,13 @@ def test_revision_includes_content_guidance_once_under_existing_scope(monkeypatc
         report_workflow._revise_current_report("Clarify the existing action wording.", lambda: None)
     prompt = captured[0]
     assert prompt.count(CURRENT_CONTENT_CONTRACT_GUIDANCE) == 1
-    assert prompt.count(SECTION_PURPOSE_GUIDANCE) == 1
+    assert prompt.count(CURRENT_SECTION_PURPOSE_GUIDANCE) == 1
     scope = prompt.index("For this revision, apply the section-purpose instructions")
     assert scope < prompt.index(CURRENT_CONTENT_CONTRACT_GUIDANCE)
     assert "necessary consistency edits" in prompt
     assert "do not use these instructions to rewrite unrelated sections" in prompt
     assert "Apply the bounded content instructions within that same revision scope" in prompt
+    assert "apply these soft targets only to request-related sections" in prompt
     assert prompt.request_kind == "revision"
     assert record["text"] == current_body
 
@@ -321,17 +323,17 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
     # This checks instruction delivery, not the quality of a generated report.
     for candidate, section_guidance, content_guidance in (
         (prompt, report_template._INITIAL_SECTION_PURPOSE_GUIDANCE, report_template._INITIAL_REPORT_REQUIREMENTS),
-        (repair, SECTION_PURPOSE_GUIDANCE, CURRENT_CONTENT_CONTRACT_GUIDANCE),
+        (repair, CURRENT_SECTION_PURPOSE_GUIDANCE, CURRENT_CONTENT_CONTRACT_GUIDANCE),
     ):
         assert candidate.count(section_guidance) == 1
         assert candidate.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
         assert candidate.count(content_guidance) == 1
         assert "[APP_ACTION_FIELDS]" not in candidate
         assert candidate.output_contract == SECTION_PROSE_OUTPUT_CONTRACT
-        assert "Keep s13 and s14 as short explanatory prose" in candidate
+        assert "Keep s10, s13 and s14 as short explanatory prose" in candidate
         assert (
             "The application adds all headings, the source register and frozen P2/role/action/review fields"
-            in candidate
+            not in candidate
         )
         assert "application-recorded provenance and limits" in candidate
         assert "do not certify authority, currency or applicability" in candidate
@@ -354,7 +356,7 @@ def test_initial_and_compact_repair_prompts_deliver_section_purpose_without_rewr
         "<END_DETERMINISTIC_ANALYSIS_DATA>"
     )
     assert prompt.index(BODY_CLAIM_CITATION_GUIDANCE) > prompt.index("<END_DETERMINISTIC_ANALYSIS_DATA>")
-    assert repair.index(SECTION_PURPOSE_GUIDANCE) > repair.index("REPAIR REQUIREMENTS")
+    assert repair.index(CURRENT_SECTION_PURPOSE_GUIDANCE) > repair.index("REPAIR REQUIREMENTS")
     assert repair.index(BODY_CLAIM_CITATION_GUIDANCE) > repair.index("REPAIR REQUIREMENTS")
     assert len(repair) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS
     assert analysis == original_analysis
@@ -379,6 +381,18 @@ def test_source_application_rules_remain_shared_and_within_original_budget():
         "never give them or P2 an O1 citation",
     ):
         assert requirement in BODY_CLAIM_CITATION_GUIDANCE
+
+
+def test_current_section_purpose_is_reader_facing_and_has_no_application_adds_echo():
+    assert "writing process, model, system" in CURRENT_SECTION_PURPOSE_GUIDANCE
+    assert "application-provided fields" in CURRENT_SECTION_PURPOSE_GUIDANCE
+    assert "will ensure" not in CURRENT_SECTION_PURPOSE_GUIDANCE.lower()
+    for requirement in report_template._INITIAL_SECTION_REQUIREMENTS[9:14]:
+        assert "application adds" not in requirement.lower()
+    assert (
+        "frequency, qualifications and records as unknown unless supplied"
+        in report_template._INITIAL_SECTION_REQUIREMENTS[11]
+    )
 
 
 @pytest.mark.parametrize(
@@ -410,8 +424,9 @@ def test_initial_only_compaction_preserves_shared_contract_bytes(name, expected_
             "Citation tokens do not count as prose",
             "one strict JSON object with exactly s01 through s15",
             "No headings, slots, tables, lists, fences, notice, appendices, URLs, extra keys or text outside JSON",
-            "The application adds all headings, the source register and frozen P2/role/action/review fields",
-            "Keep s13 and s14 as short explanatory prose",
+            "Keep s10, s13 and s14 as short explanatory prose",
+            "Aim softly for",
+            "These are planning targets, not per-section acceptance gates",
             "Describe the recognised scenario and selected focus naturally in s03",
             "Do not copy coverage declarations",
             "Live warnings, fire bans, evacuation orders and life-safety decisions come from official emergency services",
@@ -521,7 +536,7 @@ def test_source_statements_local_tasks_and_established_criteria_have_separate_pr
     repair = build_report_repair_prompt(initial, "Incomplete draft", {}, analysis=analysis)
     for prompt, section_guidance in (
         (initial, report_template._INITIAL_SECTION_PURPOSE_GUIDANCE),
-        (repair, SECTION_PURPOSE_GUIDANCE),
+        (repair, CURRENT_SECTION_PURPOSE_GUIDANCE),
     ):
         assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == prompt.count(section_guidance) == 1
         assert "local tasks/cross-audience proposals separate from cited source sentences" in prompt
@@ -848,7 +863,7 @@ def test_model_prompt_uses_opaque_source_tokens_without_titles_ids_or_urls():
     assert '"official_source_tokens"' in prompt
     assert '"rag_source_tokens"' in prompt
     assert "[APP_ACTION_FIELDS]" not in prompt
-    assert "Keep s13 and s14 as short explanatory prose" in prompt
+    assert "Keep s10, s13 and s14 as short explanatory prose" in prompt
 
 
 def test_verified_urls_are_added_only_by_deterministic_evidence_tables():
@@ -939,7 +954,7 @@ def test_structure_repair_reuses_the_same_source_attribution_contract():
     assert "<BEGIN_CANONICAL_SOURCE_TOKEN_DATA>" not in repair_prompt
     assert len(repair_prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS
     assert "[APP_ACTION_FIELDS]" not in repair_prompt
-    assert "Keep s13 and s14 as short explanatory prose" in repair_prompt
+    assert "Keep s10, s13 and s14 as short explanatory prose" in repair_prompt
 
 
 def test_production_absolute_safety_repair_prompt_uses_only_positive_replacement_language():

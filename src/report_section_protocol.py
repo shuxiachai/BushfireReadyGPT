@@ -223,17 +223,61 @@ def section_protocol_budget(analysis):
     return {"fixed_word_count": fixed, "model_prose_min_words": minimum, "model_prose_max_words": maximum}
 
 
-def section_protocol_guidance(analysis):
+def section_prose_word_targets(analysis):
+    """Return soft prose targets that fit the fixed 650–800 word body budget."""
     budget = section_protocol_budget(analysis)
+    fixed = budget["fixed_word_count"]
+    lower, upper = budget["model_prose_min_words"], budget["model_prose_max_words"]
+    desired_lower, desired_upper = 685 - fixed, 725 - fixed
+    if upper < desired_lower:
+        target_lower, target_upper = max(lower, upper - 40), upper
+    elif lower > desired_upper:
+        target_lower, target_upper = lower, min(upper, lower + 40)
+    else:
+        target_lower, target_upper = max(lower, desired_lower), min(upper, desired_upper)
+    midpoint = (target_lower + target_upper) // 2
+    # These reader-facing priorities keep title and owned-field context brief,
+    # while reserving detail for substantive preparedness sections.
+    weights = (12, 28, 25, 32, 37, 35, 38, 34, 39, 17, 39, 42, 17, 17, 28)
+    weight_total = sum(weights)
+    targets = [midpoint * weight // weight_total for weight in weights]
+    for index in sorted(range(len(weights)), key=lambda item: (-(midpoint * weights[item] % weight_total), item))[
+        : midpoint - sum(targets)
+    ]:
+        targets[index] += 1
+    return {
+        **budget,
+        "model_prose_target_min_words": target_lower,
+        "model_prose_target_max_words": target_upper,
+        "model_prose_target_midpoint_words": midpoint,
+        "section_target_words": dict(zip(SECTION_KEYS, targets, strict=True)),
+    }
+
+
+def section_protocol_guidance(analysis, *, request_kind="initial"):
+    if not isinstance(request_kind, str) or request_kind not in {"initial", "structural_repair", "revision"}:
+        raise ValueError("unsupported section protocol request kind")
+    budget = section_protocol_budget(analysis)
+    targets = section_prose_word_targets(analysis)
+    section_targets = ", ".join(f"{key} about {words}" for key, words in targets["section_target_words"].items())
+    scope = (
+        "For a revision, apply these soft targets only to request-related sections; preserve unrelated prose rather "
+        "than rewriting it to meet a target. "
+        if request_kind == "revision"
+        else ""
+    )
     return (
         "Output contract: one strict JSON object with exactly s01 through s15, each a nonempty English prose "
         "string for the corresponding section below. No headings, slots, tables, lists, fences, notice, "
-        "appendices, URLs, extra keys or text outside JSON. The application adds all headings, the source register "
-        "and frozen P2/role/action/review fields. Keep s13 and s14 as short explanatory prose. Do not repeat P2 numbers. "
+        "appendices, URLs, extra keys or text outside JSON. Keep s10, s13 and s14 as short explanatory prose. "
+        "Frozen P2/role/action/review fields are application-owned and rendered separately. Do not repeat P2 numbers. "
         f"Write {budget['model_prose_min_words']}–{budget['model_prose_max_words']} model prose words, at least 300; "
         f"the headings and frozen fields add {budget['fixed_word_count']} words to the 650–800 word body. "
+        f"Aim softly for {targets['model_prose_target_min_words']}–{targets['model_prose_target_max_words']} model "
+        f"prose words ({targets['model_prose_target_midpoint_words']} midpoint), distributed as {section_targets}. "
+        "These are planning targets, not per-section acceptance gates. "
         "Citation tokens do not count as prose. Describe the recognised scenario and selected focus naturally in s03 "
-        "and address each in the relevant substantive sections. Do not copy coverage declarations."
+        "and address each in the relevant substantive sections. Do not copy coverage declarations. " + scope
     )
 
 
