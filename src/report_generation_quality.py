@@ -827,8 +827,8 @@ _CONTENT_REPAIR_CORRECTIONS = {
         "state the gap and authority-verification task."
     ),
     "Narrative word budget": (
-        "- LENGTH: Keep 650–800 authored words and all 15 sections with at least 300 prose words. Shorten JSON "
-        "section prose while retaining useful facts and their qualifications; emit no tables or lists. "
+        "- LENGTH: Keep 650–800 authored words and all 15 sections with at least 300 prose words. {direction} "
+        "emit no tables or lists. "
         "Count the application headings and frozen fields; exclude appendices and source-register lines."
     ),
 }
@@ -868,7 +868,21 @@ def _content_repair_feedback(quality):
             and 0 <= count <= _MAX_REPAIR_WORD_COUNT
         ):
             word_count = count
-    lines = [text for name, text in _CONTENT_REPAIR_CORRECTIONS.items() if name in failed_names]
+    lines = []
+    for name, text in _CONTENT_REPAIR_CORRECTIONS.items():
+        if name not in failed_names:
+            continue
+        if name == "Narrative word budget":
+            if word_count is not None and word_count < 650:
+                direction = (
+                    "Expand JSON section prose only from supplied facts and qualifications; do not invent facts or pad;"
+                )
+            elif word_count is not None and word_count > 800:
+                direction = "Shorten JSON section prose while retaining useful facts and qualifications;"
+            else:
+                direction = "Adjust or retain JSON section prose while retaining useful facts and qualifications;"
+            text = text.format(direction=direction)
+        lines.append(text)
     if word_count is not None:
         lines[-1] += f" Measured authored words: {word_count}."
     rendered = "\n".join(lines)

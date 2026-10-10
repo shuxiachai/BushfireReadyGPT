@@ -89,6 +89,26 @@ def test_only_bounded_integer_word_count_is_rendered(word_count):
     assert "all 15 sections with at least 300 prose words" in feedback
 
 
+@pytest.mark.parametrize(
+    ("word_count", "direction"),
+    [
+        (632, "Expand JSON section prose only from supplied facts and qualifications; do not invent facts or pad;"),
+        (649, "Expand JSON section prose only from supplied facts and qualifications; do not invent facts or pad;"),
+        (650, "Adjust or retain JSON section prose while retaining useful facts and qualifications;"),
+        (800, "Adjust or retain JSON section prose while retaining useful facts and qualifications;"),
+        (801, "Shorten JSON section prose while retaining useful facts and qualifications;"),
+    ],
+)
+def test_word_count_renders_only_its_directional_length_instruction(word_count, direction):
+    feedback = _content_repair_feedback(
+        {"checks": [_failed_check("Narrative word budget", "narrative_word_budget", word_count=word_count)]}
+    )
+    assert direction in feedback
+    assert f"Measured authored words: {word_count}." in feedback
+    assert feedback.count("Expand JSON section prose") == (word_count < 650)
+    assert feedback.count("Shorten JSON section prose") == (word_count > 800)
+
+
 @pytest.mark.parametrize("word_count", [-1, 100_001, 10**100, True, False, 801.0, "801 HOSTILE", None, [], {}])
 def test_invalid_word_metrics_never_reach_feedback(word_count):
     feedback = _content_repair_feedback(
@@ -97,6 +117,9 @@ def test_invalid_word_metrics_never_reach_feedback(word_count):
     assert "- LENGTH:" in feedback
     assert "Measured authored words:" not in feedback
     assert "HOSTILE" not in feedback
+    assert "Expand JSON section prose" not in feedback
+    assert "Shorten JSON section prose" not in feedback
+    assert "Adjust or retain JSON section prose" in feedback
 
 
 def test_word_count_is_not_taken_from_other_checks_or_gate_details():
@@ -115,15 +138,21 @@ def test_word_count_is_not_taken_from_other_checks_or_gate_details():
     assert "- LENGTH:" not in feedback
 
 
-def test_all_content_groups_are_deduplicated_bounded_and_do_not_repeat_free_text():
-    checks = [_failed_check(name, code, detail="PRIVATE CLAIM", word_count=100_000) for name, code, _group in _FINDINGS]
+@pytest.mark.parametrize("word_count", [632, 649, 650, 800, 801, 100_000, None, "HOSTILE", True])
+def test_all_content_groups_are_deduplicated_bounded_and_do_not_repeat_free_text(word_count):
+    metrics = {} if word_count is None else {"word_count": word_count}
+    checks = [_failed_check(name, code, detail="PRIVATE CLAIM", **metrics) for name, code, _group in _FINDINGS]
     quality = {"checks": checks * 100}
     original = deepcopy(quality)
     feedback = _content_repair_feedback(quality)
     assert 1200 <= len(feedback) <= 1400
     for _name, _code, group in _FINDINGS:
         assert feedback.count(f"- {group}:") == 1
-    assert feedback.count("Measured authored words: 100000.") == 1
+    if type(word_count) is int:
+        assert feedback.count(f"Measured authored words: {word_count}.") == 1
+    else:
+        assert "Measured authored words:" not in feedback
+    assert "HOSTILE" not in feedback
     assert "PRIVATE CLAIM" not in feedback
     assert quality == original
 
