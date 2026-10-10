@@ -1,11 +1,10 @@
 # Current project status
 
-Updated 2026-10-10 for bounded proposal-status calibration and reader-facing
-section guidance under governed-report-v12. The preceding v11 real response
-met the application-owned structure contract but failed three content checks.
-The new guidance and current-only status rule do not rewrite that failure;
-the one new v12 response also failed content acceptance. Earlier results remain unchanged; no accepted
-replacement sample or new formal release is claimed. This page
+Updated 2026-10-10 after exact repair-budget measurement and one bounded local
+three-attempt generation/repair campaign on source `7b4d1eb`, still under
+governed-report-v12. The campaign completed but all three drafts failed content
+acceptance. A separate startup failure and the earlier single-response results
+remain preserved; no accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -50,6 +49,85 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Exact repair budgets and the three-attempt content check (2026-10-10)
+
+The only production correction in `7b4d1eb` directs length feedback from the
+validated word count: expand below 650, shorten above 800, otherwise adjust or
+retain. Expansion must use supplied facts and qualifications, without invented
+facts or padding. The 650–800-word gate, minimum 300 model-prose words,
+1,400-character feedback cap, 18,000-character repair cap and shared three-call
+ceiling are unchanged, as are the v12 policy fingerprint and historical rules.
+Independent review and **411 focused tests** passed, with Ruff/format checks.
+An earlier test command failed before collection because it selected the global
+Anaconda runner; the project virtual environment completed the tests.
+
+Exact local tokenization bound the actual messages to the model, template and
+rendered prompt, with the unchanged 6,917-token control and exact round trips.
+The initial request used **5,812 input tokens**; the prepared structural repair
+used **4,075**, and the protocol-repair request used **5,885**. Adding 2,300
+reserved output tokens and one margin token leaves respectively **79, 1,816 and
+6 tokens** within the 8,192 window. The protocol path was counted, not generated.
+That six-token headroom is specific to this fixture, not a general fit guarantee.
+This separate count session made six tokenize/detokenize POSTs, no generation
+calls, and closed with its native process, listener and temporary secret removed.
+
+The first live-harness startup failed before any generation or tokenizer call.
+Its original failure and automatic-cleanup result remain unchanged; separately
+recorded, identity-checked manual cleanup removed only its owned processes.
+A harmless subprocess reproduction exposed inherited pipe writers delaying
+the helper timeout and a decoding error. A fresh harness used file-backed binary
+output and bounded waits instead; **73 offline harness tests** and independent
+review passed. These are local diagnostic harness changes, not application
+timeout or quota changes. File-read caps are not disk quotas, and the campaign's
+900-second admission deadline is not an OS-level lifetime guarantee.
+
+The fresh campaign called the production `generate_narrative_with_repairs`
+workflow with the frozen **Cairns / Community workshop material** input:
+
+| Attempt | Kind | Input / output tokens | Body words, including fixed fields | Passed / failed checks |
+| --- | --- | --- | --- | --- |
+| 1 | Initial | 5,812 / 604 | 632 | 24 / 3 |
+| 2 | Structural repair | 4,075 / 966 | 955 | 23 / 4 |
+| 3 | Structural repair | 4,055 / 1,550 | 1,326 | 23 / 4 |
+
+All three requests finished with normal stop and closed SDK/HTTP streams.
+Callbacks, SDK calls, generation HTTP requests and isolated SQLite allowance
+each total **3**; total usage was **17,062 tokens**. Both actual repair requests
+were counted before dispatch, using two cleaned-up native sessions and eight
+tokenize/detokenize POSTs. Their input usage matched those counts. The correct
+"Expand" then "Shorten" instructions were dispatched, but the generated bodies
+did not converge on the word limit. Measured fit does not prove retained model
+context, attention or semantic evidence use.
+
+The initial draft failed length, local-proposal and causal checks. Both repairs
+failed length, scenario coverage, focus coverage and local-proposal checks.
+The final four task findings correspond to unqualified task prose, rather than
+the known initial proposal-status false positive. However, the focus diagnostic
+said "official information sources" was missing even though that wording occurs
+in the final prose: its configured matcher accepts narrower phrases such as
+"official source" and "official emergency". This is a keyword-policy result,
+not proof of semantic absence; no gate was relaxed to pass this case.
+Body-claim diagnostics found **0/37, 0/48 and 0/46** cited/citation-requiring
+claims. The source register does not substitute for those missing body citations.
+These are heuristic coverage counts, not correctness or accuracy percentages.
+
+The completed campaign is **one content-failed campaign with three failed
+drafts**, separate from the startup failure and five preserved older single-call
+failures. It performed no approval, audit finalization or export. Independent
+postflight review reconstructed responses, checked usage and immutable-read
+SQLite counts, and rehashed 1,101 protected/historical files plus 141 directory
+entries without changes. Saved cleanup and a separate current-host check
+confirmed the owned service, runners, native processes, listeners and native
+secrets were gone. Exit code zero means the harness closed, not that content
+passed. No external model API or new cloud acceptance was involved.
+
+The closed local evidence is retained in ignored output directories, not
+published as a benchmark: `local-repair-token-count-20261010-a`, failed
+`local-repair-loop-validation-20261010-a`, its separate
+`local-repair-loop-recovery-20261010-a`, and completed
+`local-repair-loop-validation-20261010-b`. The last request ID is
+`e45cd40f-695a-4c81-9261-964be80e4a8d`. None is eligible for replay.
 
 ### Proposal-status calibration and section guidance (2026-10-10)
 
@@ -632,15 +710,16 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Suggested Next Build Order
 
-The immediate priority is a separately recorded test of the existing bounded
-repair workflow, rather than more single-initial-response prompt changes.
-The v12 one-shot check intentionally used zero repairs; it does not establish
-whether the application's normal maximum-three-attempt flow can resolve these
-findings. A new bounded trial must preserve every attempt and use a fresh quota;
-the closed v12 request must not be reopened. Even correcting its remaining
-status-description false positive would leave real task, causal and length
-failures. Do not increase the word limit, silently trim prose or weaken the
-gate to accept that response. Cloud backup/recovery,
+The existing maximum-three-attempt workflow has now been exercised and did not
+resolve the frozen case. The next priority is offline design and regression
+testing of repairs that preserve already-satisfied scenario/focus constraints,
+fix only identified content problems where safe, and refuse regressions. Any
+section-local repair design still needs explicit evidence/version bindings and
+whole-report revalidation; it is not implemented or accepted by this trial.
+Calibrate coverage matchers against positive and negative examples separately,
+without using broader matching to conceal length, task or citation failures.
+Do not reopen closed campaigns, keep resampling this case, increase the word
+limit, silently trim prose or weaken the gate to accept a response. Cloud backup/recovery,
 quota/cost gaps and documentation consistency remain tracked separately.
 Additional demonstrations, native Word layout checks and replacement report
 samples are deferred. Their incomplete acceptance remains recorded below.
