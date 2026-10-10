@@ -114,6 +114,25 @@ separate. No production code or timeout was changed. The three related test
 modules passed **118 tests in 132.15 seconds**; Ruff and independent read-only
 review passed. The original remote failure remains part of this record.
 
+On `89d90a3`, the six-request regression passed remotely, but the same fixture
+deadline masked a different assertion: the journal-close failure test returned
+`timeout` instead of `journal_close_failed`. Windows recorded **1 failed,
+3,967 passed, 1 skipped and 6 deselected** in 346.26 seconds; both Linux versions,
+Chromium and Docker passed. This second failure requires checking the fixture's
+semantic-versus-timing boundary across its tests, not declaring the suite green
+from the first fixed case.
+
+The follow-up explicitly opts semantic, protocol, binding and recording-failure
+tests into the deterministic fixture; it is not an automatic patch for the
+whole module. A lightweight native-worker success test retains the real clock,
+thread, request/response capture and mocked quota callbacks without durable
+recorder I/O inside its deadline. The duplicate-request test keeps a separate
+native competing thread and its ownership assertions, while only the primary
+completion is inline. Dedicated worker-deadline and late-worker tests remain
+unchanged. The same three modules then passed **119 tests in 109.63 seconds**,
+with Ruff and independent static review passing. These are test-harness changes,
+not production timing changes or evidence that either CI latency cause is known.
+
 On clean source `0f6d27f`, exact native measurement recorded **5,812 input
 tokens**, 192 more than v11. With the unchanged 2,300 output reservation and
 1-token margin, the total is **8,113 / 8,192**, leaving only **79**. The original

@@ -166,6 +166,7 @@ def test_frozen_hash_and_rebuild_failure_precede_environment(monkeypatch):
         runner._load_bundle(runner.PREPARED_SHA256)
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_main_resolves_mock_factory_at_call_time_without_constructing_openai(campaign, monkeypatch):
     import openai
 
@@ -281,6 +282,7 @@ def test_six_real_governed_mock_requests_match_order_normalisation_capture_and_q
     assert result["semantic_accuracy"] is None and result["production_enabled"] is False
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_claim_cannot_be_reopened_after_a_failed_or_completed_campaign(campaign):
     campaign.behavior = lambda *_: (_ for _ in ()).throw(ConnectionError("SECRET"))
     result = campaign.run()
@@ -292,6 +294,7 @@ def test_claim_cannot_be_reopened_after_a_failed_or_completed_campaign(campaign)
     assert "SECRET" not in json.dumps(result) + json.dumps(_saved(campaign, "response-01.json"))
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_with_options_preserves_observer_and_double_dispatch_stops(campaign):
     def behavior(_sequence, kwargs):
         observer = campaign.observers[0]
@@ -304,18 +307,23 @@ def test_with_options_preserves_observer_and_double_dispatch_stops(campaign):
     assert all(row["status"] == "not_run" for row in result["rows"][1:])
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_concurrent_duplicate_does_not_close_the_original_inflight_sdk(campaign):
     observed = {}
 
     def behavior(_sequence, kwargs):
         observer = campaign.observers[0]
+        original_thread = threading.current_thread()
 
         def duplicate():
+            observed["different_thread"] = threading.current_thread() is not original_thread
             try:
                 observer.create(**kwargs)
             except runner.RunStopped as error:
                 observed["reason"] = error.code
 
+        # The governed callback is inline, but this competing observer call
+        # uses a native thread while the original SDK invocation is active.
         duplicate_worker = threading.Thread(target=duplicate)
         duplicate_worker.start()
         duplicate_worker.join(1)
@@ -326,6 +334,7 @@ def test_concurrent_duplicate_does_not_close_the_original_inflight_sdk(campaign)
     campaign.behavior = behavior
     result = campaign.run()
     assert observed == {
+        "different_thread": True,
         "reason": "duplicate_dispatch",
         "done_while_first_sdk_active": False,
         "closed_while_first_sdk_active": [],
@@ -334,18 +343,21 @@ def test_concurrent_duplicate_does_not_close_the_original_inflight_sdk(campaign)
     assert campaign.close_calls == [1]
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_wrong_cell_is_blocked_before_sdk(campaign):
     campaign.guard.before_consume = lambda: setattr(campaign.observers[0].state, "active_sequence", 2)
     result = campaign.run()
     assert result["stop_reason"] == "wrong_cell" and campaign.requests == []
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_wrong_frozen_order_cannot_be_dispatched(campaign):
     campaign.configure = lambda observer: observer.row.update(arm="candidate")
     result = campaign.run()
     assert result["stop_reason"] == "wrong_cell" and campaign.requests == []
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_observer_cannot_rebind_both_its_prompt_and_actual_sdk_messages(campaign):
     from src.model_evidence import EvidencePrompt, bind_submitted_messages
 
@@ -365,6 +377,7 @@ def test_observer_cannot_rebind_both_its_prompt_and_actual_sdk_messages(campaign
     assert result["stop_reason"] == "frozen_binding_failed" and campaign.requests == []
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 @pytest.mark.parametrize(
     "field,value", [("temperature", 0.8), ("max_tokens", 999), ("stream", True), ("seed", 42), ("tools", [])]
 )
@@ -386,7 +399,11 @@ def test_unexpected_actual_sdk_parameters_are_blocked(campaign, field, value):
 
 @pytest.fixture
 def inline_recorded_completion(campaign, monkeypatch):
-    """Content/drift assertions use logical time; deadline/concurrency tests stay real."""
+    """Opt-in deterministic worker for recording, protocol, and error semantics.
+
+    Native-thread success and runtime deadline tests never use this fixture.
+    Observer concurrency tests may still create their own native threads.
+    """
     from src import model_runtime
 
     completed = []
@@ -439,6 +456,7 @@ def test_drift_after_return_stops_before_next_cell(campaign, drift, inline_recor
     assert _saved(campaign, "response-details-01.json")["model_evidence"]["status"] == "captured"
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 @pytest.mark.parametrize(
     "finish,content,tool_calls,reason",
     [
@@ -457,6 +475,7 @@ def test_protocol_failures_keep_raw_response_and_never_retry(campaign, finish, c
     assert result["rows"][0]["status"] == "failed"
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_capture_failure_preserves_raw_and_stops(campaign, monkeypatch):
     from src import model_evidence
 
@@ -466,6 +485,7 @@ def test_capture_failure_preserves_raw_and_stops(campaign, monkeypatch):
     assert _saved(campaign, "response-01.json")["raw_response"]["choices"]
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 @pytest.mark.parametrize(
     "raw,reason",
     [
@@ -488,6 +508,7 @@ def test_malformed_dump_is_durable_before_any_protocol_or_metadata_derivation(ca
     assert all(row["status"] == "not_run" for row in result["rows"][1:])
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 @pytest.mark.parametrize(
     "filename,expected_calls",
     [("snapshot.json", 0), ("request-01.json", 0), ("response-01.json", 1), ("result-01.json", 1), ("results.json", 6)],
@@ -508,6 +529,7 @@ def test_recording_failures_stop_and_keep_claim(campaign, monkeypatch, filename,
     assert "SECRET" not in json.dumps(result)
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_journal_failure_stops_before_sdk(campaign, monkeypatch):
     original = runner.Journal.append
 
@@ -521,6 +543,7 @@ def test_journal_failure_stops_before_sdk(campaign, monkeypatch):
     assert result["stop_reason"] == "journal_failed" and campaign.requests == []
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 def test_journal_close_failure_is_visible_in_final_result(campaign, monkeypatch):
     original = runner.Journal.close
 
@@ -534,6 +557,7 @@ def test_journal_close_failure_is_visible_in_final_result(campaign, monkeypatch)
     assert _saved(campaign, "results.json")["stop_reason"] == "journal_close_failed"
 
 
+@pytest.mark.usefixtures("inline_recorded_completion")
 @pytest.mark.parametrize("finish,first_reason", [("stop", "client_close_failed"), ("length", "length")])
 def test_client_close_failure_preserves_first_reason_and_stops(campaign, finish, first_reason):
     campaign.close_failure = True
@@ -542,6 +566,43 @@ def test_client_close_failure_preserves_first_reason_and_stops(campaign, finish,
     assert result["stop_reason"] == first_reason and len(campaign.requests) == 1
     if finish == "length":
         assert "client_close_failed" in result["secondary_errors"]
+
+
+def test_local_deadline_adapter_completes_on_native_worker_with_mock_sdk(campaign):
+    from src import model_runtime
+    from src.model_evidence import json_sha256, text_sha256
+
+    # Exercise the unpatched worker/deadline boundary without putting recorder
+    # disk latency inside a successful request's one-second fixture budget.
+    assert model_runtime.threading is threading
+    assert campaign.runtime_kwargs == {}
+    observed = {}
+
+    def create(**kwargs):
+        observed.update(worker=threading.current_thread(), request=kwargs)
+        return response()
+
+    def with_options(**kwargs):
+        observed["options"] = kwargs
+        return sdk
+
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)), with_options=with_options)
+    client = runner._governed_runtime(
+        completion_client=sdk,
+        model_name=campaign.settings["model"],
+        provider="deepseek",
+        is_local=False,
+        timeout_seconds=campaign.settings["timeout_seconds"],
+    )
+    assert client._clock is model_runtime.time.monotonic
+    assert client.generate("Synthetic planning request.") == "Synthetic planning text."
+    assert isinstance(observed["worker"], threading.Thread)
+    assert observed["worker"] is not threading.current_thread()
+    assert observed["worker"].name == "governed-model-completion" and observed["worker"].daemon is True
+    assert observed["options"] == {"max_retries": 0}
+    assert campaign.guard.calls == 1 and campaign.guard.released.is_set()
+    assert client.last_request_capture["messages_sha256"] == json_sha256(observed["request"]["messages"])
+    assert client.last_request_capture["response_sha256"] == text_sha256("Synthetic planning text.")
 
 
 def test_local_deadline_adapter_preserves_runtime_exception_boundary(campaign):
