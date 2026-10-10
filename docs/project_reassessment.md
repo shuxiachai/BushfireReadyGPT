@@ -3,8 +3,9 @@
 Updated 2026-10-10 for application-owned report structure under
 governed-report-v11. The preceding v10 single real response omitted all four
 required field markers and was rejected; v11 instead requests section prose
-and lets the application supply the structure. Earlier results remain unchanged;
-no accepted replacement sample or new formal release is claimed. This page
+and lets the application supply the structure. Its one real local response met
+that protocol but still failed three content checks. Earlier results remain
+unchanged; no accepted replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -86,6 +87,43 @@ because it did not set workspace TEMP/TMP; only its verified test processes were
 stopped, and the correctly isolated rerun passed. These failures remain recorded;
 none is a real-model attempt or a reason to lower acceptance criteria.
 
+On clean source `ae26cb0`, the unchanged Cairns synthetic case compiled to
+25,581 user-message characters and 487 system-message characters. RAG text, P2
+basis, frozen analysis and source-token blocks remained identical. An independent
+native count measured **5,620 input tokens**, 254 fewer than v10. With 2,300
+reserved output tokens and a 1-token margin, the total is **7,921 / 8,192**,
+leaving **271**. The original 6,917-token control and both detokenization round
+trips matched exactly. Four tokenizer requests and four health checks completed
+in 14.80 seconds, with zero generation, successful cleanup and unchanged
+protected files. This result does not guarantee fit for other inputs.
+
+The single new local generation completed HTTP 200, normal `stop` and the
+terminal stream marker, with **5,620 input + 899 output = 6,519 tokens**. SDK,
+generation HTTP and isolated quota counters each recorded exactly one call;
+there was no retry or repair. All 15 JSON fields were admitted and the application
+supplied the exact headings, source register and four fixed blocks. The protocol,
+P2 provenance, section structure and scenario/focus checks passed in this case.
+
+The content gate still rejected the draft: **24 passed / 3 failed / 27 checks**.
+Its **631 model-prose words + 255 fixed words = 886 body words** exceeded 800;
+16 local-task occurrences lacked their own proposal/confirmer qualification;
+one causal assertion lacked the required basis. The prose also contains
+unverified promises about workshop activity and application-added records, so
+structural success must not be presented as semantic correctness. Fewer failed
+check categories than v10 is not a quality-rate comparison: the policy and
+generated text changed, and this is one already-seen case, not a held-out study.
+
+No accepted report, audit finalization, approval or export was produced. Raw
+response and assembled-body hashes were independently reproduced; all 85
+protected items, 10 historical trees / 420 snapshot rows and three earlier report
+trees remained unchanged. Each old quota and the new quota remains at one.
+The service, runner and console exited; a fresh process/listener check found no
+remaining owned identity or listener. Historical v0.5.0 and v0.6.0 verification
+also passed on the clean source without a dirty override. A pre-execution review
+fixed raw-response CRLF normalization in the new postflight reader; no old report
+or historical harness was changed. Model context retention and semantic evidence
+use remain unknown despite matching native and SDK input counts.
+
 ### Historical v10 application-owned fields (2026-10-10)
 
 V10 generation expanded four exact standalone slots in sections 4, 10, 13
@@ -165,10 +203,9 @@ verification also passed on this clean source, without a dirty override.
 
 This establishes bounded execution and correct rejection, **not report-content
 success**. Token-budget fit and usage agreement do not prove provider context
-retention or semantic evidence use. The next priority is an application-owned
-report skeleton with model-supplied section prose, reducing reliance on the
-model copying special markers. Any such change needs its own design, regression
-and newly bounded model check; do not patch this failed response into a sample.
+retention or semantic evidence use. This result motivated the separately
+validated v11 application-owned skeleton above. The failed v10 response remains
+unchanged and must not be patched into an accepted sample.
 
 ### Local context and heading follow-up (2026-10-08)
 
@@ -470,10 +507,12 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Suggested Next Build Order
 
-The immediate priority is to validate the v11 section-prose protocol against
-the unchanged local synthetic input: exact input-token measurement first, then
-a separately bounded real response if its budget fits. Engineering success
-must not substitute for model-output or content acceptance. Cloud backup/recovery,
+The immediate priority is the remaining model-prose contract: bounded section
+length, separately qualified local proposals and evidence-bound causal claims.
+V11's single real response validated the new structure, not report content.
+Preserve that failed response and diagnose specific occurrences before changing
+prompts or authorising another bounded comparison; do not increase the word
+limit, silently trim prose or weaken the gate to accept it. Cloud backup/recovery,
 quota/cost gaps and documentation consistency remain tracked separately.
 Additional demonstrations, native Word layout checks and replacement report
 samples are deferred. Their incomplete acceptance remains recorded below.
