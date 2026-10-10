@@ -3,8 +3,8 @@
 Updated 2026-10-10 for bounded proposal-status calibration and reader-facing
 section guidance under governed-report-v12. The preceding v11 real response
 met the application-owned structure contract but failed three content checks.
-The new guidance and current-only status rule do not rewrite that failure or
-establish a new model success. Earlier results remain unchanged; no accepted
+The new guidance and current-only status rule do not rewrite that failure;
+the one new v12 response also failed content acceptance. Earlier results remain unchanged; no accepted
 replacement sample or new formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
@@ -95,6 +95,45 @@ missing current section-purpose clauses were corrected, with the original
 historical byte pins and safety/privacy assertions preserved. The long selector
 enumeration emitted a 60-second diagnostic stack during the successful full run;
 it continued and passed, not a terminated test or hidden failure.
+
+On clean source `0f6d27f`, exact native measurement recorded **5,812 input
+tokens**, 192 more than v11. With the unchanged 2,300 output reservation and
+1-token margin, the total is **8,113 / 8,192**, leaving only **79**. The original
+6,917-token control, token IDs and both detokenization round trips matched.
+Four tokenizer requests and four health checks completed in 15.85 seconds,
+with zero generation and all cleanup/preservation checks passing. This is a
+fit for this exact case, not a guarantee for other inputs or proof of retention.
+
+The new report made exactly one SDK call, one generation HTTP request and one
+isolated quota charge, with zero retry or repair. It completed HTTP 200, `stop`
+and the terminal stream marker, using **5,812 input + 604 output = 6,416 tokens**.
+All 15 prose fields and fixed-block assembly passed. However, **24 checks passed
+and 3 failed out of 27**: the model wrote **377 prose words + 255 fixed words =
+632**, below the 650-word lower bound; the proposal rule recorded 5 matches;
+and causal checks found one unqualified planning inference and one unsupported
+effect assertion. The previous "application will add" descriptions were absent
+in this response, but that does not establish general resistance to instruction
+echo or overall quality improvement. The text changed, and the same already-seen
+case was used, so different finding counts are not an accuracy comparison.
+
+Read-only review of the five proposal matches found four unmet task contracts
+and one remaining conservative false positive: "Candidate assembly points are
+unverified proposals for local review." The current bounded subject list covers
+assembly-point *criteria*, not this variant. Removing that one diagnostic alone
+would not make the report pass. The two causal findings concern alert disruption
+without an explicitly qualified R3 inference and a maintenance-effect assertion
+without an adjacent O1 citation. There were no O1 citation tokens in the raw
+model prose. The source register cannot supply missing claim-level evidence.
+
+No accepted report, audit finalization, human approval or export was created.
+Independent read-only verification matched raw SDK, received stream and
+assembled-body hashes, usage and count bindings. All **88 protected items**,
+**12 historical trees / 510 snapshot rows**, four earlier report trees and
+their quotas remained unchanged; all five isolated report quotas retain one
+call each. Identity-bound cleanup and a fresh check confirmed that the service,
+runner, console and listener were gone. Historical v0.5.0/v0.6.0 verification
+passed on the clean source without a dirty override. This fifth bounded local
+report failure is preserved; no closed request was replayed.
 
 These changes address specific observed failure modes. They do not establish
 general semantic accuracy or turn a diagnostic match into proof of a bad claim.
@@ -556,12 +595,15 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Suggested Next Build Order
 
-The immediate priority is the remaining model-prose contract: bounded section
-length, separately qualified local proposals and evidence-bound causal claims.
-V11's single real response validated the new structure, not report content.
-Preserve that failed response and diagnose specific occurrences before changing
-prompts or authorising another bounded comparison; do not increase the word
-limit, silently trim prose or weaken the gate to accept it. Cloud backup/recovery,
+The immediate priority is a separately recorded test of the existing bounded
+repair workflow, rather than more single-initial-response prompt changes.
+The v12 one-shot check intentionally used zero repairs; it does not establish
+whether the application's normal maximum-three-attempt flow can resolve these
+findings. A new bounded trial must preserve every attempt and use a fresh quota;
+the closed v12 request must not be reopened. Even correcting its remaining
+status-description false positive would leave real task, causal and length
+failures. Do not increase the word limit, silently trim prose or weaken the
+gate to accept that response. Cloud backup/recovery,
 quota/cost gaps and documentation consistency remain tracked separately.
 Additional demonstrations, native Word layout checks and replacement report
 samples are deferred. Their incomplete acceptance remains recorded below.
