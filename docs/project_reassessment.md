@@ -86,6 +86,51 @@ failed at temporary-directory setup/coverage cleanup; the formally approved
 isolated rerun passed without changing code, permissions or acceptance rules.
 These results establish the offline contract, not a physical token count.
 
+A separate, now-closed count-only run on **`53b2147`** measured the helper's
+actual final bytes for a **self-authored synthetic repair request**. Its base
+capture bindings were fabricated fixtures, not prior model transport evidence.
+The 15,495-byte rendered input measured **3,375 tokens**. With 2,300 reserved
+output tokens and one margin token, **5,676 / 8,192** leaves **2,516 tokens**.
+This is one measured offline-profile budget, not a general fit guarantee or
+permission to dispatch a repair.
+
+The separate historical control reproduced all **6,917 token IDs**, not just
+their count. It contains different material: these two counts are **not** a
+same-content compression or performance comparison. Both token sequences passed
+the runtime's fail-closed exact UTF-8 detokenization comparison before budget
+records were written. Detokenized replies were memory-only; independent review
+verified persisted vectors, render hashes and all four request-payload hashes,
+not a second native replay or independently saved detokenized replies.
+
+The single attempt made **4 POSTs** (tokenize/detokenize for each input),
+**5 health GETs** and **zero generation requests**. The native phase, including
+owned cleanup, took **12.13 seconds**; preflight **361.56 seconds** and postflight
+**353.99 seconds** were separately recorded. These are validation timings, not
+report-generation latency. A pre-dispatch review corrected a timing defect that
+would otherwise count postflight hashing against the native limit. The original
+preparation remains unchanged; a reviewed execution binding permits exactly
+the counter/test replacements. Startup remains bounded at 60 seconds and the
+native/owned-cleanup phase at 120 seconds, not the entire hashing workflow.
+
+The actual GGUF and historically pinned native binaries matched before startup;
+additional installed DLLs used an explicitly observed supplementary baseline,
+not invented historical attestation. Approved current-host checks confirmed the
+owned process, listener and temporary key were absent. The harness reported
+empty owned Jobs and unchanged **542 protected entries** plus **179,762 entries
+across 29 historical trees**; independent review inspected that verification,
+without repeating the entire hash scan. Most of the 123,400 files in those trees
+are old pytest temporary fixtures. Nothing was deleted. A future cleanup should
+separate reproducible test state from retained evidence rather than treating all
+local output as disposable.
+
+The native numeric-log extraction was empty: 8,192 is the explicit bound
+profile/launch configuration, not independent observation of KV capacity or
+context use. Effective Ollama request admission remains `unknown`; production
+dispatch remains disabled. No report, approval, audit version, export, replacement
+sample or release was produced. The closed local record is
+`output/local-section-repair-profile-count-20261011-a/`; its outcome SHA-256 is
+`43c77002d920f901a77ed38332154d5f63bd4b4de84bf1bcbcedd61f084a0de4`.
+
 ### Offline localisation and request preparation (2026-10-11)
 
 The import-only [request helper](../scripts/section_local_repair_request.py)
@@ -919,11 +964,13 @@ The existing maximum-three-attempt workflow did not resolve the frozen case.
 The production guard stops measurable regressions. Separate offline helpers
 now check caller-scoped candidates, locate supported model-prose occurrences
 and prepare lossless requests without selecting or merging prior responses.
-Before considering activation, the next prerequisite is independently verified
-model/template rendering of the final request, bound to exact input/output
-token-budget evidence. Global and unsupported failures remain unlocalised;
-synthetic locality and supplied-count arithmetic cannot establish general
-repair readiness. Record consistency is not an execution ledger or a grant to
+The restricted renderer now has one native-counted synthetic profile, not a
+general request-admission implementation. Before considering activation, the
+next prerequisite is binding the actual application/runtime message path to the
+selected model/template and testing realistic input sizes, including explicit
+over-budget rejection. Global and unsupported failures remain unlocalised;
+one fitting synthetic input cannot establish general repair readiness or
+context retention. Record consistency is not an execution ledger or a grant to
 dispatch another request. Do not activate the prototype or run another model
 campaign merely because a synthetic candidate passes its offline checks.
 Calibrate coverage matchers against positive and negative examples separately,
