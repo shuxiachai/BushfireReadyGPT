@@ -48,6 +48,20 @@ partial responses or snapshots. Scope is caller-declared, not inferred from
 report-wide failures; token fit remains unassessed and dispatch/production
 acceptance remain disabled even when the offline contract passes.
 
+The separate [offline request helper](../scripts/section_local_repair_request.py)
+adds lossless prompt preparation and bounded occurrence-to-section diagnostics.
+The optional [content occurrence API](../src/report_content_contract.py) records
+events from the existing evaluator, leaving its default output and acceptance
+policy unchanged. The helper reconciles those events with the full gate and
+maps exact renderer-derived model-prose intervals; owned/global/unsupported
+failures do not become guessed section IDs. A complete recommendation never
+changes the caller-declared edit scope. Frozen JSON preserves the analysis and
+decoded base sections; the original evidence context occurs literally once.
+Final-message, kind and attempt bindings precede candidate checking. Effective
+token fit remains unknown without a verified model-template rendering
+relationship, even if supplied measurement arithmetic fits. Neither helper
+has transport, persistence or production dispatch authority.
+
 The [data guide](../data_australia/README.md) separates committed core data and
 fixtures from locally prepared downloads/indexes. Ignored runtime outputs,
 session files, private deployment corpora and Python caches are not additional

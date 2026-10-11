@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 from src.current_report_structure import current_report_heading
 from src.markdown_tables import is_markdown_table_separator, parse_markdown_table_row
-from src.model_evidence import unavailable_model_evidence, validate_model_evidence
+from src.model_evidence import text_sha256, unavailable_model_evidence, validate_model_evidence
 from src.report_basis import build_community_p2_basis
 from src.report_claim_evidence import extract_body_claims
 from src.report_template import extract_narrative_body
@@ -138,6 +138,81 @@ _FIELDS = {
     "no_car_households_pct": re.compile(r"\b(?:no[- ]car|transport)\b", re.I),
     "language_other_than_english_pct": re.compile(r"\b(?:language|linguistic)\b", re.I),
 }
+CONTENT_OCCURRENCES_SCHEMA = "report-content-occurrences-v1"
+MAX_CONTENT_OCCURRENCES = 8192
+MAX_CONTENT_OCCURRENCE_LOCATIONS = 8192
+_OCCURRENCE_BLOCK_TYPES = frozenset({"prose", "bullet", "checklist", "table_cell"})
+_UNLOCALIZED_REASONS = frozenset(
+    {"report_wide", "missing_required_content", "invalid_frozen_basis", "producer_location_unavailable"}
+)
+
+
+class _OccurrenceCollector:
+    """Bound diagnostic metadata without retaining prose or changing findings."""
+
+    def __init__(self):
+        self.narrative = ""
+        self.occurrences = []
+        self.location_count = 0
+        self.truncated = False
+
+    def _location(self, unit):
+        if not isinstance(unit, dict) or not isinstance(unit.get("span"), dict):
+            return None
+        start, end = unit["span"].get("start"), unit["span"].get("end")
+        claim_id, claim, block_type = unit.get("claim_id"), unit.get("claim"), unit.get("block_type")
+        if (
+            type(start) is not int
+            or type(end) is not int
+            or not 0 <= start < end <= len(self.narrative)
+            or not isinstance(claim, str)
+            or self.narrative[start:end] != claim
+            or not isinstance(claim_id, str)
+            or claim_id != text_sha256(f"{start}:{end}:{claim}")[:24]
+            or not isinstance(block_type, str)
+            or block_type not in _OCCURRENCE_BLOCK_TYPES
+        ):
+            return None
+        return {"claim_id": claim_id, "start": start, "end": end, "block_type": block_type}
+
+    def record(self, check_name, code, units, unlocalized_reason):
+        if len(self.occurrences) >= MAX_CONTENT_OCCURRENCES:
+            self.truncated = True
+            return
+        reason = unlocalized_reason
+        if reason is not None and reason not in _UNLOCALIZED_REASONS:
+            reason = "producer_location_unavailable"
+        locations = []
+        for unit in units:
+            if self.location_count >= MAX_CONTENT_OCCURRENCE_LOCATIONS:
+                self.truncated = True
+                reason = "producer_location_unavailable"
+                break
+            location = self._location(unit)
+            if location is None:
+                reason = "producer_location_unavailable"
+                continue
+            locations.append(location)
+            self.location_count += 1
+        if not locations and reason is None:
+            reason = "producer_location_unavailable"
+        self.occurrences.append(
+            {"check_name": check_name, "code": code, "locations": locations, "unlocalized_reason": reason}
+        )
+
+
+class _FindingCodes(list):
+    """One append remains one legacy finding, with optional supporting units."""
+
+    def __init__(self, check_name, collector):
+        super().__init__()
+        self.check_name = check_name
+        self.collector = collector
+
+    def append(self, code, *, unit=None, units=(), unlocalized_reason=None):
+        super().append(code)
+        if self.collector is not None:
+            self.collector.record(self.check_name, code, (unit,) if unit is not None else units, unlocalized_reason)
 
 
 def _check(name, codes, success, **metrics):
@@ -297,12 +372,12 @@ def _action_columns(narrative):
     return columns
 
 
-def _p2_checks(units, analysis):
+def _p2_checks(units, analysis, collector=None):
     basis = build_community_p2_basis(analysis)
     indicators = basis["indicators"]
     if not (analysis.get("community") or {}).get("indicators"):
         return _check("Processed community provenance", [], "No frozen community indicators require narration.")
-    codes = []
+    codes = _FindingCodes("Processed community provenance", collector)
     years = re.findall(r"\b(?:19|20)\d{2}\b", str(basis["data_quality"]["source_period"] or ""))
     geography = str(basis["geography_type"] or "").casefold()
     count = basis["matched_sa2_count"]
@@ -312,43 +387,46 @@ def _p2_checks(units, analysis):
         if value is None:
             if field in {"no_car_households_pct", "language_other_than_english_pct"}:
                 if not any(_UNKNOWN.search(text) for _, text in relevant):
-                    codes.append("p2_unknown_measurement_omitted")
+                    codes.append("p2_unknown_measurement_omitted", unlocalized_reason="missing_required_content")
                 if any(_measurements(text, field) for _, text in relevant):
-                    codes.append("p2_unknown_measurement_promoted")
+                    codes.append(
+                        "p2_unknown_measurement_promoted",
+                        units=(unit for unit, text in relevant if _measurements(text, field)),
+                    )
             continue
         try:
             numeric_value = Decimal(str(value).replace(",", ""))
         except InvalidOperation:
-            codes.append("p2_invalid_frozen_measurement")
+            codes.append("p2_invalid_frozen_measurement", unlocalized_reason="invalid_frozen_basis")
             continue
         if not numeric_value.is_finite():
-            codes.append("p2_invalid_frozen_measurement")
+            codes.append("p2_invalid_frozen_measurement", unlocalized_reason="invalid_frozen_basis")
             continue
         wanted = (numeric_value, field != "population")
         factual = [(unit, text) for unit, text in relevant if wanted in _measurements(text, field)]
         if not factual:
-            codes.append("p2_available_fact_omitted")
+            codes.append("p2_available_fact_omitted", unlocalized_reason="missing_required_content")
         for unit, text in relevant:
             measured = _measurements(text, field)
             if not measured:
                 continue
             if any(item != wanted for item in measured):
-                codes.append("p2_value_mismatch")
+                codes.append("p2_value_mismatch", unit=unit)
             if "[P2]" not in unit["claim"] or unit["citations"]:
-                codes.append("p2_adjacent_provenance_missing")
+                codes.append("p2_adjacent_provenance_missing", unit=unit)
             if not years or not all(year in text for year in years):
-                codes.append("p2_period_missing")
+                codes.append("p2_period_missing", unit=unit)
             if count is not None:
                 if not re.search(rf"\b{re.escape(str(count))}\s*[- ]?SA2\b", text, re.I):
-                    codes.append("p2_geographic_basis_missing")
+                    codes.append("p2_geographic_basis_missing", unit=unit)
                 if count != 1 and not re.search(r"\b(?:aggregat\w*|group\w*|approximat\w*)\b", text, re.I):
-                    codes.append("p2_aggregation_limit_missing")
+                    codes.append("p2_aggregation_limit_missing", unit=unit)
             elif not geography or geography not in text.casefold():
-                codes.append("p2_geographic_basis_missing")
+                codes.append("p2_geographic_basis_missing", unit=unit)
             if _CAMPUS.search(text) and not re.search(
                 r"\b(?:not|rather than)\b.{0,40}(?:school|campus|student)", text, re.I
             ):
-                codes.append("p2_community_not_campus_scope_missing")
+                codes.append("p2_community_not_campus_scope_missing", unit=unit)
     return _check(
         "Processed community provenance",
         codes,
@@ -358,34 +436,75 @@ def _p2_checks(units, analysis):
 
 def evaluate_report_content_contract(report_text, analysis, *, model_evidence=None, proposal_status_ruleset=None):
     """Return conservative checks; a pass never certifies truth or applicability."""
-    if proposal_status_ruleset is not None and (
-        not isinstance(proposal_status_ruleset, str) or proposal_status_ruleset != PROPOSAL_STATUS_RULESET
-    ):
-        raise ValueError("Unsupported proposal-status ruleset.")
-    analysis = analysis if isinstance(analysis, dict) else {}
+    return _evaluate_report_content_contract(
+        report_text, analysis, model_evidence=model_evidence, proposal_status_ruleset=proposal_status_ruleset
+    )
+
+
+def diagnose_report_content_contract(report_text, analysis, *, model_evidence=None, proposal_status_ruleset=None):
+    """Return legacy checks plus bounded failure locations, never repair approval.
+
+    Offsets are Python character positions in ``extract_narrative_body`` output.
+    Each occurrence represents one emitted finding; a report-wide finding has
+    no location, while an aggregate finding can have several supporting units.
+    Any truncation makes the diagnostic unsuitable for a complete scope claim.
+    """
+    collector = _OccurrenceCollector()
+    checks = _evaluate_report_content_contract(
+        report_text,
+        analysis,
+        model_evidence=model_evidence,
+        proposal_status_ruleset=proposal_status_ruleset,
+        collector=collector,
+    )
+    return {
+        "schema_version": CONTENT_OCCURRENCES_SCHEMA,
+        "narrative_sha256": text_sha256(collector.narrative),
+        "checks": checks,
+        "occurrences": collector.occurrences,
+        "truncated": collector.truncated,
+    }
+
+
+def _narrative_word_budget(report_text, analysis, collector):
     narrative = extract_narrative_body(str(report_text or ""))
+    if collector is not None:
+        collector.narrative = narrative
     authored = strip_application_source_bindings(
         visible_markdown_text(narrative),
         official_sources=(analysis.get("data") or {}).get("sources") or [],
         rag_sources=(analysis.get("knowledge") or {}).get("retrieved_chunks") or [],
     )
     words = len(_WORD.findall(_plain(authored, analysis)))
-    checks = [
-        _check(
-            "Narrative word budget",
-            ["narrative_word_budget"] if not 650 <= words <= 800 else [],
-            "The authored narrative is within 650–800 words.",
-            word_count=words,
-            minimum=650,
-            maximum=800,
-        )
-    ]
+    word_codes = _FindingCodes("Narrative word budget", collector)
+    if not 650 <= words <= 800:
+        word_codes.append("narrative_word_budget", unlocalized_reason="report_wide")
+    return narrative, _check(
+        "Narrative word budget",
+        word_codes,
+        "The authored narrative is within 650–800 words.",
+        word_count=words,
+        minimum=650,
+        maximum=800,
+    )
+
+
+def _evaluate_report_content_contract(
+    report_text, analysis, *, model_evidence=None, proposal_status_ruleset=None, collector=None
+):
+    if proposal_status_ruleset is not None and (
+        not isinstance(proposal_status_ruleset, str) or proposal_status_ruleset != PROPOSAL_STATUS_RULESET
+    ):
+        raise ValueError("Unsupported proposal-status ruleset.")
+    analysis = analysis if isinstance(analysis, dict) else {}
+    narrative, word_budget = _narrative_word_budget(report_text, analysis, collector)
+    checks = [word_budget]
     units = [
         (unit, _claim_shadow(unit["claim"], analysis), current_report_heading(unit["section"]))
         for unit in extract_body_claims(narrative, analysis)
     ]
     action_columns = _action_columns(narrative)
-    checks.append(_p2_checks(units, analysis))
+    checks.append(_p2_checks(units, analysis, collector))
     model_evidence = unavailable_model_evidence() if model_evidence is None else model_evidence
     try:
         visible = validate_model_evidence(model_evidence, analysis, report_text=str(report_text or ""))
@@ -400,7 +519,9 @@ def evaluate_report_content_contract(report_text, analysis, *, model_evidence=No
         for item in (analysis.get("knowledge") or {}).get("retrieved_chunks") or []
         if isinstance(item, dict) and _CONFLICT.search(str(item.get("text") or ""))
     }
-    task_codes, inference_codes, evidence_codes = [], [], []
+    task_codes = _FindingCodes("Local proposal attribution", collector)
+    inference_codes = _FindingCodes("Rule-derived causal qualification", collector)
+    evidence_codes = _FindingCodes("Submitted passage scope and conflicts", collector)
     for unit, text, section in units:
         if not text:
             continue
@@ -418,7 +539,7 @@ def evaluate_report_content_contract(report_text, analysis, *, model_evidence=No
         cited = [entry["source_id"] for entry in unit["citations"] if entry["source_type"] == "rag"]
         submitted = [passage for source_id in cited for passage in by_source.get(source_id, [])]
         if any(source_id not in by_source for source_id in cited):
-            evidence_codes.append("cited_passage_not_final_submitted")
+            evidence_codes.append("cited_passage_not_final_submitted", unit=unit)
         local_section = section in {
             "preparedness priorities",
             "evacuation planning",
@@ -465,31 +586,31 @@ def evaluate_report_content_contract(report_text, analysis, *, model_evidence=No
             and not (proposal and confirmer)
             and not proposal_status
         ):
-            task_codes.append("local_task_requires_own_proposal_and_confirmer")
+            task_codes.append("local_task_requires_own_proposal_and_confirmer", unit=unit)
         if proposal and not confirmer:
-            task_codes.append("proposal_confirmer_missing")
+            task_codes.append("proposal_confirmer_missing", unit=unit)
         if section == "local risk context" and _CAUSAL.search(text) and not gap:
             if not ("[R3]" in unit["claim"] and _INFERENCE.search(text) and confirmer):
-                inference_codes.append("causal_planning_inference_unqualified")
+                inference_codes.append("causal_planning_inference_unqualified", unit=unit)
             if unit["citations"]:
-                inference_codes.append("r3_inference_cannot_borrow_official_citation")
+                inference_codes.append("r3_inference_cannot_borrow_official_citation", unit=unit)
         elif _CAUSAL.search(text) and not cited and not gap:
-            inference_codes.append("unsupported_causal_effect_assertion")
+            inference_codes.append("unsupported_causal_effect_assertion", unit=unit)
         if section == "candidate assembly point criteria" and _PHYSICAL.search(text) and not gap:
             # The application has no vetted criterion-to-premises applicability
             # binding. Even a verbatim passage, audience/keyword overlap or a
             # proposal label cannot establish a physical criterion for local use.
-            evidence_codes.append("physical_assembly_criteria_require_authority_verification")
+            evidence_codes.append("physical_assembly_criteria_require_authority_verification", unit=unit)
         if submitted and not gap:
             if any(_HOUSEHOLD.search(item) and not _CAMPUS.search(item) for item in submitted):
                 if not _HOUSEHOLD.search(text) or _CAMPUS.search(text):
-                    evidence_codes.append("household_source_scope_not_preserved")
+                    evidence_codes.append("household_source_scope_not_preserved", unit=unit)
         if set(cited) & conflicts:
             notice = _CONFLICT_NOTICE.search(text) and re.search(
                 r"\b(?:unresolved|review|confirm|verify)\b", text, re.I
             )
             if not notice:
-                evidence_codes.append("contradictory_source_used_as_advice")
+                evidence_codes.append("contradictory_source_used_as_advice", unit=unit)
     checks.extend(
         [
             _check(

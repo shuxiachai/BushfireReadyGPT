@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-11 for an isolated, caller-scoped repair-candidate contract.
+Updated 2026-10-11 for offline repair localisation and lossless request preparation.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -50,6 +50,75 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Offline localisation and request preparation (2026-10-11)
+
+The import-only [request helper](../scripts/section_local_repair_request.py)
+extends the earlier candidate checker without joining the generation workflow.
+A separate content-diagnostic API collects fixed finding codes and original
+narrative character spans from the same evaluator events. Its default checks,
+counts, v12 policy fingerprint and production decisions remain unchanged.
+One aggregate finding may have several supporting locations; locations are not
+counted as additional findings. Diagnostic size limits never truncate the
+underlying checks.
+
+The helper reconstructs the exact section renderer layout and reconciles the
+diagnostic findings with the full governed assessment. Only occurrences wholly
+inside model-authored prose map to section IDs. Headings, source registers,
+application-owned fields, report-wide failures, missing required content and
+unsupported safety diagnostics cannot justify automatic section selection.
+Repeated text is located by spans, not substring guesses. Incomplete or
+inconsistent diagnostics cannot yield a complete recommended scope; the actual
+edit scope always remains caller-declared.
+
+A frozen request preserves the complete analysis and all 15 decoded base
+sections in reversible JSON, plus the original validated evidence context
+literally once. It rejects framing collisions and oversized inputs rather than
+trimming data. Only a narrow JSON escape for the fixed empty-context sentence
+is supported, with a decoded-value equality check. Content-free summaries bind
+the scope, localisation, inputs, exact final messages and next attempt; an
+explicit private-input accessor is separate from those summaries. Candidate
+checking requires those messages, analysis, existing `structural_repair`
+evidence kind and the next attempt within the unchanged three-call ceiling,
+before applying the previous complete-response preservation contract.
+
+Budget arithmetic uses these newly prepared messages, not an earlier prompt.
+A supplied rendered-byte hash can be checked against supplied bytes, but no
+trusted relationship between those bytes and model-template rendering is
+established here. Effective budget status therefore stays **unknown**, even
+when supplied-count arithmetic says `fits`. Dispatch and production acceptance
+remain disabled. The offline allocation caps are not a replacement for the
+production repair cap or proof of model-window compatibility. No real model or
+tokenizer requests, cloud acceptance run, saved report or closed-campaign replay
+was performed.
+
+Initial focused validation passed **217 content/occurrence tests** and a
+separate **59 request tests**. The latter measured **90% request-module
+coverage**, not src coverage. Comparing the previous `21f83ba` evaluator with
+current default and diagnostic checks across **468 case variants** found exact
+dictionary equality. These are synthetic compatibility checks, not report
+accuracy measurements.
+
+The pre-extraction local non-E2E run passed **4,257 tests**, with 7 platform
+skips, 6 browser tests deselected and **90.45% src coverage**, in 735.82 seconds
+(exit zero). Full-config lint separately detected excess function complexity;
+this full-run result is not relabelled as a run after the subsequent helper
+extraction. Browser and final-commit CI results are separate evidence.
+
+After the equivalent narrative/word-budget helper extraction, **392 related
+tests passed** in 36.51 seconds and all **468 parity comparisons** still matched.
+The overlapping focused counts are not additive. Full configured Ruff, format,
+Bandit and dependency consistency checks passed. Independent re-review confirmed
+unchanged evaluation order, rules and thresholds; no lint exemption was added.
+
+Earlier failures remain recorded: a synthetic table owner accidentally matched
+the existing task grammar, and an empty-context JSON-escape test misspelled its
+expected literal. Only those fixtures changed. One request-test invocation failed
+at temporary-directory setup before executing test bodies; isolated temporary
+directories resolved it without permission or application changes. Review also
+required binding occurrence IDs to their exact raw spans and rejecting forged
+non-builtin result status values; both now have adversarial tests. None of these
+engineering corrections constitutes new model-content acceptance.
 
 ### Offline section-preservation contract (2026-10-11)
 
@@ -812,14 +881,16 @@ denominators; they must not be merged into a report-accuracy percentage.
 ## Suggested Next Build Order
 
 The existing maximum-three-attempt workflow did not resolve the frozen case.
-The production guard stops measurable regressions, and the separate offline
-contract now checks caller-scoped candidates without selecting or merging prior
-responses. Before considering activation, the next step is trustworthy section
-targeting and a lossless request builder with exact input/output token-budget
-admission. Current check names alone cannot supply section locations. Supplied
-record consistency is not an execution ledger or a grant to dispatch another
-request. Do not activate the prototype or run another model campaign merely
-because a synthetic candidate passes its offline checks.
+The production guard stops measurable regressions. Separate offline helpers
+now check caller-scoped candidates, locate supported model-prose occurrences
+and prepare lossless requests without selecting or merging prior responses.
+Before considering activation, the next prerequisite is independently verified
+model/template rendering of the final request, bound to exact input/output
+token-budget evidence. Global and unsupported failures remain unlocalised;
+synthetic locality and supplied-count arithmetic cannot establish general
+repair readiness. Record consistency is not an execution ledger or a grant to
+dispatch another request. Do not activate the prototype or run another model
+campaign merely because a synthetic candidate passes its offline checks.
 Calibrate coverage matchers against positive and negative examples separately,
 without using broader matching to conceal length, task or citation failures.
 Do not reopen closed campaigns, keep resampling this case, increase the word
