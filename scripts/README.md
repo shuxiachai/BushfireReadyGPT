@@ -74,7 +74,7 @@ output paths are part of their evidence. A flag does not permit a new campaign.
 
 ## Import-only modules
 
-These 14 Python files have no `__main__` guard. They are library modules for
+These 15 Python files have no `__main__` guard. They are library modules for
 an importing caller, not ordinary command-line entry points; effects depend on
 the caller's arguments, supplied clients, and selected paths.
 
@@ -92,5 +92,6 @@ the caller's arguments, supplied clients, and selected paths.
 | [proposal_development.py](proposal_development.py) | Pure proposal-suite preparation, request construction, validation and result summarisation. |
 | [release_paths.py](release_paths.py) | Caller-supplied release-path resolution and validation. |
 | [report_content_advisory.py](report_content_advisory.py) | Caller-supplied literal-target, citation-association, and occurrence-qualification review; no standalone file/network/model entry point. |
+| [section_local_repair_contract.py](section_local_repair_contract.py) | Offline admission of a complete candidate with caller-declared editable sections, exact preservation and evidence bindings. No prompt builder, dispatch, artifact writer or production acceptance. |
 | [selection_proposal_bridge.py](selection_proposal_bridge.py) | Selection-to-proposal handoff construction and validation helpers. |
 | [selection_proposal_development.py](selection_proposal_development.py) | Journaled selection/proposal development-suite helpers, including supplied model invocation paths. |

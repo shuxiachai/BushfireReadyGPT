@@ -1,7 +1,8 @@
 # Current project status
 
-Updated 2026-10-11 for an offline repair-regression stop guard, separate from
-the unchanged governed-report-v12 acceptance policy. The preceding three-attempt
+Updated 2026-10-11 for an isolated, caller-scoped repair-candidate contract.
+Production still uses the repair-regression stop guard and unchanged
+governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
 acceptance. That campaign, its separate startup failure and earlier responses
 remain preserved; no new model run, accepted sample or formal release is claimed. This page
@@ -49,6 +50,54 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Offline section-preservation contract (2026-10-11)
+
+The import-only [section-local repair contract](../scripts/section_local_repair_contract.py)
+validates supplied records; it does not generate a repair or join the application
+workflow. A caller must explicitly declare a nonempty proper subset of the 15
+section IDs. Existing content checks aggregate findings and do not establish
+which section caused them, so scope is not inferred from a check name or word
+budget. Manually declaring a scope does not prove correct localisation.
+
+Both base and candidate must be complete strict section responses. Undeclared
+decoded prose must remain exact, including whitespace and citations; no-op and
+out-of-scope changes are rejected. The frozen base detaches caller-owned data,
+and candidate analysis must match it. Supplied system/user messages, raw response,
+rendered narrative and captured evidence must agree with their recorded hashes
+and ordered attempt numbers. The recorded context must occur exactly once in
+the supplied user message. These checks establish internal consistency, not
+independent proof of SDK execution, provider receipt or semantic evidence use.
+
+Every base visible passage must remain in the candidate's own validated snapshot
+with the same source, chunk, rank and text. Additional passages are allowed;
+earlier captures are never merged into a later one. Empty captured passage sets
+can satisfy preservation vacuously but do not provide supporting evidence. The
+complete candidate must also pass the current governed gate and regression
+guard. No partially merged report or production-save object is returned.
+
+The separate result contains fixed reasons, IDs and hashes, not submitted prose
+or prompts. Input caps reject excess data without truncation. Even an
+`offline_contract_accepted` result has unassessed token fit and remains ineligible
+for model dispatch and production acceptance. This prototype adds no prompt
+builder, automatic scope selection, model calls, saved reports or new release;
+the closed real-model failures below remain unchanged.
+
+Synthetic validation passed **116 tests**, including a real canonical-gate
+failure-to-pass pair with nonempty cited fixture evidence. A related section,
+evidence, repair-guard and policy suite passed **356 tests**. After an equivalent
+budget-status constant extraction, all 116 prototype tests passed again with
+**94.53% coverage of the new script**; this is not whole-application coverage,
+and the overlapping test counts are not additive. Ruff, formatting, Bandit and
+dependency consistency checks passed; independent review found no remaining
+actionable issue.
+
+The first focused run had four fixture failures (111 passed): one sample did
+not actually fail the current gate, and one shortened evidence window selected
+no passage. The fixtures were corrected without changing production checks.
+The scanner's later `token_budget` false positive was resolved using an
+equivalent named status constant, not an exclusion. All evidence in these new
+tests is self-authored synthetic data, not a new model or provider capture.
 
 ### Repair-regression stop guard (2026-10-11)
 
@@ -763,13 +812,14 @@ denominators; they must not be merged into a report-accuracy percentage.
 ## Suggested Next Build Order
 
 The existing maximum-three-attempt workflow did not resolve the frozen case.
-The first protection now stops measurable regressions without returning an
-earlier candidate. The next priority is offline design of a bounded section-local
-repair contract that preserves untouched prose and its evidence binding, then
-revalidates the whole report. This must account for input/output token budgets
-and exact response/version lineage before any live trial; it is not implemented
-or accepted by the stop guard. It must not patch arbitrary model text into an
-otherwise accepted report or silently treat fewer findings as better content.
+The production guard stops measurable regressions, and the separate offline
+contract now checks caller-scoped candidates without selecting or merging prior
+responses. Before considering activation, the next step is trustworthy section
+targeting and a lossless request builder with exact input/output token-budget
+admission. Current check names alone cannot supply section locations. Supplied
+record consistency is not an execution ledger or a grant to dispatch another
+request. Do not activate the prototype or run another model campaign merely
+because a synthetic candidate passes its offline checks.
 Calibrate coverage matchers against positive and negative examples separately,
 without using broader matching to conceal length, task or citation failures.
 Do not reopen closed campaigns, keep resampling this case, increase the word

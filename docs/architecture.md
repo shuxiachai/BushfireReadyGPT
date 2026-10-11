@@ -40,6 +40,14 @@ retain their provenance and journal boundaries; file maintenance does not reopen
 them. [Benchmarks](benchmarks/README.md), [diagnostics](diagnostics/), [release records](releases/)
 and [versioned samples](../examples/README.md) retain their historical source bindings.
 
+The isolated [section-local repair contract](../scripts/section_local_repair_contract.py)
+is an offline candidate checker, not part of that generation path. It requires a
+complete 15-section response, compares every undeclared section exactly and
+retains evidence only from the candidate's own supplied capture. It never merges
+partial responses or snapshots. Scope is caller-declared, not inferred from
+report-wide failures; token fit remains unassessed and dispatch/production
+acceptance remain disabled even when the offline contract passes.
+
 The [data guide](../data_australia/README.md) separates committed core data and
 fixtures from locally prepared downloads/indexes. Ignored runtime outputs,
 session files, private deployment corpora and Python caches are not additional
