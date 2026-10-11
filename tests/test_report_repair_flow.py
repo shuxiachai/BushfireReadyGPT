@@ -13,6 +13,7 @@ from src.source_attribution import (
     format_rag_citation_token,
 )
 from tests.support.model_evidence_fixtures import _analysis
+from tests.support.repair_quality_fixtures import repair_quality
 from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
@@ -37,8 +38,8 @@ def _analysis_with_source_contract(*, official_count=2, rag_sources=None):
 def test_generation_and_repair_share_one_bounded_policy(monkeypatch):
     assessments = iter(
         [
-            {"approval_gate": {"passed": False, "blocking_failures": [{"name": "Structure"}]}},
-            {"approval_gate": {"passed": True, "blocking_failures": []}},
+            repair_quality(passed=False),
+            repair_quality(passed=True),
         ]
     )
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda _text, _analysis: next(assessments))
@@ -69,7 +70,7 @@ def test_generation_and_repair_share_one_bounded_policy(monkeypatch):
 
 
 def test_generation_repairs_stop_at_configured_limit(monkeypatch):
-    failed = {"approval_gate": {"passed": False, "blocking_failures": []}}
+    failed = repair_quality(passed=False)
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda _text, _analysis: failed)
     monkeypatch.setattr(quality, "build_report_repair_prompt", lambda *_args, **_kwargs: "repair")
     calls = []

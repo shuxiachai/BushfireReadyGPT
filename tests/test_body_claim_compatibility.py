@@ -9,6 +9,7 @@ from src import report_generation_quality as quality
 from src.focus_coverage import canonical_coverage_declarations
 from src.model_evidence import EvidenceResponse, validate_model_evidence
 from src.source_attribution import format_rag_attribution
+from tests.support.repair_quality_fixtures import repair_quality
 from tests.test_model_evidence import _analysis, _capture, _chunk
 
 
@@ -96,10 +97,11 @@ def test_user_context_citation_does_not_suppress_feedback_during_mandatory_repai
         f"The user reports having household emergency supplies. {label} Families should prepare household supplies."
     )
     fixed = {
+        "checks": repair_quality()["checks"],
         "approval_gate": {
             "passed": False,
             "blocking_failures": [{"name": "Required sections", "detail": "Complete the required sections."}],
-        }
+        },
     }
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: copy.deepcopy(fixed))
     monkeypatch.setattr(quality, "_normalise_generation_response", lambda response, _: str(response))
@@ -163,7 +165,10 @@ def test_advisory_gap_retains_passing_candidate_and_missing_citation_diagnostic(
 def test_mandatory_failures_still_share_original_repair_ceiling(monkeypatch, check_name, code, prompt_marker):
     analysis = _analysis(_chunk("Families prepare household emergency supplies."))
     report = "Families should prepare household emergency supplies."
-    fixed = {"approval_gate": {"passed": False, "blocking_failures": [{"name": check_name, "detail": code}]}}
+    fixed = {
+        "checks": repair_quality()["checks"],
+        "approval_gate": {"passed": False, "blocking_failures": [{"name": check_name, "detail": code}]},
+    }
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: copy.deepcopy(fixed))
     monkeypatch.setattr(quality, "_normalise_generation_response", lambda response, _: str(response))
     monkeypatch.setattr(quality, "validate_narrative_ending", lambda *_: None)

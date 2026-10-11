@@ -32,6 +32,7 @@ from src.report_owned_fields import (
     OwnedFieldError,
     evaluate_owned_fields,
 )
+from src.report_repair_guard import reject_repair_regression, snapshot_repair_assessment
 from src.report_section_protocol import (
     MODEL_PROSE_CHECK,
     SECTION_PROSE_CHECK,
@@ -448,6 +449,8 @@ def generate_narrative_with_repairs(
         output_contract=SECTION_PROSE_OUTPUT_CONTRACT,
     )
     attempt_prompt = original_prompt
+    previous_assessment = None
+    previous_assessment_attempt = None
     for attempt_count in range(1, max_repair_attempts + 2):
         try:
             response = generate_attempt(attempt_prompt, attempt_count, attempt_count > 1)
@@ -470,6 +473,16 @@ def generate_narrative_with_repairs(
             continue
         quality = assess_generated_narrative(narrative, analysis)
         quality = retain_generation_assembly_failure(quality, normalization_result=normalization_result)
+        assessment = snapshot_repair_assessment(quality)
+        if previous_assessment is not None:
+            reject_repair_regression(
+                previous_assessment,
+                assessment,
+                baseline_attempt_number=previous_assessment_attempt,
+                candidate_attempt_number=attempt_count,
+            )
+        previous_assessment = assessment
+        previous_assessment_attempt = attempt_count
         body_evidence = evaluate_body_claim_evidence(narrative, analysis, getattr(narrative, "model_evidence", None))
         needs_body_citation_feedback = (
             body_evidence["snapshot_status"] == "captured"

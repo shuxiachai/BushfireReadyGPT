@@ -68,6 +68,7 @@ from src.report_grounding import (
 from src.report_owned_fields import (
     OwnedFieldError,
 )
+from src.report_repair_guard import ReportRepairRegressionError
 from src.report_section_protocol import project_section_report, section_protocol_budget, section_protocol_guidance
 from src.report_template import (
     BODY_CLAIM_CITATION_GUIDANCE,
@@ -687,6 +688,8 @@ def _generate_current_report_traced(report_inputs, area_selection, persist_sessi
             analysis,
             generate_attempt,
         )
+    except ReportRepairRegressionError as error:
+        return None, str(error), error.code
     except ModelServiceError as error:
         return None, str(error), "model_service_error"
     except ReportGenerationPreconditionError as error:

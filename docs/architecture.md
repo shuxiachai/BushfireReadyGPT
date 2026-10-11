@@ -21,6 +21,7 @@ exhaustive list of every module.
 | [current_model_evidence.py](../src/current_model_evidence.py), [section_protocol_error.py](../src/section_protocol_error.py) | Add explicit current output-mode metadata and content-free protocol errors without modifying byte-pinned historical evidence/response helpers. | [Section protocol](../tests/test_report_section_protocol.py), [Runtime evidence](../tests/test_model_evidence.py) |
 | [model_runtime.py](../src/model_runtime.py), [model_evidence.py](../src/model_evidence.py) | Execute bounded stateless requests and bind submitted evidence context to responses, through the workflow's model callback. | [Model runtime](../tests/test_model_runtime.py), [Evidence capture](../tests/test_model_evidence.py) |
 | [report_generation_quality.py](../src/report_generation_quality.py), [report_quality_agent.py](../src/agents/report_quality_agent.py), [safety_boundary.py](../src/safety_boundary.py) | Share the deterministic governed gate and bounded replacement-repair policy across lifecycle stages. | [Repair flow](../tests/test_report_repair_flow.py), [Safety](../tests/test_safety_boundary.py), [Policy binding](../tests/test_quality_policy_audit.py) |
+| [report_repair_guard.py](../src/report_repair_guard.py) | Compare immutable, content-free assessments of successive complete drafts; stop automatic generation when a repair regresses, without selecting an earlier response. | [Repair flow](../tests/test_report_repair_flow.py) |
 | [report_grounding.py](../src/report_grounding.py), [report_claim_evidence.py](../src/report_claim_evidence.py), [source_applicability.py](../src/source_applicability.py) | Provide evidence/body-claim diagnostics and a limited review-time source-applicability advisory; none establishes semantic truth or local applicability. | [Grounding](../tests/test_report_grounding.py), [Body claims](../tests/test_report_claim_evidence.py), [Review disposition](../tests/test_review_evidence_disposition.py) |
 | [audit.py](../src/audit.py), [export_register.py](../src/export_register.py), [export_package.py](../src/export_package.py), [PDF](../src/pdf_export.py), [DOCX](../src/docx_export.py), [downloads.py](../src/ui/downloads.py) | Bind versions/review events and frozen registers; verify package eligibility, render formats and deliver exports through the UI. | [Audit](../tests/test_audit_governance.py), [Core pipeline](../tests/test_core_pipeline.py), [Private downloads](../tests/test_private_downloads.py) |
 | [session_store.py](../src/session_store.py), [revision_state.py](../src/revision_state.py), [runtime_trace.py](../src/runtime_trace.py) | Manage session state, recoverable revision requests and privacy-minimised stage observations around the workflow. | [Session validation](../tests/test_session_store_hardening.py), [Revision recovery](../tests/test_revision_recovery.py), [Trace](../tests/test_runtime_trace.py) |
@@ -244,6 +245,25 @@ context-only structural replacement path. Protocol retries preserve the original
 request and its explicit output mode. Both retry types share a maximum of three
 total calls, not three calls each. Generic untyped model callers retain the
 legacy Markdown transport; current governed paths use the typed section contract.
+
+The separate `report-repair-guard-v1` generation control compares successive
+complete assessments before accepting a repair or spending another call.
+Canonical check downgrades (`pass` → `warning` → `fail`) and increased distance
+from either word budget stop generation. The total-body distance is zero within
+650–800 words; model-prose distance is zero at 300 words or more. Missing,
+duplicate, unknown or invalid comparison checks also stop the flow. Baselines
+contain immutable status/count data, not prose, and survive protocol retries.
+Non-regressing candidates become the next baseline. This is not semantic
+preservation, a quality-score ranking or a local-edit protocol.
+
+A typed, content-free stop reaches the workflow before report finalisation:
+no new report/audit version is saved, and any existing report stays unchanged.
+Actual attempts remain recorded. The application does not fall back to an
+earlier response, which would require a different evidence/attempt binding.
+First complete successes, zero-repair runs and revisions with structural repair
+disabled retain their existing behavior. The quality-policy v12 fingerprint,
+prompts, caps, three-call ceiling and historical evidence formats are unchanged;
+the guard is a generation-control rule, not an extra report-acceptance check.
 
 The evidence confidence classifier is a deterministic shared component rather than an LLM agent. It records provenance in the analysis and audit JSON, supplies the prompt boundary, renders in the Evidence Trail and is appended to every exported report. Follow-up edits create a new governed report version; canonical evidence tables are rebuilt from stored analysis rather than trusted from model output, and the previous approval checklist is reset.
 

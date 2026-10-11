@@ -21,6 +21,7 @@ from src.rag.service import assemble_retrieved_context
 from src.report_owned_fields import OWNED_SECTIONS
 from src.source_attribution import format_rag_citation_token
 from tests.support.model_evidence_fixtures import _analysis
+from tests.support.repair_quality_fixtures import repair_quality
 from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
@@ -206,7 +207,7 @@ def test_run_arm_captures_actual_variant_then_keeps_full_failed_gate(monkeypatch
 
 def test_real_repair_loop_is_shared_and_bounded(monkeypatch):
     analysis, calls = analysis_fixture(), []
-    monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": False}})
+    monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: repair_quality())
     monkeypatch.setattr(
         quality,
         "build_report_repair_prompt",
@@ -224,9 +225,24 @@ def test_real_repair_loop_is_shared_and_bounded(monkeypatch):
     assert all(record["model_evidence"]["status"] == "captured" for record in result["attempts"])
 
 
+def test_regression_stop_retains_attempt_captures_without_selecting_a_final_draft(monkeypatch):
+    analysis, calls = analysis_fixture(), []
+    assessments = iter([repair_quality(total_words=632), repair_quality(total_words=955)])
+    monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: next(assessments))
+    result = experiment.run_arm(
+        scenario_fixture(), analysis, "claim_pair_v1", mock_client(section_response_fixture(analysis), calls)
+    )
+    assert len(calls) == result["generation_attempts"] == result["model_calls"] == 2
+    assert result["error_code"] == "ReportRepairRegressionError"
+    assert result["status"] == "failed" and not result["governed_gate_passed"]
+    assert result["final"] is None and result["capture_valid"] is False
+    assert result["initial"] and result["analysis_unchanged"]
+    assert all(record["model_evidence"]["status"] == "captured" for record in result["attempts"])
+
+
 def test_suffix_cannot_expand_repair_budget(monkeypatch):
     analysis, calls = analysis_fixture(), []
-    monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": False}})
+    monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: repair_quality())
     monkeypatch.setattr(
         quality,
         "build_report_repair_prompt",
@@ -428,7 +444,7 @@ def test_protocol_then_structural_repair_use_one_three_call_budget(monkeypatch):
         return original(prompt)
 
     client.generate = generate
-    monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: {"approval_gate": {"passed": False}})
+    monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: repair_quality())
     monkeypatch.setattr(
         quality,
         "build_report_repair_prompt",

@@ -13,6 +13,7 @@ from src.model_runtime import GovernedModelClient
 from src.report_section_protocol import assemble_section_response
 from src.runtime_trace import RuntimeTrace
 from tests.support.model_evidence_fixtures import _analysis as _current_analysis
+from tests.support.repair_quality_fixtures import repair_quality
 from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
@@ -279,7 +280,7 @@ def test_daily_quota_blocks_rewrite_without_extra_provider_call(monkeypatch, tmp
 
 def test_length_then_structural_failure_share_one_budget_and_can_recover(monkeypatch):
     _stub_quality(monkeypatch)
-    assessments = iter([{"approval_gate": {"passed": False}}, {"approval_gate": {"passed": True}}])
+    assessments = iter([repair_quality(passed=False), repair_quality(passed=True)])
     monkeypatch.setattr(quality, "assess_generated_narrative", lambda *_: next(assessments))
     monkeypatch.setattr(quality, "build_report_repair_prompt", lambda *_args, **_kwargs: "structure repair")
     calls = []

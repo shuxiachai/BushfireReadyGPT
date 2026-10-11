@@ -19,6 +19,7 @@ from src.rag.context import assemble_planning_context
 from src.report_template import extract_narrative_body
 from src.source_attribution import fold_known_attribution_labels
 from tests.support.model_evidence_fixtures import _analysis as _canonical_analysis
+from tests.support.repair_quality_fixtures import repair_quality
 from tests.support.report_fixtures import _valid_report, section_response_for_report
 
 
@@ -96,7 +97,7 @@ def _setup(monkeypatch, *, attempts=1, protocol_failure=False, fake=False):
 
     def assess(*args):
         callbacks.append(True)
-        return {"approval_gate": {"passed": len(callbacks) >= attempts}}
+        return repair_quality(passed=len(callbacks) >= attempts)
 
     monkeypatch.setattr(generation, "assess_generated_narrative", assess)
     monkeypatch.setattr(evaluation, "apply_governance_notice", lambda text: text)

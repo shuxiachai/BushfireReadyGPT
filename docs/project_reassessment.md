@@ -1,10 +1,10 @@
 # Current project status
 
-Updated 2026-10-10 after exact repair-budget measurement and one bounded local
-three-attempt generation/repair campaign on source `7b4d1eb`, still under
-governed-report-v12. The campaign completed but all three drafts failed content
-acceptance. A separate startup failure and the earlier single-response results
-remain preserved; no accepted replacement sample or new formal release is claimed. This page
+Updated 2026-10-11 for an offline repair-regression stop guard, separate from
+the unchanged governed-report-v12 acceptance policy. The preceding three-attempt
+local campaign on `7b4d1eb` completed but all three drafts failed content
+acceptance. That campaign, its separate startup failure and earlier responses
+remain preserved; no new model run, accepted sample or formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -49,6 +49,58 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Repair-regression stop guard (2026-10-11)
+
+The generation loop now compares immutable status/word-count snapshots from
+successive complete, fully assessed drafts. `report-repair-guard-v1` stops on
+any canonical check downgrade or increased distance from the 650–800 total-body
+range or 300-word model-prose minimum. Missing, duplicate, unknown or invalid
+comparison checks also stop rather than counting as improvement. It does not
+rank drafts by aggregate pass counts or turn advisory citations into a hard gate.
+The canonical v12 quality fingerprint, repair prompts, evidence schema and shared
+three-attempt ceiling remain unchanged.
+
+The 632 → 955-word case is covered by a synthetic offline test: the distance
+increases from 18 to 155, so the second response stops the run before a third
+call. A 632 → 810 change can continue if no check regresses. A non-regressing
+candidate becomes the next immutable baseline; protocol retries neither reset
+it nor receive extra attempts. First complete successes, zero-repair runs and
+revisions with structural repair disabled retain their existing behavior.
+
+The typed stop uses fixed, content-free explanations and reaches the application
+before finalisation. It leaves an existing report unchanged and writes no new
+report/audit version. Actual attempts remain visible in the trace and evaluator;
+an early stop is not labelled as exhausting all three calls. Earlier responses
+are not silently selected or combined with the latest evidence. Evaluation
+retains its existing serialized result format, and the byte-pinned historical
+experiment helper remains unchanged. This protects measurable constraints, not
+semantic meaning; local section editing and successful real-model repair remain
+unimplemented or unverified, respectively. No closed campaign was reopened.
+
+The focused compatibility run passed **289 tests**; after removing an unnecessary
+evaluation-format extension during independent review, **118 targeted tests**
+passed. An equivalent status-ranking rewrite then passed **66 guard tests** and
+resolved a password-scanner false positive without adding an exclusion. These
+overlapping counts are not additive. Ruff, formatting, Bandit and installed
+dependency consistency checks passed; independent review found no remaining
+actionable implementation issue.
+
+Two initial restricted test runs encountered temporary-directory permissions.
+The first complete coverage run subsequently recorded **4,041 passed, 2 failed,
+7 skipped, 6 deselected; 90.37% coverage**. Both failures were caused by the
+validation command's runtime/audit path overrides bypassing the tests' own
+temporary destinations. Removing only those child-process overrides made both
+unchanged tests pass. No production or test assertion was changed for those
+failures. The original log remains retained; these results do not claim a
+successful full run, model-quality improvement or cloud acceptance.
+
+A subsequent clean, final-source non-E2E run passed **4,043 tests**, with
+7 platform skips, 6 browser cases deselected and **90.37% src coverage**, in
+424.88 seconds (exit code zero). It used the tests' own runtime/audit isolation;
+the original failed run was not relabelled or overwritten. No real model or
+tokenizer calls were added. Browser and remote validation are separate results,
+and successful engineering checks do not establish report-content acceptance.
 
 ### Exact repair budgets and the three-attempt content check (2026-10-10)
 
@@ -710,12 +762,14 @@ denominators; they must not be merged into a report-accuracy percentage.
 
 ## Suggested Next Build Order
 
-The existing maximum-three-attempt workflow has now been exercised and did not
-resolve the frozen case. The next priority is offline design and regression
-testing of repairs that preserve already-satisfied scenario/focus constraints,
-fix only identified content problems where safe, and refuse regressions. Any
-section-local repair design still needs explicit evidence/version bindings and
-whole-report revalidation; it is not implemented or accepted by this trial.
+The existing maximum-three-attempt workflow did not resolve the frozen case.
+The first protection now stops measurable regressions without returning an
+earlier candidate. The next priority is offline design of a bounded section-local
+repair contract that preserves untouched prose and its evidence binding, then
+revalidates the whole report. This must account for input/output token budgets
+and exact response/version lineage before any live trial; it is not implemented
+or accepted by the stop guard. It must not patch arbitrary model text into an
+otherwise accepted report or silently treat fewer findings as better content.
 Calibrate coverage matchers against positive and negative examples separately,
 without using broader matching to conceal length, task or citation failures.
 Do not reopen closed campaigns, keep resampling this case, increase the word

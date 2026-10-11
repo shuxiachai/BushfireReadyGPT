@@ -69,6 +69,7 @@ from src.report_grounding import (  # noqa: E402
     evaluate_model_visible_rag_grounding,
     evaluate_report_grounding,
 )
+from src.report_repair_guard import ReportRepairRegressionError  # noqa: E402
 from src.report_template import (  # noqa: E402
     append_evidence_tables,
     append_human_signoff,
@@ -108,6 +109,7 @@ class ScenarioGenerationError(RuntimeError):
         super().__init__(str(error))
         self.generation_attempts = generation_attempts
         self.latency_seconds = latency_seconds
+        self.code = ReportRepairRegressionError.code if isinstance(error, ReportRepairRegressionError) else None
 
 
 def _governance_context():
@@ -441,7 +443,7 @@ def _nearest_rank_percentile(values, percentile):
 
 
 def _failed_row(scenario, error, *, generation_attempts=0, latency_seconds=0.0):
-    return {
+    row = {
         "id": scenario["id"],
         "kind": scenario.get("kind", "product_scenario"),
         "generation_attempts": generation_attempts,
@@ -487,6 +489,11 @@ def _failed_row(scenario, error, *, generation_attempts=0, latency_seconds=0.0):
         "repair_succeeded": False,
         "repair_exhausted": generation_attempts >= MAX_REPORT_REPAIR_ATTEMPTS + 1,
     }
+    if isinstance(error, ReportRepairRegressionError) or (
+        isinstance(error, ScenarioGenerationError) and error.code == ReportRepairRegressionError.code
+    ):
+        row["blocking_failures"][0]["name"] = "Report repair regression guard"
+    return row
 
 
 def _quality_policy_provenance():
