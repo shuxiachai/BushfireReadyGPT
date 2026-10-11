@@ -131,6 +131,19 @@ sample or release was produced. The closed local record is
 `output/local-section-repair-profile-count-20261011-a/`; its outcome SHA-256 is
 `43c77002d920f901a77ed38332154d5f63bd4b4de84bf1bcbcedd61f084a0de4`.
 
+The first final-commit CI run on `292977a` (`38108826281`) passed all 4,297
+Python 3.13 tests (16 skipped, 6 deselected; 90.58% src coverage), but the
+849.38-second test run exhausted almost all of the job's 15-minute total
+budget. The following v0.5.0 offline verification was cancelled at the job
+deadline and v0.6.0 verification was skipped; neither gate is recorded as
+completed in that run. Python 3.11, Windows, Chromium and the separate Docker
+workflow passed. The bounded CI correction raises only the Ubuntu pytest job
+budget to 20 minutes, matching the existing Windows/browser limits. All
+matrix entries, checks, coverage thresholds and release-evidence verifications
+remain required; production/request/native-count timeouts are unchanged.
+The subsequent commit's workflow result, not the cancelled run, determines
+whether the complete CI gate has passed.
+
 ### Offline localisation and request preparation (2026-10-11)
 
 The import-only [request helper](../scripts/section_local_repair_request.py)
