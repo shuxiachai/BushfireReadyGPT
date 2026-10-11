@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-11 for restricted offline rendering of the final repair request.
+Updated 2026-10-11 for offline input-size and application-message boundary checks.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -50,6 +50,51 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Application boundary and larger synthetic inputs (2026-10-11)
+
+The new regression tests use self-authored form inputs and synthetic frozen
+analysis, not real user reports or a representative workload sample. The
+application's form byte limits, prepared-message byte caps and model token
+budget are different constraints; a valid large form does not establish token
+fit. Any supplied token counts in these tests are arithmetic fixtures, not new
+measurements or a reuse of the closed 3,375-token result below.
+
+The production `build_governed_messages` path selects a fixed system prompt and
+strips user-prompt boundaries. The experimental section-local request has its
+own system instructions that preserve undeclared sections. Forwarding only its
+user content through `GovernedModelClient.generate` therefore changes the
+request, even when the visible user content is unchanged. There is no new
+adapter or production integration in this update. Candidate-message binding
+must reject the changed request; a supplied measurement tied to the offline
+messages cannot validate the production messages' budget.
+
+Injected SDK completions exercise application-side construction and capture
+only. They are not actual provider calls, a tokenizer run, an Ollama-rendering
+proof or content acceptance. Effective experimental dispatch remains disabled;
+the production policy, repair guard and historical evidence remain unchanged.
+
+The new module adds **14 tests**. Its three valid form fixtures contain 2,463,
+4,663 and 12,663 counted UTF-8 input bytes; the combined-input boundary cases
+exercise 16,384 bytes and one byte above that limit. These are form-value sizes,
+not complete prompt sizes or token counts. Expanded repair envelopes retain
+the complete analysis, decoded sections and evidence; an analysis within its cap
+whose assembled request exceeds the message cap is rejected without trimming.
+Boundary token arithmetic uses explicitly mocked counts and never changes
+effective `unknown` or dispatch-disabled status.
+
+The final seven-file regression selection passed **491 tests in 30.04 seconds**,
+including the 14 new cases and the existing request, candidate, renderer,
+context-budget, form-validation and model-runtime tests. Full repository Ruff,
+formatting and Bandit checks passed. The first new-test run was 13 passed / 1
+failed because its expectation overlooked existing fullwidth-punctuation
+normalization in ordinary U0 input; the corrected assertion still compares the
+entire value, while offline repair frames retain exact-value checks. A later
+441 passed / 1 failed selection exposed an existing local CLI interpreter's
+startup stderr warning. The test's existing interpreter-selection hook passed
+that exact case, then the final 491-test selection, using installed Python
+3.12.9. No runtime code, assertion threshold, persistent environment
+configuration or closed experiment was changed to resolve either failure.
 
 ### Restricted offline repair-template profile (2026-10-11)
 
@@ -141,8 +186,10 @@ workflow passed. The bounded CI correction raises only the Ubuntu pytest job
 budget to 20 minutes, matching the existing Windows/browser limits. All
 matrix entries, checks, coverage thresholds and release-evidence verifications
 remain required; production/request/native-count timeouts are unchanged.
-The subsequent commit's workflow result, not the cancelled run, determines
-whether the complete CI gate has passed.
+The subsequent `e148432` Tests workflow (`38109782550`) and Docker workflow
+(`38109782528`) passed. Python 3.13 completed in 15m17s, including both offline
+release verifications; its 4,297 passing tests retained 90.58% src coverage.
+This later result closes the CI deadline issue without erasing the cancelled run.
 
 ### Offline localisation and request preparation (2026-10-11)
 

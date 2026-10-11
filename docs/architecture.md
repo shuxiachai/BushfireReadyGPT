@@ -73,6 +73,16 @@ claim is only the explicit offline mapping. Native token measurement, installed
 Ollama preprocessing, provider receipt and evidence retention are distinct
 boundaries; the existing request-budget API still returns effective `unknown`.
 
+There is deliberately no adapter from that prepared repair request to
+`GovernedModelClient.generate`. The production message builder selects its own
+fixed mode-specific system prompt and strips the supplied user prompt. Passing
+only the offline request's user content through it therefore loses the custom
+section-preservation system instructions and changes the final message hash.
+Such a request is not the measured offline request: its candidate-message
+binding must reject it, and a count bound to the offline messages cannot prove
+its budget. A mock of the SDK boundary can verify application-side message
+construction, but cannot establish Ollama rendering or provider receipt.
+
 The [data guide](../data_australia/README.md) separates committed core data and
 fixtures from locally prepared downloads/indexes. Ignored runtime outputs,
 session files, private deployment corpora and Python caches are not additional
