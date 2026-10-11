@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-11 for offline repair localisation and lossless request preparation.
+Updated 2026-10-11 for restricted offline rendering of the final repair request.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -50,6 +50,41 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Restricted offline repair-template profile (2026-10-11)
+
+The import-only [renderer](../scripts/section_local_repair_render.py) rebuilds
+the prepared request instead of trusting an arbitrary message list, rendered
+string or `renderer_verified` flag. It supports one pinned Qwen2.5 model
+manifest/layer/template and the unchanged 8,192-token window. Its explicit
+offline mapping uses the final system content, one final user message and an
+assistant prefix, with no tools, prior assistant response or injected default
+system text. Message whitespace, CRLF and Unicode remain exact; ambiguous
+control delimiters and identity mismatches are rejected, not repaired.
+
+`offline_profile_rendering_verified` describes that restricted mapping only.
+The private rendered-byte accessor is separate from content-free summaries;
+hashes establish consistency, not hostile-process authentication or actual
+runtime measurement. The existing request-budget API remains effective
+`unknown`, with dispatch and production acceptance disabled.
+
+Version-matched [Ollama template processing](https://github.com/ollama/ollama/blob/v0.32.15/template/template.go),
+[chat prompt selection](https://github.com/ollama/ollama/blob/v0.32.15/server/prompt.go)
+and [chat-route defaults](https://github.com/ollama/ollama/blob/v0.32.15/server/routes.go)
+provide conditional source-level context, not proof of the installed backend's
+execution. Default-system injection, additional messages, renderer selection
+and context fitting belong to the server path. Native token counting and exact
+detokenization can measure this profile's bytes; neither operation proves
+provider receipt, complete context retention or report-content acceptance.
+
+The new renderer passed **49 offline tests** in 4.34 seconds with **97% coverage
+of that script**, not whole-application coverage. The unchanged request,
+candidate-contract and context-budget regression files passed **408 tests** in
+24.56 seconds. Full configured lint, formatting and Bandit passed; independent
+review found no actionable renderer issue. One initial sandbox test invocation
+failed at temporary-directory setup/coverage cleanup; the formally approved
+isolated rerun passed without changing code, permissions or acceptance rules.
+These results establish the offline contract, not a physical token count.
 
 ### Offline localisation and request preparation (2026-10-11)
 

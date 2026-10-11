@@ -24,6 +24,13 @@ unsupported failures stay unlocalised. Supplied count/hash consistency does not
 prove model-template rendering: effective budget remains unknown and dispatch
 is disabled. Both helpers are offline; neither reopens a recorded campaign.
 
+The [restricted renderer](../../scripts/section_local_repair_render.py) adds a
+pinned two-message offline template profile. Reconstructing its exact bytes
+does not authenticate native counting or the running Ollama service. A fresh
+count-only measurement must remain separate from supplied-record diagnostics
+and closed model campaigns; a measured excess is a valid result, not permission
+to discard evidence or increase the configured model window.
+
 Use [current status](../project_reassessment.md) for maintained conclusions,
 [RAG design](../rag.md) for runtime setup, and the
 [script navigator](../../scripts/README.md) for tool roles.

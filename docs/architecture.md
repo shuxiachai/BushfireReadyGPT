@@ -62,6 +62,17 @@ token fit remains unknown without a verified model-template rendering
 relationship, even if supplied measurement arithmetic fits. Neither helper
 has transport, persistence or production dispatch authority.
 
+The [restricted offline renderer](../scripts/section_local_repair_render.py)
+rebuilds the frozen final request and supports only an explicitly pinned
+Qwen2.5 system/user profile, model manifest, model layer, template and 8,192-token
+window. It derives the complete UTF-8 prompt, including the assistant prefix,
+without trimming or normalising message contents. Template-control collisions
+and unsupported identities are rejected. Normal summaries contain fixed labels
+and hashes; rendered bytes use a separate private-input accessor. Its verified
+claim is only the explicit offline mapping. Native token measurement, installed
+Ollama preprocessing, provider receipt and evidence retention are distinct
+boundaries; the existing request-budget API still returns effective `unknown`.
+
 The [data guide](../data_australia/README.md) separates committed core data and
 fixtures from locally prepared downloads/indexes. Ignored runtime outputs,
 session files, private deployment corpora and Python caches are not additional
