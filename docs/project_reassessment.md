@@ -1,11 +1,13 @@
 # Current project status
 
-Updated 2026-10-12 for a default-denied local executor, without a production admission issuer.
+Updated 2026-10-12 with installed-model identity verification and a fresh native
+token count. The new synthetic request exceeds its fixed offline budget by
+61 tokens; the local executor still has no production admission issuer.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
 acceptance. That campaign, its separate startup failure and earlier responses
-remain preserved; no new model run, accepted sample or formal release is claimed. This page
+remain preserved; no new report generation, accepted sample or formal release is claimed. This page
 is the single maintained status summary; each model and cloud result below is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
@@ -50,6 +52,63 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Installed identity and fresh native budget (2026-10-12)
+
+This separate, single count-only campaign is bound to `5505043`. Full SHA-256
+and size checks verified the installed `bushfire-ready-qwen:latest` manifest,
+every referenced layer including the **4,683,073,952-byte GGUF**, its template
+and the pinned native tokenizer files. The manifest describes the Qwen2 family,
+7.6B parameters and Q4_K_M quantization; its parameters specify `num_ctx=8192`.
+The installed Ollama client reports 0.32.15, but host checks found no running
+Ollama process or listener on 11434. No Ollama daemon was started. Installed-file
+identity is verified, not live Ollama alias resolution or service rendering.
+
+The current request/render/invocation helpers constructed one fresh synthetic
+section-repair input with 40 hypothetical review notes and multibyte text.
+Its rendered size is **27,785 UTF-8 bytes**, with exact prospective kwargs
+bound before measurement. The actual native result is:
+
+| Budget component | Tokens |
+| --- | ---: |
+| Measured rendered input | 5,952 |
+| Reserved output | 2,300 |
+| Margin | 1 |
+| Required total | **8,253** |
+| Fixed context | 8,192 |
+| Excess | **61** |
+
+The outcome is **`exceeds`**, not an execution failure or a fit. At this output
+reservation and margin, input must be at most 5,891 tokens. No input was shortened,
+budget increased or native request retried to obtain a pass. The earlier
+3,375-token result belongs to a different closed input and cannot be reused.
+Detokenization had to reproduce the complete original UTF-8 bytes exactly.
+The response stayed in memory: independent review verified the stored vector,
+payload hashes and enforcing code, rather than replaying that response.
+
+There was **one native attempt, two POSTs, four health GETs and zero generation**.
+Final offline harness validation passed 19 tests; one earlier fixture validation
+failed because synthetic form concerns were not canonical options. Only those
+labels were corrected, preserving the strict scope assertion and failure record.
+Preparation review also tightened owned-process cleanup deadlines. Native work
+has a 90-second limit within a 120-second native-and-cleanup acceptance cap;
+startup remains capped at 60 seconds. Full file hashing is timed separately.
+Observed preflight/native-with-cleanup/postflight times were
+10.591/13.778/4.553 seconds, **28.922 seconds total**, not report-generation latency.
+
+All 459 protected files and 39 entries in the directly reused prior campaign
+remained unchanged. Cleanup records and a separate approved host check confirmed
+the owned process, port 8916 and temporary key were absent. Native exit code 1
+is consistent with intentional Windows termination, not a graceful-shutdown
+claim. Raw prompts and token vectors remain local and ignored. The outcome
+SHA-256 is `c6811de3677d1ae8a6786b399ab1593e2ecbeff3418a8e96cae57600136b15b5`.
+
+The numeric server log provided no independent context/KV-capacity evidence.
+Live Ollama identity, rendering equivalence and effective service budget remain
+**unknown**; model dispatch stays disabled. This measurement neither issues
+production admission nor validates a report's content. Next integration work
+must address request-specific overflow and trusted service bindings, not treat
+this count or the older fitting case as general permission to generate.
 
 ### Default-denied prepared-call executor (2026-10-12)
 

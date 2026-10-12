@@ -45,6 +45,12 @@ tests use isolated one-shot capabilities and fake SDK dependencies to exercise
 exact submission, quota/deadline behavior and capture compatibility. Those
 tests do not establish effective token fit or authorize a real model call.
 
+The separate 2026-10-12 native count verified installed model files and measured
+one fresh 27,785-byte synthetic invocation: 5,952 input + 2,300 output + 1 margin
+= 8,253, exceeding the fixed 8,192-token offline budget by 61. It made no
+generation call. Live Ollama identity/rendering remain unknown and dispatch is
+still disabled; see the [bound measurement and limitations](../project_reassessment.md#installed-identity-and-fresh-native-budget-2026-10-12).
+
 Use [current status](../project_reassessment.md) for maintained conclusions,
 [RAG design](../rag.md) for runtime setup, and the
 [script navigator](../../scripts/README.md) for tool roles.
