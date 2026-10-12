@@ -52,9 +52,11 @@ generation call. Live Ollama identity/rendering remain unknown and dispatch is
 still disabled; see the [bound measurement and limitations](../project_reassessment.md#installed-identity-and-fresh-native-budget-2026-10-12).
 
 Subsequent fixed-guidance deduplication removes 237 UTF-8 bytes without changing
-the framed input data. Its token budget has not been measured; neither the old
-count nor the byte reduction establishes fit. No additional model call or
-production admission is part of that change.
+the framed input data. A separate single count on `bde7ee7` measured the same
+case at 5,899 input tokens, **53 fewer**, but 5,899 + 2,300 + 1 = 8,200 still
+exceeds the window by **8**. No generation or production admission occurred.
+See the [same-case measurement and boundaries](../project_reassessment.md#native-count-after-guidance-reduction-2026-10-12);
+byte savings alone were not used as token evidence.
 
 Use [current status](../project_reassessment.md) for maintained conclusions,
 [RAG design](../rag.md) for runtime setup, and the

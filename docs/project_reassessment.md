@@ -1,9 +1,9 @@
 # Current project status
 
-Updated 2026-10-12 with a bounded reduction of repeated experimental repair
-guidance. Input data is unchanged; the revised prompt has not been token-counted.
-The latest native measurement below belongs to `5505043` and exceeds its fixed
-offline budget by 61 tokens. The local executor still has no production admission issuer.
+Updated 2026-10-12 with native counting of the reduced repair prompt on `bde7ee7`.
+The same synthetic case now uses 5,899 input tokens, 53 fewer than before, but
+still exceeds the fixed input/output/margin budget by 8 tokens. The local
+executor still has no production admission issuer.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -54,6 +54,51 @@ See [architecture](architecture.md), [RAG](rag.md) and
 
 ## Recorded validation
 
+### Native count after guidance reduction (2026-10-12)
+
+A new, single count-only campaign on `bde7ee7` measured the reduced prompt.
+It used the **same synthetic form, analysis, base sections and evidence** as
+the closed `5505043` campaign, not a smaller replacement case. The fixture
+source was byte-identical. Independent comparison confirmed unchanged JSON
+and evidence bodies, length headers and markers; the only rendered changes
+were the three approved guidance edits, totaling 237 UTF-8 bytes.
+Full installed manifest/layer/GGUF/template and native-file hashes were
+verified again before counting.
+
+| Same-case measurement | Original `5505043` | Reduced `bde7ee7` |
+| --- | ---: | ---: |
+| Rendered UTF-8 bytes | 27,785 | 27,548 |
+| Measured input tokens | 5,952 | **5,899** |
+| Required tokens, including 2,300 output and 1 margin | 8,253 | **8,200** |
+| Excess over fixed 8,192 context | 61 | **8** |
+
+The actual saving is **53 tokens**, not 237 tokens inferred from bytes.
+The measurement succeeded, but budget acceptance remains **`exceeds`**.
+No input data was truncated, reservation/margin lowered, window enlarged or
+native attempt repeated to obtain a fit. These results apply to this one
+explicit offline rendering and case, not general form capacity or model quality.
+
+The new harness passed **22 guarded offline tests**. Its one native attempt
+made two POSTs and five health GETs, with **zero generation calls**. Exact
+UTF-8 detokenization was enforced; the reply stayed in memory, so independent
+review checked the vector/payload hashes and comparison code rather than
+replaying that reply. Preflight/native-with-cleanup/postflight took
+8.269/12.745/3.690 seconds, **24.705 seconds total**, not report-generation time.
+All 459 protected files and 30 direct-prior tree entries remained unchanged.
+Cleanup records and a separate approved host check confirmed the owned process,
+port 14042 and temporary key were absent. Exit code 1 is consistent with owned
+Windows termination, not proof of graceful native shutdown. This campaign had
+no preparation/native validation failures; the prior preparation failure is
+separate and remains recorded.
+
+Private inputs and vectors remain local and ignored. The outcome SHA-256 is
+`c55e54e19d5573ad104cd0eac6f8faef20eb81198c55f10030c381797bed826a`.
+Ollama was not running and was not started; the numeric server log supplied
+no independent context/KV-capacity evidence. Live alias resolution, server
+rendering and effective service budget remain **unknown**, with production
+dispatch disabled. An 8-token excess is still an excess, not permission to
+round down, omit evidence or reuse an older fitting measurement.
+
 ### Scoped request-guidance reduction (2026-10-12)
 
 The experimental [request helper](../scripts/section_local_repair_request.py)
@@ -87,10 +132,11 @@ static review found no remaining issue in the bounded change.
 
 Existing request-specific budget diagnostics already report excess and signed
 headroom, so no additional budget interface or admission path was introduced.
-This update makes **zero model/tokenizer calls**. A 237-byte reduction does not
-establish token savings, a fitting budget or equivalent model behavior. The
+That implementation step made **zero model/tokenizer calls**. Its 237-byte
+reduction alone did not establish token savings, fit or equivalent model behavior;
+the separately authorized native measurement is recorded above. The
 historical 5,952-token observation and 61-token excess below remain intact for
-their original input/version; they are not measurements of this prompt.
+their original input/version; they were not measurements of the reduced prompt.
 Effective service budget and live identity remain unknown, and production
 admission stays closed.
 
