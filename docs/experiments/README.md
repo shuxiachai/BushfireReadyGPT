@@ -31,6 +31,14 @@ count-only measurement must remain separate from supplied-record diagnostics
 and closed model campaigns; a measured excess is a valid result, not permission
 to discard evidence or increase the configured model window.
 
+The [offline invocation adapter](../../scripts/section_local_repair_invocation.py)
+binds prospective completion kwargs to that rendered request, preserving the
+full system/user pair and request-specific output reservation. It compares
+supplied kwargs and delegates bound budget diagnostics without a client,
+callback, environment lookup or model call. Its result is not a submission
+capture, resolved model identity or permission to dispatch. It does not reopen
+the closed count-only measurement or reuse its token count for a new request.
+
 Use [current status](../project_reassessment.md) for maintained conclusions,
 [RAG design](../rag.md) for runtime setup, and the
 [script navigator](../../scripts/README.md) for tool roles.

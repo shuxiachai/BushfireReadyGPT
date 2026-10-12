@@ -73,7 +73,7 @@ claim is only the explicit offline mapping. Native token measurement, installed
 Ollama preprocessing, provider receipt and evidence retention are distinct
 boundaries; the existing request-budget API still returns effective `unknown`.
 
-There is deliberately no adapter from that prepared repair request to
+There is deliberately no production adapter from that prepared repair request to
 `GovernedModelClient.generate`. The production message builder selects its own
 fixed mode-specific system prompt and strips the supplied user prompt. Passing
 only the offline request's user content through it therefore loses the custom
@@ -82,6 +82,20 @@ Such a request is not the measured offline request: its candidate-message
 binding must reject it, and a count bound to the offline messages cannot prove
 its budget. A mock of the SDK boundary can verify application-side message
 construction, but cannot establish Ollama rendering or provider receipt.
+
+The [offline invocation adapter](../scripts/section_local_repair_invocation.py)
+instead derives a complete prospective call from the revalidated rendered
+request. It preserves both messages and derives `max_tokens` from that request's
+output reservation rather than the runtime's separate default. Its fixed
+Ollama-compatible projection also binds explicit model-selector, temperature
+and seed inputs, with fixed `top_p` and streaming mode. A model selector is not
+proof that a running alias resolves to the pinned model. Kind, contract and
+attempt metadata are derived, not SDK kwargs. Detached raw kwargs are a private
+inspection accessor; summaries and comparisons contain no prompt or model-name
+text. Dictionary equality means only prospective-call consistency. Reusing the
+existing budget diagnostic never promotes effective `unknown` or enables
+dispatch, and no submission capture is manufactured. The plan is not a prompt
+accepted by `generate`; actual transport integration remains unimplemented.
 
 The [data guide](../data_australia/README.md) separates committed core data and
 fixtures from locally prepared downloads/indexes. Ignored runtime outputs,

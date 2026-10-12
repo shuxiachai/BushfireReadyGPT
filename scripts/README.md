@@ -74,7 +74,7 @@ output paths are part of their evidence. A flag does not permit a new campaign.
 
 ## Import-only modules
 
-These 17 Python files have no `__main__` guard. They are library modules for
+These 18 Python files have no `__main__` guard. They are library modules for
 an importing caller, not ordinary command-line entry points; effects depend on
 the caller's arguments, supplied clients, and selected paths.
 
@@ -95,5 +95,6 @@ the caller's arguments, supplied clients, and selected paths.
 | [section_local_repair_contract.py](section_local_repair_contract.py) | Offline admission of a complete candidate with caller-declared editable sections, exact preservation and evidence bindings. No prompt builder, dispatch, artifact writer or production acceptance. |
 | [section_local_repair_request.py](section_local_repair_request.py) | Offline exact-span localisation and lossless frozen repair-request preparation; binds supplied candidates to final messages and next attempt. Budget arithmetic is diagnostic only: effective fit stays unknown without trusted rendering. No model, tokenizer, dispatch, persistence or production acceptance. |
 | [section_local_repair_render.py](section_local_repair_render.py) | Pure rendering of the final frozen request for one pinned Qwen2.5 two-message offline profile. Rejects identity drift and control-delimiter ambiguity without changing input bytes. A rendering match is not native measurement, Ollama request admission or dispatch authority. |
+| [section_local_repair_invocation.py](section_local_repair_invocation.py) | Pure, revalidated prospective completion kwargs derived from the rendered repair request, including its exact messages and requested output cap. Compares supplied dictionaries and bound budget diagnostics; no client, transport, capture, runtime integration or dispatch authority. |
 | [selection_proposal_bridge.py](selection_proposal_bridge.py) | Selection-to-proposal handoff construction and validation helpers. |
 | [selection_proposal_development.py](selection_proposal_development.py) | Journaled selection/proposal development-suite helpers, including supplied model invocation paths. |

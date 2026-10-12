@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-11 for offline input-size and application-message boundary checks.
+Updated 2026-10-12 for a bound offline invocation plan, without runtime integration.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -50,6 +50,46 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Offline invocation plan (2026-10-12)
+
+The import-only [invocation adapter](../scripts/section_local_repair_invocation.py)
+addresses two prospective-call mismatches: the production builder replaces the
+system prompt, and its completion kwargs use a separate configured output cap.
+The adapter starts from one revalidated rendered request and derives its exact
+system/user messages and positive `max_tokens` reservation. It also binds an
+explicit model selector, temperature and seed, with fixed `top_p=0.8` and
+`stream=True`. These are offline projection inputs, not observed provider
+settings or proof of model-alias resolution.
+
+Every accessor rebuilds the request, rendering and complete kwargs. Kind,
+output contract and attempt come from the request, not override arguments.
+Only a private-input accessor returns raw kwargs; normal summaries, errors and
+dictionary comparisons do not disclose prompts or the free-text model name.
+Supplied kwargs are serialized once into a bounded builtin-only snapshot;
+validation, comparison and the reported digest describe that same snapshot,
+even if the caller subsequently changes its dictionary.
+The plan cannot be used as a string prompt for the existing `generate` entry
+point. It has no client, callback, SDK call, configuration lookup or persistence.
+
+Budget assessment reuses the existing request diagnostic and the reconstructed
+rendered bytes, so a supplied rendered hash must match. A matching supplied
+dictionary or arithmetic result is not actual submission, native measurement,
+effective admission or production acceptance. Effective budget remains
+`unknown`, dispatch stays disabled, and the historical 3,375-token observation
+below remains limited to its closed synthetic input. No new model/tokenizer
+calls or automatic repair integration are part of this update.
+
+Validation added **76 synthetic offline tests**. The final nine-file selection
+passed **597 tests in 42.60 seconds**, including existing request, candidate,
+renderer, workflow, input-validation, context-budget, runtime and evidence
+checks. Full repository Ruff, formatting and Bandit passed. Independent static
+review identified prompt coercion and mutable-input comparison consistency;
+both were corrected and have regressions. No test or validation attempt failed
+in this change. The existing CLI interpreter-selection hook was retained for
+the local environment; no persistent configuration or assertion was changed.
+Test counts and parameter-boundary fixtures do not establish provider support,
+resolved model identity or a newly measured token budget.
 
 ### Application boundary and larger synthetic inputs (2026-10-11)
 
