@@ -58,6 +58,12 @@ exceeds the window by **8**. No generation or production admission occurred.
 See the [same-case measurement and boundaries](../project_reassessment.md#native-count-after-guidance-reduction-2026-10-12);
 byte savings alone were not used as token evidence.
 
+Removing only the redundant 64-byte task introduction was then measured once
+on `b2646f5`: the same case uses **5,888 input tokens**, and 5,888 + 2,300 + 1
+= 8,189 leaves only **3 tokens** in the fixed offline window. This is not a
+general capacity or live Ollama fit claim; no generation/admission occurred.
+See the [single-case result and limitations](../project_reassessment.md#single-case-offline-fit-after-intro-removal-2026-10-12).
+
 Use [current status](../project_reassessment.md) for maintained conclusions,
 [RAG design](../rag.md) for runtime setup, and the
 [script navigator](../../scripts/README.md) for tool roles.

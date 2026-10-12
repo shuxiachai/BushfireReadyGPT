@@ -1,9 +1,9 @@
 # Current project status
 
-Updated 2026-10-12 with native counting of the reduced repair prompt on `bde7ee7`.
-The same synthetic case now uses 5,899 input tokens, 53 fewer than before, but
-still exceeds the fixed input/output/margin budget by 8 tokens. The local
-executor still has no production admission issuer.
+Updated 2026-10-12 with one native count on `b2646f5`: the same synthetic case
+uses 5,888 input tokens and fits its explicit offline budget with only 3 tokens
+remaining after output and margin reservations. This narrow result is not a
+general capacity or live Ollama guarantee. Production admission remains absent.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -53,6 +53,65 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Single-case offline fit after intro removal (2026-10-12)
+
+The experimental request builder now omits only the 64-byte opening sentence
+that described preparing a complete repair for offline assessment. The retained
+shared protocol still requires complete s01–s15 JSON prose; exact edit scope,
+untrusted-data handling, human review and safety restrictions remain verbatim.
+The rest of the system message and the **entire user message are unchanged**.
+No general text replacement, data truncation, output-cap change or schema
+migration was introduced. Tests retain both historical prompt stages and
+reject their obsolete prepared/request/render/count bindings.
+
+Code validation passed **191 focused tests in 58.36 seconds** and **845 tests
+across eleven modules in 94.14 seconds**; these selections overlap. Full
+repository Ruff lint/format and Bandit checks passed, with independent code
+review. The established process-local CLI interpreter override was reused;
+no persistent environment or assertion changed. This implementation and its
+validation had no failed attempt.
+
+A separately frozen count campaign used the same synthetic fixture, model and
+budget. Independent byte comparison verified that only the first 64 system
+bytes changed relative to `bde7ee7`; framed JSON/evidence, headers, markers,
+base sections, analysis and scope remained exact. Full installed manifest,
+layers/GGUF/template and native-file identity checks passed again.
+
+| Same-case source | Rendered bytes | Input tokens | Total with 2,300 output + 1 margin | Headroom in 8,192 |
+| --- | ---: | ---: | ---: | ---: |
+| `5505043` | 27,785 | 5,952 | 8,253 | -61 |
+| `bde7ee7` | 27,548 | 5,899 | 8,200 | -8 |
+| `b2646f5` | 27,484 | **5,888** | **8,189** | **3** |
+
+This measurement saved **11 tokens** against the immediate predecessor, or
+64 against the original case; byte savings were not used as token evidence.
+The explicit offline arithmetic is **`fits`**, but its 3-token headroom is
+very small and cannot establish capacity for other inputs or server rendering.
+Output remains 2,300, margin 1 and context 8,192; no evidence was removed,
+reservation lowered or window enlarged, and no automatic repair was enabled.
+
+The new harness passed **22 guarded offline tests**. There was one native
+attempt, two POSTs, four health GETs and **zero generation calls**, without
+tuning or retry. Exact UTF-8 detokenization was enforced; the response remained
+memory-only, so independent review inspected the stored vector/payload hashes
+and comparison code rather than replaying the response. Preflight/native with
+owned cleanup/postflight took 11.701/13.638/4.641 seconds, **29.980 total**,
+not report-generation latency. All 459 protected files and 31 direct-prior
+tree entries remained unchanged. Cleanup records and a separate approved
+host check confirmed the process, port 8583 and temporary key were absent;
+exit code 1 is consistent with intentional Windows termination, not graceful
+shutdown. This campaign had zero preparation/native validation failures;
+earlier failures remain separate and preserved.
+
+Raw inputs and vectors remain local and ignored. Outcome SHA-256:
+`55e66f181c2bb0d95c9d57ff8be210281b097762d4641b6c584f2f2d6df806cb`.
+Ollama was not running and was not started. No independent live context/KV
+evidence was present in the numeric log. **Live model identity, actual service
+rendering and effective service budget remain unknown; production dispatch
+is disabled.** The next integration boundary is trusted service/request
+binding and request-specific admission, not treating this small single-case
+fit as permission to generate or as a new accepted report.
 
 ### Native count after guidance reduction (2026-10-12)
 
