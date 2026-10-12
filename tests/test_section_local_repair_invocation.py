@@ -15,7 +15,11 @@ from scripts import section_local_repair_invocation as invocation
 from scripts import section_local_repair_render as render
 from scripts import section_local_repair_request as request
 from tests.support.report_fixtures import _valid_report, section_response_for_report
-from tests.test_section_local_repair_request import _pre_deduplication_messages, _record
+from tests.test_section_local_repair_request import (
+    _pre_deduplication_messages,
+    _pre_intro_removal_messages,
+    _record,
+)
 
 
 def _json(value):
@@ -475,13 +479,22 @@ def test_changed_valid_output_budget_requires_new_render_and_invocation_binding(
         _plan(zero_render)
 
 
-def test_pre_deduplication_messages_render_and_count_bindings_cannot_transfer(materials):
+@pytest.mark.parametrize(
+    "historical_messages,expected_byte_savings",
+    [
+        pytest.param(_pre_deduplication_messages, 301, id="before-237-byte-deduplication"),
+        pytest.param(_pre_intro_removal_messages, 64, id="before-64-byte-intro-removal"),
+    ],
+)
+def test_historical_messages_render_and_count_bindings_cannot_transfer(
+    materials, historical_messages, expected_byte_savings
+):
     prepared, rendered, plan, _, _, base_record = materials
-    old_messages = _pre_deduplication_messages(prepared, base_record)
+    old_messages = historical_messages(prepared, base_record)
     old_messages_sha256 = _hash(_json(old_messages))
     old_rendered = render._render_messages(old_messages)
     current_rendered = render.rendered_bytes_for_offline_count(rendered)
-    assert len(old_rendered) - len(current_rendered) == 237
+    assert len(old_rendered) - len(current_rendered) == expected_byte_savings
     assert old_messages_sha256 != plan.to_dict()["messages_sha256"]
     assert _hash(old_rendered.decode("utf-8")) != plan.to_dict()["rendered_prompt_sha256"]
 
