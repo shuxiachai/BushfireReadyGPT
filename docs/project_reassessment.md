@@ -1,6 +1,6 @@
 # Current project status
 
-Updated 2026-10-12 for a bound offline invocation plan, without runtime integration.
+Updated 2026-10-12 for a default-denied local executor, without a production admission issuer.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -50,6 +50,46 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Default-denied prepared-call executor (2026-10-12)
+
+The separate `ControlledLocalModelExecutor.execute` path in
+[model_runtime.py](../src/model_runtime.py) accepts exact prospective kwargs,
+an explicit local SDK dependency and an opaque single-use admission. Its
+production gate's issuer is deliberately discarded, so production cannot
+admit a call. An offline plan, supplied budget flag or capability from an
+isolated test gate does not change that. Ordinary `generate` behavior and the
+report workflow remain unchanged; no script helper is imported into runtime.
+
+The test gate binds a detached bounded kwargs snapshot, client identity,
+endpoint and underlying HTTP client. Invalid, reused or mismatched admission
+is rejected before quota acquisition or worker/transport effects. An admitted
+fake call preserves exact messages and request-specific `max_tokens`, requires
+a loopback endpoint with redirects and environment proxies disabled, and
+configures/rechecks zero SDK retries. Existing stream deadlines, owned slot
+lifetime, cleanup and normal-stop admission are reused. Failures publish no
+successful capture. The existing five-field SDK message binding is unchanged;
+complete kwargs/response hashes use a separate in-memory `last_call_capture`.
+
+The final six-module run passed **367 tests in 41.50 seconds**, covering the
+runtime path, model limits, evidence, response admission, section protocol and
+offline invocation. Independent static review found and corrected an initial
+capture-schema incompatibility; the separate binding now preserves existing
+consumers. An initial test setup failed because a temporary parent directory
+was absent; tests passed after creating that bounded directory, without
+changing assertions or persistent environment configuration.
+The configured formatting check also required ordinary wrapping/spacing
+corrections in the two changed Python files; the full Ruff lint/format and
+Bandit checks then passed without changing behavior or quality thresholds.
+
+Only isolated test admission and fake SDK calls were exercised. A trusted real
+authority for model identity, server rendering and effective token fit is
+still absent; hashes and mock capabilities are not substitutes. Standard
+client settings do not prove arbitrary custom-transport behavior. Practical
+request/output limits, including a local response bound independent of provider
+compliance, remain responsibilities of a future admitted production integration.
+No real model/tokenizer call, automatic repair activation, new accepted report
+or replacement historical evidence was produced.
 
 ### Offline invocation plan (2026-10-12)
 

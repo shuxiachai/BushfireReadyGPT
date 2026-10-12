@@ -95,7 +95,21 @@ inspection accessor; summaries and comparisons contain no prompt or model-name
 text. Dictionary equality means only prospective-call consistency. Reusing the
 existing budget diagnostic never promotes effective `unknown` or enables
 dispatch, and no submission capture is manufactured. The plan is not a prompt
-accepted by `generate`; actual transport integration remains unimplemented.
+accepted by `generate`; report-workflow integration remains unimplemented.
+
+`ControlledLocalModelExecutor` in [model_runtime.py](../src/model_runtime.py)
+provides a separate default-denied local execution boundary. Its production
+admission gate has no issuer; offline summaries, booleans and tokens issued by
+an isolated test gate cannot authorize it. Test-only admitted calls bind a
+one-use process-local capability to an exact bounded kwargs snapshot and client
+identity. The path preserves the two messages and requested output cap, checks
+loopback destination and disabled environment proxies/redirects, and enforces
+zero SDK retries before submission. It reuses existing quota ownership, total
+deadline, stream cleanup and normal-stop checks. Existing message-capture v1
+remains unchanged; complete-call hashes have a separate in-memory binding.
+There is no automatic repair caller or real budget/model-resolution authority.
+Trusted custom-transport behavior and practical output limits remain future
+integration obligations, not guarantees established by this test harness.
 
 The [data guide](../data_australia/README.md) separates committed core data and
 fixtures from locally prepared downloads/indexes. Ignored runtime outputs,

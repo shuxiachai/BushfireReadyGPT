@@ -39,6 +39,12 @@ callback, environment lookup or model call. Its result is not a submission
 capture, resolved model identity or permission to dispatch. It does not reopen
 the closed count-only measurement or reuse its token count for a new request.
 
+The separate `ControlledLocalModelExecutor` is a default-denied runtime harness,
+not a model experiment entrypoint. Production has no admission issuer. Its
+tests use isolated one-shot capabilities and fake SDK dependencies to exercise
+exact submission, quota/deadline behavior and capture compatibility. Those
+tests do not establish effective token fit or authorize a real model call.
+
 Use [current status](../project_reassessment.md) for maintained conclusions,
 [RAG design](../rag.md) for runtime setup, and the
 [script navigator](../../scripts/README.md) for tool roles.
