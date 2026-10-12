@@ -15,7 +15,7 @@ from scripts import section_local_repair_invocation as invocation
 from scripts import section_local_repair_render as render
 from scripts import section_local_repair_request as request
 from tests.support.report_fixtures import _valid_report, section_response_for_report
-from tests.test_section_local_repair_request import _record
+from tests.test_section_local_repair_request import _pre_deduplication_messages, _record
 
 
 def _json(value):
@@ -473,6 +473,48 @@ def test_changed_valid_output_budget_requires_new_render_and_invocation_binding(
     assert zero.to_dict()["budget_options"]["requested_output_tokens"] == 0
     with pytest.raises(invocation.InvocationInputError, match="^invocation_output_tokens_invalid$"):
         _plan(zero_render)
+
+
+def test_pre_deduplication_messages_render_and_count_bindings_cannot_transfer(materials):
+    prepared, rendered, plan, _, _, base_record = materials
+    old_messages = _pre_deduplication_messages(prepared, base_record)
+    old_messages_sha256 = _hash(_json(old_messages))
+    old_rendered = render._render_messages(old_messages)
+    current_rendered = render.rendered_bytes_for_offline_count(rendered)
+    assert len(old_rendered) - len(current_rendered) == 237
+    assert old_messages_sha256 != plan.to_dict()["messages_sha256"]
+    assert _hash(old_rendered.decode("utf-8")) != plan.to_dict()["rendered_prompt_sha256"]
+
+    def old_message_binding(data):
+        data["messages"] = old_messages
+        data["messages_sha256"] = old_messages_sha256
+
+    stale_request = _rehashed_request(prepared, old_message_binding)
+    with pytest.raises(render.RenderInputError, match="^render_prepared_request_invalid$"):
+        _render(stale_request)
+    stale_render = replace(rendered, _prepared_request=stale_request)
+    with pytest.raises(invocation.InvocationInputError, match="^invocation_rendering_invalid$"):
+        _plan(stale_render)
+    with pytest.raises(invocation.InvocationInputError, match="^invocation_result_invalid$"):
+        replace(plan, _rendered_request=stale_render).to_dict()
+
+    old_kwargs = invocation.completion_kwargs_for_offline_inspection(plan)
+    old_kwargs["messages"] = old_messages
+    comparison = invocation.compare_invocation_kwargs(plan, old_kwargs)
+    assert comparison["status"] == "supplied_kwargs_mismatch"
+    assert comparison["mismatched_fields"] == ["messages"]
+    _assert_closed(comparison)
+    # Synthetic counts are data only. Neither an old message digest nor an old
+    # rendered-byte digest can be reused for the newly prepared invocation.
+    count = _measurement(plan)
+    count["messages_sha256"] = old_messages_sha256
+    result = invocation.assess_invocation_budget(plan, exact_count=count)
+    assert result["supplied_measurement"]["status"] == "unknown"
+    assert result["supplied_measurement"]["reason"] == "exact_count_binding_mismatch"
+    _assert_closed(result)
+    count["rendered_prompt_sha256"] = _hash(old_rendered.decode("utf-8"))
+    with pytest.raises(invocation.InvocationInputError, match="^invocation_rendered_prompt_binding_mismatch$"):
+        invocation.assess_invocation_budget(plan, exact_count=count)
 
 
 @pytest.mark.parametrize("input_tokens,expected", [(100, "fits"), (8192, "exceeds")])

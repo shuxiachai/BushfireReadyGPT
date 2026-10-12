@@ -51,6 +51,11 @@ one fresh 27,785-byte synthetic invocation: 5,952 input + 2,300 output + 1 margi
 generation call. Live Ollama identity/rendering remain unknown and dispatch is
 still disabled; see the [bound measurement and limitations](../project_reassessment.md#installed-identity-and-fresh-native-budget-2026-10-12).
 
+Subsequent fixed-guidance deduplication removes 237 UTF-8 bytes without changing
+the framed input data. Its token budget has not been measured; neither the old
+count nor the byte reduction establishes fit. No additional model call or
+production admission is part of that change.
+
 Use [current status](../project_reassessment.md) for maintained conclusions,
 [RAG design](../rag.md) for runtime setup, and the
 [script navigator](../../scripts/README.md) for tool roles.

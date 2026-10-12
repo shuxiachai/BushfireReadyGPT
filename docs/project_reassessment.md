@@ -1,8 +1,9 @@
 # Current project status
 
-Updated 2026-10-12 with installed-model identity verification and a fresh native
-token count. The new synthetic request exceeds its fixed offline budget by
-61 tokens; the local executor still has no production admission issuer.
+Updated 2026-10-12 with a bounded reduction of repeated experimental repair
+guidance. Input data is unchanged; the revised prompt has not been token-counted.
+The latest native measurement below belongs to `5505043` and exceeds its fixed
+offline budget by 61 tokens. The local executor still has no production admission issuer.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -52,6 +53,46 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Scoped request-guidance reduction (2026-10-12)
+
+The experimental [request helper](../scripts/section_local_repair_request.py)
+now omits three application-owned format reminders already covered by its
+unchanged shared section protocol and scope instructions. This saves exactly
+**131 system-message bytes and 106 user-message bytes**, or **237 UTF-8 bytes**
+under the unchanged renderer. This is a fixed prompt edit, not a general text
+compressor or a transformation of user data.
+
+The complete analysis, base-section strings, localization, framed JSON and
+submitted evidence remain byte-for-byte unchanged for the same input. All
+shared guidance, section-key meanings, unique output prohibitions and
+trust/safety/edit-scope boundaries remain present. Matching wording inside
+analysis, prose or evidence is never removed. Envelope schemas and signatures
+remain unchanged; message hashes distinguish the new prompt. Obsolete prepared
+objects fail reconstruction rather than silently upgrading, and old rendered
+or message-count bindings cannot validate the changed request.
+
+The focused request/invocation/render selection passed **189 tests in 33.27
+seconds**; the broader eleven-module regression passed **843 tests in 63.18
+seconds**. These selections overlap and must not be added together. Its first
+run recorded 842 passes and one failure: the CLI returned valid JSON and exit
+zero, but the local virtual-environment launcher emitted a startup warning,
+violating the unchanged empty-stderr assertion. A stdlib-only probe reproduced
+that warning. The retry used the existing process-local CLI-interpreter hook
+with installed, supported Python 3.12.9; pytest itself remained on 3.13.9.
+No persistent configuration or assertion changed, and the failed run was kept.
+One earlier formatting-only check required corrections in the new test code.
+Final full-repository Ruff lint/format and Bandit checks passed. Independent
+static review found no remaining issue in the bounded change.
+
+Existing request-specific budget diagnostics already report excess and signed
+headroom, so no additional budget interface or admission path was introduced.
+This update makes **zero model/tokenizer calls**. A 237-byte reduction does not
+establish token savings, a fitting budget or equivalent model behavior. The
+historical 5,952-token observation and 61-token excess below remain intact for
+their original input/version; they are not measurements of this prompt.
+Effective service budget and live identity remain unknown, and production
+admission stays closed.
 
 ### Installed identity and fresh native budget (2026-10-12)
 
