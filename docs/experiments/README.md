@@ -64,6 +64,15 @@ on `b2646f5`: the same case uses **5,888 input tokens**, and 5,888 + 2,300 + 1
 general capacity or live Ollama fit claim; no generation/admission occurred.
 See the [single-case result and limitations](../project_reassessment.md#single-case-offline-fit-after-intro-removal-2026-10-12).
 
+The separate [Ollama diagnostic](../../scripts/ollama_preflight.py) binds a
+version-specific debug-render request and always denies production admission.
+Its two isolated startup checks on `65aa791` both stopped before any campaign
+HTTP request. The follow-up recorded a path matching Windows `conhost.exe`,
+but not its trusted binary/argument identity. No live render or new count was
+obtained; the 5,888-token offline result remains separate. Both failed attempts
+are closed, with owned model copies/keys removed and historical evidence kept.
+See the [startup outcomes and remaining boundary](../project_reassessment.md#online-diagnostic-implemented-windows-startup-boundary-unresolved-2026-10-12).
+
 Use [current status](../project_reassessment.md) for maintained conclusions,
 [RAG design](../rag.md) for runtime setup, and the
 [script navigator](../../scripts/README.md) for tool roles.

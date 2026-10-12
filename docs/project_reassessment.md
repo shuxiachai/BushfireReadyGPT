@@ -1,9 +1,12 @@
 # Current project status
 
-Updated 2026-10-12 with one native count on `b2646f5`: the same synthetic case
-uses 5,888 input tokens and fits its explicit offline budget with only 3 tokens
-remaining after output and margin reservations. This narrow result is not a
-general capacity or live Ollama guarantee. Production admission remains absent.
+Updated 2026-10-12 with the version-pinned online diagnostic on `65aa791`.
+Two isolated Ollama startup attempts stopped before any campaign HTTP request;
+live model identity, actual service rendering and a new token count were not
+obtained. The remaining blocker is trusted Windows console-host process
+handling, not a measured model-budget failure. The earlier `b2646f5` result
+remains one offline case at 5,888 input tokens, with only 3 tokens remaining
+after its output and margin reservations. Production admission remains absent.
 Production still uses the repair-regression stop guard and unchanged
 governed-report-v12 acceptance policy. The preceding three-attempt
 local campaign on `7b4d1eb` completed but all three drafts failed content
@@ -53,6 +56,87 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Online diagnostic implemented; Windows startup boundary unresolved (2026-10-12)
+
+The import-only [Ollama diagnostic](../scripts/ollama_preflight.py) on `65aa791`
+targets **Ollama 0.32.15**. It prepares an exact SDK wire body in memory and
+requires an explicit single-use, bounded transport for sending. The installed
+SDK was **2.54.0**. Its diagnostic projection changes only `stream` to false
+and adds `_debug_render_only`; original messages, sampling and the **2,300-token
+output reservation** stay bound. Optional SDK platform headers are omitted to
+avoid a Windows platform-probe subprocess; SDK DEBUG logging is rejected before
+it can log the prompt. Proxy inheritance, redirects and SDK retries are disabled.
+This is a version-specific diagnostic adaptation, not an unchanged default SDK
+or a production admission issuer.
+
+The planned sequence checks version/model metadata before and after one debug
+request, then optionally counts and detokenizes on the same owned runner.
+Matching bytes and arithmetic would still not establish the final generation
+KV sequence or an authenticated identity lease. The helper always rejects
+production dispatch. The [pinned Ollama implementation](https://github.com/ollama/ollama/blob/v0.32.15/server/routes.go#L2462)
+can initialize/warm up a runner before returning debug information; a debug
+request is not a zero-computation guarantee. No such request was reached here.
+
+Two separately frozen local startup attempts used independent profiles and
+ordinary copies of seven selected model files (**4,683,088,115 bytes**), not
+the user's original model store. Each retained the same 13-client-request
+ceiling, zero normal-generation allowance, 60-second startup and 120-second
+work limits within 150 seconds including cleanup. The owned Windows Job was
+limited to four processes and 8 GiB of committed memory; this is not an 8 GiB
+limit on all mapped-file/RSS use.
+
+| Attempt | Observed stop | Campaign HTTP / normal generation | Native phase including cleanup |
+| --- | --- | ---: | ---: |
+| A | `unexpected_process_tree`, before the first request | 0 / 0 | 9.674 s |
+| B | `startup_image_not_allowed`, before the first request | 0 / 0 | 8.021 s |
+
+A exposed an invalid readiness assumption: the
+[listener opens before startup discovery finishes](https://github.com/ollama/ollama/blob/v0.32.15/server/routes.go#L1905).
+Its specific additional child was not retained and remains unknown. B preserved
+A and added bounded observation of source-shaped, pinned, owned, model-free
+discovery processes. Unknown processes and GPU-library subdirectories still
+reject; two daemon-only observations and the original strict checks remain
+required. The sole version request is reused as a bounded readiness check, not
+retried. B also sets child-only `POWERSHELL_TELEMETRY_OPTOUT=1` before helper
+startup, following the [PowerShell documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry#disable-telemetry).
+
+B recorded two owned processes. The additional child's path-string hash
+exactly matches `C:\Windows\system32\conhost.exe`, but its binary hash was
+not collected and its arguments were retained only as a hash. This identifies
+the observed path, **not trusted binary/argument identity**; it does not prove
+A had the same child. No console-host exception was added to force a pass.
+Both attempts remain failed; the derivative incomplete-request postflight
+status is not counted as a third attempt. No third native attempt was made.
+
+Cleanup records and separate host checks found no remaining model processes,
+the recorded B PIDs or listeners on 49371/11434. Both sets of seven copies and
+two temporary key files were deleted; original model/native files passed an
+independent **35-file size/hash comparison** after B. Before documentation
+edits, all **425 protected project/handbook files**, 30 entries in the previous
+offline campaign and all **588 entries in closed A** were unchanged. Small
+PowerShell profile/cache files remain; A also retains a telemetry UUID file.
+That file does not prove transmission, and zero campaign HTTP is not a claim
+of zero OS/helper/internal network activity. No runner was identified, so its
+specific listener observation remains `null`, not a successful runner check.
+
+Validation: **845 existing regression tests** passed in 67.62 s; **73 diagnostic
+and first-harness tests** passed in 53.49 s; B's **38 harness tests** passed in
+5.22 s. The harness selections overlap and are not additive. Full-repository
+Ruff lint/format and Bandit checks passed, with independent static review.
+Three earlier mock/setup failures, one format-check failure and one Bandit
+boolean-field false positive were corrected without weakening assertions or
+scan rules; they are separate from the **two actual startup failures**.
+
+Outcome SHA-256 values are
+`150f19a983b535fff425736db1dbdcc9c105b25a0adedec8345a8d1c95d3e289` (A) and
+`bc64b9d63bcb91fa5de0d06d8547167624a22f14c79ba757b9ee9f2f28cb1e5b` (B).
+Local raw evidence remains ignored and neither campaign may be reopened.
+The next boundary is a separately reviewed Windows console-host identity and
+creation/lifetime contract. Until then **online identity/render/count/KV
+remain unverified and production admission stays closed**. The old 5,888-token
+offline count cannot fill that gap. No cloud DeepSeek validation, generated
+report, content acceptance, replacement sample or release is claimed.
 
 ### Single-case offline fit after intro removal (2026-10-12)
 
