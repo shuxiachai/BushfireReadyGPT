@@ -26,6 +26,17 @@ diagnostics completed but neither met its full semantic rubric. A further
 source-task wording comparison also failed the unchanged semantic rubric.
 Content reliability remains unresolved; there is no newly accepted report.
 
+These changes were subsequently rebased onto `b0a5ad0`, which patches the
+2026-11-13 dependency advisories (see [dependency audit and cloud re-index](#dependency-audit-and-cloud-re-index-2026-11-13)).
+On that dependency set the full local Windows regression ran 4,635 tests:
+4,634 passed, and one launcher health-check test failed because local port 8501
+was briefly occupied by another process. The launcher module then passed 8/8 in
+isolation. Coverage was **90.50%**, with the same 7 skips and 6 deselected
+browser tests; Ruff lint/format and Bandit passed. That run included the
+separately retained local `test_ollama_preflight.py` fixture change; the
+committed version of that module also passed (52 tests) against these changes.
+The 4,635-test result above remains bound to the earlier dependency set.
+
 The older version-pinned section-local diagnostic on `65aa791` remains a
 separate closed record: its two startup attempts made no campaign HTTP calls.
 The new ordinary production-path runs successfully verified their own service
@@ -2183,6 +2194,58 @@ A clean scan is time-bound known-advisory evidence, not penetration testing or
 a guarantee that the application has no vulnerabilities. Future model execution
 must record the then-effective dependency identity separately from the frozen
 prompt-builder commits.
+
+## Dependency Audit and Cloud Re-index (2026-11-13)
+
+`main` CI had been failing since advisories were published after 2026-10-12.
+On 2026-11-13, `pip-audit` reported 81 findings (80 unique advisories) in
+8 locked packages, and the previous Python 3.13 job had also been cancelled at
+its 20-minute limit. [PR #1](https://github.com/shuxiachai/BushfireReadyGPT/pull/1)
+was rebase-merged as `c9b3be0`..`b0a5ad0`:
+
+- pillow 13.0.0, which required streamlit 1.67.0 and fastembed 0.9.1 because
+  their earlier releases cap pillow below 13; pypdf 6.21.4, filelock 4.2.10,
+  tornado 6.6.1, certifi 2026.10.23, msgpack 1.2.4 and setuptools 84.2.1.
+  The streamlit-only dependencies blinker, httptools and toml left the lock.
+- soupsieve 4.1 on Python 3.12+ and 2.10 on Python 3.11. Releases 3.0.2+
+  require Python 3.11.5+, so CVE-2026-126190 remains in Python 3.11
+  environments; CI audits only Python 3.13.
+- Eight AppTest tests now submit `st.form` fields in one run, matching the
+  Streamlit 1.65+ form-commit semantics, and read state through
+  `session_state.to_dict()`. Assertions were unchanged, and the Chromium
+  sign-off and protected-download workflow passed.
+- The pytest matrix timeout is 30 minutes; Python 3.11 took 21m13s on the PR.
+
+With `pip-audit` reporting no known vulnerabilities, all PR and post-merge
+`main` checks passed. Streamlit 1.67's default theme visibly changes `st.info`
+alert colours and shows widget borders; the project configuration does not
+override either.
+
+Retrieval was compared locally with the same nine declared source files and
+pinned model files. fastembed 0.8.0 and 0.9.1 produced identical chunks,
+bit-identical vectors and identical statuses, rankings, scores and
+`evaluate_rag.py` summaries for 84 structured, 84 free-text and 16 holdout
+queries. A September-equivalent build (`1570b7d` with fastembed 0.8.0) also
+had the same 28 chunks, rankings and metrics; its `dense_score` values differed
+by at most 0.0001 because of later build-time embedding batching, not the
+fastembed version. These are regression checks on one corpus, not a new
+retrieval benchmark.
+
+The installed fastembed version is part of the CPU embedding identity, so the
+cloud index built with 0.8.0 would have been rejected (`rag_index_stale`).
+Instead of replacing it, the unchanged nine sources were repackaged as a new
+private bundle `782a7747cf8be03ce5eddcd44c6c661a1026bd82e2aa750851fff66d2ad50070`,
+deployed from `b2b2b74` through the private context path before merge, and
+built as a separate `/data` generation. The subsequent GitHub deployment of
+`b0a5ad0` reused it without rebuilding. Before the change, a file-level copy of
+`/data` and a SQLite backup-API snapshot were taken and verified; the plan has
+no native backups. The previous generation is retained for rollback. See the
+[deployment record](history/cloud-deployment-record.md#cloud-deployment-008).
+
+A launcher-managed `.venv` that also contains Poetry with virtualenv older
+than 21.10 fails `pip check` against filelock 4.x; upgrading virtualenv in that
+environment resolves it. These checks are dependency, retrieval-regression and
+deployment evidence only; they establish no report-content acceptance or release.
 
 ## Bottom Line
 

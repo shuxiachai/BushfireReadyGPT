@@ -1,9 +1,54 @@
 # Historical cloud deployment record
 
-> Dated deployment and acceptance ledger as at 08f4254; this is not the current status ledger. It retains historical successes, failures and incomplete checks, including later September 27 records.
+> Dated deployment and acceptance ledger as at 08f4254, with a 2026-11-13 addendum; this is not the current status ledger. It retains historical successes, failures and incomplete checks, including later September 27 records.
 
 <a id="cloud-deployment-001"></a>
 ## Cloud acceptance record
+
+<a id="cloud-deployment-008"></a>
+### 2026-11-13 dependency patch and new CPU index generation
+
+The dependency patch in PR #1 moves fastembed from 0.8.0 to 0.9.1. The installed
+fastembed version is part of the CPU embedding identity, so startup would have
+rejected the existing generation `c947360236f993d2984fafed0bb46b8e7020335ee4ef4bd65dc4375e8d23fcc2`
+as `rag_index_stale`. Because Railway stops the previous deployment before a
+volume-backed deployment starts, a direct merge would have taken the service
+down. The change was therefore made before the merge, as a separate generation.
+
+- **Read-only checks.** Active deployment `d9b3f27f-df5e-4859-977e-7e18270ec88b`
+  (`0067f4f`) was healthy. Volume `bushfire-ready-data` used 34MB/1024MB and
+  held one generation. The `daily_calls` rows were 09-10: 4, 09-11: 2,
+  09-15: 6, 09-27: 2, 09-29: 3 and 10-07: 4, with 0 on 2026-11-13.
+- **Backup.** The Hobby workspace has no native backups. A SQLite backup-API
+  snapshot (`/data/model-usage-backup-20261113.sqlite3`) passed its integrity
+  check and matched row for row. The whole volume was then downloaded to an
+  operator-private local folder: all 80 files matched by SHA-256, including
+  32 hidden metadata/lock files. All 15 audit events and 12 head records
+  verified with full chains. `check_runtime_maintenance.py --minimum-calls`
+  accepted the copy, and a deliberate higher minimum was rejected. This is a
+  one-off verified copy, not a scheduled backup.
+- **New generation.** The unchanged nine sources (catalog `49e48740…`, file
+  timestamps 2026-08-21) were repackaged as bundle
+  `782a7747cf8be03ce5eddcd44c6c661a1026bd82e2aa750851fff66d2ad50070`. Its
+  private context was built from committed blobs at `b2b2b74`. The corpus
+  variable was set with `--skip-deploys`, then `railway up` created deployment
+  `ba4343b7-61fb-4ff2-9c78-65b8d734d52a`. Build ran 07:17–07:20 UTC, and the
+  deployment switchover took about 30 seconds. Startup logged
+  `container_ready=true`, RAG `ready`, corpus `782a7747…` and index
+  `aaf8d6c468d385db6802f6cb3308b63a128d5ff8021843866ec16600a9781e73`.
+  The volume gained only the 18 files of the new generation; all 80 prior
+  files stayed byte-identical.
+- **Merge deployment.** After the operator confirmed sign-in, `b0a5ad0`
+  deployed from GitHub as `e1c5f241-34f9-4cd7-9d74-2abeeb7355ab` (switchover
+  about 16 seconds). It reused the same index, left the volume unchanged and
+  returned health 200.
+
+Rollback uses the untouched previous generation: restore the previous corpus
+variable and roll back to the `0067f4f` deployment. Delete that generation only
+after an operator review period. Local retrieval regression checks are recorded
+in [current status](../project_reassessment.md#dependency-audit-and-cloud-re-index-2026-11-13).
+No cloud report generation, Word/PDF visual check or user acceptance was
+performed in this change.
 
 <a id="cloud-deployment-002"></a>
 ### 2026-09-11 follow-up — synthetic lifecycle checked, file/restart checks incomplete
