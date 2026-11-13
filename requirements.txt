@@ -1,6 +1,6 @@
 openai>=2.0,<3.0
 python-dotenv>=1.0,<2.0
-streamlit>=1.57,<2.0
+streamlit>=1.66.1,<2.0
 requests>=2.31,<3.0
 urllib3>=2.8.0,<3.0
 pyyaml>=6.0,<7.0
@@ -9,5 +9,5 @@ reportlab>=4.5,<5.0
 python-docx>=1.2,<2.0
 defusedxml>=0.7.1,<0.8
 beautifulsoup4>=4.12,<5.0
-pypdf>=6.19.0,<7.0
+pypdf>=6.21.4,<7.0
 qdrant-client>=1.14,<2.0
