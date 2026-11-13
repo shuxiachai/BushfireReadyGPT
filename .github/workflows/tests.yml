@@ -20,8 +20,8 @@ jobs:
   pytest:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
-    # Python 3.13 coverage can take ~14 minutes; allow time for setup and release checks.
-    timeout-minutes: 20
+    # Full coverage runs take ~16-17 minutes on both 3.11 and 3.13; leave headroom for setup and release checks.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
