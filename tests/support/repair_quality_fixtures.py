@@ -1,6 +1,6 @@
 """Complete synthetic assessments for tests of repair-loop control flow."""
 
-from src.report_repair_guard import REQUIRED_REPAIR_CHECKS
+from src.report_repair_guard import REPAIR_FINDING_CODES, REQUIRED_REPAIR_CHECKS
 
 
 def repair_quality(*, passed=False, total_words=700, model_words=400, statuses=None):
@@ -14,6 +14,12 @@ def repair_quality(*, passed=False, total_words=700, model_words=400, statuses=N
         for name in sorted(REQUIRED_REPAIR_CHECKS | statuses.keys())
     ]
     for check in checks:
+        if check["name"] in REPAIR_FINDING_CODES:
+            check["findings"] = (
+                [{"code": sorted(REPAIR_FINDING_CODES[check["name"]])[0], "count": 1}]
+                if check["status"] == "fail"
+                else []
+            )
         if check["name"] == "Narrative word budget":
             check["word_count"] = total_words
         elif check["name"] == "Model prose word budget":

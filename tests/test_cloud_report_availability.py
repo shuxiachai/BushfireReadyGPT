@@ -28,9 +28,12 @@ def _analysis(knowledge):
     return analysis
 
 
-def _unsafe_draft():
+def _unsafe_draft(attempt):
     assembled, analysis = _valid_report()
     sections = json.loads(section_response_for_report(assembled, analysis))
+    # Keep the safety failure while exercising all allowed repair attempts;
+    # identical failed candidates intentionally stop before the shared ceiling.
+    sections["s01"] += f" Revision {attempt}"
     sections["s02"] += " This plan guarantees safety."
     return json.dumps(sections)
 
@@ -41,7 +44,7 @@ def workflow(monkeypatch):
 
     def generate(prompt):
         calls.append(prompt)
-        return _unsafe_draft()
+        return _unsafe_draft(len(calls))
 
     state = _SessionState(model_client=SimpleNamespace(generate=generate))
     monkeypatch.setattr(report_workflow, "st", SimpleNamespace(session_state=state))
@@ -110,7 +113,7 @@ def test_valid_cloud_abstentions_keep_existing_repairs_and_safety_gate(status, w
     analysis = _analysis({"status": status, "retrieved_chunks": []})
     monkeypatch.setattr(report_workflow, "run_analysis_pipeline", lambda *args, **kwargs: analysis)
     response, error = report_workflow.generate_current_report(lambda: None)
-    assert response and error is None
+    assert response and error is None, error
     assert len(workflow.calls) == 3
     assert workflow.finalizations[0]["approval_gate"]["passed"] is False
     failures = workflow.finalizations[0]["approval_gate"]["blocking_failures"]

@@ -50,7 +50,11 @@ class CapturingModelClient:
 
     def generate(self, prompt):
         self.prompts.append(prompt)
-        return self.response
+        # Preserve the failing content while exposing every repair prompt to
+        # privacy assertions; identical failed drafts intentionally stop early.
+        sections = json.loads(self.response)
+        sections["s01"] += f" Revision {len(self.prompts)}"
+        return json.dumps(sections)
 
 
 class GovernedOnlyModelClient:

@@ -19,7 +19,12 @@ from src.model_evidence import (
     validate_model_evidence,
 )
 from src.rag.context import assemble_planning_context
-from src.report_generation_quality import CURRENT_POLICY, QUALITY_POLICY_FINGERPRINT, assess_generated_narrative
+from src.report_generation_quality import (
+    CURRENT_POLICY,
+    QUALITY_POLICY_FINGERPRINT,
+    READABLE_QUALITY_POLICY_BINDINGS,
+    assess_generated_narrative,
+)
 from src.report_section_protocol import SECTION_KEYS, render_section_report
 from src.source_attribution import fold_known_attribution_labels
 from tests.support.repair_quality_fixtures import repair_quality
@@ -530,9 +535,12 @@ def test_forged_digest_name_subclass_cannot_escape_output_allowlist(pair):
         result.to_dict()
 
 
-def test_current_v12_fingerprint_is_unchanged():
-    assert CURRENT_POLICY == "governed-report-v12"
-    assert QUALITY_POLICY_FINGERPRINT == "39c7ae6687fcef29f4ce1e8f6c3d7d04d13a65f89f2b15ea667a0a1af2140130"
+def test_current_v13_and_readable_v12_fingerprints_are_bound():
+    assert CURRENT_POLICY == "governed-report-v13"
+    assert QUALITY_POLICY_FINGERPRINT == "c4d3faf161849df933cdbf88196e920d149b3baab7a2fc163696f2dcae5680f5"
+    assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v12"] == frozenset(
+        {"39c7ae6687fcef29f4ce1e8f6c3d7d04d13a65f89f2b15ea667a0a1af2140130"}
+    )
 
 
 def test_unknown_error_codes_cannot_echo_private_text():

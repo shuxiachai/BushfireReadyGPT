@@ -5,11 +5,12 @@ import pytest
 from src import report_generation_quality as quality
 from src.agents.planner_agent import PlannerAgent
 from src.agents.profile_agent import ProfileAgent
+from src.current_focus_coverage import evaluate_focus_area_coverage
 from src.focus_coverage import (
     canonical_coverage_declarations,
-    evaluate_focus_area_coverage,
     evaluate_scenario_coverage,
 )
+from src.focus_coverage import evaluate_focus_area_coverage as evaluate_legacy_focus_area_coverage
 from src.report_section_protocol import project_section_report, render_section_report
 from tests.support.report_fixtures import _valid_report
 
@@ -80,6 +81,67 @@ def test_focus_coverage_requires_every_allowlisted_concept():
     assert failed["status"] == "fail"
     assert "emergency kits" in failed["detail"]
     assert passed["status"] == "pass"
+
+
+def test_official_sources_accepts_its_exact_trusted_catalog_label_in_substantive_prose():
+    analysis = _analysis({"id": "official_sources", "label": "UNTRUSTED_LABEL", "match_terms": ["U0_ALIAS"]})
+    narrative = (
+        "The preparedness lead reviews official information sources before updating community workshop material."
+    )
+    assert evaluate_focus_area_coverage(narrative, analysis)["status"] == "pass"
+    assert evaluate_focus_area_coverage("The lead reviews U0_ALIAS and UNTRUSTED_LABEL.", analysis)["status"] == "fail"
+    assert PlannerAgent.canonical_focus_concept("official_sources")["match_terms"] == [
+        "official source",
+        "official emergency",
+    ]
+
+
+def test_current_quality_uses_current_focus_while_legacy_boundary_is_preserved():
+    assert quality.evaluate_focus_area_coverage is evaluate_focus_area_coverage
+    analysis = _analysis(_focus("official_sources"))
+    narrative = "The preparedness lead reviews official information sources for the workshop."
+
+    assert evaluate_focus_area_coverage(narrative, analysis)["status"] == "pass"
+    assert evaluate_legacy_focus_area_coverage(narrative, analysis)["status"] == "fail"
+    assert evaluate_legacy_focus_area_coverage("The lead reviews official sources.", analysis)["status"] == "pass"
+
+
+@pytest.mark.parametrize("concept_id", tuple(PlannerAgent._FOCUS_RULES))
+@pytest.mark.parametrize("negated", [False, True])
+def test_current_focus_retains_legacy_results_for_existing_canonical_terms(concept_id, negated):
+    concept = _focus(concept_id)
+    analysis = _analysis(concept)
+    for term in concept["match_terms"]:
+        narrative = (
+            f"This report omits {term}." if negated else f"The preparedness review includes {term} in its agenda."
+        )
+        assert evaluate_focus_area_coverage(narrative, analysis) == evaluate_legacy_focus_area_coverage(
+            narrative, analysis
+        )
+
+
+@pytest.mark.parametrize(
+    "narrative",
+    [
+        "## Official information sources\n\nNo details yet.",
+        "```text\nofficial information sources\n```",
+        "## 5. Data Sources and Limitations\nOfficial information sources are listed.\n## 6. Local Risk Context\nNo details.",
+        "The report omits official information sources.",
+        "Official information sources are outside the scope.",
+        "Unofficial information sources guide the workshop.",
+        "The lead reviews official hypothetical information sources.",
+        "The lead reviews information sources.",
+    ],
+)
+def test_official_catalog_phrase_keeps_visibility_negation_and_exact_phrase_defenses(narrative):
+    assert evaluate_focus_area_coverage(narrative, _analysis(_focus("official_sources")))["status"] == "fail"
+
+
+def test_official_label_fix_does_not_admit_other_arbitrary_catalog_labels():
+    # The water label has independent continuity semantics; arbitrary submitted
+    # labels cannot make an incidental or unrelated term satisfy that concept.
+    analysis = _analysis({"id": "water", "label": "official information sources", "match_terms": ["official"]})
+    assert evaluate_focus_area_coverage("The lead reviews official information sources.", analysis)["status"] == "fail"
 
 
 def test_focus_heading_or_fenced_example_alone_does_not_satisfy_coverage():

@@ -205,9 +205,18 @@ def project_section_report(narrative, analysis):
 
 
 def model_prose_word_count(sections, analysis):
+    return _prose_text_word_count("\n\n".join(sections[key] for key in SECTION_KEYS), analysis)
+
+
+def model_prose_section_word_counts(sections, analysis):
+    """Diagnostic-only section counts using the unchanged canonical prose counter."""
+    return {key: _prose_text_word_count(sections[key], analysis) for key in SECTION_KEYS}
+
+
+def _prose_text_word_count(text, analysis):
     from src.report_content_contract import _WORD, _plain
 
-    expanded = expand_known_attribution_tokens("\n\n".join(sections[key] for key in SECTION_KEYS), **_sources(analysis))
+    expanded = expand_known_attribution_tokens(text, **_sources(analysis))
     return len(_WORD.findall(_plain(expanded, analysis)))
 
 

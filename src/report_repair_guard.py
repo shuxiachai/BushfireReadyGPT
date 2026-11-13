@@ -4,7 +4,41 @@ from dataclasses import dataclass
 
 from src.model_response import ModelServiceError
 
-REPAIR_GUARD_RULESET = "report-repair-guard-v1"
+REPAIR_GUARD_RULESET = "report-repair-guard-v2"
+REPAIR_FINDING_CODES = {
+    "Processed community provenance": frozenset(
+        {
+            "p2_unknown_measurement_omitted",
+            "p2_unknown_measurement_promoted",
+            "p2_invalid_frozen_measurement",
+            "p2_available_fact_omitted",
+            "p2_value_mismatch",
+            "p2_adjacent_provenance_missing",
+            "p2_period_missing",
+            "p2_geographic_basis_missing",
+            "p2_aggregation_limit_missing",
+            "p2_community_not_campus_scope_missing",
+        }
+    ),
+    "Local proposal attribution": frozenset(
+        {"local_task_requires_own_proposal_and_confirmer", "proposal_confirmer_missing"}
+    ),
+    "Rule-derived causal qualification": frozenset(
+        {
+            "causal_planning_inference_unqualified",
+            "r3_inference_cannot_borrow_official_citation",
+            "unsupported_causal_effect_assertion",
+        }
+    ),
+    "Submitted passage scope and conflicts": frozenset(
+        {
+            "cited_passage_not_final_submitted",
+            "physical_assembly_criteria_require_authority_verification",
+            "household_source_scope_not_preserved",
+            "contradictory_source_used_as_advice",
+        }
+    ),
+}
 REQUIRED_REPAIR_CHECKS = frozenset(
     {
         "Substantive narrative",
@@ -69,7 +103,13 @@ _CHECK_IDS = {
 }
 _STATUS_RANK = {status: rank for rank, status in enumerate(("fail", "warning", "pass"))}
 _WORD_CHECKS = ("Narrative word budget", "Model prose word budget")
-_REASONS = {"invalid_quality_snapshot", "check_status_regressed", "word_budget_distance_increased"}
+_REASONS = {
+    "invalid_quality_snapshot",
+    "check_status_regressed",
+    "word_budget_distance_increased",
+    "content_finding_count_increased",
+    "repeated_failed_draft",
+}
 
 
 class ReportRepairRegressionError(ModelServiceError):
@@ -79,7 +119,14 @@ class ReportRepairRegressionError(ModelServiceError):
     ruleset = REPAIR_GUARD_RULESET
 
     def __init__(
-        self, *, baseline_attempt_number, candidate_attempt_number, reason, regressed_checks=(), worsened_budgets=()
+        self,
+        *,
+        baseline_attempt_number,
+        candidate_attempt_number,
+        reason,
+        regressed_checks=(),
+        worsened_budgets=(),
+        worsened_findings=(),
     ):
         if (
             type(baseline_attempt_number) is not int
@@ -96,11 +143,20 @@ class ReportRepairRegressionError(ModelServiceError):
         self.worsened_word_budget_ids = tuple(
             sorted({_CHECK_IDS[name] for name in worsened_budgets if isinstance(name, str) and name in _WORD_CHECKS})
         )
-        explanation = (
-            "the repair comparison could not be validated"
-            if self.reason == "invalid_quality_snapshot"
-            else "a repair regressed from the previous draft"
+        self.worsened_finding_check_ids = tuple(
+            sorted(
+                {
+                    _CHECK_IDS[name]
+                    for name in worsened_findings
+                    if isinstance(name, str) and name in REPAIR_FINDING_CODES
+                }
+            )
         )
+        explanation = {
+            "invalid_quality_snapshot": "the repair comparison could not be validated",
+            "content_finding_count_increased": "a repair increased a mandatory content finding count",
+            "repeated_failed_draft": "a repair repeated a complete draft that still fails the approval gate",
+        }.get(self.reason, "a repair regressed from the previous draft")
         super().__init__(
             f"Report generation stopped because {explanation}. "
             "No new report was saved; any existing report is unchanged. Retry generation."
@@ -113,6 +169,7 @@ class RepairAssessment:
 
     statuses: tuple[tuple[str, int], ...]
     word_counts: tuple[int, int]
+    finding_counts: tuple[tuple[str, str, int], ...]
     valid: bool
     invalid_checks: tuple[str, ...]
 
@@ -132,12 +189,35 @@ def _word_count(check, name):
     return count
 
 
+def _finding_counts(check, name):
+    findings = check.get("findings")
+    if not isinstance(findings, list):
+        return None
+    counts = {}
+    for finding in findings:
+        if not isinstance(finding, dict):
+            return None
+        code, count = finding.get("code"), finding.get("count")
+        if (
+            not isinstance(code, str)
+            or code not in REPAIR_FINDING_CODES[name]
+            or code in counts
+            or type(count) is not int
+            or not 1 <= count <= 100_000
+        ):
+            return None
+        counts[code] = count
+    if check.get("status") != ("fail" if counts else "pass"):
+        return None
+    return tuple((name, code, counts.get(code, 0)) for code in sorted(REPAIR_FINDING_CODES[name]))
+
+
 def snapshot_repair_assessment(quality):
     """Capture an invalid sentinel instead of changing first-draft behavior."""
     checks = quality.get("checks") if isinstance(quality, dict) else None
     if not isinstance(checks, list):
-        return RepairAssessment((), (0, 0), False, ())
-    statuses, counts, invalid_checks = {}, {}, set()
+        return RepairAssessment((), (0, 0), (), False, ())
+    statuses, counts, finding_counts, invalid_checks = {}, {}, [], set()
     valid = True
     for check in checks:
         if not isinstance(check, dict):
@@ -152,6 +232,13 @@ def snapshot_repair_assessment(quality):
             invalid_checks.add(name)
             valid = False
         statuses[name] = _STATUS_RANK.get(status, -1) if isinstance(status, str) else -1
+        if name in REPAIR_FINDING_CODES:
+            content_counts = _finding_counts(check, name)
+            if content_counts is None:
+                invalid_checks.add(name)
+                valid = False
+            else:
+                finding_counts.extend(content_counts)
         if name in _WORD_CHECKS:
             count = _word_count(check, name)
             if count is None:
@@ -164,13 +251,14 @@ def snapshot_repair_assessment(quality):
     return RepairAssessment(
         tuple(sorted(statuses.items())),
         tuple(counts.get(name, 0) for name in _WORD_CHECKS),
+        tuple(sorted(finding_counts)),
         valid and not missing,
         tuple(sorted(invalid_checks)),
     )
 
 
 def reject_repair_regression(previous, candidate, *, baseline_attempt_number, candidate_attempt_number):
-    """Reject any status downgrade or strictly larger canonical budget distance."""
+    """Reject status downgrades, increased budget distance or mandatory finding counts."""
     previous_statuses, candidate_statuses = dict(previous.statuses), dict(candidate.statuses)
     changed_names = previous_statuses.keys() ^ candidate_statuses.keys()
     if not previous.valid or not candidate.valid or changed_names:
@@ -187,11 +275,22 @@ def reject_repair_regression(previous, candidate, *, baseline_attempt_number, ca
         worsened_budgets.add("Narrative word budget")
     if max(300 - candidate_model, 0) > max(300 - previous_model, 0):
         worsened_budgets.add("Model prose word budget")
-    if regressed or worsened_budgets:
+    previous_findings = {(name, code): count for name, code, count in previous.finding_counts}
+    worsened_findings = {
+        name for name, code, count in candidate.finding_counts if count > previous_findings[(name, code)]
+    }
+    if regressed or worsened_budgets or worsened_findings:
         raise ReportRepairRegressionError(
             baseline_attempt_number=baseline_attempt_number,
             candidate_attempt_number=candidate_attempt_number,
-            reason="check_status_regressed" if regressed else "word_budget_distance_increased",
+            reason=(
+                "check_status_regressed"
+                if regressed
+                else "word_budget_distance_increased"
+                if worsened_budgets
+                else "content_finding_count_increased"
+            ),
             regressed_checks=regressed,
             worsened_budgets=worsened_budgets,
+            worsened_findings=worsened_findings,
         )

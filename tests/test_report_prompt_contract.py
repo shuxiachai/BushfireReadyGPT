@@ -15,6 +15,7 @@ from src.agents.report_agent import ReportAgent
 from src.current_model_evidence import (
     SECTION_PROSE_OUTPUT_CONTRACT,
     EvidencePrompt,
+    protocol_retry_prompt,
 )
 from src.model_evidence import (
     capture_model_evidence,
@@ -24,6 +25,7 @@ from src.model_evidence import (
 from src.rag.service import assemble_retrieved_context, format_retrieved_context
 from src.report_basis import build_community_p2_basis
 from src.report_generation_quality import (
+    _PROTOCOL_RETRY_SUFFIX,
     MAX_REPORT_REPAIR_PROMPT_CHARACTERS,
     ReportGenerationPreconditionError,
     assess_generated_narrative,
@@ -627,6 +629,8 @@ def test_initial_and_repair_share_p2_basis_and_preserve_sdk_evidence_capture():
 
 @pytest.mark.parametrize("failure_repetitions", [3, 20])
 def test_large_synthetic_repair_preserves_budget_and_local_claim_instructions(failure_repetitions):
+    from tests.test_model_evidence import _runtime
+
     passage = "Synthetic maintenance planning review details for a hypothetical site. " * 24
     analysis = {
         "profile": {"state": "Queensland", "setting_type": "community"},
@@ -661,13 +665,30 @@ def test_large_synthetic_repair_preserves_budget_and_local_claim_instructions(fa
     prompt = build_report_repair_prompt(
         "Original omitted", "Incomplete", quality, analysis=analysis, body_citation_repair=True
     )
-    assert 17_500 <= len(prompt) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS == 18_000
-    assert prompt.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
-    assert prompt.count(CURRENT_CONTENT_CONTRACT_GUIDANCE) == 1
-    assert "Unverified proposal for local review:" in prompt
-    assert "medical/safety assertions still need evidence" in prompt
-    assert "Some optional deterministic values were omitted" in prompt
-    assert validate_recorded_assembly(prompt.assembly, analysis)
+    retry = protocol_retry_prompt(prompt, _PROTOCOL_RETRY_SUFFIX)
+    # The base now reserves the protocol suffix. Stress the same near-capacity
+    # complete request, while checking every base and retry content boundary.
+    assert 17_500 <= len(retry) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS == 18_000
+    assert len(prompt) + len(_PROTOCOL_RETRY_SUFFIX) == len(retry)
+    assert retry.count(_PROTOCOL_RETRY_SUFFIX) == 1
+    assert retry.assembly == prompt.assembly
+    assert retry.request_kind == "protocol_retry"
+    for candidate in (prompt, retry):
+        assert len(candidate) <= MAX_REPORT_REPAIR_PROMPT_CHARACTERS
+        assert candidate.output_contract == SECTION_PROSE_OUTPUT_CONTRACT
+        assert candidate.count(BODY_CLAIM_CITATION_GUIDANCE) == 1
+        assert candidate.count(CURRENT_CONTENT_CONTRACT_GUIDANCE) == 1
+        assert "Unverified proposal for local review:" in candidate
+        assert "medical/safety assertions still need evidence" in candidate
+        assert "Some optional deterministic values were omitted" in candidate
+        assert candidate.count(candidate.assembly["context"]) == 1
+        assert validate_recorded_assembly(candidate.assembly, analysis) == candidate.assembly["visible_chunks"]
+        runtime = _runtime("# Synthetic report draft")
+        response = runtime.generate(candidate)
+        capture = capture_model_evidence(candidate, runtime, response, attempt_number=2)
+        assert capture["status"] == "captured"
+        assert capture["request_kind"] == candidate.request_kind
+        assert capture["request_binding"]["user_prompt_sha256"] == text_sha256(str(candidate).strip())
     assert analysis == original_analysis
 
 
@@ -1304,7 +1325,11 @@ def test_compact_repair_context_carries_only_allowlisted_focus_concept_fields_an
     compact_json = compact_json.split("\n\nBounded retrieved evidence", 1)[0]
     payload = json.loads(compact_json)
 
-    assert payload["focus_area_concepts"] == [PlannerAgent.canonical_focus_concept("communications")]
+    canonical_focus = PlannerAgent.canonical_focus_concept("communications")
+    assert payload["focus_area_concepts"] == [{key: canonical_focus[key] for key in ("id", "label", "match_terms")}]
+    assert "priority" not in payload["focus_area_concepts"][0]
+    assert "planning_priorities" not in payload
+    assert analysis["plan"]["planning_priorities"] == ["Assign a responsible reviewer."]
     assert payload["profile"] == {"state": "Queensland", "setting_type": "campus"}
     assert payload["scenario_concept"] == {
         "id": "school_preparedness",

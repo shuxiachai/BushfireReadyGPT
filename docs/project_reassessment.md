@@ -1,18 +1,39 @@
 # Current project status
 
-Updated 2026-10-12 with the version-pinned online diagnostic on `65aa791`.
-Two isolated Ollama startup attempts stopped before any campaign HTTP request;
-live model identity, actual service rendering and a new token count were not
-obtained. The remaining blocker is trusted Windows console-host process
-handling, not a measured model-budget failure. The earlier `b2646f5` result
-remains one offline case at 5,888 input tokens, with only 3 tokens remaining
-after its output and margin reservations. Production admission remains absent.
-Production still uses the repair-regression stop guard and unchanged
-governed-report-v12 acceptance policy. The preceding three-attempt
-local campaign on `7b4d1eb` completed but all three drafts failed content
-acceptance. That campaign, its separate startup failure and earlier responses
-remain preserved; no new report generation, accepted sample or formal release is claimed. This page
-is the single maintained status summary; each model and cloud result below is
+Updated 2026-10-13 after three fresh local generation-and-repair runs against
+the frozen Cairns community-workshop case. All three runs were rejected:
+six actual completion requests produced no accepted report or successful
+repair. Normal model completion, measured token fit and correct rejection
+do not establish content quality. The detailed failures and retained evidence
+are recorded below.
+
+The maintained path now uses policy **v13**, correcting exact recognition of
+the trusted `official information sources` concept. Repair prompts preserve
+P2 and submitted source evidence, remove duplicated procedural planning cues,
+identify optional omissions, and give section-specific prose and word targets.
+The 650–800 authored-word minimum/maximum, 300 model-prose-word minimum,
+evidence requirements, regression checks and three-call ceiling are unchanged.
+Historical v12 fingerprints, outcomes and dependency bytes remain intact.
+This is engineering maintenance, not a formal release or content acceptance.
+
+Final local Windows regression for these changes passed **4,635 tests**, with
+7 existing skips and 6 browser E2E tests deselected, in **950.88 seconds**.
+Coverage was **90.49%**, above the unchanged 85% threshold. The preceding
+4,571-test/90.55% result is a separate earlier checkpoint. Targeted checks and
+failed/interrupted attempts are retained below; their counts are not added to
+the full-suite total. Ruff lint/format and Bandit passed. Two isolated model
+diagnostics completed but neither met its full semantic rubric. A further
+source-task wording comparison also failed the unchanged semantic rubric.
+Content reliability remains unresolved; there is no newly accepted report.
+
+The older version-pinned section-local diagnostic on `65aa791` remains a
+separate closed record: its two startup attempts made no campaign HTTP calls.
+The new ordinary production-path runs successfully verified their own service
+identity, rendering and token counts; they do not retroactively validate the
+experimental executor. That executor still has no production admission issuer.
+The `b2646f5` 5,888-input-token result remains one offline case with three
+reserved-window tokens left. Historical failed reports and startup attempts
+remain preserved. This page is the maintained status summary; each result is
 bound to its stated source version and acceptance scope.
 Start with the [documentation index](README.md) for instructions rather than
 reading historical logs as setup steps.
@@ -56,6 +77,410 @@ See [architecture](architecture.md), [RAG](rag.md) and
 [deployment instructions](DEPLOYMENT.md) for mechanisms and constraints.
 
 ## Recorded validation
+
+### Live local generation and repair follow-up (2026-10-13)
+
+The follow-up uses the frozen synthetic Cairns household community-workshop
+case, the existing `bushfire-ready-qwen` model on Ollama 0.32.15, an 8,192-token
+window, a 2,300-token output reservation and the actual production generation/
+repair loop. Each new run has its own claim, source snapshot and artifact
+directory. SDK retries are disabled; a separate transport counter enforces at
+most three completion submissions per run. Native token counting precedes each
+request, checks the preserved 6,917-token control and exact detokenization, and
+must satisfy input + 2,300 + 1 <= 8,192. Runtime token receipts are compared with
+those measurements; neither establishes complete KV retention or semantic use.
+
+Three full-report runs are complete and remain unsuccessful:
+
+| Run / attempt | Input / output tokens | Authored / model-prose words | Observed result |
+| --- | ---: | ---: | --- |
+| A / initial | 5,812 / 604 | 632 / 377 | Failed length, local-task qualification and causal checks. |
+| A / repair | 4,175 / 674 | 686 / 431 | Length improved, but scenario, P2 provenance and source-scope checks regressed; guard stopped. |
+| B / initial | 5,812 / 604 | 632 / 377 | Same raw draft and complete quality result as A's initial response. |
+| B / repair | 4,212 / 864 | 846 / 591 | Scenario restored, but excessive length, P2 provenance and task qualification still failed; guard stopped. |
+| C / initial | 5,812 / 604 | 632 / 377 | Same raw initial draft, assessed under v13. |
+| C / repair | 4,298 / 542 | 581 / 326 | Word deficit increased from 18 to 69; task qualification still failed; guard stopped. |
+
+A completed in 102.063 seconds, B in 95.644 seconds and C in 85.305 seconds. Each sent two actual
+completion requests and eight tokenizer POSTs, with normal model stop reasons,
+matching token/quota counters, stable model metadata and complete owned-process
+cleanup. None made a third completion request, finalized a report/audit
+version or produced an accepted report. The original model store was used with
+pruning/cloud disabled; no models were pulled or copied. Six signing-key files
+created only in these runs' private profiles were removed afterward, with a
+separate containment/identity/cleanup record; all public evidence was retained.
+
+Independent review of all fifteen sections found real content defects. A's
+repair changed unknown language data into a negative assertion; its population
+and age values were supplied values repeated without their required basis, not
+invented numbers. Both repairs reused household flood/storm-surge/tsunami
+evacuation wording as generic bushfire safe-place advice without appropriate
+support and qualifications. B copied optional planning lists into several
+sections, accounting for much of the overrun, and described omitted optional
+risk context as unknown. Passing a citation-dependent scope check did not
+establish support for its uncited claims.
+
+C removed the duplicated procedural planning cues from the repair projection,
+retained full P2 and retrieved evidence, and supplied section-specific prose
+briefs with the word plan at the end. Its independently checked repair prompt
+plus the reserved retry suffix used 17,978 characters. One of eight bounded R3
+cues fit; seven omissions were explicitly recorded. The model nevertheless
+called known P2 measurements unknown, repeated unsupported inland safe-place
+advice and echoed authoring instructions instead of useful planning content.
+The bounded P2/scope checks passing did not establish semantic correctness;
+independent review identified these defects. No accepted repair was demonstrated.
+
+B also reproduced a genuine coverage-check false negative: substantive prose
+contained the canonical phrase `official information sources`, while the
+matcher recognized only contiguous `official source` or `official emergency`.
+Correcting that exact-label recognition cannot make B acceptable: the other
+content failures and length regression remain. Its archived v12 result must
+remain unchanged; any assessment under a later policy is a separate record.
+Policy v13 adds only the trusted canonical phrase through the existing
+visibility, normalization and negation filters. Its fingerprint is
+`c4d3faf161849df933cdbf88196e920d149b3baab7a2fc163696f2dcae5680f5`;
+v12 remains readable with its original fingerprint. Separately assessing B
+under v13 changes only its focus check and still rejects its other three
+failed checks. The 650–800/300 word requirements, evidence requirements,
+regression guard and three-call ceiling are unchanged.
+
+Artifacts are retained under
+`tmp/live-model-20261013-a/run-5c5fed2ff0ba4776bb087330368dd800/`,
+`tmp/live-model-20261013-b/run-0b436243cd6a41c5af535de33e30e80f/`, and
+`tmp/live-model-20261013-c/run-0134f422112b4b578d31ee74a6c751d2/`.
+Diagnosis, offline replays and supplemental cleanup evidence are in
+`tmp/live-model-20261013-diagnosis/`. These completed runs demonstrate regression
+rejection, not successful automatic repair.
+
+The current-policy focus evaluator now lives in `src/current_focus_coverage.py`.
+The legacy shared module was restored to its exact protected bytes rather than
+exempting it from the historical experiment guard. The relocation proof records
+AST equality with C's evaluator, identical complete C quality dictionaries and
+75 unchanged closed-C artifact hashes. The historical builder guard remains
+active. The affected 406-case suite passed in 37.48 seconds; the earlier
+disjoint prompt/guidance and remaining-module suites covered 632 unique cases.
+Current-policy compatibility checks passed 386 cases with two browser tests
+deselected. These suites overlap the eventual full run and must not be added
+together as a distinct-test total.
+
+Final independent read-only code review found no actionable issue in the repair
+projection, retry continuity, word plan, v13 focus correction or historical
+compatibility. The reviewer separately checked evaluator AST equality and
+legacy normalized-byte equality, without running tests or claiming semantic
+acceptance. The frozen real-case repair prompt has only 22 characters left
+after reserving its protocol suffix; subsequent prompt edits require a fresh
+budget check rather than assuming this result still applies.
+
+Ten unsuccessful engineering validation/check attempts in this follow-up are
+preserved in `engineering-attempts.json` and the final static-check logs: an omitted compatibility phrase, an
+incorrect test temporary-directory envelope, two Ruff findings, a real-input
+prompt-budget overflow, two compact-prompt contract omissions, stale current
+policy assertions, the historical dependency-byte guard, and formatting needed
+in two test files. All were corrected without relaxing assertions, budgets or
+protections. The earlier
+maintenance subsection has its own ten-attempt history; those are not these ten
+attempts. A subsequent full run was interrupted at 21% without a terminal test
+result. After checking that its process had ended, a fresh isolated full run was
+started; interruption is not counted as a failed product assertion.
+
+The completed full regression is recorded in
+`final-safe-resume-aa380809fdb643058354e1d81162f65f/`: 4,635 passed, 7 skipped,
+6 deselected, 950.88 seconds and 90.49% coverage against the unchanged 85%
+minimum. JUnit independently records zero failures/errors. Skips are one
+Linux-only flock case and six Windows symbolic-link permission cases; the six
+deselections are browser E2E tests. All 293 source/test/script files were
+unchanged during the run. The final two-file formatting correction has equal
+before/after ASTs, including type comments, and is the only subsequent change
+in that set; it does not require another full behavioral run. Final Ruff lint
+and format checks passed (290 formatted files), and Bandit passed with its
+three existing unused `nosec` warnings. Formatting/hash evidence is in
+`final-format-02ec890473a64de89f9790585d3e0f8d/`. The user's pre-existing
+`test_ollama_preflight.py` change remains byte-for-byte intact. One evidence
+collection PowerShell parse error was corrected and recorded separately; it
+ran no product logic.
+
+Two isolated comprehension probes were independently reviewed and executed
+under `tmp/live-model-comprehension-20261013-a/`, after full-suite completion.
+Eighteen mocked harness tests passed in 2.344 seconds. The probes bind the exact
+C repair P2 basis or its 3,357-character submitted source assembly; no prior
+model answer or semantic rubric enters the prompt. They use the production JSON
+contract and model client but do not assemble, approve or export a report. Their
+two-call limit is separate from each production run's unchanged three-call
+ceiling. Two failed offline harness checks and one stopped preparation guard
+are recorded separately from the ten engineering checks and three failed
+report campaigns. Protocol, placeholder adherence and independent semantic
+assessment are reported separately; even two passing probes could establish
+only competence on these smaller tasks.
+
+Both diagnostic responses completed normally in 116.004 seconds: P2 used
+499 input/277 output tokens, and the source probe 1,184/260. There were exactly
+two completion requests, eight tokenizer POSTs and no repairs. Native and
+server counts matched; protocol shape and all fourteen neutral placeholders
+passed for both. Input/source/policy/model hashes remained stable, and service
+and native process cleanup completed. The first launch stopped before dispatch
+because the harness compared the reviewed uppercase hash with a lowercase
+digest. After byte identity was verified, a programmatically generated lowercase
+argument allowed the same frozen plan to execute; that zero-call failure is
+retained separately. Independent semantic review rejected both probes against
+their complete predeclared rubric:
+
+| Probe | Demonstrated | Still missing |
+| --- | --- | --- |
+| P2 | Correct known population/older-person values, missing language/car indicators, older community-level basis; no null-to-zero substitution. | Census/ERP distinction, 22 SA2 areas and the configured approximate aggregation rather than exact LGA boundary. |
+| Source | Recognizes broad advice may not apply to Cairns bushfire conditions. | Original flood/storm-surge/tsunami conditions, higher-ground qualification, household/council/support/pet/contact context, current local assessment requirement and the complete citation token. |
+
+The reviewer checked actual messages, SSE/raw output and request/output hashes
+against the frozen inputs. Both were normally terminated, low-token calls, so
+these particular omissions are not explained by exhausting the configured
+window or output ceiling. This does not exclude load effects in full reports,
+establish complete attention to context or demonstrate general model incapacity.
+Neither small task passed as a whole. The two automatically created private
+profile signing-key files were then removed with resolved-path, non-reparse,
+identity and hash checks; public request/response/outcome bytes were preserved.
+The run is `run-bf75c8c673674085bf1d3ee6be123c14/`; its closed outcome does not
+claim report acceptance, successful repair or complete context retention.
+
+The review did not establish a specific product defect that would resolve these
+semantic omissions. Its next bounded recommendation is a source-only task
+clarity comparison, retaining the exact source/model/parameters/JSON framework
+and original rubric while explicitly asking for source hazards, accommodation
+conditions, local applicability limits and the complete citation. No correct
+answers or prior model responses are supplied. The comparison is isolated under
+`tmp/live-model-comprehension-20261013-b/`; it is not another full-report run.
+Its first offline harness run passed 22 cases in 2.670 seconds and preparation
+passed without a retry. Independent review verified 479 file/snapshot hashes,
+the exact three-file harness diff, unchanged rubric/runtime ownership logic and
+a sole task-line change in the model's messages. The new limit is one completion,
+four tokenizer POSTs and one native session; it does not reopen the prior two-call
+run. The frozen plan is
+`a4c30d3a3f70fbe8e6bf0c9bbb2ae57d175c2d81d60b4a9c762021780c503f12`.
+
+The comparison completed in 51.279 seconds, with exactly one completion,
+four tokenizer POSTs and no retry: 1,217 input/305 output tokens, normal `stop`,
+matched measured/server counts and successful protocol/placeholder checks.
+Model metadata and all frozen inputs/source/policy hashes remained stable;
+owned service/native processes and listeners were cleaned up. The raw response
+now names the three original hazards and includes the complete citation token,
+but omits higher ground and claims the passage gives no accommodation
+qualifications. Independent assessment rejected it against the unchanged rubric:
+the explicit absence claim contradicts the supplied secure/inland/higher-ground
+conditions; household support/pet planning and current local hazard-specific
+verification remain incomplete. One paragraph-end token also fails the input's
+per-source-claim citation instruction. The same reviewer verified exact submitted
+messages, SSE/raw output and binding hashes. Clearer task wording improved some
+field adherence in this sample but did not resolve source comprehension.
+The closed result is in
+`tmp/live-model-comprehension-20261013-b/run-8dfc8b1e9dc24a679aeda4515677e842/`.
+This brings this follow-up to six production-report completion requests across
+three separate runs and three isolated diagnostic completions. It does not
+extend the production three-call ceiling, create an accepted report or establish
+a general success rate from this one frozen case.
+
+This final run's two temporary profile signing-key files were removed after
+identity/hash/containment/non-reparse checks. The first cleanup stopped before
+deleting anything because parsed JSON times were `DateTime` objects compared
+with ISO strings. A separately recorded correction compared the same UTC ticks
+while retaining all other checks, then removed only the two intended files.
+This one cleanup failure is separate from the ten product engineering checks;
+closed request, response and outcome hashes remained unchanged. No further model
+calls are scheduled or implied by these diagnostic records.
+
+Finally, an offline source-check comparison used B's unchanged response and an
+explicitly labelled human-written positive control. Ten bounded combinations
+were recorded, with no network/model call, product edit or approved report.
+The four primary comparisons were:
+
+| Input to the current checks | Submitted-passage scope result | Interpretation |
+| --- | --- | --- |
+| B raw prose with its real captured evidence | Fail: `household_source_scope_not_preserved` | An existing scope rule blocks the cited final sentence; it does not identify the earlier false denial of accommodation conditions. |
+| Human control retaining source conditions and per-claim citations | Pass | This particular scope check passes; it is not a model-generated or approved report. |
+| B prose with citations removed | Pass | The citation-dependent scope rule has no bound claim to examine; separate body diagnostics record four of four missing citations. |
+| B prose without the submitted-evidence snapshot | Fail: `cited_passage_not_final_submitted` | Missing request evidence cannot supply passage support. |
+
+An additional isolated, cited version of B's false-denial sentence also passed
+the limited scope check and was marked for body-claim review. The current rule
+has no general semantic test for denial or omission of a supplied condition.
+The separate household-to-campus applicability advisory returned no applicable
+finding for these inputs; that is not a correctness result. All ten scaffolded
+cases failed the overall report gate, including the human control, so this is
+not evidence that a defective full report was approved. Evidence and current
+policy hashes were preserved in `source-scope-offline/` under the diagnosis
+directory; this first comparison completed without a new product test failure.
+
+The remaining work is to define and validate conservative source-condition
+contradiction detection, with genuine absence, hazard-specific limitations and
+faithful positive examples, before deciding whether a separately versioned gate
+change is justified. The present evidence does not justify an ad hoc word-match
+patch or a claim of reliable semantic repair. Human review and all current
+rejection rules remain required.
+
+### Repair feedback and retry continuity (2026-10-13)
+
+This maintenance addresses four concrete weaknesses in the existing full-report
+replacement flow, without enabling the experimental section-local executor:
+
+- A protocol retry after a failed structural response used to restart from the
+  initial prompt. It now retains the latest non-protocol request, its exact
+  submitted-evidence assembly and typed output contract. Repeated protocol errors
+  add the fixed suffix only once and share the existing three-call ceiling.
+- Length feedback now compares canonical model-prose and s01–s15 word counts
+  against the existing frozen soft targets. It gives a numeric expansion/reduction
+  range without repeating model prose or claiming evidence for new facts. Invalid
+  projection yields no fabricated section counts. This separate feedback is
+  bounded to 700 characters; the existing grouped-feedback limit remains 1,400.
+  Each structural repair reserves room for its retry suffix inside 18,000 characters.
+- `report-repair-guard-v2` compares immutable per-code finding counts for the four
+  mandatory content categories as well as the existing status and word-distance
+  checks. Increasing an already-failing violation count stops the transaction.
+  Invalid/missing counts fail closed. An exactly repeated complete body with the
+  same assessment and a still-failing gate also stops; different prose with equal
+  coarse metrics is not called semantic stagnation. No previous candidate is
+  silently selected and no stopped candidate creates a report/audit version.
+- Suggested RAG tokens in the compact repair data come from passages actually
+  included in that request, removing the earlier mismatch with all retrieved
+  source tokens. The canonical source register and evidence-capture contract
+  remain unchanged; neither a token nor a registry entry proves support.
+
+The four focused repair test modules passed **202 tests in 5.10 seconds**.
+They include real canonical assessment of a qualified-proposal repair to a
+passing synthetic report, a same-code violation increase rejected while its
+category remains failed, malformed count handling, duplicate/cyclic drafts,
+SDK capture through structural/protocol retries, and no report/audit mutation
+after a stop. These tests use supplied responses or mock transports, not a live
+model. Scoped Ruff lint/format and independent read-only review passed.
+
+Broader regression exposed legacy duplicate-response fixtures in body-citation,
+body-evidence experiment, cloud-availability, Streamlit and privacy tests. Those
+tests now supply distinct candidate drafts when exercising retries; original
+citation, unsafe-content, blocked-approval, privacy and call-ceiling assertions
+remain. Dedicated tests separately require repeated failed drafts to stop.
+Six preliminary validation attempts failed or were interrupted while locating
+these compatibility assumptions; they are not counted as completed passes.
+One additional format check required a blank line and passed after formatting.
+Independent review of the additional fixture changes found no actionable issue.
+The subsequent 15-module integration rerun passed **579 tests in 155.78 seconds**,
+including cloud abstention, Streamlit interaction, privacy, evidence capture,
+revision and evaluation paths. This overlaps the focused selection and must not
+be added to it as a unique test count.
+
+A later full run stopped at a separate CPU-RAG environment-isolation issue
+(809 passed, 7 skipped, 6 deselected before the first failure). Test collection
+could load the workstation's `.env` index override while the fixture used a
+temporary data root; the existing containment guard correctly refused it.
+The installed python-dotenv 1.2.3 was verified to honor
+`PYTHON_DOTENV_DISABLED=1` before finding/opening an environment file. With that
+process-only setting, fresh workspace `TEMP`/`TMP`/pytest directories and an
+absolute `BUSHFIRE_TEST_CLI_PYTHON`, all **13 CPU-RAG tests passed in 2.98 seconds**.
+No path guard, project configuration or index was changed. This is a separate
+environment failure, not another content-fixture failure or a completed full run.
+
+The next isolated full run reached 1,762 passed / 7 skipped / 6 deselected before
+the offline CLI's strict empty-stderr assertion caught the virtual-environment
+launcher's existing Anaconda real-path warning. The CLI returned valid JSON and
+exit code zero; the warning was not filtered and the assertion was not relaxed.
+The existing Python 3.12.9 interpreter was verified to start cleanly and used
+only through the two existing `BUSHFIRE_TEST_CLI_PYTHON` hooks. Main pytest remains
+on the project Python 3.13.9 virtual environment. The context-budget and runtime-
+maintenance modules then passed **256 tests in 1.63 seconds**. This required no
+source, test or persistent environment change; the main launcher's warning remains
+visible. The eight unsuccessful preliminary validations comprise six fixture-
+compatibility attempts and these two distinct environment failures.
+
+A subsequent clean-CLI full run reached 3,138 passed / 7 skipped / 6 deselected
+before an existing stress test applied its 17,500-character lower bound to the
+base repair prompt alone. The new builder reserves the fixed retry suffix:
+that base was 17,464 characters, and its complete retry was 17,813. The test now
+retains the 17,500–18,000 stress range on the complete retry, independently caps
+both prompts at 18,000, and checks every previous content assertion on both.
+Additional assertions verify one suffix, unchanged analysis/assembly, typed
+output and SDK capture. No production padding or limit change was made.
+A nine-module selection covering the prompt contract and related code then passed **800 tests
+in 17.84 seconds**; scoped Ruff and independent review passed. This ninth
+preliminary failure was a separate stress-fixture compatibility assumption.
+All listed selections overlap and are not a combined test denominator.
+
+The next full run reached **4,519 passed / 7 skipped / 6 deselected** before
+the Streamlit health smoke failed with Windows socket error 10013. A direct
+loopback probe reproduced the execution sandbox's refusal to connect, separately
+from the app. The unchanged smoke then passed under explicitly approved local
+execution (**1 test in 6.68 seconds**); another **39 startup/UI tests passed in
+7.24 seconds**. The interrupted full run did not produce usable coverage and
+is not a full-suite pass. This is the tenth unsuccessful preliminary validation,
+following the six fixture attempts and three distinct issues above.
+
+Before running the Windows entrypoint tests outside the socket-restricted
+sandbox, their fixtures were isolated from workstation configuration. They now
+copy the actual launcher and tracked application files byte-for-byte into a
+temporary project, use synthetic configuration/private state and a fake Ollama
+HTTP service, and retain real dependency checks and Streamlit health assertions.
+Installer/model-start tripwires fail rather than substitute successful readiness.
+The tests use a disposable interpreter with existing dependencies; they do not
+install packages or call a real model. A test-only Windows job owns launcher
+descendants, with the final handle held by pytest and cleanup before output-pipe
+draining. This is scoped project/process isolation, not a hard OS sandbox.
+Independent review resolved two process-lifecycle findings before execution.
+The cleanup timeout negative control and both real entrypoint tests passed
+**3 tests in 16.78 seconds** under approved local execution. Production launcher
+files and the user's pre-existing `test_ollama_preflight.py` edits were unchanged.
+
+A subsequent approved full-suite run was interrupted during a session refresh
+at 42%, with no test failure printed. Its log stopped at 14:02:32 Sydney time;
+process inspection confirmed no pytest process remained, and no final JUnit or
+coverage result existed. This interruption is recorded separately from the ten
+unsuccessful validation attempts above and supplies no completed test outcome.
+
+The final resumed run completed on Windows with the project Python 3.13.9
+interpreter, the process-only isolation settings described above, the existing
+Python 3.12.9 CLI override, fresh temporary directories and approved local
+loopback access. It passed **4,571 tests / 7 skipped / 6 deselected in 840.10
+seconds**, exiting zero. JUnit recorded 4,578 selected tests,
+zero failures, zero errors and seven skips; all 15 new repair-reliability tests
+were included. The seven existing skips comprise one Linux `flock` test and
+six tests requiring Windows symlink permissions unavailable to this account.
+No additional skip or relaxed assertion was introduced. The six deselected
+tests are browser E2E tests and were not rerun in this maintenance.
+
+Source coverage was **90.55%**, exceeding the unchanged **85%** threshold.
+Ruff lint, Ruff format (288 files) and Bandit all exited zero. Bandit retained
+three existing `nosec` warnings; the workstation's Anaconda launcher warning
+was also visible during the static commands, without a check failure. Final
+SHA-256 checks confirmed the three reviewed product files and pre-existing
+preflight edits were unchanged through this completed run. Independent review
+found no outstanding implementation or documentation issue. Local evidence is
+retained in `tmp/validation-logs-20261013-01a132d1-final-resume/` (pytest output,
+JUnit, invocation metadata and exit code). This is a completed
+local regression result, not a new remote CI, browser, cloud or live-model result.
+
+Historical v0.5.0/v0.6.0 release verifiers first refused this dirty working tree.
+Both subsequently passed their explicit `--allow-dirty` offline diagnostic mode,
+with `working_tree_clean=false` and `dirty_override_used=true`. This verifies
+the frozen historical evidence and its own gates, not current clean-tree release
+eligibility, deployment or report-content acceptance.
+
+A separate read-only replay used the three preserved October 10 normalized
+responses, their recorded evidence, and the original frozen analysis. Every
+canonical check and the v12 fingerprint matched the recorded results exactly;
+all three reports remain failed. Seven input/result/quality files retained their
+SHA-256 hashes. The new feedback and prompt construction produced:
+
+| Recorded attempt | Model-prose words | Existing soft prose target | Repair plus one protocol suffix, characters |
+| --- | ---: | ---: | ---: |
+| 1 | 377 | 430–470 | 17,995 |
+| 2 | 700 | 430–470 | 17,988 |
+| 3 | 1,071 | 430–470 | 17,992 |
+
+In replay, the current guard rejects the recorded first-to-second transition. The replay did not
+generate a new model response or revise a saved report. These are character-budget checks,
+not new token measurements, corrected historical reports or new content passes.
+
+The canonical `governed-report-v12` policy/fingerprint, 650–800 body-word range,
+minimum 300 model-prose words, output-token reservation and maximum three model
+calls are unchanged. Citation coverage remains advisory and cannot alone trigger
+rewriting an otherwise passing draft. Historical reports, release artifacts and
+closed model campaigns retain their original results. The changed prompts need
+fresh request-bound measurements before any token-fit claim; the old 5,888-token
+measurement does not apply to them. No new live-model or cloud content acceptance
+is established by this maintenance.
 
 ### Online diagnostic implemented; Windows startup boundary unresolved (2026-10-12)
 
@@ -1390,7 +1815,10 @@ denominators; they must not be merged into a report-accuracy percentage.
 ## Suggested Next Build Order
 
 The existing maximum-three-attempt workflow did not resolve the frozen case.
-The production guard stops measurable regressions. Separate offline helpers
+The October 13 maintenance strengthens that guard, retains repair feedback across
+protocol errors, and provides measured prose targets and request-visible citation
+choices. Its offline validation does not establish real-model convergence; fresh
+request-bound token and content validation remain necessary. Separate offline helpers
 now check caller-scoped candidates, locate supported model-prose occurrences
 and prepare lossless requests without selecting or merging prior responses.
 The restricted renderer now has one native-counted synthetic profile, not a
