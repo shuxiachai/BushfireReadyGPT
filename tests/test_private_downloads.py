@@ -382,7 +382,8 @@ def test_apptest_real_login_delivers_srcdoc_and_isolates_anonymous_session(
     assert not app.exception
     assert not app.get("iframe")
     assert not app.get("download_button")
-    app.text_input[0].input(PASSWORD).run()
+    # The password field is inside st.form: its value commits with the submit click, as in a browser.
+    app.text_input[0].input(PASSWORD)
     app.button[0].click().run()
     assert not app.exception
     assert len(app.get("iframe")) == 2
@@ -391,7 +392,7 @@ def test_apptest_real_login_delivers_srcdoc_and_isolates_anonymous_session(
         assert not iframe.proto.src
         assert _Document(iframe.proto.srcdoc).payload == PRIVATE_TEXT.encode("utf-8")
     assert not app.get("download_button")
-    assert PASSWORD not in repr(app.session_state.filtered_state)
+    assert PASSWORD not in repr(app.session_state.to_dict())
     other = AppTest.from_string(APP).run()
     assert not other.exception
     assert not other.get("iframe")
@@ -409,7 +410,7 @@ def test_apptest_rerun_after_expiry_or_rotation_does_not_redeliver(
 ):
     _protect(monkeypatch, tmp_path)
     app = AppTest.from_string(APP).run()
-    app.text_input[0].input(PASSWORD).run()
+    app.text_input[0].input(PASSWORD)
     app.button[0].click().run()
     assert len(app.get("iframe")) == 2
     if change == "rotation":

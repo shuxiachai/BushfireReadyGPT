@@ -197,16 +197,17 @@ if render_access_gate():
     app = AppTest.from_string(script).run()
     assert not app.exception
     assert not app.success
-    app.text_input[0].input("wrong").run()
+    # The password field is inside st.form: its value commits with the submit click, as in a browser.
+    app.text_input[0].input("wrong")
     app.button[0].click().run()
     assert not app.exception
     assert "not accepted" in app.error[0].value
-    assert not app.session_state.filtered_state.get("_access_login_password")
-    app.text_input[0].input(PASSWORD).run()
+    assert not app.session_state.to_dict().get("_access_login_password")
+    app.text_input[0].input(PASSWORD)
     app.button[0].click().run()
     assert not app.exception
     assert app.success[0].value == "Protected report workflow"
-    assert PASSWORD not in repr(app.session_state.filtered_state)
+    assert PASSWORD not in repr(app.session_state.to_dict())
     other_browser = AppTest.from_string(script).run()
     assert not other_browser.success
     assert other_browser.text_input[0].label == "Access password"
