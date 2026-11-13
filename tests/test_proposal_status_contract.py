@@ -178,7 +178,7 @@ def test_current_gate_opts_in_while_v11_remains_readable_and_unchanged():
     checks = {item["name"]: item for item in evaluate_governed_report(report, analysis)["checks"]}
     assert checks[LOCAL_CHECK]["status"] == "pass"
     assert analysis == frozen_analysis
-    assert CURRENT_POLICY == "governed-report-v12"
+    assert CURRENT_POLICY == "governed-report-v13"
     assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v11"] == frozenset(
         {"a690c5afc1b7497ca04cd06cc2197ced685f14159387c1237c9ee11268ccc2b4"}
     )

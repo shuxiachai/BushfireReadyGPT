@@ -9,6 +9,7 @@ import pytest
 from src import report_generation_quality as quality
 from src.model_response import ModelResponseError, ModelServiceError
 from src.report_repair_guard import (
+    REPAIR_FINDING_CODES,
     REPAIR_GUARD_RULESET,
     ReportRepairRegressionError,
     reject_repair_regression,
@@ -240,13 +241,102 @@ def test_general_findings_summary_and_body_citation_advisory_do_not_rank_candida
     _compare(before, after)
 
 
+@pytest.mark.parametrize("name", sorted(REPAIR_FINDING_CODES))
+def test_validated_content_findings_detect_growth_and_allow_reduction_within_failed_status(name):
+    before = repair_quality(statuses={name: "fail"})
+    after = copy.deepcopy(before)
+    _check(after, name)["findings"][0]["count"] = 2
+    with pytest.raises(ReportRepairRegressionError) as caught:
+        _compare(before, after)
+    assert caught.value.reason == "content_finding_count_increased"
+    assert len(caught.value.worsened_finding_check_ids) == 1
+    _compare(after, before)
+
+
+def test_new_code_cannot_be_hidden_by_reduced_total_findings():
+    name = "Local proposal attribution"
+    before = repair_quality(statuses={name: "fail"})
+    _check(before, name)["findings"] = [{"code": "local_task_requires_own_proposal_and_confirmer", "count": 5}]
+    after = copy.deepcopy(before)
+    _check(after, name)["findings"] = [{"code": "proposal_confirmer_missing", "count": 1}]
+    with pytest.raises(ReportRepairRegressionError, match="increased a mandatory content finding count"):
+        _compare(before, after)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "missing",
+        "container",
+        "row",
+        "unknown",
+        "duplicate",
+        "absent_count",
+        "zero",
+        "negative",
+        "bool",
+        "large",
+        "str",
+        "empty",
+    ],
+)
+@pytest.mark.parametrize("invalid_baseline", [False, True])
+def test_malformed_content_finding_metrics_fail_closed_without_echoing_content(mutation, invalid_baseline):
+    name = "Local proposal attribution"
+    valid = repair_quality(statuses={name: "fail"})
+    invalid = copy.deepcopy(valid)
+    check = _check(invalid, name)
+    if mutation == "missing":
+        del check["findings"]
+    elif mutation == "container":
+        check["findings"] = {}
+    elif mutation == "row":
+        check["findings"] = ["PRIVATE"]
+    elif mutation == "unknown":
+        check["findings"][0]["code"] = "PRIVATE"
+    elif mutation == "duplicate":
+        check["findings"] *= 2
+    elif mutation == "absent_count":
+        del check["findings"][0]["count"]
+    elif mutation == "empty":
+        check["findings"] = []
+    else:
+        check["findings"][0]["count"] = {"zero": 0, "negative": -1, "bool": True, "large": 100001, "str": "PRIVATE"}[
+            mutation
+        ]
+    previous, candidate = (invalid, valid) if invalid_baseline else (valid, invalid)
+    with pytest.raises(ReportRepairRegressionError) as caught:
+        _compare(previous, candidate)
+    assert caught.value.reason == "invalid_quality_snapshot"
+    assert "PRIVATE" not in str(caught.value) + json.dumps(vars(caught.value))
+
+
+def test_content_finding_snapshot_is_immutable_and_does_not_retain_excerpts():
+    result = repair_quality(statuses={"Local proposal attribution": "fail"})
+    finding = _check(result, "Local proposal attribution")["findings"][0]
+    finding["excerpt"] = "PRIVATE"
+    before = snapshot_repair_assessment(result)
+    finding["count"] = 9
+    assert snapshot_repair_assessment(result).finding_counts != before.finding_counts
+    assert "PRIVATE" not in repr(before)
+
+
 @pytest.mark.parametrize("with_protocol_retry", [False, True])
-def test_workflow_regression_preserves_report_and_stops_before_finalization(monkeypatch, tmp_path, with_protocol_retry):
+@pytest.mark.parametrize("stop_kind", ["budget", "findings", "repeat"])
+def test_workflow_regression_preserves_report_and_stops_before_finalization(
+    monkeypatch, tmp_path, with_protocol_retry, stop_kind
+):
     from src import report_workflow as workflow
 
+    assessments = [repair_quality(total_words=632), repair_quality(total_words=955)]
+    if stop_kind == "findings":
+        assessments = [repair_quality(statuses={"Local proposal attribution": "fail"}) for _ in range(2)]
+        _check(assessments[1], "Local proposal attribution")["findings"][0]["count"] = 2
+    elif stop_kind == "repeat":
+        assessments = [repair_quality(), repair_quality()]
     analysis, generate, calls = _setup_loop(
         monkeypatch,
-        [repair_quality(total_words=632), repair_quality(total_words=955)],
+        assessments,
         fail_at={2: "length"} if with_protocol_retry else None,
     )
     prior = {"text": "PRIVATE prior report", "audit_path": "unchanged-audit"}

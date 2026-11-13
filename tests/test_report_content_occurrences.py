@@ -10,7 +10,12 @@ import pytest
 from src import report_content_contract as contract
 from src.model_evidence import bind_normalized_narrative, text_sha256
 from src.report_claim_evidence import extract_body_claims
-from src.report_generation_quality import CURRENT_POLICY, QUALITY_POLICY_FINGERPRINT, evaluate_governed_report
+from src.report_generation_quality import (
+    CURRENT_POLICY,
+    QUALITY_POLICY_FINGERPRINT,
+    READABLE_QUALITY_POLICY_BINDINGS,
+    evaluate_governed_report,
+)
 from src.report_template import GOVERNANCE_NOTICE_MARKDOWN, extract_narrative_body
 from src.source_attribution import format_rag_attribution
 from tests.support.model_evidence_fixtures import _analysis
@@ -155,8 +160,11 @@ def test_valid_current_report_and_quality_fingerprint_are_unchanged():
     assert all(check["status"] == "pass" for check in result["checks"])
     assert result["occurrences"] == []
     assert evaluate_governed_report(report, analysis) == before
-    assert CURRENT_POLICY == "governed-report-v12"
-    assert QUALITY_POLICY_FINGERPRINT == "39c7ae6687fcef29f4ce1e8f6c3d7d04d13a65f89f2b15ea667a0a1af2140130"
+    assert CURRENT_POLICY == "governed-report-v13"
+    assert QUALITY_POLICY_FINGERPRINT == "c4d3faf161849df933cdbf88196e920d149b3baab7a2fc163696f2dcae5680f5"
+    assert READABLE_QUALITY_POLICY_BINDINGS["governed-report-v12"] == frozenset(
+        {"39c7ae6687fcef29f4ce1e8f6c3d7d04d13a65f89f2b15ea667a0a1af2140130"}
+    )
 
 
 def test_all_five_checks_have_occurrences_without_losing_global_failures():

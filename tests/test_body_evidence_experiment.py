@@ -217,9 +217,15 @@ def test_real_repair_loop_is_shared_and_bounded(monkeypatch):
             request_kind="structural_repair",
         ),
     )
-    result = experiment.run_arm(
-        scenario_fixture(), analysis, "claim_pair_v1", mock_client(section_response_fixture(analysis), calls)
-    )
+
+    def response():
+        # Keep candidates distinct to exercise the shared three-call ceiling;
+        # repeating an identical failed draft correctly stops before that cap.
+        sections = json.loads(section_response_fixture(analysis))
+        sections["s02"] += f" The user reports draft revision {len(calls)}."
+        return json.dumps(sections)
+
+    result = experiment.run_arm(scenario_fixture(), analysis, "claim_pair_v1", mock_client(response, calls))
     assert len(calls) == result["generation_attempts"] == 3
     assert all(c[1]["content"].count(experiment.LAYOUT_GUIDANCE.strip()) == 1 for c in calls)
     assert all(record["model_evidence"]["status"] == "captured" for record in result["attempts"])

@@ -21,7 +21,8 @@ exhaustive list of every module.
 | [current_model_evidence.py](../src/current_model_evidence.py), [section_protocol_error.py](../src/section_protocol_error.py) | Add explicit current output-mode metadata and content-free protocol errors without modifying byte-pinned historical evidence/response helpers. | [Section protocol](../tests/test_report_section_protocol.py), [Runtime evidence](../tests/test_model_evidence.py) |
 | [model_runtime.py](../src/model_runtime.py), [model_evidence.py](../src/model_evidence.py) | Execute bounded stateless requests and bind submitted evidence context to responses, through the workflow's model callback. | [Model runtime](../tests/test_model_runtime.py), [Evidence capture](../tests/test_model_evidence.py) |
 | [report_generation_quality.py](../src/report_generation_quality.py), [report_quality_agent.py](../src/agents/report_quality_agent.py), [safety_boundary.py](../src/safety_boundary.py) | Share the deterministic governed gate and bounded replacement-repair policy across lifecycle stages. | [Repair flow](../tests/test_report_repair_flow.py), [Safety](../tests/test_safety_boundary.py), [Policy binding](../tests/test_quality_policy_audit.py) |
-| [report_repair_guard.py](../src/report_repair_guard.py) | Compare immutable, content-free assessments of successive complete drafts; stop automatic generation when a repair regresses, without selecting an earlier response. | [Repair flow](../tests/test_report_repair_flow.py) |
+| [report_repair_guard.py](../src/report_repair_guard.py) | Compare immutable, content-free assessments of successive complete drafts; stop automatic generation when a repair regresses, without selecting an earlier response. | [Repair guard](../tests/test_report_repair_guard.py), [Retry reliability](../tests/test_report_repair_reliability.py) |
+| [current_focus_coverage.py](../src/current_focus_coverage.py), [focus_coverage.py](../src/focus_coverage.py) | Current v13 focus evaluation adds one trusted exact phrase; the legacy module retains the bytes required by historical comparison dependencies. Shared visibility and negation filters remain unchanged. | [Focus coverage](../tests/test_focus_coverage.py), [Policy binding](../tests/test_quality_policy_audit.py) |
 | [report_grounding.py](../src/report_grounding.py), [report_claim_evidence.py](../src/report_claim_evidence.py), [source_applicability.py](../src/source_applicability.py) | Provide evidence/body-claim diagnostics and a limited review-time source-applicability advisory; none establishes semantic truth or local applicability. | [Grounding](../tests/test_report_grounding.py), [Body claims](../tests/test_report_claim_evidence.py), [Review disposition](../tests/test_review_evidence_disposition.py) |
 | [audit.py](../src/audit.py), [export_register.py](../src/export_register.py), [export_package.py](../src/export_package.py), [PDF](../src/pdf_export.py), [DOCX](../src/docx_export.py), [downloads.py](../src/ui/downloads.py) | Bind versions/review events and frozen registers; verify package eligibility, render formats and deliver exports through the UI. | [Audit](../tests/test_audit_governance.py), [Core pipeline](../tests/test_core_pipeline.py), [Private downloads](../tests/test_private_downloads.py) |
 | [session_store.py](../src/session_store.py), [revision_state.py](../src/revision_state.py), [runtime_trace.py](../src/runtime_trace.py) | Manage session state, recoverable revision requests and privacy-minimised stage observations around the workflow. | [Session validation](../tests/test_session_store_hardening.py), [Revision recovery](../tests/test_revision_recovery.py), [Trace](../tests/test_runtime_trace.py) |
@@ -231,7 +232,7 @@ their original source bytes.
 The eight named agents are specialised, deterministic pipeline components; none
 is an independent language-model call or an autonomous multi-agent actor. One
 governed model call writes the report narrative; the canonical governed gate may
-request up to two stateless replacement attempts. The same `governed-report-v12`
+request up to two stateless replacement attempts. The same `governed-report-v13`
 gate is recomputed for generation, revision, organisational approval and
 governed pilot-package export. It combines fixed structure, source, markup and
 safety checks with allowlisted scenario/focus-area coverage and conditional RAG
@@ -241,8 +242,11 @@ recognition and action-column coverage without borrowing qualifiers between
 sentences or cells. V9 adds a narrow Oxford-comma heading alias. V10 requires
 four exact application-owned blocks described below. V11 owns the complete
 report skeleton and admits model-supplied section prose. V12 distinguishes
-bounded, complete proposal-status prose from actual local tasks. Historical fingerprints
-through v11 remain readable, not eligible for
+bounded, complete proposal-status prose from actual local tasks. V13 recognizes
+the exact canonical `official information sources` phrase through the existing
+focus visibility and negation checks. It does not admit arbitrary user labels,
+fuzzy word gaps, headings or source-register-only mentions. Historical fingerprints
+through v12 remain readable, not eligible for
 new approval or export. Only the hash-bound final SDK evidence snapshot
 can satisfy passage-dependent provenance and audience checks; a fresh lookup or
 retrieved-but-omitted passage cannot supply support. Contradictory wording in
@@ -298,6 +302,22 @@ V11 checks projected model prose, excluding headings, fixed fields and the
 source section; application-generated labels cannot satisfy coverage. The model
 describes the selected scope naturally instead of copying coverage declarations.
 Requirements are not inferred from raw U0 text or a failed model response.
+The v13 evaluator lives in `current_focus_coverage.py`; historical dependencies
+continue to use unchanged `focus_coverage.py`. The current evaluator was moved
+without changing its function AST or recorded C assessments. Historical
+whole-file dependency guards were retained rather than given drift exceptions.
+
+The submitted-passage scope gate remains a bounded, citation-dependent check.
+It does not generally detect a claim that supplied source conditions are absent.
+The October 13 offline comparison rejected the captured diagnostic paragraph
+under an existing household-scope rule, but did not identify its earlier false
+denial of accommodation conditions. Removing citations left that particular
+scope check with no bound claim to assess; separate body diagnostics still
+reported missing citations. Neither a passing scope check nor an empty
+applicability advisory establishes semantic correctness. See the
+[live validation record](project_reassessment.md#live-local-generation-and-repair-follow-up-2026-10-13)
+for the raw-response and synthetic-control boundaries.
+
 Structural repairs omit the previous narrative, original
 prompt and raw U0 values; they rebuild from bounded application-owned context
 and retrieved passages explicitly delimited as untrusted data. Unknown coverage
@@ -307,24 +327,48 @@ risk-reduction language subject to current official advice and human review.
 
 Structured content-repair feedback maps allowlisted failed checks and content codes to fixed
 instructions, with bounded integer word counts; it never quotes offending
-claims. This subsection stays within 1,400 characters; generic failure and
-targeted safety instructions are additional. The complete repair stays
-within the unchanged 18,000-character cap. Planner priorities remain topic cues,
-not directly copyable tasks. Shared content guidance also reaches revisions
+claims. This subsection stays within 1,400 characters. A separate, at-most-700-character
+prose plan compares the strictly projected draft's actual word counts with the
+existing frozen soft targets: total model prose, the required change toward the
+target range, and actual/target counts for s01–s15. It contains no prior prose;
+an unprojectable body receives no invented section counts. Generic failure and
+targeted safety instructions are additional. Each structural-repair prompt reserves space
+for its protocol-retry suffix within the unchanged 18,000-character cap. Character
+fit is not evidence of token fit. Recommended RAG tokens in the compact context
+are derived only from that request's visible passages; the frozen source register
+is unchanged and is not evidence of body-claim support. The repair projection
+omits optional procedural `planning_priorities` and focus `priority` strings;
+frozen analysis and the application-owned roles/actions remain intact. Canonical
+focus identities, the full P2 basis and the exact RAG assembly are preserved.
+Optional budget omissions have explicit counts and never imply that a real-world
+measurement or risk is unknown. All fifteen canonical section titles remain in
+the concise prose briefs, and the measured word plan appears once near the final
+output instruction. These are writing aids, not extra acceptance criteria.
+Shared content guidance also reaches revisions
 within their existing requested-change scope; revisions cannot invoke the
-context-only structural replacement path. Protocol retries preserve the original
-request and its explicit output mode. Both retry types share a maximum of three
+context-only structural replacement path. Protocol retries preserve the latest
+non-protocol request, its evidence assembly and explicit output mode. Thus an
+incomplete structural repair does not revert to initial instructions. A fixed
+suffix is added once to that base, never accumulated over consecutive retries.
+Both retry types share a maximum of three
 total calls, not three calls each. Generic untyped model callers retain the
 legacy Markdown transport; current governed paths use the typed section contract.
 
-The separate `report-repair-guard-v1` generation control compares successive
+The separate `report-repair-guard-v2` generation control compares successive
 complete assessments before accepting a repair or spending another call.
 Canonical check downgrades (`pass` → `warning` → `fail`) and increased distance
 from either word budget stop generation. The total-body distance is zero within
 650–800 words; model-prose distance is zero at 300 words or more. Missing,
-duplicate, unknown or invalid comparison checks also stop the flow. Baselines
+duplicate, unknown or invalid comparison checks also stop the flow. Four mandatory
+content categories (processed-data provenance, local proposals, causal qualification
+and submitted-source scope/conflicts) additionally compare each allowlisted finding
+code's count. An increase stops the flow even when both category statuses remain
+failed; malformed or missing finding metadata cannot be treated as zero. Baselines
 contain immutable status/count data, not prose, and survive protocol retries.
-Non-regressing candidates become the next baseline. This is not semantic
+An exact complete-body hash with the same assessment and a still-failing gate
+also stops a repeated/cyclic draft. Different prose with equal coarse metrics
+does not establish stagnation, and a passing candidate is not blocked by this
+repeat check. Non-regressing candidates become the next baseline. This is not semantic
 preservation, a quality-score ranking or a local-edit protocol.
 
 A typed, content-free stop reaches the workflow before report finalisation:
@@ -332,9 +376,10 @@ no new report/audit version is saved, and any existing report stays unchanged.
 Actual attempts remain recorded. The application does not fall back to an
 earlier response, which would require a different evidence/attempt binding.
 First complete successes, zero-repair runs and revisions with structural repair
-disabled retain their existing behavior. The quality-policy v12 fingerprint,
-prompts, caps, three-call ceiling and historical evidence formats are unchanged;
-the guard is a generation-control rule, not an extra report-acceptance check.
+disabled retain their existing behavior. The historical v12 fingerprint remains
+unchanged; v13's exact coverage correction is separately versioned. Prompt caps,
+the three-call ceiling and historical evidence formats remain unchanged. The
+guard is a generation-control rule, not an extra report-acceptance check.
 
 The evidence confidence classifier is a deterministic shared component rather than an LLM agent. It records provenance in the analysis and audit JSON, supplies the prompt boundary, renders in the Evidence Trail and is appended to every exported report. Follow-up edits create a new governed report version; canonical evidence tables are rebuilt from stored analysis rather than trusted from model output, and the previous approval checklist is reset.
 
@@ -396,7 +441,7 @@ streaming deadline and reject empty usable output; generation, revision and
 release evaluation share the same bounded replacement-repair implementation.
 External endpoints require an explicit privacy acknowledgement. Audit records
 are privacy-minimised, append-only and hash-linked at the application layer;
-new v4 events bind the current `governed-report-v12` quality policy and
+new v4 events bind the current `governed-report-v13` quality policy and
 fingerprint, exact report, deterministic sign-off, quality, inputs, provider
 boundary, frozen register snapshot and recursive revision ancestry, while
 historical policy bindings remain readable. Ancestry verification is iterative

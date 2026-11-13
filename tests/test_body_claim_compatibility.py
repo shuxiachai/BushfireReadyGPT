@@ -110,10 +110,13 @@ def test_user_context_citation_does_not_suppress_feedback_during_mandatory_repai
 
     def generate(prompt, number, is_repair):
         prompts.append(str(prompt))
+        # Exercise citation feedback on distinct candidates; exact repeated
+        # failing drafts now stop under the independently tested repair guard.
+        candidate = report + f" The user reports draft revision {number}."
         _, snapshot, *_ = _capture(
-            analysis, response=report, attempt=number, kind="structural_repair" if is_repair else "initial"
+            analysis, response=candidate, attempt=number, kind="structural_repair" if is_repair else "initial"
         )
-        return EvidenceResponse(report, snapshot)
+        return EvidenceResponse(candidate, snapshot)
 
     _, result, count = quality.generate_narrative_with_repairs(
         "Private initial request", analysis, generate, max_repair_attempts=1
@@ -182,10 +185,13 @@ def test_mandatory_failures_still_share_original_repair_ceiling(monkeypatch, che
             if check_name == "Unrecognized private check":
                 assert check_name not in prompt
                 assert "ABSOLUTE-SAFETY REWRITE" not in prompt
+        # The ceiling applies while candidates differ, even when these coarse
+        # synthetic metrics do not change; duplicate-stop coverage is separate.
+        candidate = report + f" The user reports draft revision {number}."
         _, snapshot, *_ = _capture(
-            analysis, response=report, attempt=number, kind="structural_repair" if is_repair else "initial"
+            analysis, response=candidate, attempt=number, kind="structural_repair" if is_repair else "initial"
         )
-        return EvidenceResponse(report, snapshot)
+        return EvidenceResponse(candidate, snapshot)
 
     _, final_quality, count = quality.generate_narrative_with_repairs("Prepare a draft.", analysis, generate)
     assert count == quality.MAX_REPORT_REPAIR_ATTEMPTS + 1 == 3

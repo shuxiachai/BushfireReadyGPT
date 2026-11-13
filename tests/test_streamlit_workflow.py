@@ -40,6 +40,13 @@ MOCK_REPORT = json.dumps(
 )
 
 
+def _distinct_failed_drafts():
+    # Preview and blocked-approval tests need different failed candidates to
+    # exhaust repairs; an identical failed body now stops without saving it.
+    sections = json.loads(MOCK_REPORT)
+    return [json.dumps({**sections, "s01": sections["s01"] + f" Revision {attempt}"}) for attempt in range(1, 4)]
+
+
 def _quality_passing_report(audience):
     """Use real offline form analysis; never stub the gate or erase P2 facts."""
     analysis = run_analysis_pipeline(
@@ -262,7 +269,7 @@ def test_generate_button_creates_report_preview_with_mocked_model(isolated_app_s
     with patch(
         "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
-        return_value=MOCK_REPORT,
+        side_effect=_distinct_failed_drafts(),
     ) as model_call:
         app = _run_app()
         app.text_input(key="form_location").set_value("Hobart, Tasmania")
@@ -441,7 +448,7 @@ def test_blocked_approval_does_not_mutate_authoritative_review_state(isolated_ap
     with patch(
         "src.model_runtime.GovernedModelClient.generate",
         autospec=True,
-        return_value=MOCK_REPORT,
+        side_effect=_distinct_failed_drafts(),
     ):
         app = _run_app()
         app.text_input(key="form_location").set_value("Hobart, Tasmania")
