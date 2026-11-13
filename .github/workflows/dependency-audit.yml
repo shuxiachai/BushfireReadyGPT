@@ -1,0 +1,62 @@
+name: Dependency audit
+
+# New advisories can appear without any repository change. A weekly run of the
+# same pip-audit check as the Tests workflow reports them before the next push
+# does, and auditing both supported Python versions catches version-specific
+# lock resolutions.
+on:
+  schedule:
+    # Mondays 21:17 UTC (Tuesday morning in eastern Australia).
+    - cron: "17 21 * * 1"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - pyproject.toml
+      - poetry.lock
+      - .github/workflows/dependency-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: pip-audit (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.13"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: poetry.lock
+
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install poetry==2.3.4
+          poetry install --with dev,cloud --no-root
+
+      - name: Check lock consistency
+        run: |
+          poetry check --lock
+          poetry run python -m pip check
+
+      - name: Audit installed packages for known vulnerabilities
+        run: poetry run pip-audit --local --skip-editable

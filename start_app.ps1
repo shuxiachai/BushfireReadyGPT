@@ -275,12 +275,12 @@ if (-not (Test-Path $virtualPython)) {
 
     $basePython = Resolve-BasePython
     if (-not $basePython) {
-        throw "Python 3.11-3.13 is required. Install Python from https://www.python.org/downloads/windows/ and run 'Start BushfireReadyGPT.bat' again."
+        throw "Python 3.11.5-3.13 is required. Install Python from https://www.python.org/downloads/windows/ and run 'Start BushfireReadyGPT.bat' again."
     }
 
     Write-Host "Creating the local Python environment..."
     if ((Split-Path -Leaf $basePython).ToLowerInvariant() -eq "py.exe") {
-        Invoke-Checked -Command { & $basePython -3 -m venv .venv } -FailureMessage "Could not create .venv. Install Python 3.11-3.13 and retry."
+        Invoke-Checked -Command { & $basePython -3 -m venv .venv } -FailureMessage "Could not create .venv. Install Python 3.11.5-3.13 and retry."
     } else {
         Invoke-Checked -Command { & $basePython -m venv .venv } -FailureMessage "Could not create the .venv environment."
     }
@@ -308,7 +308,9 @@ if (-not $dependenciesReady) {
         Write-Host "Installing or repairing the locked project dependencies..."
     }
     Invoke-Checked -Command { & $virtualPython -m pip install --upgrade pip } -FailureMessage "Could not update pip. Check the internet connection and retry."
-    Invoke-Checked -Command { & $virtualPython -m pip install poetry==2.3.4 } -FailureMessage "Could not install Poetry 2.3.4."
+    # Poetry shares this environment, so its own dependencies (for example
+    # virtualenv) must stay compatible with newly locked packages for pip check.
+    Invoke-Checked -Command { & $virtualPython -m pip install --upgrade --upgrade-strategy eager poetry==2.3.4 } -FailureMessage "Could not install Poetry 2.3.4."
     $previousPoetrySetting = $env:POETRY_VIRTUALENVS_CREATE
     try {
         $env:POETRY_VIRTUALENVS_CREATE = "false"
