@@ -412,10 +412,11 @@ def test_approval_creates_append_only_audit_event_and_updates_signoff(isolated_a
 
         for checkbox in [item for item in app.checkbox if str(item.key).startswith("review_check_")]:
             checkbox.check().run(timeout=30)
-        app.text_input(key="approval_reviewer_name").set_value("Authorised Reviewer").run(timeout=30)
-        app.text_input(key="approval_reviewer_role").set_value("Preparedness lead").run(timeout=30)
-        app.text_input(key="approval_organisation_name").set_value("Test Council").run(timeout=30)
-        app.selectbox(key="approval_status").set_value("Approved by organisation").run(timeout=30)
+        # Approval fields are inside st.form: they commit together with the submit click, as in a browser.
+        app.text_input(key="approval_reviewer_name").set_value("Authorised Reviewer")
+        app.text_input(key="approval_reviewer_role").set_value("Preparedness lead")
+        app.text_input(key="approval_organisation_name").set_value("Test Council")
+        app.selectbox(key="approval_status").set_value("Approved by organisation")
         _button(app, "Update sign-off record").click().run(timeout=30)
 
     latest_path = Path(app.session_state["latest_audit_path"])
@@ -451,10 +452,10 @@ def test_blocked_approval_does_not_mutate_authoritative_review_state(isolated_ap
 
         for checkbox in [item for item in app.checkbox if str(item.key).startswith("review_check_")]:
             checkbox.check().run(timeout=30)
-        app.text_input(key="approval_reviewer_name").set_value("Uncommitted Reviewer").run(timeout=30)
-        app.text_input(key="approval_reviewer_role").set_value("Preparedness lead").run(timeout=30)
-        app.text_input(key="approval_organisation_name").set_value("Test Council").run(timeout=30)
-        app.selectbox(key="approval_status").set_value("Approved by organisation").run(timeout=30)
+        app.text_input(key="approval_reviewer_name").set_value("Uncommitted Reviewer")
+        app.text_input(key="approval_reviewer_role").set_value("Preparedness lead")
+        app.text_input(key="approval_organisation_name").set_value("Test Council")
+        app.selectbox(key="approval_status").set_value("Approved by organisation")
         _button(app, "Update sign-off record").click().run(timeout=30)
 
     assert not app.exception
