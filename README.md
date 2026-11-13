@@ -77,7 +77,7 @@ Important governance qualifications:
 
 ### Windows launcher
 
-Install [Python 3.11-3.13](https://www.python.org/downloads/windows/) and [Ollama](https://ollama.com/download/windows), then from the project folder double-click:
+Install [Python 3.11.5-3.13](https://www.python.org/downloads/windows/) and [Ollama](https://ollama.com/download/windows), then from the project folder double-click:
 
 ```text
 Start BushfireReadyGPT.bat
@@ -114,6 +114,8 @@ For Docker/Railway, CPU embeddings, private-corpus handling and the controlled-d
 ## Troubleshooting and verification
 
 - **Launcher or model issue:** confirm Python and Ollama are installed, then rerun `Start BushfireReadyGPT.bat`. See [local setup and deployment troubleshooting](docs/DEPLOYMENT.md).
+- **Dependency repair still failing after an update:** the launcher installs Poetry inside `.venv`, so `pip check` also covers Poetry's own packages. The repair step refreshes them; if it still fails, delete `.venv` and rerun the launcher to rebuild it from `poetry.lock`.
+- **Dependency advisories:** besides the per-push Tests workflow, a weekly [Dependency audit](https://github.com/shuxiachai/BushfireReadyGPT/actions/workflows/dependency-audit.yml) runs `pip-audit` on the locked environment for Python 3.11 and 3.13, so new advisories surface without a code change.
 - **No local RAG results:** build the index with the command above; RAG remains optional, and the application must not turn missing retrieval into invented evidence. Read the [RAG design and trust boundary](docs/rag.md).
 - **Data/map warning:** do not treat unavailable or unverified context as confirmed. Use the application's Evidence Trail and [data/architecture documentation](docs/architecture.md) to understand the boundary.
 - **Test the working tree:**

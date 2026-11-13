@@ -243,6 +243,43 @@ corpus hash. A changed corpus or CPU model requires an explicitly reviewed new
 generation; the service never silently downloads or overwrites it. Keep a
 protected backup of the bundle for disaster recovery.
 
+### Changing the CPU embedding runtime
+
+The CPU embedding identity includes the installed `fastembed` and `onnxruntime`
+versions as well as the model file hashes. A dependency update that changes
+either package therefore makes startup reject the existing generation
+(`rag_index_stale`). Railway stops the previous deployment before starting a
+volume-backed one, so merging such an update directly takes the service down.
+Build a separate generation before the merge instead:
+
+1. **Back up first.** The plan has no native backups, so:
+   - write a SQLite backup-API snapshot of `/data/model-usage.sqlite3` with
+     `railway ssh`;
+   - download `/data` with `railway volume files download`;
+   - verify file hashes, audit chains and quota rows locally.
+2. **Repackage the corpus.** Package the unchanged sources with
+   `scripts/prepare_private_corpus.py`. Its manifest binds the packaging index,
+   so the bundle gets a new hash and builds in a new `/data/private-rag/`
+   directory instead of colliding with the current one.
+3. **Prepare the context.** Run `scripts/prepare_railway_context.py` from the
+   committed pull-request head, so the image contains the new lock.
+4. **Deploy.** Set `BUSHFIRE_RAG_CORPUS_SHA256` to the new hash with
+   `railway variable set ... --skip-deploys`. Then upload the context with the
+   `railway up ... --path-as-root --no-gitignore` command from the first
+   private deployment above. Confirm `container_ready=true`, RAG `ready` and the
+   new corpus hash in the deploy log.
+5. **Merge.** The following GitHub deployment reuses the new generation,
+   because both images bind the same runtime versions. Do not push other
+   commits to `main` between the private deployment and the merge.
+
+Keep the previous generation until the new one has been reviewed. Rollback is
+two steps:
+1. restore the previous corpus hash, again with `--skip-deploys`;
+2. roll the service back to the last deployment built with the old runtime.
+
+The 2026-11-13 [deployment record](history/cloud-deployment-record.md#cloud-deployment-008)
+documents one completed run of this procedure.
+
 For a smaller Railway build, set `BUSHFIRE_INCLUDE_NATIONAL_MAP=false` before
 rebuilding. The Dockerfile declares this build argument. Resource requirements
 and cold-start duration must be measured on the selected Railway plan.

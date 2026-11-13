@@ -2247,6 +2247,21 @@ than 21.10 fails `pip check` against filelock 4.x; upgrading virtualenv in that
 environment resolves it. These checks are dependency, retrieval-regression and
 deployment evidence only; they establish no report-content acceptance or release.
 
+A same-day maintenance follow-up addresses the remaining gaps:
+
+- The supported Python floor is now 3.11.5. Every supported interpreter
+  therefore resolves soupsieve 4.1, which closes the Python 3.11 residual
+  advisory; the lock changed no other version. A local audit of the
+  resulting Python 3.11 package set reported no known vulnerabilities.
+- A weekly **Dependency audit** workflow runs `pip-audit` on the locked
+  environment for Python 3.11 and 3.13. It also runs on pull requests that
+  change dependencies.
+- The launcher's repair step now upgrades Poetry's own dependencies, keeping
+  tools such as virtualenv compatible with newly locked packages.
+- [DEPLOYMENT.md](DEPLOYMENT.md#changing-the-cpu-embedding-runtime) documents
+  the side-by-side generation procedure for future fastembed or onnxruntime
+  changes.
+
 ## Bottom Line
 
 Suitable for a controlled demonstration with explicit limitations, not an
