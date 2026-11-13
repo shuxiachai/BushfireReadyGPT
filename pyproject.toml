@@ -36,7 +36,7 @@ pytest-cov = ">=6.0,<8.0"
 ruff = ">=0.12,<1.0"
 bandit = ">=1.8,<2.0"
 pip-audit = ">=2.9,<3.0"
-setuptools = ">=83.0,<84.0"
+setuptools = ">=84.1.0,<85.0"
 
 [tool.ruff]
 line-length = 120
